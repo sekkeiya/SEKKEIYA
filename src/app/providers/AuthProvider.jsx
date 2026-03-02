@@ -1,9 +1,7 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/config/firebase/config"; // ← あなたの実パスに合わせる
-
-const AuthContext = createContext(null);
-
+import { auth } from "@/shared/config/firebase";
+import { AuthContext } from "@/features/auth/context/AuthContext";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -20,5 +18,3 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => useContext(AuthContext);

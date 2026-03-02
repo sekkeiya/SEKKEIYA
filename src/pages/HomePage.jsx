@@ -15,9 +15,9 @@ import {
 } from "@mui/material";
 
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthProvider";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import { signOut } from "firebase/auth";
-import { auth } from "@/config/firebase/config";
+import { auth } from "@/shared/config/firebase";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
@@ -28,7 +28,7 @@ import CloudRoundedIcon from "@mui/icons-material/CloudRounded";
 import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";
 import SlideshowRoundedIcon from "@mui/icons-material/SlideshowRounded";
 
-import SearchBar from "../components/SearchBar";
+import SearchBar from "@/features/search/components/SearchBar";
 
 const BRAND = {
   bg: "#0b0f16",
