@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "shapeshare3d"
+  },
+  "targets": {
+    "shapeshare3d": {
+      "hosting": {
+        "sekkeiya": [
+          "sekkeiya"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
