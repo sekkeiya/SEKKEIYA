@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AuthProvider } from "@/app/providers/AuthProvider";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
-import LogoutPage from "./pages/LogoutPage";
+import LogoutPage from "@/pages/LogoutPage";
 
 /**
  * DevOnlyExternalRedirect
@@ -36,8 +37,10 @@ export default function App() {
   const HOSTING_ORIGIN = "http://127.0.0.1:5000";
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/logout" element={<LogoutPage />} />
@@ -75,6 +78,8 @@ export default function App() {
 
       {/* ✅ 404は / に戻してOK（ただし /app/... は上で捕まえる） */}
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

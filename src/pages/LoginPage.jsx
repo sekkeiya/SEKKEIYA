@@ -18,8 +18,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
 } from "firebase/auth";
-import { auth } from "@/config/firebase/config";
-import { useAuth } from "@/contexts/AuthProvider";
+import { auth } from "@/shared/config/firebase";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
 // ✅ return_to を安全に解釈する（open redirect対策）
 const getSafeReturnTo = (search) => {

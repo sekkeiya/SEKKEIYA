@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "@/config/firebase/config";
+import { auth, db } from "@/shared/config/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 // ✅ return_to を安全に解釈する（open redirect対策）
