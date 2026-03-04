@@ -16,8 +16,6 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "@/shared/config/firebase";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
@@ -27,20 +25,21 @@ import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import CloudRoundedIcon from "@mui/icons-material/CloudRounded";
 import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";
 import SlideshowRoundedIcon from "@mui/icons-material/SlideshowRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import FolderSharedRoundedIcon from "@mui/icons-material/FolderSharedRounded";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
+
+import sharePng from "@/assets/icons/share.png";
+import layoutPng from "@/assets/icons/layout.png";
+import presentsPng from "@/assets/icons/presents.png";
+import questPng from "@/assets/icons/quest.png";
 
 import SearchBar from "@/features/search/components/SearchBar";
-
-const BRAND = {
-  bg: "#0b0f16",
-  panel: "rgba(255,255,255,0.07)",
-  panel2: "rgba(255,255,255,0.09)",
-  line: "rgba(255,255,255,0.12)",
-  line2: "rgba(255,255,255,0.18)",
-  text: "rgba(255,255,255,0.92)",
-  sub: "rgba(255,255,255,0.68)",
-  sub2: "rgba(255,255,255,0.52)",
-  glow: "rgba(255,255,255,0.14)",
-};
+import { BRAND } from "../shared/ui/theme";
+import ToolCircle from "../shared/ui/ToolCircle";
+import LeftSidebar from "../shared/layout/LeftSidebar";
+import BottomBar from "../shared/layout/BottomBar";
+import TopRightMenu from "../shared/layout/TopRightMenu";
 
 function normalizeOrigin(origin) {
   if (!origin) return "";
@@ -51,8 +50,46 @@ function isAbsoluteUrl(s) {
   return /^https?:\/\//i.test(String(s || ""));
 }
 
+const ProjectView = ({ project, onClose }) => {
+  return (
+    <Box sx={{ p: { xs: 2, sm: 6 }, height: "100%", display: "flex", flexDirection: "column", animation: "fadeIn 0.3s ease-in-out", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 4, mt: 2 }}>
+        <IconButton onClick={onClose} sx={{ mr: 2, bgcolor: "rgba(255,255,255,0.05)", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}>
+          <ArrowBackRoundedIcon sx={{ color: "rgba(255,255,255,0.8)" }} />
+        </IconButton>
+        <Typography variant="h5" fontWeight={700} sx={{ flex: 1, color: "rgba(255,255,255,0.9)" }}>
+          {project.name}
+        </Typography>
+      </Box>
+      <Box 
+        sx={{ 
+          flex: 1, 
+          border: "2px dashed rgba(255,255,255,0.15)", 
+          borderRadius: 3, 
+          display: "flex", 
+          flexDirection: "column",
+          alignItems: "center", 
+          justifyContent: "center",
+          bgcolor: "rgba(255,255,255,0.02)",
+          gap: 2,
+        }}
+      >
+        {project.type === "public" ? (
+          <FolderSharedRoundedIcon sx={{ fontSize: 64, color: "rgba(255,255,255,0.2)" }} />
+        ) : (
+          <LockRoundedIcon sx={{ fontSize: 64, color: "rgba(255,255,255,0.2)" }} />
+        )}
+        <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 16 }}>
+          ここに「{project.name}」のプロジェクト画面が表示されます
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
 export default function HomePage() {
   const [q, setQ] = useState("");
+  const [selectedProject, setSelectedProject] = useState(null);
 
   const navigate = useNavigate();
 
@@ -60,11 +97,6 @@ export default function HomePage() {
 
   // ✅ xs では左サイドバーをボトムバーに切替
   const isMobile = useMediaQuery("(max-width:600px)");
-
-
-
-  const loginUrl = "https://sekkeiya.com/login?return_to=%2Fdashboard";
-  const signupUrl = "https://sekkeiya.com/signup?return_to=%2Fdashboard";
 
   // ✅ ローカルは別ポート運用（5174/5175）、本番は /app/... 運用
   const isDev = import.meta.env.DEV;
@@ -80,28 +112,36 @@ export default function HomePage() {
         key: "3dss",
         label: "3D Shape Share",
         sub: "クラウドストレージ",
-        icon: <CloudRoundedIcon />,
-        href: "/app/share/",
+        icon: <img src={sharePng} alt="3DSS" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
+        href: user ? "/app/share/dashboard" : "/app/share/",
         badge: "開発中",
       },
       {
         key: "3dsl",
         label: "3D Shape Layout",
         sub: "レイアウト / 配置",
-        icon: <ViewInArRoundedIcon />,
-        href: "/app/layout/",
+        icon: <img src={layoutPng} alt="3DSL" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
+        href: user ? "/app/layout/dashboard" : "/app/layout/",
         badge: "開発中",
       },
       {
         key: "3dsp",
         label: "3D Shape Presents",
         sub: "プレゼン / 資料作成",
-        icon: <SlideshowRoundedIcon />,
-        href: "/app/presents/",
+        icon: <img src={presentsPng} alt="3DSP" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
+        href: "/app/presents/", // Presentsはまだダッシュボードがない想定
+        badge: "開発予定",
+      },
+      {
+        key: "3dsq",
+        label: "3D Shape Quest",
+        sub: "探求 / クエスト",
+        icon: <img src={questPng} alt="3DSQ" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
+        href: "/app/quest/", // Quest用のダッシュボード等は今後実装
         badge: "開発予定",
       },
     ],
-    []
+    [user]
   );
 
   // ✅ ここを true にすると「ツールはログイン必須」運用に切替できる
@@ -119,14 +159,8 @@ export default function HomePage() {
         return;
       }
 
-      // ✅ /app/... は別SPA（proxy or Hosting）なのでフル遷移が安全
-      if (tool.href.startsWith("/app/")) {
-        window.location.assign(tool.href);
-        return;
-      }
-
-      // ✅ それ以外は通常の SPA 遷移
-      navigate(tool.href);
+      // ✅ 常に別タブで開く
+      window.open(tool.href, "_blank");
     },
     [navigate, user, requireAuthForTools]
   );
@@ -141,127 +175,36 @@ export default function HomePage() {
     [q]
   );
 
-  const onLogout = useCallback(async () => {
-    try {
-      await signOut(auth);
-      window.location.assign("/");
-    } catch (e) {
-      console.error("[HomePage] signOut failed:", e);
-      window.location.assign("/");
-    }
-  }, []);
-
   // ✅ モバイル時は下にボトムバーが来るので padding を確保
   const mobileBottomSafe = isMobile ? 84 : 0;
 
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        height: "100vh",
+        overflow: "hidden",
         bgcolor: BRAND.bg,
         color: BRAND.text,
         display: "flex",
         backgroundImage:
           "radial-gradient(60% 50% at 50% 35%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.00) 55%)",
-        pb: `${mobileBottomSafe}px`,
       }}
     >
       {/* ===== Left Sidebar (Desktop) / Bottom Bar (Mobile) ===== */}
-      {isMobile ? <BottomBar /> : <LeftSidebar />}
+      {isMobile ? <BottomBar /> : <LeftSidebar onSelectProject={setSelectedProject} />}
 
       {/* ===== Main ===== */}
-      <Box sx={{ flex: 1, position: "relative" }}>
-        {/* Right top buttons */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: { xs: 10, sm: 16 },
-            right: { xs: 10, sm: 16 },
-            display: "flex",
-            gap: 1,
-            zIndex: 20,
-          }}
-        >
-          {user ? (
-            <>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => openTool({ href: tools.find((t) => t.key === "3dss")?.href })}
-                sx={{
-                  color: BRAND.text,
-                  borderColor: BRAND.line,
-                  bgcolor: "rgba(255,255,255,0.04)",
-                  borderRadius: 999,
-                  px: { xs: 1.4, sm: 2 },
-                  minWidth: 0,
-                  "&:hover": {
-                    bgcolor: "rgba(255,255,255,0.08)",
-                    borderColor: BRAND.line,
-                  },
-                }}
-              >
-                ダッシュボード
-              </Button>
+      <Box sx={{ flex: 1, position: "relative", overflowY: "auto", pb: `${mobileBottomSafe}px` }}>
+        {/* Right top buttons & Dialog */}
+        <TopRightMenu 
+          user={user} 
+          onDashboardClick={() => openTool({ href: tools.find((t) => t.key === "3dss")?.href })} 
+        />
 
-              <Button
-                variant="contained"
-                size="small"
-                onClick={onLogout}
-                sx={{
-                  color: "#0b0f16",
-                  bgcolor: "rgba(255,255,255,0.88)",
-                  borderRadius: 999,
-                  px: { xs: 1.4, sm: 2 },
-                  minWidth: 0,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.95)" },
-                }}
-              >
-                ログアウト
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => window.location.assign(loginUrl)}
-                sx={{
-                  color: BRAND.text,
-                  borderColor: BRAND.line,
-                  bgcolor: "rgba(255,255,255,0.04)",
-                  borderRadius: 999,
-                  px: { xs: 1.4, sm: 2 },
-                  minWidth: 0,
-                  "&:hover": {
-                    bgcolor: "rgba(255,255,255,0.08)",
-                    borderColor: BRAND.line,
-                  },
-                }}
-              >
-                サインイン
-              </Button>
-
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => window.location.assign(signupUrl)}
-                sx={{
-                  color: "#0b0f16",
-                  bgcolor: "rgba(255,255,255,0.88)",
-                  borderRadius: 999,
-                  px: { xs: 1.4, sm: 2 },
-                  minWidth: 0,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.95)" },
-                }}
-              >
-                サインアップ
-              </Button>
-            </>
-          )}
-        </Box>
-
-        <Container
+        {selectedProject ? (
+          <ProjectView project={selectedProject} onClose={() => setSelectedProject(null)} />
+        ) : (
+          <Container
           maxWidth="md"
           sx={{
             minHeight: "100vh",
@@ -301,9 +244,9 @@ export default function HomePage() {
                   fontSize: { xs: 13, sm: 14.5 },
                 }}
               >
-                レイアウト、3D、パース、動画、資料、見積もり。
+                3Dモデル管理、レイアウト、パース、動画、プレゼン、見積もり
                 <br />
-                設計に必要なすべてを内包し、会話するだけで最適解を導くAI設計ワークスペース。
+                設計に必要なすべてを内包し、会話するだけで成長し最適解を導くAI設計ワークスペース
               </Typography>
 
               {/* Input */}
@@ -327,302 +270,9 @@ export default function HomePage() {
             </Stack>
           </Box>
         </Container>
+        )}
       </Box>
     </Box>
   );
-
-  // ===== Desktop Left Sidebar =====
-  function LeftSidebar() {
-    return (
-      <Box
-        sx={{
-          width: 72,
-          borderRight: `1px solid ${BRAND.line}`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          py: 1.75,
-          gap: 1,
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-        }}
-      >
-        <Box
-          sx={{
-            width: 32,
-            height: 32,
-            borderRadius: 1.5,
-            bgcolor: BRAND.panel2,
-            border: `1px solid ${BRAND.line}`,
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 900,
-            letterSpacing: 0.3,
-            fontSize: 14,
-          }}
-        >
-          S
-        </Box>
-
-        <Tooltip title="New" placement="right">
-          <IconButton
-            sx={{
-              mt: 0.25,
-              width: 42,
-              height: 42,
-              bgcolor: BRAND.panel,
-              border: `1px solid ${BRAND.line}`,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.11)" },
-            }}
-          >
-            <AddRoundedIcon sx={{ color: BRAND.text }} />
-          </IconButton>
-        </Tooltip>
-
-        <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
-
-        <NavIcon icon={<HomeRoundedIcon />} label="ホーム" active />
-        <NavIcon icon={<HubRoundedIcon />} label="ハブ" />
-        <NavIcon icon={<FolderRoundedIcon />} label="AIドライブ" />
-
-        <Box sx={{ flex: 1 }} />
-
-        <Box
-          sx={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            bgcolor: "rgba(0, 180, 255, 0.18)",
-            border: `1px solid rgba(0, 180, 255, 0.32)`,
-            mb: 1,
-          }}
-        />
-      </Box>
-    );
-  }
-
-  // ===== Mobile Bottom Bar =====
-  function BottomBar() {
-    return (
-      <Box
-        sx={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 72,
-          borderTop: `1px solid ${BRAND.line}`,
-          bgcolor: "rgba(11,15,22,0.72)",
-          backdropFilter: "blur(10px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-around",
-          zIndex: 10,
-          px: 1,
-        }}
-      >
-        <BottomIcon icon={<HomeRoundedIcon />} label="ホーム" active />
-        <BottomIcon icon={<HubRoundedIcon />} label="ハブ" />
-        <BottomIcon icon={<FolderRoundedIcon />} label="AIドライブ" />
-
-        <Tooltip title="New" placement="top">
-          <IconButton
-            sx={{
-              width: 44,
-              height: 44,
-              bgcolor: BRAND.panel,
-              border: `1px solid ${BRAND.line}`,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.11)" },
-            }}
-          >
-            <AddRoundedIcon sx={{ color: BRAND.text }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    );
-  }
-
-  function BottomIcon({ icon, label, active = false }) {
-    return (
-      <Tooltip title={label} placement="top">
-        <IconButton
-          sx={{
-            width: 44,
-            height: 44,
-            color: "rgba(255,255,255,0.85)",
-            bgcolor: active ? "rgba(255,255,255,0.08)" : "transparent",
-            border: `1px solid ${
-              active ? "rgba(255,255,255,0.16)" : "transparent"
-            }`,
-            "&:hover": {
-              bgcolor: "rgba(255,255,255,0.06)",
-              borderColor: "rgba(255,255,255,0.10)",
-            },
-          }}
-        >
-          {React.cloneElement(icon, {
-            sx: { color: "rgba(255,255,255,0.88)" },
-          })}
-        </IconButton>
-      </Tooltip>
-    );
-  }
 }
 
-function NavIcon({ icon, label, active = false }) {
-  return (
-    <Tooltip title={label} placement="right">
-      <IconButton
-        sx={{
-          width: 42,
-          height: 42,
-          color: "rgba(255,255,255,0.85)",
-          bgcolor: active ? "rgba(255,255,255,0.08)" : "transparent",
-          border: `1px solid ${
-            active ? "rgba(255,255,255,0.16)" : "transparent"
-          }`,
-          "&:hover": {
-            bgcolor: "rgba(255,255,255,0.06)",
-            borderColor: "rgba(255,255,255,0.10)",
-          },
-        }}
-      >
-        {React.cloneElement(icon, {
-          sx: { color: "rgba(255,255,255,0.86)" },
-        })}
-      </IconButton>
-    </Tooltip>
-  );
-}
-
-function ToolCircle({ tool, onOpen }) {
-  const disabled = !tool?.href;
-
-  const handleKeyDown = (e) => {
-    if (disabled) return;
-    if (e.key === "Enter" || e.key === " ") onOpen?.();
-  };
-
-  return (
-    <Tooltip title={disabled ? "開発予定です" : "開く"} placement="bottom" arrow>
-      <Box
-        sx={{
-          width: { xs: 132, sm: 150 },
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 0.8,
-          userSelect: "none",
-          opacity: disabled ? 0.55 : 1,
-        }}
-      >
-        <ButtonBase
-          onClick={disabled ? undefined : onOpen}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          focusRipple
-          sx={{
-            width: "100%",
-            borderRadius: 2,
-            outline: "none",
-            "&:focus-visible .toolCircleBtn": {
-              boxShadow: "0 0 0 3px rgba(255,255,255,0.18)",
-            },
-          }}
-        >
-          <Box
-            sx={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 0.8,
-              cursor: disabled ? "not-allowed" : "pointer",
-              py: 0.5,
-            }}
-          >
-            <Box
-              className="toolCircleBtn"
-              sx={{
-                mt: { xs: 2.2, sm: 3 },
-                width: 54,
-                height: 54,
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                bgcolor: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                transition:
-                  "transform 140ms ease, background 140ms ease, box-shadow 140ms ease",
-                ...(disabled
-                  ? {}
-                  : {
-                      "&:hover": {
-                        transform: "translateY(-2px)",
-                        bgcolor: "rgba(255,255,255,0.11)",
-                      },
-                      "&:active": {
-                        transform: "translateY(0px) scale(0.98)",
-                      },
-                    }),
-              }}
-            >
-              {React.cloneElement(tool.icon, {
-                sx: { color: "rgba(255,255,255,0.9)" },
-              })}
-            </Box>
-
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: 850,
-                textAlign: "center",
-                lineHeight: 1.15,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                minHeight: 28,
-              }}
-            >
-              {tool.label}
-            </Typography>
-
-            <Typography
-              variant="caption"
-              sx={{
-                opacity: 0.65,
-                mt: -1.5,
-                textAlign: "center",
-                lineHeight: 1.15,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                minHeight: 28,
-              }}
-            >
-              {tool.sub}
-            </Typography>
-
-            <Chip
-              size="small"
-              label={tool.badge}
-              variant="outlined"
-              sx={{
-                height: 20,
-                fontSize: 11,
-                px: 0.25,
-                mt: -1.15,
-                color: "rgba(255,255,255,0.78)",
-                borderColor: "rgba(255,255,255,0.18)",
-                bgcolor: "rgba(255,255,255,0.03)",
-              }}
-            />
-          </Box>
-        </ButtonBase>
-      </Box>
-    </Tooltip>
-  );
-}
