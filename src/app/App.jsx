@@ -20,7 +20,31 @@ function DevOnlyExternalRedirect({ toOrigin, matchPrefix }) {
   useEffect(() => {
     // ✅ Vite dev判定（確実）
     const isViteDev = import.meta?.env?.DEV;
-    if (!isViteDev) return;
+
+    if (!isViteDev) {
+      // 本番環境（Firebase等）でここが実行された場合、古いServiceWorkerが
+      // 誤ってSEKKEIYAのindex.htmlを返している可能性が極めて高い。
+      // SWを強制解除してから画面をリロードする。
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => Promise.all(registrations.map(r => r.unregister())))
+          .then(() => {
+            if (!loc.search.includes('_sw_reload=')) {
+              window.location.replace(`${loc.pathname}?_sw_reload=${Date.now()}${loc.hash}`);
+            }
+          })
+          .catch(() => {
+            if (!loc.search.includes('_sw_reload=')) {
+              window.location.replace(`${loc.pathname}?_sw_reload=${Date.now()}${loc.hash}`);
+            }
+          });
+      } else {
+        if (!loc.search.includes('_sw_reload=')) {
+          window.location.replace(`${loc.pathname}?_sw_reload=${Date.now()}${loc.hash}`);
+        }
+      }
+      return;
+    }
 
     // ✅ 意図したパスだけリダイレクト（事故防止）
     if (!loc.pathname.startsWith(matchPrefix)) return;
@@ -28,6 +52,18 @@ function DevOnlyExternalRedirect({ toOrigin, matchPrefix }) {
     const target = `${toOrigin}${loc.pathname}${loc.search}${loc.hash}`;
     window.location.assign(target);
   }, [loc.pathname, loc.search, loc.hash, toOrigin, matchPrefix]);
+
+  const isViteDev = import.meta?.env?.DEV;
+  if (!isViteDev) {
+    return (
+      <div style={{ display: "grid", placeItems: "center", minHeight: "100vh", background: "#0b0f16", color: "#fff", fontFamily: "sans-serif" }}>
+        <div style={{ textAlign: "center" }}>
+          <h2>画面を更新しています...</h2>
+          <p style={{ opacity: 0.7 }}>古いキャッシュをクリアしています。<br/>自動で切り替わらない場合は <b>Ctrl + Shift + R</b> を押してください。</p>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 }

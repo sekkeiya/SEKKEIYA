@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { auth, db } from "@/shared/config/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
@@ -81,8 +81,19 @@ export default function SignupPage() {
           console.warn("[Signup] failed to create users doc:", e2);
         }
 
-        // ✅ 外部URLなら location で遷移（別オリジンへ戻す）
-        if (typeof returnTo === "string" && returnTo.startsWith("http")) {
+        // 確認メールを送信する
+        try {
+          const actionCodeSettings = {
+            url: `${window.location.origin}/app/share/auth/verify-finish`,
+            handleCodeInApp: false,
+          };
+          await sendEmailVerification(cred.user, actionCodeSettings);
+        } catch (e3) {
+          console.warn("[Signup] failed to send verification email:", e3);
+        }
+
+        // ✅ 外部URLまたは別SPA（/app/）なら location で遷移
+        if (typeof returnTo === "string" && (returnTo.startsWith("http") || returnTo.startsWith("/app/"))) {
           window.location.assign(returnTo);
           return;
         }

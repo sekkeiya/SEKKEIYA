@@ -14,7 +14,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/shared/config/firebase";
@@ -55,26 +55,16 @@ export default function HomePage() {
   const [q, setQ] = useState("");
 
   const navigate = useNavigate();
-  const location = useLocation();
+
   const { user } = useAuth();
 
   // ✅ xs では左サイドバーをボトムバーに切替
   const isMobile = useMediaQuery("(max-width:600px)");
 
-  // ✅ 今いる場所に戻す（return_to）
-  const returnTo = useMemo(() => {
-    const p = `${location.pathname || "/"}${location.search || ""}`;
-    return p.startsWith("/") ? p : "/";
-  }, [location.pathname, location.search]);
 
-  const loginUrl = useMemo(
-    () => `/login?return_to=${encodeURIComponent(returnTo)}`,
-    [returnTo]
-  );
-  const signupUrl = useMemo(
-    () => `/signup?return_to=${encodeURIComponent(returnTo)}`,
-    [returnTo]
-  );
+
+  const loginUrl = "https://sekkeiya.com/login?return_to=%2Fdashboard";
+  const signupUrl = "https://sekkeiya.com/signup?return_to=%2Fdashboard";
 
   // ✅ ローカルは別ポート運用（5174/5175）、本番は /app/... 運用
   const isDev = import.meta.env.DEV;
@@ -235,7 +225,7 @@ export default function HomePage() {
               <Button
                 variant="outlined"
                 size="small"
-                onClick={() => navigate(loginUrl)}
+                onClick={() => window.location.assign(loginUrl)}
                 sx={{
                   color: BRAND.text,
                   borderColor: BRAND.line,
@@ -255,7 +245,7 @@ export default function HomePage() {
               <Button
                 variant="contained"
                 size="small"
-                onClick={() => navigate(signupUrl)}
+                onClick={() => window.location.assign(signupUrl)}
                 sx={{
                   color: "#0b0f16",
                   bgcolor: "rgba(255,255,255,0.88)",

@@ -57,33 +57,33 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ 外部URLなら location、同一なら navigate
+  // ✅ 外部URLまたは別SPA（/app/）なら location、同一SPAなら navigate
   const goReturnTo = useCallback(() => {
-    if (typeof returnTo === "string" && returnTo.startsWith("http")) {
+    if (typeof returnTo === "string" && (returnTo.startsWith("http") || returnTo.startsWith("/app/"))) {
       window.location.assign(returnTo);
       return;
     }
     navigate(returnTo, { replace: true });
   }, [navigate, returnTo]);
 
-  // ✅ Google redirectで戻ってきた結果を確定（1回だけ）
+  // ✅ React 18 Strict Mode による getRedirectResult の重複呼び出しバグ（INTERNAL ASSERTION FAILED）を防ぐ
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
-      try {
-        const res = await getRedirectResult(auth);
-        // res が取れても取れなくてもOK（既にAuth状態は復元されることが多い）
-        if (!cancelled && res?.user) {
-          // ここで user が確定したケースは即遷移してよい
-          goReturnTo();
-        }
-      } catch (e) {
-        // redirect結果が無い/失敗しても、通常は onAuthStateChanged 側で user が入る
-        // なので致命ではない
+    if (!window._firebaseRedirectPromise) {
+      window._firebaseRedirectPromise = getRedirectResult(auth).catch((e) => {
         console.warn("[LoginPage] getRedirectResult failed:", e);
+        return null;
+      });
+    }
+
+    window._firebaseRedirectPromise.then((res) => {
+      // res が取れても取れなくてもOK（既にAuth状態は復元されることが多い）
+      if (!cancelled && res?.user) {
+        // ここで user が確定したケースは即遷移してよい
+        goReturnTo();
       }
-    })();
+    });
 
     return () => {
       cancelled = true;
@@ -120,6 +120,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // ✅ 念のため getRedirectResult の完了を待機し、内部の Promise 競合（INTERNAL ASSERTION FAILED）を防ぐ
+      if (window._firebaseRedirectPromise) {
+        await window._firebaseRedirectPromise;
+      }
+
       const provider = new GoogleAuthProvider();
       // 任意：追加スコープやパラメータ
       provider.setCustomParameters({ prompt: "select_account" });
