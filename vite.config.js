@@ -16,20 +16,16 @@ export default defineConfig({
     proxy: {
       // 3DSS (5174) を /app/share 配下に見せる
       "/app/share": {
-        target: "http://localhost:5174",
+        target: "http://127.0.0.1:5174",
         changeOrigin: true,
         ws: true,
-        // ✅ /app/share を剥がして 5174 の / に渡す
-        rewrite: (p) => p.replace(/^\/app\/share/, ""),
       },
 
       // 3DSL (5175) を /app/layout 配下に見せる
       "/app/layout": {
-        target: "http://localhost:5175",
+        target: "http://127.0.0.1:5175",
         changeOrigin: true,
         ws: true,
-        // ✅ /app/layout を剥がして 5175 の / に渡す
-        rewrite: (p) => p.replace(/^\/app\/layout/, ""),
       },
     },
   },

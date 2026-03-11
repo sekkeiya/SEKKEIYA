@@ -1,69 +1,49 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/app/providers/AuthProvider";
-import HomePage from "@/pages/HomePage";
+import LandingLayout from "@/shared/layout/LandingLayout";
+import AppLayout from "@/shared/layout/AppLayout";
+import LandingPage from "@/pages/LandingPage";
+import DashboardHome from "@/pages/DashboardHome";
+import ProjectHomePlaceholder from "@/pages/ProjectHomePlaceholder";
+import DrivePage from "@/features/drive/DrivePage";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import LogoutPage from "@/pages/LogoutPage";
+import ProjectBoardIframePage from "@/pages/ProjectBoardIframePage";
 
-/**
- * DevOnlyExternalRedirect
- * - Vite dev (localhost:517x) では Firebase Hosting の rewrite が効かない
- * - /app/share など “Hosting側で配信する別SPA” は Hosting Emulator にフル遷移させる
- *
- * 本番では /app/share/** は Hosting が 3DSS の index.html を返すので、
- * このコンポーネントが実行されるケースは基本ない（= OK）。
- */
-function DevOnlyExternalRedirect({ toOrigin, matchPrefix }) {
+// 外部 (3DSS等) へのリダイレクト。
+// React RouterのSPA遷移を抜け出してハードリロードすることで、
+// ViteのプロキシやFirebase HostingのRewriteを発火させる。
+function ExternalAppRedirect({ matchPrefix }) {
   const loc = useLocation();
 
   useEffect(() => {
-    // ✅ Vite dev判定（確実）
-    const isViteDev = import.meta?.env?.DEV;
-
-    if (!isViteDev) {
-      // 本番環境（Firebase等）でここが実行された場合、古いServiceWorkerが
-      // 誤ってSEKKEIYAのindex.htmlを返している可能性が極めて高い。
-      // SWを強制解除してから画面をリロードする。
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.getRegistrations()
-          .then((registrations) => Promise.all(registrations.map(r => r.unregister())))
-          .then(() => {
-            if (!loc.search.includes('_sw_reload=')) {
-              window.location.replace(`${loc.pathname}?_sw_reload=${Date.now()}${loc.hash}`);
-            }
-          })
-          .catch(() => {
-            if (!loc.search.includes('_sw_reload=')) {
-              window.location.replace(`${loc.pathname}?_sw_reload=${Date.now()}${loc.hash}`);
-            }
-          });
-      } else {
-        if (!loc.search.includes('_sw_reload=')) {
-          window.location.replace(`${loc.pathname}?_sw_reload=${Date.now()}${loc.hash}`);
-        }
-      }
+    if (!loc.pathname.startsWith(matchPrefix)) return;
+    
+    // 無限リロード防止（3DSSなどの別サーバーがダウンしている場合への対策）
+    const storageKey = "redir_count_" + matchPrefix;
+    const count = parseInt(sessionStorage.getItem(storageKey) || "0", 10);
+    
+    if (count > 1) {
+      // 一定回数以上リロードが続いたらエラーメッセージを表示して停止
+      document.body.innerHTML = `
+        <div style="font-family: sans-serif; padding: 40px; text-align: center; color: #fff; background: #111; min-height: 100vh;">
+          <h2>⚠️ サーバー接続エラー</h2>
+          <p><strong>${matchPrefix}</strong> に対応する開発サーバー（例：3DSSのポート5174）が起動していません。</p>
+          <p>別のターミナルで該当アプリの <code>npm run dev</code> を立ち上げてから、リロードしてください。</p>
+          <button onclick="sessionStorage.removeItem('${storageKey}'); window.location.reload();" style="margin-top:20px; padding: 10px 20px; cursor: pointer;">再試行</button>
+        </div>
+      `;
       return;
     }
+    
+    sessionStorage.setItem(storageKey, count + 1);
 
-    // ✅ 意図したパスだけリダイレクト（事故防止）
-    if (!loc.pathname.startsWith(matchPrefix)) return;
-
-    const target = `${toOrigin}${loc.pathname}${loc.search}${loc.hash}`;
-    window.location.assign(target);
-  }, [loc.pathname, loc.search, loc.hash, toOrigin, matchPrefix]);
-
-  const isViteDev = import.meta?.env?.DEV;
-  if (!isViteDev) {
-    return (
-      <div style={{ display: "grid", placeItems: "center", minHeight: "100vh", background: "#0b0f16", color: "#fff", fontFamily: "sans-serif" }}>
-        <div style={{ textAlign: "center" }}>
-          <h2>画面を更新しています...</h2>
-          <p style={{ opacity: 0.7 }}>古いキャッシュをクリアしています。<br/>自動で切り替わらない場合は <b>Ctrl + Shift + R</b> を押してください。</p>
-        </div>
-      </div>
-    );
-  }
+    // クエリパラメータから _sw_reload 等のゴミを消して純粋なURLにする
+    const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+    window.location.assign(cleanUrl);
+  }, [loc.pathname, loc.hash, matchPrefix]);
 
   return null;
 }
@@ -76,40 +56,38 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          {/* Landing Pages */}
+          <Route path="/" element={<LandingLayout />}>
+            <Route index element={<LandingPage />} />
+          </Route>
+
+          {/* Dashboard App Pages */}
+          <Route path="/dashboard" element={<AppLayout />}>
+            <Route index element={<DashboardHome />} />
+            <Route path="drive" element={<DrivePage />} />
+            <Route path="projects/:id" element={<ProjectHomePlaceholder />} />
+          </Route>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/logout" element={<LogoutPage />} />
 
+      {/* Embedded Project Board for cross-app iframe sharing */}
+      <Route path="/embed/board/:boardId" element={<ProjectBoardIframePage />} />
+
       {/* ✅ 重要：/app/share を * で潰さない */}
       <Route
         path="/app/share/*"
-        element={
-          <DevOnlyExternalRedirect
-            toOrigin={HOSTING_ORIGIN}
-            matchPrefix="/app/share"
-          />
-        }
+        element={<ExternalAppRedirect matchPrefix="/app/share" />}
       />
 
       {/* （将来）layout/presents も同様に */}
       <Route
         path="/app/layout/*"
-        element={
-          <DevOnlyExternalRedirect
-            toOrigin={HOSTING_ORIGIN}
-            matchPrefix="/app/layout"
-          />
-        }
+        element={<ExternalAppRedirect matchPrefix="/app/layout" />}
       />
       <Route
         path="/app/presents/*"
-        element={
-          <DevOnlyExternalRedirect
-            toOrigin={HOSTING_ORIGIN}
-            matchPrefix="/app/presents"
-          />
-        }
+        element={<ExternalAppRedirect matchPrefix="/app/presents" />}
       />
 
       {/* ✅ 404は / に戻してOK（ただし /app/... は上で捕まえる） */}

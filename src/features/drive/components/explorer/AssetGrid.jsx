@@ -1,0 +1,55 @@
+import React from "react";
+import { Box, Typography, Grid } from "@mui/material";
+import { useDriveStore } from "../../store/useDriveStore";
+import FolderCard from "./FolderCard";
+import AssetCard from "./AssetCard";
+
+export default function AssetGrid() {
+  const { folders, assets, currentFolderId } = useDriveStore();
+
+  // Filter items that belong to the current folder view
+  const displayFolders = folders.filter((f) => f.parentId === currentFolderId && !f.isDeleted);
+  const displayAssets = assets.filter((a) => a.folderId === currentFolderId && !a.isDeleted);
+
+  const isEmpty = displayFolders.length === 0 && displayAssets.length === 0;
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {displayFolders.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: 700, letterSpacing: 1, mb: 1.5, display: "block" }}>
+            フォルダ
+          </Typography>
+          <Grid container spacing={2}>
+            {displayFolders.map((folder) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={folder.id}>
+                <FolderCard folder={folder} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {displayAssets.length > 0 && (
+        <Box>
+          <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: 700, letterSpacing: 1, mb: 1.5, display: "block" }}>
+            ファイル
+          </Typography>
+          <Grid container spacing={2}>
+            {displayAssets.map((asset) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={asset.id}>
+                <AssetCard asset={asset} />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
+      {isEmpty && (
+        <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", opacity: 0.3 }}>
+          <Typography sx={{ mt: 2, fontWeight: 600 }}>このフォルダは空です</Typography>
+        </Box>
+      )}
+    </Box>
+  );
+}
