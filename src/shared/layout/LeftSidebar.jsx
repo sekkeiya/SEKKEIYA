@@ -48,7 +48,7 @@ const LayoutIcon = () => <AppImageIcon src={layoutPng} alt="3DSL" />;
 const PresentsIcon = () => <AppImageIcon src={presentsPng} alt="3DSP" />;
 const QuestIcon = () => <AppImageIcon src={questPng} alt="3DSQ" />;
 
-const MiniSidebar = ({ onToggle, isExpanded, sekkeiyaHref, shareHref, layoutHref, presentsHref, questHref }) => (
+const MiniSidebar = ({ onToggle, isExpanded, activeTab, onSelectTab, sekkeiyaHref, shareHref, layoutHref, presentsHref, questHref }) => (
   <Box
     sx={{
       width: 72,
@@ -111,9 +111,9 @@ const MiniSidebar = ({ onToggle, isExpanded, sekkeiyaHref, shareHref, layoutHref
 
     <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
 
-    <NavIcon icon={<HomeRoundedIcon />} label="ホーム" active />
-    <NavIcon icon={<HubRoundedIcon />} label="ハブ" />
-    <NavIcon icon={<FolderRoundedIcon />} label="AIドライブ" />
+    <NavIcon icon={<HomeRoundedIcon />} label="ホーム" active={activeTab === "home"} onClick={() => onSelectTab("home")} />
+    <NavIcon icon={<HubRoundedIcon />} label="ハブ" active={activeTab === "hub"} onClick={() => onSelectTab("hub")} />
+    <NavIcon icon={<FolderRoundedIcon />} label="AIドライブ" active={activeTab === "drive"} onClick={() => onSelectTab("drive")} />
 
     <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
 
@@ -198,7 +198,7 @@ const ExpandedSidebarItem = ({ icon, label, href, onClick, onDelete }) => {
   );
 };
 
-const ExpandedSidebar = ({ onClose, projects, onCreateProject, onDeleteProject, onSelectProject }) => (
+const ExpandedSidebar = ({ onClose, projects, onCreateProject, onDeleteProject, onSelectProject, activeTab, onSelectTab }) => (
   <Box
     sx={{
       width: 240,
@@ -221,9 +221,9 @@ const ExpandedSidebar = ({ onClose, projects, onCreateProject, onDeleteProject, 
 
     <Divider sx={{ opacity: 0.1, my: 1, mx: 2 }} />
 
-    <ExpandedSidebarItem icon={<HomeRoundedIcon sx={{ fontSize: 20 }} />} label="ホーム" />
-    <ExpandedSidebarItem icon={<HubRoundedIcon sx={{ fontSize: 20 }} />} label="ハブ" />
-    <ExpandedSidebarItem icon={<FolderRoundedIcon sx={{ fontSize: 20 }} />} label="AIドライブ" />
+    <ExpandedSidebarItem icon={<HomeRoundedIcon sx={{ fontSize: 20 }} />} label="ホーム" onClick={() => onSelectTab("home")} />
+    <ExpandedSidebarItem icon={<HubRoundedIcon sx={{ fontSize: 20 }} />} label="ハブ" onClick={() => onSelectTab("hub")} />
+    <ExpandedSidebarItem icon={<FolderRoundedIcon sx={{ fontSize: 20 }} />} label="AIドライブ" onClick={() => onSelectTab("drive")} />
 
     <Divider sx={{ opacity: 0.1, my: 1.5, mx: 2 }} />
     
@@ -261,7 +261,7 @@ const ExpandedSidebar = ({ onClose, projects, onCreateProject, onDeleteProject, 
   </Box>
 );
 
-export default function LeftSidebar({ onSelectProject }) {
+export default function LeftSidebar({ onSelectProject, activeTab, onSelectTab }) {
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const [projects, setProjects] = useState([
@@ -303,6 +303,8 @@ export default function LeftSidebar({ onSelectProject }) {
       <MiniSidebar
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
+        activeTab={activeTab}
+        onSelectTab={onSelectTab}
         sekkeiyaHref={sekkeiyaHref}
         shareHref={shareHref}
         layoutHref={layoutHref}
@@ -317,6 +319,8 @@ export default function LeftSidebar({ onSelectProject }) {
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}
           onSelectProject={onSelectProject}
+          activeTab={activeTab}
+          onSelectTab={onSelectTab}
         />
       )}
     </Box>

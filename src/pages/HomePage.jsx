@@ -40,6 +40,7 @@ import ToolCircle from "../shared/ui/ToolCircle";
 import LeftSidebar from "../shared/layout/LeftSidebar";
 import BottomBar from "../shared/layout/BottomBar";
 import TopRightMenu from "../shared/layout/TopRightMenu";
+import DrivePage from "@/features/drive/DrivePage";
 
 function normalizeOrigin(origin) {
   if (!origin) return "";
@@ -52,36 +53,17 @@ function isAbsoluteUrl(s) {
 
 const ProjectView = ({ project, onClose }) => {
   return (
-    <Box sx={{ p: { xs: 2, sm: 6 }, height: "100%", display: "flex", flexDirection: "column", animation: "fadeIn 0.3s ease-in-out", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } } }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 4, mt: 2 }}>
-        <IconButton onClick={onClose} sx={{ mr: 2, bgcolor: "rgba(255,255,255,0.05)", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", animation: "fadeIn 0.3s ease-in-out", "@keyframes fadeIn": { from: { opacity: 0 }, to: { opacity: 1 } } }}>
+      <Box sx={{ display: "flex", alignItems: "center", p: 2, borderBottom: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel }}>
+        <IconButton onClick={onClose} sx={{ mr: 2 }}>
           <ArrowBackRoundedIcon sx={{ color: "rgba(255,255,255,0.8)" }} />
         </IconButton>
-        <Typography variant="h5" fontWeight={700} sx={{ flex: 1, color: "rgba(255,255,255,0.9)" }}>
+        <Typography variant="h6" fontWeight={700} sx={{ flex: 1, color: "rgba(255,255,255,0.9)" }}>
           {project.name}
         </Typography>
       </Box>
-      <Box 
-        sx={{ 
-          flex: 1, 
-          border: "2px dashed rgba(255,255,255,0.15)", 
-          borderRadius: 3, 
-          display: "flex", 
-          flexDirection: "column",
-          alignItems: "center", 
-          justifyContent: "center",
-          bgcolor: "rgba(255,255,255,0.02)",
-          gap: 2,
-        }}
-      >
-        {project.type === "public" ? (
-          <FolderSharedRoundedIcon sx={{ fontSize: 64, color: "rgba(255,255,255,0.2)" }} />
-        ) : (
-          <LockRoundedIcon sx={{ fontSize: 64, color: "rgba(255,255,255,0.2)" }} />
-        )}
-        <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 16 }}>
-          ここに「{project.name}」のプロジェクト画面が表示されます
-        </Typography>
+      <Box sx={{ flex: 1, overflow: "hidden" }}>
+        <DrivePage projectId={project.id} />
       </Box>
     </Box>
   );
@@ -89,7 +71,18 @@ const ProjectView = ({ project, onClose }) => {
 
 export default function HomePage() {
   const [q, setQ] = useState("");
+  const [activeView, setActiveView] = useState("home");
   const [selectedProject, setSelectedProject] = useState(null);
+
+  const handleSelectTab = useCallback((tab) => {
+    setActiveView(tab);
+    if (tab !== "project") setSelectedProject(null);
+  }, []);
+
+  const handleSelectProject = useCallback((project) => {
+    setSelectedProject(project);
+    setActiveView("project");
+  }, []);
 
   const navigate = useNavigate();
 
@@ -191,7 +184,7 @@ export default function HomePage() {
       }}
     >
       {/* ===== Left Sidebar (Desktop) / Bottom Bar (Mobile) ===== */}
-      {isMobile ? <BottomBar /> : <LeftSidebar onSelectProject={setSelectedProject} />}
+      {isMobile ? <BottomBar /> : <LeftSidebar onSelectProject={handleSelectProject} activeTab={activeView} onSelectTab={handleSelectTab} />}
 
       {/* ===== Main ===== */}
       <Box sx={{ flex: 1, position: "relative", overflowY: "auto", pb: `${mobileBottomSafe}px` }}>
@@ -201,8 +194,17 @@ export default function HomePage() {
           onDashboardClick={() => openTool({ href: tools.find((t) => t.key === "3dss")?.href })} 
         />
 
-        {selectedProject ? (
-          <ProjectView project={selectedProject} onClose={() => setSelectedProject(null)} />
+        {activeView === "project" && selectedProject ? (
+          <ProjectView project={selectedProject} onClose={() => handleSelectTab("home")} />
+        ) : activeView === "drive" ? (
+          <Box sx={{ height: "100%", display: "flex", flexDirection: "column", animation: "fadeIn 0.3s ease-in-out" }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel }}>
+              <Typography variant="h6" fontWeight={700} sx={{ color: "rgba(255,255,255,0.9)", ml: 2, letterSpacing: 0.5 }}>AIドライブ（全プロジェクト）</Typography>
+            </Box>
+            <Box sx={{ flex: 1, overflow: "hidden" }}>
+              <DrivePage />
+            </Box>
+          </Box>
         ) : (
           <Container
           maxWidth="md"

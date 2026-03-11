@@ -1,0 +1,196 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /* ---------- helpers ---------- */
+    function isSignedIn() { return request.auth != null; }
+    function isMe(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // Firestore参照（teamBoards の members / ownerId を見て権限判定）
+    function teamBoardDoc(boardId) {
+      return get(/databases/$(database)/documents/teamBoards/$(boardId));
+    }
+    function teamBoardExists(boardId) {
+      return exists(/databases/$(database)/documents/teamBoards/$(boardId));
+    }
+
+    // ✅ members が未定義でも安全に判定できるようにする
+    function isTeamBoardMember(boardId) {
+      return isSignedIn()
+        && teamBoardExists(boardId)
+        && (
+          teamBoardDoc(boardId).data.ownerId == request.auth.uid
+          || teamBoardDoc(boardId).data.members.hasAny([request.auth.uid])
+        );
+    }
+
+    // ✅ contentType が空/不明でも事故らないように許容範囲を広げる
+    function isAllowedMainModelContentType() {
+      return request.resource.contentType.matches('application/.*')
+        || request.resource.contentType == 'application/octet-stream'
+        || request.resource.contentType.matches('model/.*')
+        || request.resource.contentType.matches('image/.*');
+    }
+
+    /* ---------- Models (legacy/existing) ---------- */
+    match /models/{uid}/{modelId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isMe(uid);
+    }
+
+    match /users/{uid}/models/{modelId}/{allPaths=**} {
+      allow read, write: if isMe(uid);
+    }
+
+    match /thumbnails/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isMe(uid);
+    }
+
+    /* ---------- Articles (existing) ---------- */
+    match /articles/{all=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /officialArticles/{allPaths=**} {
+      allow read: if true;
+    }
+
+    match /officialArticles/covers/{uid}/{fileName} {
+      allow read: if true;
+      allow create, update: if isMe(uid)
+                            && request.resource.size < 10 * 1024 * 1024
+                            && request.resource.contentType.matches('image/.*');
+      allow delete: if isMe(uid);
+    }
+
+    match /officialArticles/media/{uid}/{articleId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isMe(uid)
+                            && request.resource.size < 50 * 1024 * 1024
+                            && (
+                              request.resource.contentType.matches('image/.*') ||
+                              request.resource.contentType.matches('video/.*') ||
+                              request.resource.contentType == 'application/pdf'
+                            );
+      allow delete: if isMe(uid);
+    }
+
+    match /officialArticles/inline/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isMe(uid)
+                            && request.resource.size < 50 * 1024 * 1024
+                            && (
+                              request.resource.contentType.matches('image/.*') ||
+                              request.resource.contentType.matches('video/.*') ||
+                              request.resource.contentType == 'application/pdf'
+                            );
+      allow delete: if isMe(uid);
+    }
+
+    /* ---------- Materials ---------- */
+    match /materials/{materialId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    /* ---------- Board Covers ---------- */
+    match /boardCovers/{uid}/{boardType}/{boardId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isMe(uid)
+                            && (boardType in ['myBoards', 'teamBoards'])
+                            && request.resource.size < 10 * 1024 * 1024
+                            && request.resource.contentType.matches('image/.*');
+      allow delete: if isMe(uid)
+                    && (boardType in ['myBoards', 'teamBoards']);
+    }
+
+    /* =========================================================
+       ✅ MainModel uploads（深い階層も全部許可）
+       mainModels/{uid}/myBoards|teamBoards/{boardId}/(anything...)
+       ========================================================= */
+
+    // ✅ MyBoard（layoutThumbs/... みたいな深い階層もOK）
+    match /mainModels/{uid}/myBoards/{boardId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow create, update: if isMe(uid)
+        && request.resource.size < 1024 * 1024 * 1024
+        && isAllowedMainModelContentType();
+      allow delete: if isMe(uid);
+    }
+
+    // ✅ TeamBoard（layoutThumbs/... みたいな深い階層もOK）
+    match /mainModels/{uid}/teamBoards/{boardId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && isMe(uid)
+        && isTeamBoardMember(boardId)
+        && request.resource.size < 1024 * 1024 * 1024
+        && isAllowedMainModelContentType();
+      allow delete: if isSignedIn()
+        && isMe(uid)
+        && isTeamBoardMember(boardId);
+    }
+
+    /* =========================================================
+       ✅ 互換（旧: users/.../mainModels, teamBoards/.../mainModels 等）
+       ========================================================= */
+    match /users/{uid}/myBoards/{boardId}/mainModels/{mainId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isMe(uid)
+        && request.resource.size < 1024 * 1024 * 1024
+        && isAllowedMainModelContentType();
+      allow delete: if isMe(uid);
+    }
+
+    match /teamBoards/{boardId}/mainModels/{mainId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isTeamBoardMember(boardId)
+        && request.resource.size < 1024 * 1024 * 1024
+        && isAllowedMainModelContentType();
+      allow delete: if isTeamBoardMember(boardId);
+    }
+
+    match /users/{uid}/myBoards/{boardId}/mainModel/{mainId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isMe(uid);
+    }
+    match /teamBoards/{boardId}/mainModel/{mainId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isTeamBoardMember(boardId);
+    }
+
+    /* =========================================================
+       ✅ BaseModel uploads (3DSL)
+       baseModels/{uid}/myBoards|teamBoards/{boardId}/{baseId}/...
+       ========================================================= */
+
+    // ✅ MyBoard Base
+    match /baseModels/{uid}/myBoards/{boardId}/{baseId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isMe(uid)
+        && request.resource.size < 1024 * 1024 * 1024
+        && isAllowedMainModelContentType();
+      allow delete: if isMe(uid);
+    }
+
+    // ✅ TeamBoard Base（アップロード者=uid 配下にのみ保存）
+    match /baseModels/{uid}/teamBoards/{boardId}/{baseId}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && isMe(uid)
+        && isTeamBoardMember(boardId)
+        && request.resource.size < 1024 * 1024 * 1024
+        && isAllowedMainModelContentType();
+      allow delete: if isSignedIn()
+        && isMe(uid)
+        && isTeamBoardMember(boardId);
+    }
+
+    /* ---------- fallback（✅ 必ず一番最後） ---------- */
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

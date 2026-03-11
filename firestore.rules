@@ -1,0 +1,513 @@
+rules_version = '2';
+service cloud.firestore {
+
+  /* ========= 共通ヘルパ ========= */
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isVerified() {
+    return isSignedIn() && request.auth.token.email_verified == true;
+  }
+
+  // 可視性（後方互換）
+  function isPublic(data) {
+    return (data.get("visibility", "") == "public") ||
+           (data.get("isPublic", false) == true && !(data.get("isPrivate", false) == true));
+  }
+
+  function isDocPublic(d) {
+    return d is map && isPublic(d);
+  }
+
+  // モデルの所有者判定（フィールド揺れを吸収）
+  function isModelOwnerData(d) {
+    return isSignedIn() && d is map && (
+      d.createdBy == request.auth.uid ||
+      d.createdByUid == request.auth.uid ||
+      d.ownerId == request.auth.uid ||
+      d.owner == request.auth.uid ||
+      d.ownerUid == request.auth.uid ||
+      (d.ownerRef is map && d.ownerRef.uid == request.auth.uid) ||
+      d.author == request.auth.uid ||
+      d.authorUid == request.auth.uid ||
+      d.userId == request.auth.uid ||
+      d.uid == request.auth.uid
+    );
+  }
+
+  // モデルが「共有ユーザー」に公開されているか（チームボード用）
+  function isModelSharedUserData(d) {
+    return isSignedIn() && d is map && (
+      (d.sharedUserIds is list && request.auth.uid in d.sharedUserIds) ||
+      (d.editorIds is list      && request.auth.uid in d.editorIds) ||
+      (d.collaborators is list  && request.auth.uid in d.collaborators)
+    );
+  }
+
+  /* ---- 記事の所有者判定（map を受け取る） ---- */
+  function isArticleOwnerData(d) {
+    return isSignedIn() && d is map && (
+      d.ownerId == request.auth.uid ||
+      d.owner == request.auth.uid ||
+      d.createdBy == request.auth.uid ||
+      d.authorUid == request.auth.uid ||
+      (d.ownerRef is map && d.ownerRef.uid == request.auth.uid)
+    );
+  }
+
+  /* ---- タグ配列の簡易バリデーション ---- */
+  function validTagsField() {
+    return (request.resource.data.tags is list) &&
+           (request.resource.data.tags.size() <= 20);
+  }
+
+  /* ---- teamBoards ヘルパ ---- */
+  function teamBoardData(id) {
+    return get(/databases/$(database)/documents/teamBoards/$(id)).data;
+  }
+
+  function hasMemberField(d, uid) {
+    return (d.members is list      && uid in d.members) ||
+           (d.memberIds is list    && uid in d.memberIds) ||
+           (d.members is map       && d.members[uid] != null) ||
+           (d.membersMap is map    && d.membersMap[uid] != null);
+  }
+
+  function isTeamBoardOwner(id) {
+    let d = teamBoardData(id);
+    return isSignedIn() && (d is map) && (
+      d.ownerId == request.auth.uid ||
+      d.owner   == request.auth.uid ||
+      d.ownerUid == request.auth.uid ||
+      (d.ownerRef is map && d.ownerRef.uid == request.auth.uid)
+    );
+  }
+
+  function isTeamBoardMember(id) {
+    let d = teamBoardData(id);
+    return isSignedIn() && (d is map) && hasMemberField(d, request.auth.uid);
+  }
+
+  function isTeamBoardContributor(id) {
+    return isTeamBoardOwner(id) || isTeamBoardMember(id);
+  }
+
+  /* ---- myBoards ヘルパ ---- */
+  function myBoardData(uid, bid) {
+    return get(/databases/$(database)/documents/users/$(uid)/myBoards/$(bid)).data;
+  }
+
+  function isMyBoardOwner(uid) {
+    return isSignedIn() && request.auth.uid == uid;
+  }
+
+  /* ---- boardsPublic ヘルパ ---- */
+  function publicBoardData(pid) {
+    return get(/databases/$(database)/documents/boardsPublic/$(pid)).data;
+  }
+
+  function isBoardsPublicOwner(pid) {
+    let d = publicBoardData(pid);
+    return isSignedIn() && (d is map) &&
+           ((d.ownerId == request.auth.uid) || (d.owner == request.auth.uid));
+  }
+
+  /* ===== usernames ===== */
+  function usernameDoc(handleLower) {
+    return get(/databases/$(database)/documents/usernames/$(handleLower));
+  }
+  function isUsernameOwnedByRequester(handleLower) {
+    return isSignedIn() && usernameDoc(handleLower).data.uid == request.auth.uid;
+  }
+
+  // 管理者判定：カスタムクレーム admin か、公式メールのホワイトリスト
+  function isAdmin() {
+    return isSignedIn() && (
+      request.auth.token.admin == true ||
+      request.auth.token.email in [
+        "3dshapeshare@gmail.com",
+        "yuma.tanioka.ty@gmail.com"
+      ]
+    );
+  }
+
+  /* ===========================================
+   * ★ RideGallery 用ヘルパ
+   * =========================================*/
+  // users/{uid}.rideGalleryRole を参照してロール判定
+  function rideGalleryUserRole(uid) {
+    return get(/databases/$(database)/documents/users/$(uid)).data.rideGalleryRole;
+  }
+
+  function isRideGalleryCreator() {
+    return isSignedIn() && rideGalleryUserRole(request.auth.uid) == "creator";
+  }
+
+  // users/{userId} 更新時に、rideGalleryRole の変更を制御
+  // クライアントから自分で "creator" を名乗るのだけ禁止する。
+  // それ以外（null→viewer, viewer→pending など）はすべて許可。
+  // ※"creator" への昇格は Cloud Functions / Admin SDK 側で行う想定。
+  function isRideGalleryRoleTransitionOK() {
+    return !(
+      ('rideGalleryRole' in request.resource.data) &&
+      (request.resource.data.rideGalleryRole == "creator")
+    );
+  }
+
+  match /databases/{database}/documents {
+
+    /* ======================================================
+     * ★ メインコレクション群
+     * ==================================================== */
+
+    /* ======================================================
+     * ★ Unified Boards (New Schema v2)
+     * ==================================================== */
+    match /boards/{boardId} {
+      // 読み取り許可: 公開ボード、自分がオーナー、または自分がメンバー
+      allow read: if isPublic(resource.data) 
+                  || (isSignedIn() && resource.data.get("ownerId", "") == request.auth.uid)
+                  || (isSignedIn() && request.auth.uid in resource.data.get("memberIds", []));
+
+      // 新規作成許可: ownerId が自分の UID になっていること
+      allow create: if isSignedIn() 
+                    && request.resource.data.ownerId == request.auth.uid;
+
+      // 更新/削除許可: 自分がオーナー
+      allow update, delete: if isSignedIn() 
+                            && resource.data.ownerId == request.auth.uid;
+
+      // ---- Board Items サブコレクション ----
+      match /items/{itemId} {
+        // 読み取り: 親ボードが読めるならアイテムも読める
+        function canReadParentBoard() {
+          let b = get(/databases/$(database)/documents/boards/$(boardId)).data;
+          return isPublic(b) 
+                 || (isSignedIn() && b.ownerId == request.auth.uid)
+                 || (isSignedIn() && (b.memberIds is list) && request.auth.uid in b.memberIds);
+        }
+        // 書き込み: ボードのオーナーかメンバーならアイテムを追加・編集可能
+        function canWriteParentBoard() {
+          let b = get(/databases/$(database)/documents/boards/$(boardId)).data;
+          return (isSignedIn() && b.ownerId == request.auth.uid)
+                 || (isSignedIn() && (b.memberIds is list) && request.auth.uid in b.memberIds);
+        }
+
+        allow read: if canReadParentBoard();
+        allow create, update, delete: if canWriteParentBoard();
+      }
+    }
+
+
+    // ----------------------------
+    // Materials (user scoped)
+    // /materials/{uid}/materials/{materialId}
+    // ----------------------------
+    match /materials/{userId}/materials/{materialId} {
+
+      // public: 全員OK
+      // private: オーナーのみ
+      allow read: if isDocPublic(resource.data)
+                  || (isSignedIn() && request.auth.uid == userId);
+
+      // 作成: 自分の配下だけ + ownerId整合
+      allow create: if isSignedIn()
+                    && request.auth.uid == userId
+                    && request.resource.data.ownerId == request.auth.uid;
+
+      // 更新/削除: 自分の配下だけ
+      allow update, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ----------------------------
+    // collectionGroup("materials") の読み取り許可
+    // どこ階層でも "materials" サブコレクションを読むときに適用される
+    // ----------------------------
+    match /{path=**}/materials/{materialId} {
+      allow read: if isDocPublic(resource.data);
+    }
+
+    /* ---- plans ---- */
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /* 公式記事 */
+    match /officialArticles/{id} {
+      // 公開記事はだれでも読める。下書きは管理者のみ。
+      allow get, list: if isAdmin() || (resource.data.status == "published");
+
+      // 作成・更新・削除は管理者のみ
+      allow create, update, delete: if isAdmin();
+    }
+
+    /* 公開ユーザー記事 */
+    match /articles/{id} {
+      // 読み取り: 公開記事は誰でも。非公開や下書きは本人のみ
+      allow read: if resource.data.status == "public" || isArticleOwnerData(resource.data);
+
+      // 作成: ログイン済み & ownerId が自分 & ユーザー記事のみ
+      allow create: if isSignedIn()
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.type == "user";
+
+      // 更新/削除: 本人のみ
+      allow update, delete: if isArticleOwnerData(resource.data);
+
+      // 簡易バリデーション（任意で強化）
+      allow create, update: if
+        request.resource.data.status in ["draft","public","private"]
+        && request.resource.data.type == "user";
+    }
+
+    /* ======================================================
+     *  🔴 チャット（MVP版）
+     * ==================================================== */
+    match /chats/{chatId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn()
+        && (request.resource.data.members is list)
+        && (request.auth.uid in request.resource.data.members);
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+      }
+    }
+
+    /* ---- boardsPublic ---- */
+    match /boardsPublic/{boardId} {
+      // ボード自体の読み取りは誰でも
+      allow read: if true;
+
+      // 親レベルのヘルパー
+      function _pb() {
+        return get(/databases/$(database)/documents/boardsPublic/$(boardId)).data;
+      }
+
+      function _isPublicOwner() {
+        let pb = _pb();
+        return request.auth != null && (pb is map) &&
+               (pb.ownerId == request.auth.uid || pb.owner == request.auth.uid);
+      }
+
+      function _linkedTeamWriteOK() {
+        let pb = _pb();
+        return (pb is map) && (pb.teamBoardId is string) &&
+               (isTeamBoardOwner(pb.teamBoardId) || isTeamBoardMember(pb.teamBoardId));
+      }
+
+      // ★ boardsPublic ドキュメント自体の作成・更新・削除
+      allow create: if isSignedIn() && (
+        request.resource.data.ownerId == request.auth.uid ||
+        request.resource.data.owner == request.auth.uid ||
+        (
+          request.resource.data.ownerRef is map &&
+          request.resource.data.ownerRef.uid == request.auth.uid
+        )
+      );
+
+      // 更新・削除はオーナー or ひも付き teamBoard のオーナー/メンバー
+      allow update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+
+      /* boardsPublic/{id}/articles */
+      match /articles/{articleId} {
+        allow read: if true;
+        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+      }
+
+      /* boardsPublic/{id}/models */
+      match /models/{modelId} {
+        allow read: if true;
+        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+      }
+
+      /* boardsPublic/{id}/drawings */
+      match /drawings/{drawingId} {
+        // 図面の閲覧は誰でも
+        allow read: if true;
+        // 書き込みは公開ボードのオーナー or 紐づく teamBoard のオーナー/メンバー
+        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+      }
+
+      /* boardsPublic/{id}/renders */
+      match /renders/{renderId} {
+        allow read: if true;
+        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+      }
+
+      /* boardsPublic/{id}/movies */
+      match /movies/{movieId} {
+        allow read: if true;
+        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+      }
+
+      /* boardsPublic/{id}/slides */
+      match /slides/{slideId} {
+        allow read: if true;
+        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
+      }
+    }
+
+    /* ---- brandTags ---- */
+    match /brandTags/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /* ---- tags ---- */
+    match /tags/{slug} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /* ---- グローバル models ---- */
+    match /models/{modelId} {
+      // 公開 or オーナー or 共有ユーザー
+      allow read: if isPublic(resource.data)
+                  || isModelOwnerData(resource.data)
+                  || isModelSharedUserData(resource.data);
+
+      allow create: if isSignedIn() && isModelOwnerData(request.resource.data);
+      allow update: if isModelOwnerData(resource.data) || isModelOwnerData(request.resource.data);
+      allow delete: if isVerified() && isModelOwnerData(resource.data);
+
+      match /scenes/{sceneId} {
+        function _model() { return get(/databases/$(database)/documents/models/$(modelId)).data; }
+        // 公開 or オーナー or 共有ユーザー
+        allow read: if isDocPublic(_model())
+                    || isModelOwnerData(_model())
+                    || isModelSharedUserData(_model());
+
+        // 書き込みは引き続きオーナーのみ
+        allow create, update, delete: if isVerified() && isModelOwnerData(_model());
+      }
+
+      match /articles/{articleId} {
+        function _model() { return get(/databases/$(database)/documents/models/$(modelId)).data; }
+        function isModelOwner() { return isModelOwnerData(_model()); }
+        function isModelEditor() {
+          return request.auth != null
+            && (('editorIds' in _model() && request.auth.uid in _model().editorIds) ||
+                ('collaborators' in _model() && request.auth.uid in _model().collaborators));
+        }
+        allow read: if true;
+        allow create, update, delete: if isModelOwner() || isModelEditor();
+      }
+    }
+
+    /* ---- teamBoards (Legacy Schema Blocked) ---- */
+    match /teamBoards/{document=**} {
+      allow read, write: if false;
+    }
+
+    /* ---- users ---- */
+    match /users/{userId} {
+      allow read: if true;
+
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if isVerified() && request.auth.uid == userId;
+
+      // ★ RideGallery のロール変更制御を組み込んだ update
+      allow update: if isSignedIn() && (
+        (
+          request.auth.uid == userId &&
+          isRideGalleryRoleTransitionOK()
+        ) ||
+        (
+          request.resource.data.keys().hasOnly(["stats"]) &&
+          (request.resource.data.stats is map)
+        )
+      );
+
+      match /following/{targetUserId} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /followers/{followerUserId} {
+        allow read: if request.auth != null;
+        allow create, delete: if request.auth != null && request.auth.uid == followerUserId;
+      }
+
+      match /models/{modelId} {
+        allow read: if isDocPublic(resource.data)
+          || (isSignedIn() && request.auth.uid == userId)
+          || isModelSharedUserData(resource.data);
+
+        allow create, update: if isSignedIn() && request.auth.uid == userId
+          && (!('tags' in request.resource.data) || validTagsField());
+
+        allow delete: if isVerified() && request.auth.uid == userId;
+      }
+
+      /* ---- users/{userId}/myBoards (Legacy Schema Blocked) ---- */
+      match /myBoards/{document=**} {
+        allow read, write: if false;
+      }
+
+      // 🔴 ユーザー配下の teamBoards リンク (Legacy Schema Blocked)
+      match /teamBoards/{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    /* ---- グローバルの招待 ---- */
+    match /teamBoardInvitations/{invitationId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && (
+          request.auth.uid == resource.data.invitedBy
+          || (resource.data.inviteeUid != null && request.auth.uid == resource.data.inviteeUid)
+        );
+    }
+
+    /* ---- ユーザー配下の招待ミラー ---- */
+    match /users/{userId}/teamBoardInvitations/{invitationId} {
+      allow get, list: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.resource.data.invitedBy == request.auth.uid;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    /* ---- usernames ---- */
+    match /usernames/{handleLower} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && !exists(/databases/$(database)/documents/usernames/$(handleLower));
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && resource.data.uid == request.auth.uid;
+    }
+
+    /* ===========================================
+     * ★ RideGallery Rides コレクション
+     *    /rideGalleryRides/{rideId}
+     * =========================================*/
+    match /rideGalleryRides/{rideId} {
+      // 誰でも閲覧可能（MVP）。必要になったら visibility で絞る。
+      allow read: if true;
+
+      // 作成: creator ロール & ownerId が自分
+      allow create: if isRideGalleryCreator()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      // 更新・削除: creator 本人 or Admin
+      allow update, delete: if
+        (isRideGalleryCreator() && resource.data.ownerId == request.auth.uid)
+        || isAdmin();
+    }
+
+
+    match /viewerShares/{shareId} {
+      allow read: if true;           // 誰でも閲覧OK
+      allow write: if request.auth != null;
+    }
+
+  }
+}
