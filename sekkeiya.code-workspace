@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../028-R3DM-ver2/r3dm-share"
+		},
+		{
+			"path": "../../039-3dshapelayout-web/3d-shape-layout"
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/node_modules": true,
+			"**/dist": true
+		}
+	}
+}
