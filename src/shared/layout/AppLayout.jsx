@@ -5,11 +5,15 @@ import { BRAND } from "../ui/theme";
 import MiniSidebar from "./sidebar/MiniSidebar";
 import LeftSidebar from "./sidebar/LeftSidebar";
 import BottomBar from "./BottomBar";
+import { usePanelUrlSync, GlobalPanelHost } from "sekkeiya-global-panel";
 
 export default function AppLayout() {
   const [isExpanded, setIsExpanded] = useState(false);
   const isMobile = useMediaQuery("(max-width:600px)");
   const mobileBottomSafe = isMobile ? 84 : 0;
+  
+  // URLとPanel Stateの同期
+  usePanelUrlSync();
 
   return (
     <Box
@@ -35,8 +39,12 @@ export default function AppLayout() {
 
       {/* ===== Main ===== */}
       <Box sx={{ flex: 1, position: "relative", overflowY: "auto", pb: `${mobileBottomSafe}px` }}>
+        {/* The Outlet remains mounted even when panels are open */}
         <Outlet />
       </Box>
+
+      {/* ===== Global Panels (Overlays) ===== */}
+      <GlobalPanelHost />
     </Box>
   );
 }

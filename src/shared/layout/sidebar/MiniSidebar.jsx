@@ -28,6 +28,7 @@ import questPng from "@/assets/icons/quest.png";
 import { BRAND } from "@/shared/ui/theme";
 import NavIcon from "@/shared/ui/NavIcon";
 import useBoards from "@/shared/hooks/useBoards";
+import { useGlobalPanelStore } from "sekkeiya-global-panel";
 
 const AppImageIcon = ({ src, alt }) => (
   <Box
@@ -145,6 +146,9 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
   const { user } = useAuth();
   
   const { myBoards, teamBoards } = useBoards();
+  
+  const activePanel = useGlobalPanelStore((state) => state.activePanel);
+  const togglePanel = useGlobalPanelStore((state) => state.togglePanel);
 
   const [appAnchorEl, setAppAnchorEl] = useState(null);
   const handleAppClick = (e) => setAppAnchorEl(e.currentTarget);
@@ -208,15 +212,15 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
       <NavIcon 
         icon={<FolderRoundedIcon />} 
         label="AIドライブ" 
-        active={isDrive} 
-        onClick={() => { window.location.href = 'https://sekkeiya.com/app/drive'; }} 
+        active={activePanel === "drive"} 
+        onClick={() => togglePanel("drive")} 
       />
 
       <NavIcon 
         icon={<ChatRoundedIcon />} 
         label="AIチャット" 
-        active={false} 
-        onClick={() => { window.location.href = 'https://sekkeiya.com/app/chat'; }} 
+        active={activePanel === "chat"} 
+        onClick={() => togglePanel("chat")} 
       />
 
       <Divider sx={{ width: "60%", opacity: 0.25, my: 1.5 }} />
