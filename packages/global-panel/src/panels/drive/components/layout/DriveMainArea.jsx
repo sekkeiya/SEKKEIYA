@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import DriveBreadcrumbs from "../explorer/DriveBreadcrumbs";
 import AssetGrid from "../explorer/AssetGrid";
-import { usePanelTheme } from "../../../theme/ThemeContext";
+import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
 export default function DriveMainArea() {
   const BRAND = usePanelTheme();

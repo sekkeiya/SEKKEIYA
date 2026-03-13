@@ -4,7 +4,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import { useDriveStore } from "../../store/useDriveStore";
 import { formatBytes, formatDate } from "../../utils/formatters";
-import { usePanelTheme } from "../../../theme/ThemeContext";
+import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
 // Reusing icon logic visually
 import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";

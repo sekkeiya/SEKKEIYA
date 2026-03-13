@@ -5,7 +5,7 @@ import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManu
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import ExtensionRoundedIcon from '@mui/icons-material/ExtensionRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
-import { usePanelTheme } from '../../theme/ThemeContext';
+import { usePanelTheme } from '../../theme/ThemeContext.jsx';
 
 export default function ChatWorkspace() {
   const BRAND = usePanelTheme();

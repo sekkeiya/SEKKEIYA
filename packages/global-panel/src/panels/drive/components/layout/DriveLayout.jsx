@@ -2,7 +2,7 @@ import React from "react";
 import { Box } from "@mui/material";
 import DriveSidebar from "./DriveSidebar";
 import DriveMainArea from "./DriveMainArea";
-import { usePanelTheme } from "../../../theme/ThemeContext";
+import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
 export default function DriveLayout() {
   const BRAND = usePanelTheme();

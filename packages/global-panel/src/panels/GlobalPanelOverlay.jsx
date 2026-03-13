@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Box, IconButton, Slide, Fade, Backdrop } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useGlobalPanelStore } from '../store/useGlobalPanelStore';
-import { usePanelTheme } from '../theme/ThemeContext';
+import { usePanelTheme } from '../theme/ThemeContext.jsx';
 
 export default function GlobalPanelOverlay({ children, panelName }) {
   const activePanel = useGlobalPanelStore((state) => state.activePanel);

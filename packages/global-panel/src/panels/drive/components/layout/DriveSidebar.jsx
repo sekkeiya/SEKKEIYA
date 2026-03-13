@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import FolderTree from "../explorer/FolderTree";
-import { usePanelTheme } from "../../../theme/ThemeContext";
+import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
 export default function DriveSidebar() {
   const BRAND = usePanelTheme();
