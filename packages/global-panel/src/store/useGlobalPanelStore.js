@@ -4,6 +4,8 @@ export const VALID_PANELS = ['drive', 'chat', 'notifications'];
 
 export const useGlobalPanelStore = create((set) => ({
   activePanel: null, // "drive" | "chat" | "notifications" | null
+  isSidebarExpanded: false,
+  setSidebarExpanded: (expanded) => set({ isSidebarExpanded: expanded }),
   
   openPanel: (panelName) => {
     if (VALID_PANELS.includes(panelName)) {

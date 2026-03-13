@@ -1,17 +1,21 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useMediaQuery } from "@mui/material";
 import FolderTree from "../explorer/FolderTree";
 import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
 export default function DriveSidebar() {
   const BRAND = usePanelTheme();
+  const isMobile = useMediaQuery('(max-width:900px)');
+
+  if (isMobile) return null;
+
   return (
     <Box
       sx={{
         width: 260,
         minWidth: 260,
-        bgcolor: BRAND.panel,
-        borderRight: `1px solid ${BRAND.line}`,
+        bgcolor: "rgba(255,255,255,0.02)",
+        borderRight: `1px solid rgba(255,255,255,0.08)`,
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",

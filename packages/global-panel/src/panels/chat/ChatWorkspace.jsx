@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, IconButton, Avatar, Paper, List, ListItem, ListItemText, Divider } from '@mui/material';
+import { Box, Typography, TextField, IconButton, Avatar, Paper, List, ListItem, ListItemText, Divider, useMediaQuery } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManufacturingRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import ExtensionRoundedIcon from '@mui/icons-material/ExtensionRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
+import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import { usePanelTheme } from '../../theme/ThemeContext.jsx';
 
 export default function ChatWorkspace() {
@@ -13,6 +14,9 @@ export default function ChatWorkspace() {
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', text: 'こんにちは！AI Workspaceです。どのようなお手伝いができますか？', agent: 'Agent' }
   ]);
+  const isMobile = useMediaQuery('(max-width:900px)');
+  const isTablet = useMediaQuery('(max-width:1200px)');
+
   const [input, setInput] = useState('');
 
   const handleSend = () => {
@@ -25,17 +29,27 @@ export default function ChatWorkspace() {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100%', bgcolor: BRAND.bg, color: BRAND.text }}>
+    <Box sx={{ display: 'flex', height: '100%', bgcolor: 'transparent', color: BRAND.text }}>
       
-      {/* 1. 左側ナビゲーション (会話一覧 / エージェント切替) */}
-      <Box sx={{ width: 260, borderRight: `1px solid ${BRAND.line}`, display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderBottom: `1px solid ${BRAND.line}` }}>
+      {/* 1. 左側ナビゲーション (Navigator) */}
+      {!isMobile && (
+        <Box sx={{ 
+          width: 260, 
+          flexShrink: 0,
+          bgcolor: 'rgba(255,255,255,0.02)',
+          borderRight: `1px solid rgba(255,255,255,0.08)`, 
+          display: 'flex', 
+          flexDirection: 'column',
+          height: '100%',
+          overflowY: 'auto'
+        }}>
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderBottom: `1px solid rgba(255,255,255,0.08)` }}>
           <AutoAwesomeRoundedIcon sx={{ color: '#3498db' }} />
           <Typography variant="subtitle1" fontWeight="bold">AI Workspace</Typography>
         </Box>
         
         {/* エージェント切替 (雛形) */}
-        <Box sx={{ p: 2, borderBottom: `1px solid ${BRAND.line}` }}>
+        <Box sx={{ p: 2, borderBottom: `1px solid rgba(255,255,255,0.08)` }}>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Agent Persona</Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255,255,255,0.1)', border: `1px solid #3498db` }}><DashboardRoundedIcon fontSize="small" color="primary" /></Avatar>
@@ -45,29 +59,56 @@ export default function ChatWorkspace() {
         </Box>
 
         <List sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
-          <ListItem button sx={{ borderRadius: 1, mb: 0.5, bgcolor: 'rgba(255,255,255,0.05)' }}>
-            <ListItemText primary="新しいチャット" primaryTypographyProps={{ fontSize: 13, fontWeight: "bold" }} />
+          <ListItem sx={{ borderRadius: 1, mb: 0.5, bgcolor: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
+            <ListItemText primary="新しいチャット" primaryTypographyProps={{ fontSize: 13, fontWeight: "bold", color: "#fff" }} />
           </ListItem>
           <Divider sx={{ my: 1, opacity: 0.2 }} />
-          <ListItem button sx={{ borderRadius: 1, mb: 0.5 }}>
-            <ListItemText primary="過去のボード解析" secondary="昨日" primaryTypographyProps={{ fontSize: 13 }} secondaryTypographyProps={{ fontSize: 11 }} />
+          <ListItem sx={{ borderRadius: 1, mb: 0.5, cursor: 'pointer' }}>
+            <ListItemText primary="過去のボード解析" secondary="昨日" primaryTypographyProps={{ fontSize: 13, color: "rgba(255,255,255,0.9)" }} secondaryTypographyProps={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }} />
           </ListItem>
         </List>
       </Box>
+      )}
 
-      {/* 2. メインチャットエリア */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {/* 2. メインチャットエリア (Workspace) */}
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        position: 'relative',
+        bgcolor: 'transparent',
+        alignItems: 'center', // Center content
+      }}>
         
-        {/* コンテキスト表示スニペット (上部) */}
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, p: 1, display: 'flex', justifyContent: 'center', zIndex: 10 }}>
-          <Paper sx={{ px: 2, py: 0.5, borderRadius: 4, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: `1px solid ${BRAND.line}`, display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* スレッド領域ラッパー: 指定幅で中央配置 */}
+        <Box sx={{ 
+          width: '100%', 
+          maxWidth: 980, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          flex: 1, 
+          height: '100%',
+          position: 'relative' 
+        }}>
+        
+        {/* 3カラム中央のヘッダー (水平整列とタイトル) */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          p: 2, 
+          borderBottom: `1px solid rgba(255,255,255,0.08)`,
+          width: '100%'
+        }}>
+          <Typography variant="subtitle1" fontWeight="bold">Active Chat: Onboarding Assistant</Typography>
+          <Paper sx={{ px: 2, py: 0.5, borderRadius: 4, bgcolor: 'rgba(0,0,0,0.4)', border: `1px solid rgba(255,255,255,0.08)`, display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#2ecc71' }} />
-            <Typography variant="caption" color="text.secondary">Current Context: None selected</Typography>
+            <Typography variant="caption" color="text.secondary">Context: Main Architecture</Typography>
           </Paper>
         </Box>
 
         {/* 3. メッセージ表示エリア */}
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3, pt: 6 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
           {messages.map((m) => (
             <Box key={m.id} sx={{ display: 'flex', gap: 2, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
               {m.role === 'assistant' && (
@@ -76,8 +117,8 @@ export default function ChatWorkspace() {
               <Box sx={{ 
                 p: 2, 
                 borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', 
-                bgcolor: m.role === 'user' ? BRAND.panel2 : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${BRAND.line}`
+                bgcolor: m.role === 'user' ? 'rgba(41, 128, 185, 0.2)' : 'rgba(255,255,255,0.03)',
+                border: m.role === 'user' ? '1px solid rgba(41, 128, 185, 0.4)' : `1px solid rgba(255,255,255,0.08)`
               }}>
                 <Typography variant="body2" sx={{ lineHeight: 1.6 }}>{m.text}</Typography>
               </Box>
@@ -86,16 +127,24 @@ export default function ChatWorkspace() {
         </Box>
 
         {/* 4. 入力欄 */}
-        <Box sx={{ p: 2, pb: 4, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ p: 2, pb: 4, display: 'flex', justifyContent: 'center', width: '100%' }}>
           <Paper sx={{ 
             width: '100%', 
             maxWidth: 800, 
             p: '4px 8px', 
             display: 'flex', 
             alignItems: 'flex-end',
-            bgcolor: BRAND.panel,
-            border: `1px solid ${BRAND.line}`,
-            borderRadius: 3
+            bgcolor: 'rgba(255,255,255,0.03)',
+            border: `1px solid rgba(255,255,255,0.1)`,
+            borderRadius: 3,
+            boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 24px rgba(0,0,0,0.2)',
+            transition: 'all 0.2s',
+            '&:focus-within': {
+              bgcolor: 'rgba(255,255,255,0.05)',
+              borderColor: 'rgba(255,255,255,0.2)',
+              boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 6px 32px rgba(0,0,0,0.3)',
+              transform: 'translateY(-1px)'
+            }
           }}>
             <TextField
               fullWidth
@@ -118,7 +167,59 @@ export default function ChatWorkspace() {
             </IconButton>
           </Paper>
         </Box>
+        
+        </Box> {/* End スレッド領域ラッパー */}
       </Box>
+
+      {/* 3. コンテキストパネル (ContextPanel) */}
+      {!isTablet && (
+        <Box sx={{ 
+          width: 320, 
+          flexShrink: 0,
+          borderLeft: `1px solid rgba(255,255,255,0.08)`,
+          bgcolor: 'rgba(255,255,255,0.02)',
+          height: '100%',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Header */}
+          <Box sx={{ p: 2, borderBottom: `1px solid rgba(255,255,255,0.08)` }}>
+            <Typography variant="subtitle2" fontWeight="bold">Context</Typography>
+          </Box>
+          
+          <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Current Board */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Current Board</Typography>
+              <Paper sx={{ p: 1.5, border: `1px solid rgba(255,255,255,0.08)`, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3498db' }} />
+                  <Typography variant="body2">Main Architecture</Typography>
+                </Box>
+              </Paper>
+            </Box>
+
+            {/* Selected Items */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Selected Items</Typography>
+              <Box sx={{ border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 2, p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                <ExtensionRoundedIcon sx={{ fontSize: 24, mb: 0.5 }} />
+                <Typography variant="body2" sx={{ fontStyle: 'italic', fontSize: 13 }}>No items selected</Typography>
+              </Box>
+            </Box>
+
+            {/* Attached Assets */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Attached Assets</Typography>
+              <Box sx={{ border: '1px dashed rgba(255,255,255,0.15)', borderRadius: 2, p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                <FolderRoundedIcon sx={{ fontSize: 24, mb: 0.5 }} />
+                <Typography variant="body2" sx={{ fontStyle: 'italic', fontSize: 13 }}>No attachments</Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      )}
 
     </Box>
   );

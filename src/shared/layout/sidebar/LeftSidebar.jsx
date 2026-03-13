@@ -87,6 +87,12 @@ export default function LeftSidebar({ onClose }) {
         py: 1.5,
         boxShadow: "4px 0 24px rgba(0,0,0,0.4)",
         overflowY: "auto",
+        transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        animation: "slideInLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+        "@keyframes slideInLeft": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(0)" }
+        }
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, mb: 1, pl: 3 }}>
@@ -97,15 +103,6 @@ export default function LeftSidebar({ onClose }) {
       </Box>
 
       <Divider sx={{ opacity: 0.1, my: 1, mx: 2 }} />
-
-      <ExpandedSidebarItem 
-        icon={<FolderRoundedIcon sx={{ fontSize: 20 }} />} 
-        label="AIドライブ" 
-        active={isDrive}
-        onClick={() => navigate("/dashboard/drive")} 
-      />
-
-      <Divider sx={{ opacity: 0.1, my: 1.5, mx: 2 }} />
       
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, mb: 0.5 }}>
         <Box sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>My Boards</Box>

@@ -12,35 +12,38 @@ export default function DriveMainArea() {
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        bgcolor: BRAND.bg,
+        bgcolor: "transparent",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Header Area */}
-      <Box
-        sx={{
-          height: 56,
-          px: 4,
-          display: "flex",
-          alignItems: "center",
-          borderBottom: `1px solid ${BRAND.line}`,
-          bgcolor: BRAND.panel,
-        }}
-      >
-        <DriveBreadcrumbs />
-      </Box>
+      {/* 内部は max-width 1240px で中央揃え */}
+      <Box sx={{ width: "100%", maxWidth: 1240, margin: "0 auto", display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* Header Area */}
+        <Box
+          sx={{
+            height: 56,
+            px: 4,
+            display: "flex",
+            alignItems: "center",
+            borderBottom: `1px solid rgba(255,255,255,0.08)`,
+            bgcolor: "rgba(255,255,255,0.02)",
+          }}
+        >
+          <DriveBreadcrumbs />
+        </Box>
 
-      {/* Content Area */}
-      <Box
-        sx={{
-          flex: 1,
-          p: 4,
-          overflowY: "auto",
-        }}
-      >
-        <AssetGrid />
-      </Box>
+        {/* Content Area */}
+        <Box
+          sx={{
+            flex: 1,
+            p: 4,
+            overflowY: "auto",
+          }}
+        >
+          <AssetGrid />
+        </Box>
+      </Box> {/* End max-width wrapper */}
     </Box>
   );
 }

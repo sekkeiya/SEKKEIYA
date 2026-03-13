@@ -17,11 +17,13 @@ export default function FolderCard({ folder }) {
         display: "flex",
         alignItems: "center",
         cursor: "pointer",
+        boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.05)",
         transition: "all 0.2s",
         "&:hover": {
           bgcolor: "rgba(255,255,255,0.06)",
           borderColor: "rgba(255,255,255,0.15)",
           transform: "translateY(-2px)",
+          boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 24px rgba(0,0,0,0.4)",
         },
       }}
     >

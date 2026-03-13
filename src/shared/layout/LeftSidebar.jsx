@@ -25,6 +25,7 @@ import questPng from "@/assets/icons/quest.png";
 
 import { BRAND } from "../ui/theme";
 import NavIcon from "../ui/NavIcon";
+import { useGlobalPanelStore } from "sekkeiya-global-panel";
 
 const AppImageIcon = ({ src, alt }) => (
   <Box
@@ -223,7 +224,6 @@ const ExpandedSidebar = ({ onClose, projects, onCreateProject, onDeleteProject, 
 
     <ExpandedSidebarItem icon={<HomeRoundedIcon sx={{ fontSize: 20 }} />} label="ホーム" onClick={() => onSelectTab("home")} />
     <ExpandedSidebarItem icon={<HubRoundedIcon sx={{ fontSize: 20 }} />} label="ハブ" onClick={() => onSelectTab("hub")} />
-    <ExpandedSidebarItem icon={<FolderRoundedIcon sx={{ fontSize: 20 }} />} label="AIドライブ" onClick={() => onSelectTab("drive")} />
 
     <Divider sx={{ opacity: 0.1, my: 1.5, mx: 2 }} />
     
@@ -269,6 +269,12 @@ export default function LeftSidebar({ onSelectProject, activeTab, onSelectTab })
     { id: "2", name: "Tokyo Office Layout", type: "public" },
     { id: "3", name: "Personal Concept A", type: "private" },
   ]);
+
+  const setSidebarExpanded = useGlobalPanelStore(state => state.setSidebarExpanded);
+
+  React.useEffect(() => {
+    setSidebarExpanded(isExpanded);
+  }, [isExpanded, setSidebarExpanded]);
 
   const handleCreateProject = (type) => {
     const title = prompt(`${type === "public" ? "公開" : "非公開"}プロジェクト名を入力してください`);

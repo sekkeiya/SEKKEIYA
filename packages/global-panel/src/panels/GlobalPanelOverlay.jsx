@@ -7,6 +7,7 @@ import { usePanelTheme } from '../theme/ThemeContext.jsx';
 export default function GlobalPanelOverlay({ children, panelName }) {
   const activePanel = useGlobalPanelStore((state) => state.activePanel);
   const closePanel = useGlobalPanelStore((state) => state.closePanel);
+  const isSidebarExpanded = useGlobalPanelStore((state) => state.isSidebarExpanded);
   const BRAND = usePanelTheme();
 
   const isOpen = activePanel === panelName;
@@ -31,7 +32,14 @@ export default function GlobalPanelOverlay({ children, panelName }) {
           sx={{
             zIndex: 100,
             backdropFilter: 'blur(4px)',
-            backgroundColor: 'rgba(0,0,0,0.5)'
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            // MiniSidebarと表示中のLeftSidebarを覆わないように設定
+            position: 'fixed',
+            left: { xs: 0, sm: isSidebarExpanded ? 240 + 72 : 72 },
+            top: 0,
+            bottom: 0,
+            right: 0,
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         />
       </Fade>
@@ -43,15 +51,17 @@ export default function GlobalPanelOverlay({ children, panelName }) {
             top: { xs: 0, sm: 16 },
             right: { xs: 0, sm: 16 },
             bottom: { xs: 84, sm: 16 }, // adjust for mobile bottom bar
-            left: { xs: 0, sm: 72 + 16 }, // 72px (MiniSidebar) + 16px margin
+            left: { xs: 0, sm: (isSidebarExpanded ? 240 + 72 : 72) + 16 }, // 312px or 72px + 16px margin
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             zIndex: 101, // Above backdrop
             display: "flex",
             flexDirection: "column",
-            bgcolor: BRAND.bg,
+            bgcolor: 'rgba(12, 16, 24, 0.85)',
+            backdropFilter: 'blur(24px)',
             borderRadius: { xs: 0, sm: 3 },
-            border: { xs: 'none', sm: `1px solid ${BRAND.line}` },
+            border: { xs: 'none', sm: `1px solid rgba(255,255,255,0.1)` },
             overflow: "hidden",
-            boxShadow: '-12px 12px 48px rgba(0,0,0,0.6)',
+            boxShadow: '-12px 12px 48px rgba(0,0,0,0.8)',
           }}
         >
           {/* Close Button top-right absolute */}

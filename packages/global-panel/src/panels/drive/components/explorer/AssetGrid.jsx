@@ -17,9 +17,12 @@ export default function AssetGrid() {
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {displayFolders.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: 700, letterSpacing: 1, mb: 1.5, display: "block" }}>
-            フォルダ
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+            <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: 2, display: "block" }}>
+              フォルダ
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
+          </Box>
           <Grid container spacing={2}>
             {displayFolders.map((folder) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={folder.id}>
@@ -32,9 +35,12 @@ export default function AssetGrid() {
 
       {displayAssets.length > 0 && (
         <Box>
-          <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.4)", fontWeight: 700, letterSpacing: 1, mb: 1.5, display: "block" }}>
-            ファイル
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+            <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: 2, display: "block" }}>
+              ファイル
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
+          </Box>
           <Grid container spacing={2}>
             {displayAssets.map((asset) => (
               <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={asset.id}>

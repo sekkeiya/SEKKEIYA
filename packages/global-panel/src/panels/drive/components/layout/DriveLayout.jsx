@@ -1,17 +1,19 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import DriveSidebar from "./DriveSidebar";
 import DriveMainArea from "./DriveMainArea";
+import DriveContextPanel from "./DriveContextPanel";
 import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
 export default function DriveLayout() {
   const BRAND = usePanelTheme();
+  const isTablet = useMediaQuery('(max-width:1200px)');
   return (
     <Box
       sx={{
         flex: 1,
         display: "flex",
-        bgcolor: BRAND.bg,
+        bgcolor: "transparent",
         borderTop: `1px solid ${BRAND.line}`,
         borderLeft: `1px solid ${BRAND.line}`,
         borderTopLeftRadius: 16,
@@ -21,6 +23,7 @@ export default function DriveLayout() {
     >
       <DriveSidebar />
       <DriveMainArea />
+      {!isTablet && <DriveContextPanel />}
     </Box>
   );
 }

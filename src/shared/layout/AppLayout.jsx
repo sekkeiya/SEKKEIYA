@@ -5,12 +5,18 @@ import { BRAND } from "../ui/theme";
 import MiniSidebar from "./sidebar/MiniSidebar";
 import LeftSidebar from "./sidebar/LeftSidebar";
 import BottomBar from "./BottomBar";
-import { usePanelUrlSync, GlobalPanelHost } from "sekkeiya-global-panel";
+import { usePanelUrlSync, GlobalPanelHost, useGlobalPanelStore } from "sekkeiya-global-panel";
 
 export default function AppLayout() {
   const [isExpanded, setIsExpanded] = useState(false);
   const isMobile = useMediaQuery("(max-width:600px)");
   const mobileBottomSafe = isMobile ? 84 : 0;
+  
+  const setSidebarExpanded = useGlobalPanelStore(state => state.setSidebarExpanded);
+  
+  React.useEffect(() => {
+    setSidebarExpanded(isExpanded);
+  }, [isExpanded, setSidebarExpanded]);
   
   // URLとPanel Stateの同期
   usePanelUrlSync();
