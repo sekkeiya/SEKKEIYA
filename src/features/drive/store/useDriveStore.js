@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { collection, query, onSnapshot, doc, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable, deleteObject } from 'firebase/storage';
-import { db, storage } from '@/shared/config/firebase';
+import { auth, db, storage } from '@/shared/config/firebase';
 
 export const useDriveStore = create((set, get) => ({
   folders: [],
@@ -14,11 +14,11 @@ export const useDriveStore = create((set, get) => ({
   _unsubscribeFolders: null,
   _unsubscribeAssets: null,
 
-  _ensureInitialData: async (userId) => {
-    console.log("== ensureInitialData start ==", { uid: userId });
+  _ensureInitialData: async (uid) => {
+    console.log("== ensureInitialData start ==", { uid });
     try {
-      const foldersRef = collection(db, "users", userId, "driveFolders");
-      const assetsRef = collection(db, "users", userId, "driveAssets");
+      const foldersRef = collection(db, "users", uid, "driveFolders");
+      const assetsRef = collection(db, "users", uid, "driveAssets");
       
       const foldersSnapshot = await getDocs(foldersRef);
       const assetsSnapshot = await getDocs(assetsRef);
@@ -42,15 +42,11 @@ export const useDriveStore = create((set, get) => ({
         }
       });
 
-      console.log("Initializing default AI Drive schema for user:", userId);
+      console.log("Initializing default AI Drive schema for user:", uid);
 
       const defaultFolders = [
         { name: "3D Models", id: "root-3d-models" },
-        { name: "Images", id: "root-images" },
-        { name: "Documents", id: "root-documents" },
-        { name: "Videos", id: "root-videos" },
-        { name: "AI Generated", id: "root-ai-generated" },
-        { name: "Projects", id: "root-projects" }
+        { name: "Architectural Plans", id: "root-architectural-plans" }
       ];
       
       console.log("write path for folders:", foldersRef.path);
@@ -64,7 +60,7 @@ export const useDriveStore = create((set, get) => ({
           depth: 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          createdBy: userId
+          createdBy: uid
         }, { merge: true });
       });
 
@@ -75,15 +71,15 @@ export const useDriveStore = create((set, get) => ({
         name: "sample.png",
         type: "image",
         assetKind: "image",
-        folderId: "root-images", 
-        storagePath: `drive/${userId}/images/sample.png`,
+        folderId: "root-architectural-plans", 
+        storagePath: `drive/${uid}/images/sample.png`,
         downloadURL: "", 
         size: 120000,
         mimeType: "image/png",
         previewURL: "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        createdBy: userId
+        createdBy: uid
       }, { merge: true });
 
       const sampleModelRef = doc(assetsRef, "asset-sample-model");
@@ -93,14 +89,14 @@ export const useDriveStore = create((set, get) => ({
         type: "model",
         assetKind: "model",
         folderId: "root-3d-models", 
-        storagePath: `drive/${userId}/models/example.glb`,
+        storagePath: `drive/${uid}/models/example.glb`,
         downloadURL: "", 
         size: 2500000,
         mimeType: "model/gltf-binary",
         previewURL: "",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        createdBy: userId
+        createdBy: uid
       }, { merge: true });
 
       await batch.commit();
@@ -113,28 +109,32 @@ export const useDriveStore = create((set, get) => ({
     }
   },
 
-  initialize: (userId) => {
-    console.log("useDriveStore initialize called", { uid: userId });
-    
-    if (!userId) return;
+  initialize: () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      console.warn("useDriveStore initialize aborted: no authenticated user");
+      return;
+    }
 
+    console.log(`Drive initialized for UID:`, uid);
+    
     // Cleanup previous listeners if any
     get().cleanup();
     
     set({ isLoading: true, error: null });
 
     // Ensure initial data exists
-    get()._ensureInitialData(userId);
+    get()._ensureInitialData(uid);
 
-    const foldersRef = collection(db, "users", userId, "driveFolders");
-    const assetsRef = collection(db, "users", userId, "driveAssets");
+    const foldersRef = collection(db, "users", uid, "driveFolders");
+    const assetsRef = collection(db, "users", uid, "driveAssets");
     
     // AI Drive is global per user, no projectId filtering
     const foldersQuery = query(foldersRef);
     const assetsQuery = query(assetsRef);
 
-    console.log("read query path folders:", ["users", userId, "driveFolders"]);
-    console.log("read query path assets:", ["users", userId, "driveAssets"]);
+    console.log("Drive folders query path:", `users/${uid}/driveFolders`);
+    console.log("Drive assets query path:", `users/${uid}/driveAssets`);
 
     const unsubFolders = onSnapshot(foldersQuery, (snapshot) => {
       const foldersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

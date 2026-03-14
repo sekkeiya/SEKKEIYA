@@ -15,7 +15,9 @@ export default function DriveWorkspace() {
   console.log("DriveWorkspace uid:", user?.uid);
 
   useEffect(() => {
-    initialize(user?.uid);
+    if (user?.uid) {
+      initialize();
+    }
     return () => cleanup();
   }, [user?.uid, initialize, cleanup]);
 
