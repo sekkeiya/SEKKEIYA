@@ -1,34 +1,55 @@
 import React, { useEffect } from "react";
 import { Box } from "@mui/material";
 import { useDriveStore } from "./store/useDriveStore";
-import { mockFolders, mockAssets } from "./api/mockData";
-import DriveLayout from "./components/layout/DriveLayout";
-import AssetPreviewModal from "./components/preview/AssetPreviewModal";
+import { DriveLayout, DriveUiProvider, AssetPreviewModal } from "sekkeiya-global-panel";
+import { useDriveUiAdapter } from "./useDriveUiAdapter";
+import { useAuth } from "@/features/auth/context/AuthContext";
 
-export default function DriveWorkspace({ projectId }) {
-  const { setProject, setItems, selectedAsset } = useDriveStore();
+export default function DriveWorkspace() {
+  const { user } = useAuth();
+  // Initialize and provide data
+  const { initialize, cleanup, folders, assets, currentFolderId } = useDriveStore();
+  const adapterState = useDriveUiAdapter();
+  
+  console.log("DriveWorkspace mounted");
+  console.log("DriveWorkspace uid:", user?.uid);
 
   useEffect(() => {
-    // Initialize Drive with project ID and mock data
-    if (projectId) {
-      setProject(projectId);
-      setItems(
-        mockFolders.filter(f => !f.isDeleted && f.projectId === projectId),
-        mockAssets.filter(a => !a.isDeleted && a.projectId === projectId)
-      );
-    } else {
-      setProject(null);
-      setItems(
-        mockFolders.filter(f => !f.isDeleted),
-        mockAssets.filter(a => !a.isDeleted)
-      );
+    initialize(user?.uid);
+    return () => cleanup();
+  }, [user?.uid, initialize, cleanup]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      const visibleFolders = folders.filter(f => f.parentId === currentFolderId);
+      const visibleAssets = assets.filter(a => a.folderId === currentFolderId);
+      
+      console.log("DriveWorkspace state:", { 
+        currentFolderId, 
+        foldersCount: folders.length, 
+        assetsCount: assets.length, 
+        visibleFoldersCount: visibleFolders.length, 
+        visibleAssetsCount: visibleAssets.length 
+      });
+      
+      console.log("=== AI Drive Debug Info ===");
+      console.log("uid:", user.uid);
+      console.log("folders count:", folders.length);
+      console.log("assets count:", assets.length);
+      console.log("currentFolderId:", currentFolderId);
+      console.log("visibleFolders count:", visibleFolders.length);
+      console.log("visibleAssets count:", visibleAssets.length);
+      console.log("root 判定ルール:", "フォルダは parentId === null, アセットは folderId === null");
+      console.log("===========================");
     }
-  }, [projectId, setProject, setItems]);
+  }, [user?.uid, folders, assets, currentFolderId]);
 
   return (
-    <Box sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <DriveLayout />
-      {selectedAsset && <AssetPreviewModal />}
-    </Box>
+    <DriveUiProvider adapterState={adapterState}>
+      <Box sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+        <DriveLayout />
+        {adapterState.selectedAsset && <AssetPreviewModal />}
+      </Box>
+    </DriveUiProvider>
   );
 }

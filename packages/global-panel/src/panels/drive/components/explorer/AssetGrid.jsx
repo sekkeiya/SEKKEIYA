@@ -1,17 +1,27 @@
 import React from "react";
-import { Box, Typography, Grid } from "@mui/material";
-import { useDriveStore } from "../../store/useDriveStore";
+import { Box, Typography, Grid, CircularProgress } from "@mui/material";
+import { useDriveUi } from "../../context/DriveUiContext";
 import FolderCard from "./FolderCard";
 import AssetCard from "./AssetCard";
 
 export default function AssetGrid() {
-  const { folders, assets, currentFolderId } = useDriveStore();
+  const { folders, assets, currentFolderId, isLoading } = useDriveUi();
+  const safeFolders = Array.isArray(folders) ? folders : [];
+  const safeAssets = Array.isArray(assets) ? assets : [];
 
   // Filter items that belong to the current folder view
-  const displayFolders = folders.filter((f) => f.parentId === currentFolderId && !f.isDeleted);
-  const displayAssets = assets.filter((a) => a.folderId === currentFolderId && !a.isDeleted);
+  const displayFolders = safeFolders.filter((f) => f.parentId === currentFolderId && !f.isDeleted);
+  const displayAssets = safeAssets.filter((a) => a.folderId === currentFolderId && !a.isDeleted);
 
   const isEmpty = displayFolders.length === 0 && displayAssets.length === 0;
+
+  if (isLoading && isEmpty) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+        <CircularProgress size={32} sx={{ color: "rgba(255,255,255,0.3)" }} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>

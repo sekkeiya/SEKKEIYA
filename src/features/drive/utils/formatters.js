@@ -12,7 +12,15 @@ export function formatBytes(bytes, decimals = 1) {
 
 export function formatDate(dateInput) {
     if (!dateInput) return "";
-    const date = new Date(dateInput);
+    
+    // Handle Firestore Timestamp object or standard Date
+    const date = typeof dateInput.toDate === "function" 
+        ? dateInput.toDate() 
+        : new Date(dateInput);
+        
+    // Guard against invalid dates
+    if (isNaN(date.getTime())) return "";
+
     return date.toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "2-digit",

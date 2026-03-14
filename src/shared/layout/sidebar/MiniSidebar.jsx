@@ -16,7 +16,7 @@ import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/shared/config/firebase";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import DeleteAccountDialog from "@/shared/ui/DeleteAccountDialog";
 
 import sharePng from "@/assets/icons/share.png";
@@ -141,16 +141,17 @@ const UserAvatarMenu = () => {
 };
 
 export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  
   const { myBoards, teamBoards } = useBoards();
   
-  const activePanel = useGlobalPanelStore((state) => state.activePanel);
-  const togglePanel = useGlobalPanelStore((state) => state.togglePanel);
+  const storeActivePanel = useGlobalPanelStore((state) => state.activePanel);
+  const activePanel = searchParams.get("panel") || storeActivePanel;
 
   const [appAnchorEl, setAppAnchorEl] = useState(null);
+
   const handleAppClick = (e) => setAppAnchorEl(e.currentTarget);
   const handleAppClose = () => setAppAnchorEl(null);
 
@@ -213,14 +214,30 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
         icon={<FolderRoundedIcon />} 
         label="AIドライブ" 
         active={activePanel === "drive"} 
-        onClick={() => togglePanel("drive")} 
+        onClick={() => {
+          const next = new URLSearchParams(searchParams);
+          if (activePanel === "drive") {
+            next.delete("panel");
+          } else {
+            next.set("panel", "drive");
+          }
+          setSearchParams(next);
+        }} 
       />
 
       <NavIcon 
         icon={<ChatRoundedIcon />} 
         label="AIチャット" 
         active={activePanel === "chat"} 
-        onClick={() => togglePanel("chat")} 
+        onClick={() => {
+          const next = new URLSearchParams(searchParams);
+          if (activePanel === "chat") {
+            next.delete("panel");
+          } else {
+            next.set("panel", "chat");
+          }
+          setSearchParams(next);
+        }} 
       />
 
       <Divider sx={{ width: "60%", opacity: 0.25, my: 1.5 }} />

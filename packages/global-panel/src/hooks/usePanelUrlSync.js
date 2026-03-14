@@ -18,67 +18,24 @@ export function usePanelUrlSync() {
   useEffect(() => {
     const currentUrlPanel = searchParams.get('panel');
 
-    // 初回マウント時: URL状態をStoreに反映（URLが正）
-    if (!isMounted.current) {
-      isMounted.current = true;
-      if (currentUrlPanel && VALID_PANELS.includes(currentUrlPanel)) {
-        if (activePanel !== currentUrlPanel) {
-          openPanel(currentUrlPanel);
-          lastActivePanel.current = currentUrlPanel;
-        }
-      } else if (currentUrlPanel && !VALID_PANELS.includes(currentUrlPanel)) {
+    // Simple one-way sync: URL acts as the absolute source of truth
+    if (currentUrlPanel && VALID_PANELS.includes(currentUrlPanel)) {
+      if (activePanel !== currentUrlPanel) {
+        openPanel(currentUrlPanel);
+      }
+    } else {
+      if (activePanel !== null) {
+        closePanel();
+      }
+      
+      // Clear invalid params automatically without recursive looping
+      if (currentUrlPanel && !VALID_PANELS.includes(currentUrlPanel)) {
         const newParams = new URLSearchParams(searchParams);
         newParams.delete('panel');
         setSearchParams(newParams, { replace: true });
-        lastUrlPanel.current = null;
       }
-      return;
     }
-
-    const panelChangedInStore = activePanel !== lastActivePanel.current;
-    const panelChangedInUrl = currentUrlPanel !== lastUrlPanel.current;
-
-    if (panelChangedInStore) {
-      if (activePanel) {
-        if (currentUrlPanel !== activePanel) {
-          const newParams = new URLSearchParams(searchParams);
-          newParams.set('panel', activePanel);
-          setSearchParams(newParams);
-          lastUrlPanel.current = activePanel;
-        }
-      } else {
-        if (currentUrlPanel !== null) {
-          const newParams = new URLSearchParams(searchParams);
-          newParams.delete('panel');
-          setSearchParams(newParams);
-          lastUrlPanel.current = null;
-        }
-      }
-      lastActivePanel.current = activePanel;
-    } else if (panelChangedInUrl) {
-      if (currentUrlPanel && VALID_PANELS.includes(currentUrlPanel)) {
-        if (activePanel !== currentUrlPanel) {
-          openPanel(currentUrlPanel);
-          lastActivePanel.current = currentUrlPanel;
-        }
-      } else if (currentUrlPanel && !VALID_PANELS.includes(currentUrlPanel)) {
-        if (activePanel !== null) {
-          closePanel();
-          lastActivePanel.current = null;
-        }
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('panel');
-        setSearchParams(newParams, { replace: true });
-        lastUrlPanel.current = null;
-      } else if (!currentUrlPanel) {
-        if (activePanel !== null) {
-          closePanel();
-          lastActivePanel.current = null;
-        }
-      }
-      lastUrlPanel.current = currentUrlPanel;
-    }
-  }, [activePanel, searchParams, openPanel, closePanel, setSearchParams]);
+  }, [searchParams.get('panel')]);
 
   return activePanel;
 }

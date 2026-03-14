@@ -1,32 +1,39 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Box, IconButton, Slide, Fade, Backdrop } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useGlobalPanelStore } from '../../store/useGlobalPanelStore';
 import { BRAND } from '../../ui/theme';
+import { useSearchParams } from 'react-router-dom';
 
-export default function GlobalPanelOverlay({ children, panelName }) {
+export default function GlobalPanelOverlay({ children, panelName, isOpen: propIsOpen }) {
   const activePanel = useGlobalPanelStore((state) => state.activePanel);
-  const closePanel = useGlobalPanelStore((state) => state.closePanel);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const isOpen = activePanel === panelName;
+  const isOpen = propIsOpen !== undefined ? propIsOpen : activePanel === panelName;
+
+  const closePanelUrl = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("panel");
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   // Handle ESC key to close panel
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
-        closePanel();
+        closePanelUrl();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closePanel]);
+  }, [isOpen, closePanelUrl]);
 
   return (
     <>
       <Fade in={isOpen} unmountOnExit>
         <Backdrop
           open={isOpen}
-          onClick={closePanel}
+          onClick={closePanelUrl}
           sx={{
             zIndex: 100,
             backdropFilter: 'blur(4px)',
@@ -55,7 +62,7 @@ export default function GlobalPanelOverlay({ children, panelName }) {
         >
           {/* Close Button top-right absolute */}
           <IconButton
-            onClick={closePanel}
+            onClick={closePanelUrl}
             sx={{
               position: 'absolute',
               top: 16,

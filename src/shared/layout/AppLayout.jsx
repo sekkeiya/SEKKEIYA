@@ -5,7 +5,8 @@ import { BRAND } from "../ui/theme";
 import MiniSidebar from "./sidebar/MiniSidebar";
 import LeftSidebar from "./sidebar/LeftSidebar";
 import BottomBar from "./BottomBar";
-import { usePanelUrlSync, GlobalPanelHost, useGlobalPanelStore } from "sekkeiya-global-panel";
+import { usePanelUrlSync, useGlobalPanelStore } from "sekkeiya-global-panel";
+import GlobalPanelHost from "./panel/GlobalPanelHost";
 
 export default function AppLayout() {
   const [isExpanded, setIsExpanded] = useState(false);

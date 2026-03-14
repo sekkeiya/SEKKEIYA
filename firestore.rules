@@ -12,8 +12,8 @@ service cloud.firestore {
 
   // 可視性（後方互換）
   function isPublic(data) {
-    return (data.get("visibility", "") == "public") ||
-           (data.get("isPublic", false) == true && !(data.get("isPrivate", false) == true));
+    return (data.visibility == "public") ||
+           (data.isPublic == true && !(data.isPrivate == true));
   }
 
   function isDocPublic(d) {
@@ -167,8 +167,8 @@ service cloud.firestore {
     match /boards/{boardId} {
       // 読み取り許可: 公開ボード、自分がオーナー、または自分がメンバー
       allow read: if isPublic(resource.data) 
-                  || (isSignedIn() && resource.data.get("ownerId", "") == request.auth.uid)
-                  || (isSignedIn() && request.auth.uid in resource.data.get("memberIds", []));
+                  || (isSignedIn() && resource.data.ownerId == request.auth.uid)
+                  || (isSignedIn() && request.auth.uid in resource.data.memberIds);
 
       // 新規作成許可: ownerId が自分の UID になっていること
       allow create: if isSignedIn() 
@@ -399,9 +399,139 @@ service cloud.firestore {
       }
     }
 
-    /* ---- teamBoards (Legacy Schema Blocked) ---- */
-    match /teamBoards/{document=**} {
-      allow read, write: if false;
+    /* ---- teamBoards ---- */
+    match /teamBoards/{teamBoardId} {
+      // ※本来は _isOwner() || _isMember() に締めるのが理想（MVPなら isSignedIn でも可）
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+
+      // 現在のボード
+      function _team() {
+        return get(/databases/$(database)/documents/teamBoards/$(teamBoardId)).data;
+      }
+
+      // オーナー判定
+      function _isOwner() {
+        return request.auth != null && (
+          _team().ownerId == request.auth.uid ||
+          _team().owner   == request.auth.uid ||
+          _team().ownerUid == request.auth.uid ||
+          (_team().ownerRef is map && _team().ownerRef.uid == request.auth.uid)
+        );
+      }
+
+      // メンバー判定
+      function _isMember() {
+        return request.auth != null && (
+          (_team().members is list   && request.auth.uid in _team().members) ||
+          (_team().memberIds is list && request.auth.uid in _team().memberIds) ||
+          (_team().members is map    && _team().members[request.auth.uid] != null) ||
+          (_team().membersMap is map && _team().membersMap[request.auth.uid] != null)
+        );
+      }
+
+      // ① オーナーは update / delete なんでもOK
+      allow update, delete: if _isOwner();
+
+      // ② メンバーが「自分だけを members から外す」更新（配列）
+      allow update: if request.auth != null
+        && _isMember()
+        && (resource.data.members is list)
+        && (request.resource.data.members is list)
+        && !(request.auth.uid in request.resource.data.members)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["members", "updatedAt"]);
+
+      // ③ メンバーが「自分だけを members から外す」更新（map）
+      allow update: if request.auth != null
+        && _isMember()
+        && (resource.data.members is map)
+        && (request.resource.data.members is map)
+        && !(request.auth.uid in request.resource.data.members)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["members", "updatedAt"]);
+
+      /* ✅✅ 追加：3DSL Options + items（案の実体）
+       * teamBoards/{teamBoardId}/bases/{baseId}/plans/{planId}/options/{optionId}
+       * teamBoards/{teamBoardId}/bases/{baseId}/plans/{planId}/options/{optionId}/items/{itemId}
+       */
+      match /bases/{baseId} {
+        allow read, create, update, delete: if _isOwner() || _isMember();
+
+        match /plans/{planId} {
+          allow read, create, update, delete: if _isOwner() || _isMember();
+
+          match /options/{optionId} {
+            allow read, create, update, delete: if _isOwner() || _isMember();
+
+            match /items/{itemId} {
+              allow read, create, update, delete: if _isOwner() || _isMember();
+            }
+          }
+        }
+      }
+
+      /* ---- teamBoards/{id}/models ---- */
+      match /models/{modelId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ---- teamBoards/{id}/drawings ---- */
+      match /drawings/{drawingId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ---- teamBoards/{id}/renders ---- */
+      match /renders/{renderId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ---- teamBoards/{id}/movies ---- */
+      match /movies/{movieId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ---- teamBoards/{id}/slides ---- */
+      match /slides/{slideId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ---- teamBoards/{id}/articles ---- */
+      match /articles/{articleId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ✅ 追加：teamBoards/{id}/planModelRefs/{docId} 自体（list/get） */
+      match /planModelRefs/{docId} {
+        allow read, create, update, delete: if _isOwner() || _isMember();
+
+        match /models/{boardModelId} {
+          allow read, create, update, delete: if _isOwner() || _isMember();
+        }
+      }
+
+      /* ---- 既存：teamBoards/{id}/planModelRefs/{planId}/models ---- */
+      match /planModelRefs/{planId}/models/{boardModelId} {
+        allow read, create, update, delete: if _isOwner() || _isMember();
+      }
+
+      /* ✅ 追加：boardModelRefs（team board でも使うなら） */
+      match /boardModelRefs/{docId} {
+        allow read, create, update, delete: if _isOwner() || _isMember();
+
+        match /models/{boardModelId} {
+          allow read, create, update, delete: if _isOwner() || _isMember();
+        }
+      }
+
+      /* ✅ 保険：未定義サブコレクションも contributor は触れる */
+      match /{document=**} {
+        allow read, write: if _isOwner() || _isMember();
+      }
     }
 
     /* ---- users ---- */
@@ -444,14 +574,114 @@ service cloud.firestore {
         allow delete: if isVerified() && request.auth.uid == userId;
       }
 
-      /* ---- users/{userId}/myBoards (Legacy Schema Blocked) ---- */
-      match /myBoards/{document=**} {
-        allow read, write: if false;
+      /* ✅ 修正：myBoards は owner のみに制限 */
+      match /myBoards/{boardId} {
+        allow read, create, update, delete: if isMyBoardOwner(userId);
+
+        match /models/{modelId} {
+          allow read, create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        /* ✅✅ 追加：3DSL Options + items（案の実体）
+         * users/{userId}/myBoards/{boardId}/bases/{baseId}/plans/{planId}/options/{optionId}
+         * users/{userId}/myBoards/{boardId}/bases/{baseId}/plans/{planId}/options/{optionId}/items/{itemId}
+         */
+        match /bases/{baseId} {
+          allow read, create, update, delete: if isMyBoardOwner(userId);
+
+          match /plans/{planId} {
+            allow read, create, update, delete: if isMyBoardOwner(userId);
+
+            match /options/{optionId} {
+              allow read, create, update, delete: if isMyBoardOwner(userId);
+
+              match /items/{itemId} {
+                allow read, create, update, delete: if isMyBoardOwner(userId);
+              }
+            }
+          }
+        }
+
+        // users/{userId}/myBoards/{boardId}/drawings
+        match /drawings/{drawingId} {
+          allow read: if isSignedIn();
+          allow create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        // users/{userId}/myBoards/{boardId}/renders
+        match /renders/{renderId} {
+          allow read: if isSignedIn();
+          allow create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        // users/{userId}/myBoards/{boardId}/movies
+        match /movies/{movieId} {
+          allow read: if isSignedIn();
+          allow create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        // users/{userId}/myBoards/{boardId}/slides
+        match /slides/{slideId} {
+          allow read: if isSignedIn();
+          allow create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        match /articles/{articleId} {
+          allow read: if isSignedIn();
+          allow create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        /* ✅ 追加：users/{userId}/myBoards/{boardId}/planModelRefs/{docId} 自体（list/get） */
+        match /planModelRefs/{docId} {
+          allow read, create, update, delete: if isMyBoardOwner(userId);
+
+          match /models/{boardModelId} {
+            allow read, create, update, delete: if isMyBoardOwner(userId);
+          }
+        }
+
+        /* ---- 既存：users/{userId}/myBoards/{boardId}/planModelRefs/{planId}/models ---- */
+        match /planModelRefs/{planId}/models/{boardModelId} {
+          allow read, create, update, delete: if isMyBoardOwner(userId);
+        }
+
+        /* ✅ 追加：boardModelRefs（Workspace が読んでいる名前に合わせる） */
+        match /boardModelRefs/{docId} {
+          allow read, create, update, delete: if isMyBoardOwner(userId);
+
+          match /models/{boardModelId} {
+            allow read, create, update, delete: if isMyBoardOwner(userId);
+          }
+        }
+
+        /* ✅ 保険：未定義のサブコレクションが増えても owner は触れる */
+        match /{document=**} {
+          allow read, write: if isMyBoardOwner(userId);
+        }
       }
 
-      // 🔴 ユーザー配下の teamBoards リンク (Legacy Schema Blocked)
-      match /teamBoards/{document=**} {
-        allow read, write: if false;
+      /* ---- AI Drive Collections ---- */
+      match /driveFolders/{folderId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /driveAssets/{assetId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 🔴 ユーザー配下の teamBoards リンク
+      match /teamBoards/{docId} {
+        // 自分のものだけ見える
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        // 参加時に作る / 退出時に消す
+        allow create, delete: if isSignedIn() && request.auth.uid == userId;
+        // 編集はちょい厳しめのまま
+        allow update: if isVerified() && request.auth.uid == userId;
+
+        match /models/{modelId} {
+          allow read: if isSignedIn() && request.auth.uid == userId;
+          allow write: if isSignedIn() && request.auth.uid == userId;
+        }
       }
     }
 

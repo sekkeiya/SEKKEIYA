@@ -188,6 +188,11 @@ service firebase.storage {
         && isTeamBoardMember(boardId);
     }
 
+    /* ---------- AI Drive ---------- */
+    match /drive/{userId}/{allPaths=**} {
+      allow read, write: if isMe(userId);
+    }
+
     /* ---------- fallback（✅ 必ず一番最後） ---------- */
     match /{allPaths=**} {
       allow read, write: if false;

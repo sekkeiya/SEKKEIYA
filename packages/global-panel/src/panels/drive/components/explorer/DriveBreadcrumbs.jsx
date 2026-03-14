@@ -2,19 +2,21 @@ import React from "react";
 import { Breadcrumbs, Typography, Link, IconButton } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import { useDriveStore } from "../../store/useDriveStore";
+import { useDriveUi } from "../../context/DriveUiContext";
 
 export default function DriveBreadcrumbs() {
-  const { folders, currentFolderId, navigateToFolder } = useDriveStore();
+  const { folders, currentFolderId, navigateToFolder } = useDriveUi();
+  const safeFolders = Array.isArray(folders) ? folders : [];
 
   // Compute breadcrumbs dynamically based on the current folder's ancestors
   const crumbs = [];
   if (currentFolderId) {
-    const currentFolder = folders.find((f) => f.id === currentFolderId);
+    const currentFolder = safeFolders.find((f) => f.id === currentFolderId);
     if (currentFolder) {
-      // Add all ancestors
-      currentFolder.ancestors.forEach((ancId) => {
-        const anc = folders.find((f) => f.id === ancId);
+      // Add all ancestors safely
+      const safeAncestors = Array.isArray(currentFolder.ancestors) ? currentFolder.ancestors : [];
+      safeAncestors.forEach((ancId) => {
+        const anc = safeFolders.find((f) => f.id === ancId);
         if (anc) crumbs.push(anc);
       });
       // Add current folder
@@ -37,7 +39,7 @@ export default function DriveBreadcrumbs() {
           cursor: "pointer",
           fontSize: 14,
         }}
-        onClick={() => navigateToFolder(null, folders)}
+        onClick={() => navigateToFolder(null, safeFolders)}
       >
         <HomeRoundedIcon sx={{ mr: 0.5, fontSize: 18 }} />
         ルート
@@ -56,7 +58,7 @@ export default function DriveBreadcrumbs() {
               fontSize: 14,
             }}
             onClick={() => {
-              if (!isLast) navigateToFolder(crumb.id, folders);
+              if (!isLast) navigateToFolder(crumb.id, safeFolders);
             }}
           >
             {crumb.name}

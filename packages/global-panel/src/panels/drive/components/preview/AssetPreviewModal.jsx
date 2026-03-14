@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Typography, IconButton, Modal, Stack, Divider, Button } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import { useDriveStore } from "../../store/useDriveStore";
+import { useDriveUi } from "../../context/DriveUiContext";
 import { formatBytes, formatDate } from "../../utils/formatters";
 import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 
@@ -23,7 +23,7 @@ const getAssetIcon = (assetKind) => {
 };
 
 export default function AssetPreviewModal() {
-  const { selectedAsset, closePreview } = useDriveStore();
+  const { selectedAsset, closePreview } = useDriveUi();
   const BRAND = usePanelTheme();
 
   if (!selectedAsset) return null;
@@ -57,9 +57,12 @@ export default function AssetPreviewModal() {
 
         <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
           {/* Left Preview Area */}
-          <Box sx={{ flex: 1, bgcolor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", p: 4 }}>
-            {/* If it was an image we could render <img src={selectedAsset.url} /> here */}
-            {getAssetIcon(selectedAsset.assetKind)}
+          <Box sx={{ flex: 1, bgcolor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", p: 4, overflow: 'hidden' }}>
+            {selectedAsset.imageUrl ? (
+              <img src={selectedAsset.imageUrl} alt={selectedAsset.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            ) : (
+              getAssetIcon(selectedAsset.assetKind || selectedAsset.type)
+            )}
           </Box>
 
           {/* Right Info Area */}
@@ -69,19 +72,19 @@ export default function AssetPreviewModal() {
             <Stack spacing={2} sx={{ mt: 2 }}>
               <Box>
                 <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>種類</Typography>
-                <Typography sx={{ fontSize: 14 }}>{selectedAsset.type}</Typography>
+                <Typography sx={{ fontSize: 14 }}>{selectedAsset.type || 'Unknown'}</Typography>
               </Box>
               <Box>
                 <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>サイズ</Typography>
                 <Typography sx={{ fontSize: 14 }}>{formatBytes(selectedAsset.size)}</Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>作成日</Typography>
-                <Typography sx={{ fontSize: 14 }}>{formatDate(selectedAsset.createdAt)}</Typography>
+                <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>更新日</Typography>
+                <Typography sx={{ fontSize: 14 }}>{formatDate(selectedAsset.updatedAt || selectedAsset.createdAt)}</Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>生成アプリ</Typography>
-                <Typography sx={{ fontSize: 14 }}>{selectedAsset.sourceApp}</Typography>
+                <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>作成日</Typography>
+                <Typography sx={{ fontSize: 14 }}>{formatDate(selectedAsset.createdAt)}</Typography>
               </Box>
             </Stack>
 

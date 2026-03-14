@@ -3,10 +3,35 @@ import { Box, Typography, Paper, Chip } from "@mui/material";
 import ImageNotSupportedRoundedIcon from '@mui/icons-material/ImageNotSupportedRounded';
 import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
+import { useDriveUi } from "../../context/DriveUiContext";
+import { formatBytes, formatDate } from "../../utils/formatters";
 
 export default function DriveContextPanel() {
   const BRAND = usePanelTheme();
+  const { selectedAsset } = useDriveUi();
   
+  if (!selectedAsset) {
+    return (
+      <Box sx={{
+        width: 320,
+        flexShrink: 0,
+        borderLeft: `1px solid rgba(255,255,255,0.08)`,
+        bgcolor: "rgba(255,255,255,0.02)",
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 3,
+        textAlign: 'center'
+      }}>
+        <Typography sx={{ color: "rgba(255,255,255,0.4)", fontStyle: 'italic' }}>
+          アイテムを選択すると詳細が表示されます
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{
       width: 320,
@@ -37,10 +62,17 @@ export default function DriveContextPanel() {
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'column',
-            gap: 1
+            gap: 1,
+            overflow: 'hidden'
           }}>
-            <ImageNotSupportedRoundedIcon sx={{ fontSize: 32, opacity: 0.2 }} />
-            <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.5 }}>No preview available</Typography>
+            {selectedAsset.imageUrl ? (
+              <img src={selectedAsset.imageUrl} alt={selectedAsset.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            ) : (
+              <>
+                <ImageNotSupportedRoundedIcon sx={{ fontSize: 32, opacity: 0.2 }} />
+                <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.5 }}>No preview available</Typography>
+              </>
+            )}
           </Paper>
         </Box>
 
@@ -49,16 +81,16 @@ export default function DriveContextPanel() {
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Metadata</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 1.5, alignItems: 'center' }}>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Name</Typography>
-            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }} noWrap>SampleAsset.png</Typography>
+            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }} noWrap>{selectedAsset.name}</Typography>
 
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Type</Typography>
-            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)' }}>Image</Typography>
+            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)' }}>{selectedAsset.type || 'Unknown'}</Typography>
 
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Size</Typography>
-            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)' }}>2.4 MB</Typography>
+            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)' }}>{formatBytes(selectedAsset.size)}</Typography>
 
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Modified</Typography>
-            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)' }}>Just now</Typography>
+            <Typography variant="body2" align="right" sx={{ color: 'rgba(255,255,255,0.9)' }}>{formatDate(selectedAsset.updatedAt || selectedAsset.createdAt)}</Typography>
           </Box>
         </Box>
 

@@ -1,10 +1,10 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
-import { useDriveStore } from "../../store/useDriveStore";
+import { useDriveUi } from "../../context/DriveUiContext";
 
 export default function FolderCard({ folder }) {
-  const { navigateToFolder, folders } = useDriveStore();
+  const { navigateToFolder, folders } = useDriveUi();
 
   return (
     <Box

@@ -1,23 +1,28 @@
 import React from 'react';
-import { useGlobalPanelStore } from '../../store/useGlobalPanelStore';
+import { useSearchParams } from "react-router-dom";
 import GlobalPanelOverlay from './GlobalPanelOverlay';
 
 // Future Workspaces
 import DriveWorkspace from '@/features/drive/DriveWorkspace';
-import ChatWorkspace from '@/features/chat/ChatWorkspace';
+import { ChatWorkspace } from 'sekkeiya-global-panel';
 
 export default function GlobalPanelHost() {
-  const activePanel = useGlobalPanelStore((state) => state.activePanel);
+  const [searchParams] = useSearchParams();
+  const activePanel = searchParams.get("panel");
   
+  console.log("GlobalPanelHost activePanel:", activePanel);
+  console.log("GlobalPanelHost render target:", activePanel === "drive" ? "DriveWorkspace" : activePanel === "chat" ? "ChatWorkspace" : null);
+  console.log("GlobalPanelHost returning overlay:", !!activePanel);
+
   if (!activePanel) return null;
 
   return (
     <>
-      <GlobalPanelOverlay panelName="drive" width="90vw" maxWidth={1200}>
+      <GlobalPanelOverlay panelName="drive" isOpen={activePanel === "drive"} width="90vw" maxWidth={1200}>
         <DriveWorkspace />
       </GlobalPanelOverlay>
 
-      <GlobalPanelOverlay panelName="chat" width="800px" maxWidth={1000}>
+      <GlobalPanelOverlay panelName="chat" isOpen={activePanel === "chat"} width="800px" maxWidth={1000}>
         <ChatWorkspace />
       </GlobalPanelOverlay>
       

@@ -1,6 +1,7 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
-import { useDriveStore } from "../../store/useDriveStore";
+import { Card, CardActionArea, Typography, Box, IconButton, Chip } from "@mui/material";
+import { useDriveUi } from "../../context/DriveUiContext";
+import { usePanelTheme } from "../../../../theme/ThemeContext.jsx";
 import { formatBytes, formatDate } from "../../utils/formatters";
 
 // Icon mapping based on assetKind
@@ -25,7 +26,7 @@ const getAssetIcon = (assetKind) => {
 };
 
 export default function AssetCard({ asset }) {
-  const { openPreview } = useDriveStore();
+  const { openPreview } = useDriveUi();
 
   return (
     <Box
@@ -49,8 +50,12 @@ export default function AssetCard({ asset }) {
       }}
     >
       {/* Thumbnail Area */}
-      <Box sx={{ height: 120, bgcolor: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        {getAssetIcon(asset.assetKind)}
+      <Box sx={{ height: 120, bgcolor: "rgba(0,0,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", position: "relative" }}>
+        {asset.imageUrl ? (
+          <img src={asset.imageUrl} alt={asset.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          getAssetIcon(asset.assetKind)
+        )}
       </Box>
       
       {/* Details Area */}
