@@ -1,32 +1,61 @@
-import React, { useState } from 'react';
-import { Box, Typography, TextField, IconButton, Avatar, Paper, List, ListItem, ListItemText, Divider, useMediaQuery } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, Typography, TextField, IconButton, Avatar, Paper, List, ListItem, ListItemText, Divider, useMediaQuery, CircularProgress } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManufacturingRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import ExtensionRoundedIcon from '@mui/icons-material/ExtensionRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { usePanelTheme } from '../../theme/ThemeContext.jsx';
+import useChatStore from './store/useChatStore';
 
-export default function ChatWorkspace() {
+export default function ChatWorkspace({ uid, db }) {
   const BRAND = usePanelTheme();
+
   
-  const [messages, setMessages] = useState([
-    { id: 1, role: 'assistant', text: 'こんにちは！AI Workspaceです。どのようなお手伝いができますか？', agent: 'Agent' }
-  ]);
   const isMobile = useMediaQuery('(max-width:900px)');
   const isTablet = useMediaQuery('(max-width:1200px)');
 
   const [input, setInput] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const {
+    threads,
+    activeThreadId,
+    messages,
+    isLoading,
+    init,
+    selectThread,
+    sendMessage,
+    resetStore
+  } = useChatStore();
+
+  // Initialize store when component mounts or uid changes
+  useEffect(() => {
+    if (uid && db) {
+      init(uid, db);
+    } else {
+      resetStore();
+    }
+  }, [uid, db, init, resetStore]);
+
+  // Auto-scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: input }]);
+    if (!input.trim() || !uid) return;
+    sendMessage(input, uid);
     setInput('');
-    setTimeout(() => {
-      setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', text: 'モックからの返答です。コンテキストに応じた適切な処理を行います。', agent: 'Agent' }]);
-    }, 1000);
   };
+
+  const handleNewChat = () => {
+    selectThread(null, uid);
+  };
+
+  const activeThread = threads.find(t => t.id === activeThreadId);
 
   return (
     <Box sx={{ display: 'flex', height: '100%', bgcolor: 'transparent', color: BRAND.text }}>
@@ -59,13 +88,59 @@ export default function ChatWorkspace() {
         </Box>
 
         <List sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
-          <ListItem sx={{ borderRadius: 1, mb: 0.5, bgcolor: 'rgba(255,255,255,0.05)', cursor: 'pointer' }}>
-            <ListItemText primary="新しいチャット" primaryTypographyProps={{ fontSize: 13, fontWeight: "bold", color: "#fff" }} />
+          <ListItem 
+            onClick={handleNewChat}
+            sx={{ 
+              borderRadius: 1, 
+              mb: 0.5, 
+              bgcolor: !activeThreadId ? 'rgba(52, 152, 219, 0.2)' : 'rgba(255,255,255,0.05)', 
+              cursor: 'pointer',
+              border: !activeThreadId ? '1px solid rgba(52, 152, 219, 0.4)' : '1px solid transparent'
+            }}
+          >
+            <AddRoundedIcon sx={{ fontSize: 18, mr: 1, color: !activeThreadId ? '#3498db' : '#fff' }} />
+            <ListItemText primary="新しいチャット" primaryTypographyProps={{ fontSize: 13, fontWeight: "bold", color: !activeThreadId ? "#3498db" : "#fff" }} />
           </ListItem>
           <Divider sx={{ my: 1, opacity: 0.2 }} />
-          <ListItem sx={{ borderRadius: 1, mb: 0.5, cursor: 'pointer' }}>
-            <ListItemText primary="過去のボード解析" secondary="昨日" primaryTypographyProps={{ fontSize: 13, color: "rgba(255,255,255,0.9)" }} secondaryTypographyProps={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }} />
-          </ListItem>
+          
+          {threads.length === 0 && !isLoading && (
+             <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center', fontSize: 12 }}>
+               履歴はありません
+             </Typography>
+          )}
+
+          {threads.map(thread => {
+            const isSelected = thread.id === activeThreadId;
+            return (
+              <ListItem 
+                key={thread.id}
+                onClick={() => selectThread(thread.id, uid)}
+                sx={{ 
+                  borderRadius: 1, 
+                  mb: 0.5, 
+                  cursor: 'pointer',
+                  bgcolor: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }
+                }}
+              >
+                <ListItemText 
+                  primary={thread.title || "新規チャット"} 
+                  secondary={thread.lastMessageText || "メッセージなし"} 
+                  primaryTypographyProps={{ 
+                    fontSize: 13, 
+                    color: isSelected ? "#fff" : "rgba(255,255,255,0.9)",
+                    fontWeight: isSelected ? 'bold' : 'normal',
+                    noWrap: true
+                  }} 
+                  secondaryTypographyProps={{ 
+                    fontSize: 11, 
+                    color: "rgba(255,255,255,0.5)",
+                    noWrap: true
+                  }} 
+                />
+              </ListItem>
+            )
+          })}
         </List>
       </Box>
       )}
@@ -77,10 +152,9 @@ export default function ChatWorkspace() {
         flexDirection: 'column', 
         position: 'relative',
         bgcolor: 'transparent',
-        alignItems: 'center', // Center content
+        alignItems: 'center',
       }}>
         
-        {/* スレッド領域ラッパー: 指定幅で中央配置 */}
         <Box sx={{ 
           width: '100%', 
           maxWidth: 980, 
@@ -91,7 +165,7 @@ export default function ChatWorkspace() {
           position: 'relative' 
         }}>
         
-        {/* 3カラム中央のヘッダー (水平整列とタイトル) */}
+        {/* 3カラム中央のヘッダー */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -100,7 +174,9 @@ export default function ChatWorkspace() {
           borderBottom: `1px solid rgba(255,255,255,0.08)`,
           width: '100%'
         }}>
-          <Typography variant="subtitle1" fontWeight="bold">Active Chat: Onboarding Assistant</Typography>
+          <Typography variant="subtitle1" fontWeight="bold">
+            {activeThread ? activeThread.title : "New Chat"}
+          </Typography>
           <Paper sx={{ px: 2, py: 0.5, borderRadius: 4, bgcolor: 'rgba(0,0,0,0.4)', border: `1px solid rgba(255,255,255,0.08)`, display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#2ecc71' }} />
             <Typography variant="caption" color="text.secondary">Context: Main Architecture</Typography>
@@ -109,6 +185,21 @@ export default function ChatWorkspace() {
 
         {/* 3. メッセージ表示エリア */}
         <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          
+          {isLoading && messages.length === 0 && (
+             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+               <CircularProgress size={24} sx={{ color: 'rgba(255,255,255,0.5)' }} />
+             </Box>
+          )}
+
+          {!activeThreadId && messages.length === 0 && (
+             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.6 }}>
+                <AutoAwesomeRoundedIcon sx={{ fontSize: 48, mb: 2, color: '#3498db' }} />
+                <Typography variant="h6">何かお手伝いしましょうか？</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>下の入力欄から質問するか、左から過去の会話を選んでください。</Typography>
+             </Box>
+          )}
+
           {messages.map((m) => (
             <Box key={m.id} sx={{ display: 'flex', gap: 2, alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
               {m.role === 'assistant' && (
@@ -120,10 +211,11 @@ export default function ChatWorkspace() {
                 bgcolor: m.role === 'user' ? 'rgba(41, 128, 185, 0.2)' : 'rgba(255,255,255,0.03)',
                 border: m.role === 'user' ? '1px solid rgba(41, 128, 185, 0.4)' : `1px solid rgba(255,255,255,0.08)`
               }}>
-                <Typography variant="body2" sx={{ lineHeight: 1.6 }}>{m.text}</Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{m.text}</Typography>
               </Box>
             </Box>
           ))}
+          <div ref={messagesEndRef} />
         </Box>
 
         {/* 4. 入力欄 */}
@@ -161,14 +253,15 @@ export default function ChatWorkspace() {
               placeholder="AI に質問する..."
               variant="standard"
               InputProps={{ disableUnderline: true, sx: { color: BRAND.text, py: 1, pl: 1, fontSize: 14 } }}
+              disabled={!uid}
             />
-            <IconButton onClick={handleSend} disabled={!input.trim()} sx={{ mb: 0.5, color: input.trim() ? '#3498db' : 'rgba(255,255,255,0.2)' }}>
+            <IconButton onClick={handleSend} disabled={!input.trim() || !uid} sx={{ mb: 0.5, color: input.trim() && uid ? '#3498db' : 'rgba(255,255,255,0.2)' }}>
               <SendRoundedIcon />
             </IconButton>
           </Paper>
         </Box>
         
-        </Box> {/* End スレッド領域ラッパー */}
+        </Box>
       </Box>
 
       {/* 3. コンテキストパネル (ContextPanel) */}

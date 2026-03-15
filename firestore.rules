@@ -669,6 +669,15 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
+      /* ---- AI Chat Collections ---- */
+      match /chatThreads/{threadId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+
+        match /messages/{messageId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+
       // 🔴 ユーザー配下の teamBoards リンク
       match /teamBoards/{docId} {
         // 自分のものだけ見える
