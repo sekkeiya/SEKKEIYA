@@ -10,7 +10,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { usePanelTheme } from '../../theme/ThemeContext.jsx';
 import useChatStore from './store/useChatStore';
 
-export default function ChatWorkspace({ uid, db }) {
+export default function ChatWorkspace({ uid, db, functions }) {
   const BRAND = usePanelTheme();
 
   
@@ -33,12 +33,12 @@ export default function ChatWorkspace({ uid, db }) {
 
   // Initialize store when component mounts or uid changes
   useEffect(() => {
-    if (uid && db) {
-      init(uid, db);
+    if (uid && db && functions) {
+      init(uid, db, functions);
     } else {
       resetStore();
     }
-  }, [uid, db, init, resetStore]);
+  }, [uid, db, functions, init, resetStore]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -211,7 +211,21 @@ export default function ChatWorkspace({ uid, db }) {
                 bgcolor: m.role === 'user' ? 'rgba(41, 128, 185, 0.2)' : 'rgba(255,255,255,0.03)',
                 border: m.role === 'user' ? '1px solid rgba(41, 128, 185, 0.4)' : `1px solid rgba(255,255,255,0.08)`
               }}>
-                <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{m.text}</Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {m.text}
+                  {m.status === 'streaming' && (
+                    <Box component="span" sx={{ 
+                      display: 'inline-block', 
+                      width: 8, 
+                      height: 16, 
+                      bgcolor: 'rgba(255,255,255,0.7)', 
+                      ml: 0.5, 
+                      verticalAlign: 'text-bottom',
+                      animation: 'blink 1s step-end infinite',
+                      '@keyframes blink': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0 } }
+                    }} />
+                  )}
+                </Typography>
               </Box>
             </Box>
           ))}

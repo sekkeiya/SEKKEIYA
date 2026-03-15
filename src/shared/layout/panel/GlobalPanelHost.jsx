@@ -2,7 +2,7 @@ import React from 'react';
 import { useSearchParams } from "react-router-dom";
 import GlobalPanelOverlay from './GlobalPanelOverlay';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { db } from '@/shared/config/firebase';
+import { db, functions } from '@/shared/config/firebase';
 
 // Future Workspaces
 import DriveWorkspace from '@/features/drive/DriveWorkspace';
@@ -26,7 +26,7 @@ export default function GlobalPanelHost() {
       </GlobalPanelOverlay>
 
       <GlobalPanelOverlay panelName="chat" isOpen={activePanel === "chat"} width="800px" maxWidth={1000}>
-        <ChatWorkspace uid={user?.uid} db={db} />
+        <ChatWorkspace uid={user?.uid} db={db} functions={functions} />
       </GlobalPanelOverlay>
       
       {/* <GlobalPanelOverlay panelName="notifications" width="350px" maxWidth={400}> ... </GlobalPanelOverlay> */}

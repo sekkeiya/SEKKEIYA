@@ -8,6 +8,7 @@ import {
   setDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
 const useChatStore = create((set, get) => ({
   threads: [],
@@ -16,6 +17,7 @@ const useChatStore = create((set, get) => ({
   isLoading: false,
   error: null,
   db: null, // <-- injected Firebase DB
+  functions: null, // <-- injected Firebase Functions
 
   _threadsUnsubscribe: null,
   _messagesUnsubscribe: null,
@@ -23,13 +25,13 @@ const useChatStore = create((set, get) => ({
   /**
    * 1) Init (called by GlobalPanelHost with uid and db)
    */
-  init: (uid, dbInstance) => {
-    if (!uid || !dbInstance) {
+  init: (uid, dbInstance, functionsInstance) => {
+    if (!uid || !dbInstance || !functionsInstance) {
       get().resetStore();
       return;
     }
-    // Save db reference
-    set({ db: dbInstance });
+    // Save db and functions reference
+    set({ db: dbInstance, functions: functionsInstance });
 
     // Only subscribe to threads once
     if (!get()._threadsUnsubscribe) {
@@ -116,7 +118,7 @@ const useChatStore = create((set, get) => ({
   sendMessage: async (text, uid) => {
     if (!text || !uid) return;
 
-    let { activeThreadId, db } = get();
+    let { activeThreadId, db, functions } = get();
     
     // Create thread if none active
     if (!activeThreadId) {
@@ -125,7 +127,9 @@ const useChatStore = create((set, get) => ({
       await setDoc(newThreadRef, {
         id: activeThreadId,
         title: text.substring(0, 30) + (text.length > 30 ? "..." : ""),
-        agentMode: "assistant",
+        agentMode: "assistant", // default mode
+        provider: "gemini",
+        model: "gemini-2.5-flash",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         lastMessageText: text,
@@ -155,29 +159,23 @@ const useChatStore = create((set, get) => ({
       createdAt: serverTimestamp(),
     });
 
-    // Mock API Assistant Response (1 second later)
-    setTimeout(async () => {
-      const msgIdAgent = `msg_${Date.now()}`;
-      const agentMsgRef = doc(db, "users", uid, "chatThreads", activeThreadId, "messages", msgIdAgent);
-      const mockText = "Mock response from SEKKEIYA AI.";
-      
-      await setDoc(agentMsgRef, {
-        id: msgIdAgent,
-        role: "assistant",
-        text: mockText,
-        status: "done",
-        source: "mock",
-        createdAt: serverTimestamp(),
+    // Invoke Cloud Function AI Orchestrator
+    try {
+      const orchestratorFn = httpsCallable(functions, "runChatOrchestrator");
+      await orchestratorFn({
+        threadId: activeThreadId,
+        agentMode: "assistant",
+        provider: "gemini",
+        model: "gemini-2.5-flash",
+        context: {}
       });
-
-      // Update thread lastMessage manually too
-      const threadRef = doc(db, "users", uid, "chatThreads", activeThreadId);
-      await setDoc(threadRef, {
-        updatedAt: serverTimestamp(),
-        lastMessageText: mockText,
-        lastMessageAt: serverTimestamp(),
-      }, { merge: true });
-    }, 1000);
+    } catch (err) {
+      console.error("AI Orchestrator Error:", err);
+      // NOTE: The orchestrator handles updating the message to 'error' state inside Firestore,
+      // so we don't necessarily need to perform local fallback state updates here.
+      // The UI will re-render when the Firestore listener syncs the 'error' status.
+      set({ error: "Failed to connect to AI background service." });
+    }
   },
 
   /**
