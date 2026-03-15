@@ -6,7 +6,10 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: { 
+      "@": path.resolve(__dirname, "./src"),
+      "sekkeiya-global-panel": path.resolve(__dirname, "./packages/global-panel/src"),
+    },
   },
 
   server: {

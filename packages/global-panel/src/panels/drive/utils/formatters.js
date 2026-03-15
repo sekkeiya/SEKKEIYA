@@ -12,7 +12,21 @@ export function formatBytes(bytes, decimals = 1) {
 
 export function formatDate(dateInput) {
     if (!dateInput) return "";
-    const date = new Date(dateInput);
+    
+    let date;
+    // Handle Firestore Timestamp
+    if (typeof dateInput.toDate === 'function') {
+        date = dateInput.toDate();
+    } else if (dateInput && typeof dateInput.seconds === 'number') {
+        // Handle serialized Timestamp
+        date = new Date(dateInput.seconds * 1000);
+    } else {
+        date = new Date(dateInput);
+    }
+
+    // Safeguard against invalid dates
+    if (isNaN(date.getTime())) return "";
+
     return date.toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "2-digit",

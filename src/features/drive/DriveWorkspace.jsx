@@ -1,28 +1,29 @@
 import React, { useEffect } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useDriveStore } from "./store/useDriveStore";
 import { DriveLayout, DriveUiProvider, AssetPreviewModal } from "sekkeiya-global-panel";
 import { useDriveUiAdapter } from "./useDriveUiAdapter";
-import { useAuth } from "@/features/auth/context/AuthContext";
 
-export default function DriveWorkspace() {
-  const { user } = useAuth();
+
+export default function DriveWorkspace({ uid }) {
   // Initialize and provide data
   const { initialize, cleanup, folders, assets, currentFolderId } = useDriveStore();
   const adapterState = useDriveUiAdapter();
   
+
+
   console.log("DriveWorkspace mounted");
-  console.log("DriveWorkspace uid:", user?.uid);
+  console.log("DriveWorkspace uid:", uid);
 
   useEffect(() => {
-    if (user?.uid) {
-      initialize();
+    if (uid) {
+      initialize(uid);
     }
     return () => cleanup();
-  }, [user?.uid, initialize, cleanup]);
+  }, [uid, initialize, cleanup]);
 
   useEffect(() => {
-    if (user?.uid) {
+    if (uid) {
       const visibleFolders = folders.filter(f => f.parentId === currentFolderId);
       const visibleAssets = assets.filter(a => a.folderId === currentFolderId);
       
@@ -35,7 +36,7 @@ export default function DriveWorkspace() {
       });
       
       console.log("=== AI Drive Debug Info ===");
-      console.log("uid:", user.uid);
+      console.log("uid:", uid);
       console.log("folders count:", folders.length);
       console.log("assets count:", assets.length);
       console.log("currentFolderId:", currentFolderId);
@@ -44,7 +45,17 @@ export default function DriveWorkspace() {
       console.log("root 判定ルール:", "フォルダは parentId === null, アセットは folderId === null");
       console.log("===========================");
     }
-  }, [user?.uid, folders, assets, currentFolderId]);
+  }, [uid, folders, assets, currentFolderId]);
+
+  if (!uid) {
+    return (
+      <Box sx={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: "rgba(10,12,16,0.95)" }}>
+        <Typography sx={{ color: "rgba(255,255,255,0.5)", fontWeight: 500, letterSpacing: 0.5 }}>
+          AIドライブを利用するにはログインしてください。
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <DriveUiProvider adapterState={adapterState}>

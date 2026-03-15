@@ -12,8 +12,8 @@ service cloud.firestore {
 
   // 可視性（後方互換）
   function isPublic(data) {
-    return (data.visibility == "public") ||
-           (data.isPublic == true && !(data.isPrivate == true));
+    return (data.get('visibility', '') == 'public') ||
+           (data.get('isPublic', false) == true && !(data.get('isPrivate', false) == true));
   }
 
   function isDocPublic(d) {
