@@ -1,6 +1,6 @@
 // utils/services/search/publicSearch.js
 import {
-    collection,
+    collectionGroup,
     getDocs,
     query,
     where,
@@ -13,12 +13,13 @@ import { db } from "@/shared/config/firebase";
 
 /** 共有: 公開モデルを “なるべく新しい順” で上限 max 件取得 */
 async function fetchAllPublicBasic(max = 200) {
-    const base = collection(db, "models");
+    const base = collectionGroup(db, "models");
 
     // 1) updatedAt DESC
     try {
         const q1 = query(
             base,
+            where("isCanonical", "==", true),
             where("visibility", "==", "public"),
             orderBy("updatedAt", "desc"),
             qLimit(Math.min(max, 500))
@@ -31,6 +32,7 @@ async function fetchAllPublicBasic(max = 200) {
     try {
         const q2 = query(
             base,
+            where("isCanonical", "==", true),
             where("visibility", "==", "public"),
             orderBy("createdAt", "desc"),
             qLimit(Math.min(max, 500))
@@ -41,7 +43,7 @@ async function fetchAllPublicBasic(max = 200) {
 
     // 3) 並びなし（最終フォールバック）
     try {
-        const q3 = query(base, where("visibility", "==", "public"), qLimit(Math.min(max, 500)));
+        const q3 = query(base, where("isCanonical", "==", true), where("visibility", "==", "public"), qLimit(Math.min(max, 500)));
         const s3 = await getDocs(q3);
         return s3.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (_) {
@@ -115,7 +117,7 @@ export async function fetchPublicModelsByKeywordExisting(rawKeyword, limit = 60)
         return all.slice(0, limit);
     }
 
-    const base = collection(db, "models");
+    const base = collectionGroup(db, "models");
     const out = new Map();
 
     // --- 1) タイトル prefix（複合インデックスが無ければ catch）
@@ -123,6 +125,7 @@ export async function fetchPublicModelsByKeywordExisting(rawKeyword, limit = 60)
         try {
             const q1 = query(
                 base,
+                where("isCanonical", "==", true),
                 where("visibility", "==", "public"),
                 orderBy("title"),
                 startAt(v),
@@ -162,6 +165,7 @@ export async function fetchPublicModelsByKeywordExisting(rawKeyword, limit = 60)
         try {
             const q2 = query(
                 base,
+                where("isCanonical", "==", true),
                 where("visibility", "==", "public"),
                 where(f, "==", kwRaw),
                 qLimit(limit)
@@ -175,6 +179,7 @@ export async function fetchPublicModelsByKeywordExisting(rawKeyword, limit = 60)
     try {
         const q3 = query(
             base,
+            where("isCanonical", "==", true),
             where("visibility", "==", "public"),
             where("brands", "array-contains", kwRaw),
             qLimit(limit)
@@ -186,6 +191,7 @@ export async function fetchPublicModelsByKeywordExisting(rawKeyword, limit = 60)
     try {
         const q4 = query(
             base,
+            where("isCanonical", "==", true),
             where("visibility", "==", "public"),
             where("tags", "array-contains", kwRaw),
             qLimit(limit)

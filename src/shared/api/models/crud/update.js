@@ -138,33 +138,7 @@ async function _applyUpdate(args) {
         { where: "users/<uid>/models/<id>", field, payload }
     );
 
-    // 2) 公開側 models/{id} が存在すれば同期（存在チェックはキャッシュ）
-    const publicModelRef = doc(db, "models", modelId);
-    const known = _publicExistsCache.get(modelId);
-    try {
-        if (known === true) {
-            await _safeUpdate(
-                publicModelRef,
-                payload,
-                { where: "models/<id>", field, payload }
-            );
-        } else if (known === undefined) {
-            const snap = await getDoc(publicModelRef);
-            const exists = snap.exists();
-            _publicExistsCache.set(modelId, exists);
-            if (exists) {
-                await _safeUpdate(
-                    publicModelRef,
-                    payload,
-                    { where: "models/<id>", field, payload }
-                );
-            }
-        }
-    } catch {
-        // 公開側の権限エラーなどは非致命
-    }
-
-    // 3) Boards 経由の編集（参照 or コピー先）
+    // 3) boards/xxx/items/{id} (boardPageから編集した場合のみ)（参照 or コピー先）
     if (selectedPage === "boardspage" && boardId && boardType) {
         let savedModelRef = null;
         if (boardType === "myBoards") {

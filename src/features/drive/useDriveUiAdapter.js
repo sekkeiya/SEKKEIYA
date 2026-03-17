@@ -8,6 +8,10 @@ export const useDriveUiAdapter = () => {
     selectedAsset,
     isLoading,
     error,
+    searchResults,
+    isSearching,
+    searchAssets,
+    clearSearch,
     setCurrentFolderId,
     setSelectedAsset
   } = useDriveStore();
@@ -48,6 +52,10 @@ export const useDriveUiAdapter = () => {
     selectedAsset,
     isLoading,
     error,
+    searchResults,
+    isSearching,
+    searchAssets,
+    clearSearch,
     navigateToFolder,
     navigateUp,
     openPreview,

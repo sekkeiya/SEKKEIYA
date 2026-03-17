@@ -109,7 +109,7 @@ export const uploadModelImage = async ({ file, userId, modelId }) => {
     const path = `models/${userId}/${modelId}/images/${uuid}.png`;
     const { url } = await uploadFile(file, path);
 
-    const docRef = doc(db, "models", modelId);
+    const docRef = doc(db, "users", userId, "models", modelId);
     await updateDoc(
         docRef,
         {

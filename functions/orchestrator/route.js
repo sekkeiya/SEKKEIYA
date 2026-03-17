@@ -31,7 +31,7 @@ exports.routeChatRequest = async ({
   });
 
   // 2. Build Context
-  const orchestratorContext = await buildChatContext({ uid, threadId, agentMode, passedContext: context });
+  const orchestratorContext = await buildChatContext({ uid, threadId, agentMode, passedContext: context, history });
 
   // 3. Build System Prompt based on agentMode
   const systemPrompt = buildSystemPrompt(agentMode, orchestratorContext);

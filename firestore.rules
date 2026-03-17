@@ -228,6 +228,16 @@ service cloud.firestore {
       allow read: if isDocPublic(resource.data);
     }
 
+    // ----------------------------
+    // collectionGroup("models") の読み取り許可
+    // どこ階層でも "models" サブコレクションを読むときに適用される
+    // ----------------------------
+    match /{path=**}/models/{modelId} {
+      allow read: if isDocPublic(resource.data)
+                  || isModelOwnerData(resource.data)
+                  || isModelSharedUserData(resource.data);
+    }
+
     /* ---- plans ---- */
     match /plans/{planId} {
       allow read: if true;

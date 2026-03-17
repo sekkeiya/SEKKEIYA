@@ -1,19 +1,18 @@
-// src/utils/services/models/read.js
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collectionGroup, query, where, limit, getDocs } from "firebase/firestore";
 import { db } from "@/shared/config/firebase";
 
-/** 公開モデル（/models/{id}）を1件取得。見つからなければ false */
+/** 公開モデルを1件取得（互換性のため残すが、collectionGroupを使用）見つからなければ false */
 export const getPublicModelById = async (id) => {
     try {
-        const ref = doc(db, "models", id);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
+        const q = query(collectionGroup(db, "models"), where("id", "==", id), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
             console.warn("[getPublicModelById] not found:", id);
             return false;
         }
-        const data = snap.data();
+        const data = snap.docs[0].data();
         return {
-            id: snap.id,
+            id: snap.docs[0].id,
             title: data.title ?? data.name ?? "Untitled",
             description: data.description ?? "",
             thumbnailUrl: data.thumbnailUrl ?? data.thumbnailFilePath?.url ?? "",

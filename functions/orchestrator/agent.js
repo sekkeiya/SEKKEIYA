@@ -33,14 +33,20 @@ Always be helpful, precise, and format answers using Markdown.
   }
 
   // Inject dynamic context data
+  const driveAssetsContext = context.relevantDriveAssets && context.relevantDriveAssets.length > 0
+    ? `\nRelevant AI Drive Assets (Use these to answer user queries if applicable):\n` +
+      context.relevantDriveAssets.map(a => `- [${a.type}] ${a.name} (Tags: ${(a.tags || []).join(",")})`).join("\n")
+    : "";
+
   const contextString = `
 ---
 [CONTEXT]
 User UID: ${context.userUid}
 Thread ID: ${context.activeThreadId}
 Time: ${context.timestamp}
+${driveAssetsContext}
 
-Additional Context: ${JSON.stringify(context, null, 2)}
+Additional Detail JSON: ${JSON.stringify(context, null, 2)}
 ---`;
 
   return `${baseRules}\n\n${modeSpecificRules}\n\n${contextString}`;

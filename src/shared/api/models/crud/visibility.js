@@ -8,7 +8,6 @@ import { fetchPlanInfo } from "@/shared/utils/planUtils";
  * モデルの visibility を更新
  */
 export const updateModelVisibility = async (modelId, userId, newVisibility) => {
-    const publicModelRef = doc(db, "models", modelId);
     const userModelRef = doc(db, "users", userId, "models", modelId);
 
     const modelSnap = await getDoc(userModelRef);
@@ -37,19 +36,8 @@ export const updateModelVisibility = async (modelId, userId, newVisibility) => {
         if (!canAdd) {
             return { success: false, message: "容量制限を超えるため、非公開にできません。" };
         }
-        await deleteDoc(publicModelRef);
     } else if (oldVisibility === "private" && newVisibility === "public") {
         await updatePrivateStorageUsedBytes(userId, -sizeBytes); // no-op
-        await setDoc(publicModelRef, {
-            ...modelData,
-            visibility: newVisibility,
-            updatedAt: serverTimestamp(),
-        });
-    } else {
-        await updateDoc(publicModelRef, {
-            visibility: newVisibility,
-            updatedAt: serverTimestamp(),
-        });
     }
 
     await updateDoc(userModelRef, {

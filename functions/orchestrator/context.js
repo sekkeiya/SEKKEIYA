@@ -1,22 +1,30 @@
+const { DriveSearchService } = require("./driveSearchService");
+
 /**
  * Helper to build the context object injected into the orchestrator.
  * 
- * Future-ready for:
- * - AI Drive selected assets
- * - current board
- * - selected 3DSS models
- * - selected 3DSL layouts
- * - project metadata
+ * Includes automatically fetched AI Drive assets based on user intent.
  */
-exports.buildChatContext = async ({ uid, threadId, agentMode, passedContext = {} }) => {
-  // Currently, we just return the passed context as is + metadata
-  // In the future, we could query Firestore to fetch 
-  // 'users/uid/driveAssets' or similar based on `passedContext.selectedAssetIds`
+exports.buildChatContext = async ({ uid, threadId, agentMode, passedContext = {}, history = [] }) => {
+  let relevantAssets = [];
+
+  try {
+    // Basic intent extraction: take the last user message to search for relevant context
+    const lastUserMessage = history.filter(m => m.role === "user").pop();
+    if (lastUserMessage && lastUserMessage.content) {
+      const searchService = new DriveSearchService(uid);
+      relevantAssets = await searchService.semanticSearch(lastUserMessage.content, 5);
+    }
+  } catch (error) {
+    console.error("Context build error (DriveSearch):", error);
+  }
+
   return {
     ...passedContext,
     userUid: uid,
     activeThreadId: threadId,
     mode: agentMode,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    relevantDriveAssets: relevantAssets
   };
 };

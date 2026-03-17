@@ -24,21 +24,23 @@ export default function DriveWorkspace({ uid }) {
 
   useEffect(() => {
     if (uid) {
-      const visibleFolders = folders.filter(f => f.parentId === currentFolderId);
-      const visibleAssets = assets.filter(a => a.folderId === currentFolderId);
+      const safeFolders = folders || [];
+      const safeAssets = assets || [];
+      const visibleFolders = safeFolders.filter(f => f.parentId === currentFolderId);
+      const visibleAssets = safeAssets.filter(a => a.folderId === currentFolderId);
       
       console.log("DriveWorkspace state:", { 
         currentFolderId, 
-        foldersCount: folders.length, 
-        assetsCount: assets.length, 
+        foldersCount: safeFolders.length, 
+        assetsCount: safeAssets.length, 
         visibleFoldersCount: visibleFolders.length, 
         visibleAssetsCount: visibleAssets.length 
       });
       
       console.log("=== AI Drive Debug Info ===");
       console.log("uid:", uid);
-      console.log("folders count:", folders.length);
-      console.log("assets count:", assets.length);
+      console.log("folders count:", safeFolders.length);
+      console.log("assets count:", safeAssets.length);
       console.log("currentFolderId:", currentFolderId);
       console.log("visibleFolders count:", visibleFolders.length);
       console.log("visibleAssets count:", visibleAssets.length);

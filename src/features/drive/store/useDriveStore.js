@@ -1,13 +1,18 @@
 import { create } from 'zustand';
 import { collection, query, onSnapshot, doc, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadBytesResumable, deleteObject } from 'firebase/storage';
-import { auth, db, storage } from '@/shared/config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, storage, functions } from '@/shared/config/firebase';
 
 export const useDriveStore = create((set, get) => ({
   folders: [],
   assets: [],
-  _driveAssets: [],
-  _modelAssets: [],
+  currentFolderId: null,
+  selectedAsset: null,
+  isLoading: false,
+  error: null,
+  searchResults: null,
+  isSearching: false,
   currentFolderId: null,
   selectedAsset: null,
   isLoading: false,
@@ -15,7 +20,6 @@ export const useDriveStore = create((set, get) => ({
   
   _unsubscribeFolders: null,
   _unsubscribeAssets: null,
-  _unsubscribeModels: null,
 
   _ensureInitialData: async (uid) => {
     console.log("== ensureInitialData start ==", { uid });
@@ -38,9 +42,18 @@ export const useDriveStore = create((set, get) => ({
         }
       });
 
-      // Cleanup duplicated auto-generated assets (only those without a 'source' indicating they are old mock data)
+      // Cleanup duplicated auto-generated assets and legacy sample mocks
       assetsSnapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        
+        // Explicitly delete known sample mocks
+        if (docSnap.id === "asset-sample-model" || docSnap.id === "asset-sample-image" || docSnap.id === "asset-sample-doc") {
+          console.log("Deleting sample mock asset:", docSnap.id);
+          batch.delete(docSnap.ref);
+          return;
+        }
+
+        // Keep standard generated assets (except if it lacks a source and isn't matching defined patterns)
         if (!docSnap.id.startsWith("asset-") && !docSnap.id.startsWith("3dss-") && !docSnap.id.startsWith("3dsl-") && !data.source) {
           batch.delete(docSnap.ref);
         }
@@ -103,16 +116,13 @@ export const useDriveStore = create((set, get) => ({
 
     const foldersRef = collection(db, "users", uid, "driveFolders");
     const assetsRef = collection(db, "users", uid, "driveAssets");
-    const modelsRef = collection(db, "users", uid, "models"); // 3DSS models
     
     // AI Drive is global per user, no projectId filtering
     const foldersQuery = query(foldersRef);
     const assetsQuery = query(assetsRef);
-    const modelsQuery = query(modelsRef);
 
     console.log("Drive folders query path:", `users/${uid}/driveFolders`);
     console.log("Drive assets query path:", `users/${uid}/driveAssets`);
-    console.log("Drive 3DSS models query path:", `users/${uid}/models`);
 
     const unsubFolders = onSnapshot(foldersQuery, (snapshot) => {
       const foldersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -123,7 +133,9 @@ export const useDriveStore = create((set, get) => ({
     });
 
     const unsubAssets = onSnapshot(assetsQuery, async (snapshot) => {
-      const rawAssets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const rawAssets = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(asset => asset.isDeleted !== true);
       
       // Resolve downloadURLs with fallbacks
       const assetsWithUrls = await Promise.all(rawAssets.map(async (asset) => {
@@ -142,78 +154,27 @@ export const useDriveStore = create((set, get) => ({
         return { ...asset, imageUrl: asset.imageUrl || asset.thumbUrl || asset.thumbnailDataUrl || "" };
       }));
       
-      set((state) => {
-        const driveAssetSourceIds = new Set(
-          assetsWithUrls.filter(a => a.source === "3dss").map(a => a.sourceId)
-        );
-        const filteredModels = state._modelAssets.filter(
-          m => !driveAssetSourceIds.has(m.sourceId)
-        );
-        return { 
-          _driveAssets: assetsWithUrls,
-          assets: [...assetsWithUrls, ...filteredModels], 
-          isLoading: false 
-        };
+      set({ 
+        assets: assetsWithUrls, 
+        isLoading: false 
       });
     }, (error) => {
       console.error("Drive assets listener error:", error);
       set({ error: error.message, isLoading: false });
     });
 
-    // 3DSS Models Listener for on-the-fly integration
-    const unsubModels = onSnapshot(modelsQuery, (snapshot) => {
-      const mappedModels = snapshot.docs.map(docSnap => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          name: data.title ?? data.name ?? "Untitled",
-          type: "model",
-          source: "3dss",
-          sourceId: docSnap.id,
-          folderId: "root-3d-models", // Map to 3D Models system folder
-          storagePath: data.files?.glb?.path ?? data.modelFilePath ?? "",
-          thumbnailPath: data.thumbnailUrl ?? data.thumbnailFilePath?.url ?? "",
-          imageUrl: data.thumbnailUrl ?? data.thumbnailFilePath?.url ?? "",
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
-          ownerId: data.authorId ?? data.createdById ?? uid,
-          isDeleted: data.isDeleted ?? false,
-          _raw3dss: data
-        };
-      }).filter(m => !m.isDeleted);
-
-      set((state) => {
-        const driveAssetSourceIds = new Set(
-          state._driveAssets.filter(a => a.source === "3dss").map(a => a.sourceId)
-        );
-        const filteredModels = mappedModels.filter(
-          m => !driveAssetSourceIds.has(m.sourceId)
-        );
-        return {
-          _modelAssets: mappedModels,
-          assets: [...state._driveAssets, ...filteredModels]
-        };
-      });
-    }, (error) => {
-      console.error("Drive models listener error:", error);
-    });
-
-    set({ _unsubscribeFolders: unsubFolders, _unsubscribeAssets: unsubAssets, _unsubscribeModels: unsubModels });
+    set({ _unsubscribeFolders: unsubFolders, _unsubscribeAssets: unsubAssets });
   },
 
   cleanup: () => {
-    const { _unsubscribeFolders, _unsubscribeAssets, _unsubscribeModels } = get();
+    const { _unsubscribeFolders, _unsubscribeAssets } = get();
     if (_unsubscribeFolders) _unsubscribeFolders();
     if (_unsubscribeAssets) _unsubscribeAssets();
-    if (_unsubscribeModels) _unsubscribeModels();
     set({
       _unsubscribeFolders: null,
       _unsubscribeAssets: null,
-      _unsubscribeModels: null,
       folders: [],
       assets: [],
-      _driveAssets: [],
-      _modelAssets: [],
       currentFolderId: null,
       selectedAsset: null,
       isLoading: false,
@@ -239,5 +200,44 @@ export const useDriveStore = create((set, get) => ({
   },
   deleteFolder: async (folderId) => {
     console.log("TODO: Implement deleteFolder");
+  },
+  
+  // Semantic Search
+  searchAssets: async (searchQuery, options = {}) => {
+    if (!searchQuery || searchQuery.trim() === "") {
+      set({ searchResults: null });
+      return;
+    }
+    set({ isSearching: true, error: null });
+    try {
+      const authUser = auth.currentUser;
+      if (!authUser) throw new Error("Not authenticated");
+      
+      const searchFn = httpsCallable(functions, "searchAssets");
+      const res = await searchFn({ query: searchQuery, options });
+      
+      const results = res.data.results || [];
+      // Resolve URLs for search results as well
+      const resultsWithUrls = await Promise.all(results.map(async (asset) => {
+        if (asset.imageUrl && !asset.imageUrl.startsWith("http")) { // If it's a storage path
+          try {
+            const fileRef = ref(storage, asset.imageUrl);
+            const url = await getDownloadURL(fileRef);
+            return { ...asset, imageUrl: url };
+          } catch (err) {
+            return { ...asset, imageUrl: "" };
+          }
+        }
+        return asset;
+      }));
+
+      set({ searchResults: resultsWithUrls, isSearching: false });
+    } catch (error) {
+      console.error("Search failed:", error);
+      set({ error: error.message, isSearching: false, searchResults: [] });
+    }
+  },
+  clearSearch: () => {
+    set({ searchResults: null, isSearching: false, error: null });
   }
 }));

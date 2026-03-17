@@ -14,16 +14,7 @@ export async function deleteAllFilesInFolder(folderPath) {
     }
 }
 
-async function isOwnerOfPublicModel(modelId, uid) {
-    const pubRef = doc(db, "models", modelId);
-    const snap = await getDoc(pubRef);
-    if (!snap.exists()) return { exists: false, isOwner: false };
-    const d = snap.data() || {};
-    const owner =
-        d.createdBy ?? d.createdByUid ?? d.ownerId ?? d.owner ?? d.author ?? d.authorUid ?? d.userId ?? d.uid ?? null;
-    return { exists: true, isOwner: owner === uid };
-}
-
+// Only keeping deleteAllFilesInFolder
 export async function deleteModelFromFirestore({
     userId,
     modelId,
@@ -63,21 +54,5 @@ export async function deleteModelFromFirestore({
     } catch (e) {
         console.error("[delete] user model FAILED:", userId, modelId, e);
         throw e; // ここで権限エラーなら rules の users/{uid}/models を疑う
-    }
-
-    // 2) 公開側（ダッシュボード等からのみ、かつオーナーのときだけ）
-    if (selectedPage === "openmodelspage" || selectedPage === "dashboard") {
-        try {
-            const { exists, isOwner } = await isOwnerOfPublicModel(modelId, userId);
-            if (exists && isOwner) {
-                await deleteDoc(doc(db, "models", modelId));
-                console.log("[delete] public model deleted:", modelId);
-            } else {
-                console.log("[delete] public model skipped (not owner or not exists):", modelId);
-            }
-        } catch (e) {
-            console.error("[delete] public model FAILED:", modelId, e);
-            throw e; // ここで権限エラーなら /models の rules を疑う
-        }
     }
 }

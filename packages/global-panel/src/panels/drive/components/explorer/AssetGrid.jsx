@@ -5,9 +5,45 @@ import FolderCard from "./FolderCard";
 import AssetCard from "./AssetCard";
 
 export default function AssetGrid() {
-  const { folders, assets, currentFolderId, isLoading } = useDriveUi();
+  const { folders, assets, currentFolderId, isLoading, searchResults, isSearching } = useDriveUi();
   const safeFolders = Array.isArray(folders) ? folders : [];
   const safeAssets = Array.isArray(assets) ? assets : [];
+
+  // If searching
+  if (isSearching) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+        <CircularProgress size={32} sx={{ color: "rgba(255,255,255,0.3)" }} />
+      </Box>
+    );
+  }
+
+  if (searchResults !== null) {
+    if ((searchResults?.length || 0) === 0) {
+      return (
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", flexDirection: "column", opacity: 0.5 }}>
+          <Typography sx={{ mt: 2, fontWeight: 600 }}>条件に一致するアセットが見つかりません</Typography>
+        </Box>
+      );
+    }
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+          <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: 2, display: "block" }}>
+            検索結果 ({searchResults?.length || 0}件)
+          </Typography>
+          <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
+        </Box>
+        <Grid container spacing={2}>
+          {(searchResults || []).map((asset) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={asset.id}>
+              <AssetCard asset={asset} />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  }
 
   // Filter items that belong to the current folder view
   const displayFolders = safeFolders.filter((f) => f.parentId === currentFolderId && !f.isDeleted);
