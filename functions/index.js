@@ -5,6 +5,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { routeChatRequest } = require("./orchestrator/route");
 const { onUserModelsWritten } = require("./models/sync");
+const { generateModelMetadata } = require("./models/generateMetadata");
 const { analyzeDriveAsset } = require("./drive/analyze");
 const { onDriveAssetWritten } = require("./drive/analyzeAsset");
 const { generateAssetEmbedding } = require("./drive/embedding");
@@ -58,6 +59,8 @@ exports.runChatOrchestrator = onCall({ secrets: [geminiApiKey] }, async (request
 
 exports.onUserModelsWritten = onUserModelsWritten;
 exports.onDriveAssetWritten = onDriveAssetWritten;
+
+exports.generateModelMetadata = generateModelMetadata;
 
 exports.analyzeDriveAsset = onCall({ secrets: [geminiApiKey] }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");

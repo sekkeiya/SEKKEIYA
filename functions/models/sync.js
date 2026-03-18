@@ -76,6 +76,13 @@ exports.onUserModelsWritten = onDocumentWritten("users/{uid}/models/{modelId}", 
     updatedAt: FieldValue.serverTimestamp(),
   };
 
+  if (modelData.tags !== undefined) {
+    driveAssetData.tags = modelData.tags;
+  }
+  if (modelData.dimensions !== undefined) {
+    driveAssetData.dimensions = modelData.dimensions;
+  }
+
   try {
     const assetSnap = await driveAssetRef.get();
     if (!assetSnap.exists) {
@@ -84,11 +91,13 @@ exports.onUserModelsWritten = onDocumentWritten("users/{uid}/models/{modelId}", 
         createdAt: modelData.createdAt || FieldValue.serverTimestamp(),
         createdBy: resolvedUid,
         projectId: null,
-        tags: [],
         category: "Models",
         aiAnalyzed: false,
         embeddingStatus: "none"
       });
+      if (driveAssetData.tags === undefined) {
+        driveAssetData.tags = [];
+      }
       await driveAssetRef.set(driveAssetData);
       console.log(`Created new driveAsset: ${driveAssetId} for user ${resolvedUid}`);
     } else {
