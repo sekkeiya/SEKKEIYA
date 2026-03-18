@@ -75,8 +75,8 @@ exports.searchAssets = onCall({ secrets: [geminiApiKey] }, async (request) => {
   }
 
   const { query, options = {} } = request.data;
-  if (!query) {
-    throw new HttpsError("invalid-argument", "Missing query");
+  if (!query && !options.referenceAssetId) {
+    throw new HttpsError("invalid-argument", "Missing query or referenceAssetId");
   }
 
   const apiKey = geminiApiKey.value() || process.env.GEMINI_API_KEY;

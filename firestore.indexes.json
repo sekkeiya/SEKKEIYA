@@ -631,7 +631,76 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "sourceApp", "order": "ASCENDING" },
+        { "fieldPath": "category.slug", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "sourceApp", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "category.slug", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "category", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "visibility", "order": "ASCENDING" },
+        { "fieldPath": "embeddingStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sourceApp", "order": "ASCENDING" },
+        { "fieldPath": "embeddingStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driveAssets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sourceApp", "order": "ASCENDING" },
+        { "fieldPath": "category.slug", "order": "ASCENDING" }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "driveAssets",
+      "fieldPath": "sourceAssetId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
 }
