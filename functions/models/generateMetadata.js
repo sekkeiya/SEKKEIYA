@@ -35,10 +35,16 @@ exports.generateModelMetadata = onCall(
 ゼロから推測するのではなく、ユーザーの過去の類似モデルからの推論候補（similarityCandidates）を主な判断基準として、最終的な分類とタグを決定してください。
 入力内容と類似モデルの分類が一致する場合は類似モデルの分類を重んじ、明らかに異なる場合のみ独自の判断で修正してください。
 
+【重要な制約】
+1. Always prioritize "家具" or "建築".
+2. Only select "その他" if it is absolutely impossible to classify as either.
+3. If similarityCandidates has strong type signal, follow it.
+4. If uncertain, choose the closest between furniture or building. Do NOT default to "その他".
+
 以下の形式に従って純粋なJSONオブジェクトのみを出力してください。余計なマークダウン（\`\`\`json など）は含めないでください。
 {
   "title": string, // 拡張子や不要な文字列を除去した表示名
-  "type": string, // "家具", "建築", "その他" のいずれか
+  "type": string, // "家具", "建築", "その他" のいずれか（"家具"または"建築"を強く推奨）
   "mainCategory": string, // 類似候補から選択を優先
   "subCategory": string | null, // 類似候補から選択を優先
   "detailCategory": string | null, // 類似候補から選択を優先
@@ -50,7 +56,10 @@ exports.generateModelMetadata = onCall(
       const dimStr = dimensions ? `${dimensions.width}W x ${dimensions.depth}D x ${dimensions.height}H` : "不明";
       const tagsStr = Array.isArray(tags) ? tags.join(", ") : "なし";
       
-      const { categoryCandidates = [], tagCandidates = [], models = [] } = similarityCandidates;
+      const similarity = similarityCandidates || {};
+      const categoryCandidates = similarity.categoryCandidates || [];
+      const tagCandidates = similarity.tagCandidates || [];
+      const models = similarity.models || [];
       const catStr = categoryCandidates.length > 0 ? categoryCandidates.map(c => c.mainCategory).join(", ") : "なし";
       const topTagsStr = tagCandidates.length > 0 ? tagCandidates.join(", ") : "なし";
       const modelsContext = models.length > 0 ? models.map(m => `- ${m.title} (type:${m.type}, cat:${m.mainCategory}, score:${m.score})`).join("\\n") : "なし";
