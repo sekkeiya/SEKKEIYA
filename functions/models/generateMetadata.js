@@ -42,6 +42,8 @@ exports.generateModelMetadata = onCall(
   "title": string, // 拡張子や不要なサフィックス(V1, finalなど)を除去した綺麗な日本語の名前
   "type": string, // "家具", "建築", "その他" のいずれか
   "mainCategory": string, // "収納家具", "ソファ", "チェア", "テーブル・机", "ベッド", "インテリア小物", "照明", "住宅設備", "建具", "外構・エクステリア", "マテリアル", "構造・躯体", "設備機器", "その他" のいずれか
+  "subCategory": string | null, // mainCategoryに紐づく詳細なカテゴリ（例: 1人掛けソファ、アームチェア等。不明ならnull）
+  "detailCategory": string | null, // subCategoryに紐づくさらに細かい分類（不明ならnull）
   "tags": string[], // 特徴を表す短い日本語タグを3〜5個
   "confidence": number // 0.0 〜 1.0
 }`
