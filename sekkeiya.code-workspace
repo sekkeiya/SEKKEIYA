@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../../039-3dshapelayout-web/3d-shape-layout"
+		},
+		{
+			"path": "../../041-3dshapecreate/3dshapecreate-web"
 		}
 	],
 	"settings": {

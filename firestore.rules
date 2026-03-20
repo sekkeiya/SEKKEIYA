@@ -573,12 +573,12 @@ service cloud.firestore {
         allow create, delete: if request.auth != null && request.auth.uid == followerUserId;
       }
 
-      match /appPreferences/{appId} {
+      match /appPreferences/{document=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
-      match /feedItems/{feedItemId} {
-        allow read, delete: if request.auth != null && request.auth.uid == userId;
+      match /appPreferences/3dss/userVisibility/{targetUserId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
       match /models/{modelId} {

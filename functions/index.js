@@ -10,8 +10,6 @@ const { analyzeDriveAsset } = require("./drive/analyze");
 const { onDriveAssetWritten } = require("./drive/analyzeAsset");
 const { generateAssetEmbedding } = require("./drive/embedding");
 const { searchDriveAssets } = require("./drive/search");
-const { followUser, unfollowUser } = require("./social/follow");
-const { onModelFanout } = require("./social/fanout");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -59,14 +57,14 @@ exports.runChatOrchestrator = onCall({ secrets: [geminiApiKey] }, async (request
   }
 });
 
-exports.onUserModelsWritten = onUserModelsWritten;
-exports.onDriveAssetWritten = onDriveAssetWritten;
-exports.onModelFanout = onModelFanout;
-
-exports.followUser = followUser;
-exports.unfollowUser = unfollowUser;
+const { processModelUpload } = require("./models/processUpload");
+exports.processModelUpload = processModelUpload;
 
 exports.generateModelMetadata = generateModelMetadata;
+
+const { followUser, unfollowUser } = require("./social/follow");
+exports.followUser = followUser;
+exports.unfollowUser = unfollowUser;
 
 exports.analyzeDriveAsset = onCall({ secrets: [geminiApiKey] }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
