@@ -11,6 +11,15 @@
 		},
 		{
 			"path": "../../041-3dshapecreate/3dshapecreate-web"
+		},
+		{
+			"path": "../../042-3dshapepresents/3dshapepresents-web"
+		},
+		{
+			"path": "../../043-3dshapebooks/3dshapebooks"
+		},
+		{
+			"path": "../../044-3dshapequest/3dshapequest"
 		}
 	],
 	"settings": {

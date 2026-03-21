@@ -19,12 +19,9 @@ import { auth } from "@/shared/config/firebase";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import DeleteAccountDialog from "@/shared/ui/DeleteAccountDialog";
 
-import sharePng from "@/assets/icons/share.png";
+import { APPS_CATALOG } from "@/shared/constants/appsCatalog";
 import sekkeiyaPng from "@/assets/icons/sekkeiya.png";
-import layoutPng from "@/assets/icons/layout.png";
-import presentsPng from "@/assets/icons/presents.png";
-import questPng from "@/assets/icons/quest.png";
-
+import sharePng from "@/assets/icons/share.png";
 import { BRAND } from "@/shared/ui/theme";
 import NavIcon from "@/shared/ui/NavIcon";
 import useBoards from "@/shared/hooks/useBoards";
@@ -51,8 +48,8 @@ const UserAvatarMenu = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
-  const loginUrl = "https://sekkeiya.com/login?return_to=%2Fdashboard";
-  const signupUrl = "https://sekkeiya.com/signup?return_to=%2Fdashboard";
+  const loginUrl = "/login?return_to=%2Fdashboard";
+  const signupUrl = "/signup?return_to=%2Fdashboard";
 
   const onLogout = useCallback(async () => {
     try {
@@ -348,22 +345,19 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         slotProps={{ paper: { sx: { bgcolor: BRAND.panel, border: `1px solid ${BRAND.line}`, ml: 2, mb: 1, p: 0.5, borderRadius: 3 }}}}
       >
-        <MenuItem onClick={() => { handleAppClose(); window.location.assign(user ? "/app/share/dashboard" : "/app/share/"); }} sx={{ borderRadius: 2, mb: 0.5 }}>
-          <ListItemIcon><AppImageIcon src={sharePng} alt="3DSS" /></ListItemIcon>
-          3D Shape Share
-        </MenuItem>
-        <MenuItem onClick={() => { handleAppClose(); window.location.assign(user ? "/app/layout/dashboard" : "/app/layout/"); }} sx={{ borderRadius: 2, mb: 0.5 }}>
-          <ListItemIcon><AppImageIcon src={layoutPng} alt="3DSL" /></ListItemIcon>
-          3D Shape Layout
-        </MenuItem>
-        <MenuItem onClick={() => { handleAppClose(); window.location.assign("/app/presents/"); }} sx={{ borderRadius: 2, mb: 0.5 }}>
-          <ListItemIcon><AppImageIcon src={presentsPng} alt="3DSP" /></ListItemIcon>
-          3D Shape Presents
-        </MenuItem>
-        <MenuItem onClick={() => { handleAppClose(); window.location.assign("/app/quest/"); }} sx={{ borderRadius: 2 }}>
-          <ListItemIcon><AppImageIcon src={questPng} alt="3DSQ" /></ListItemIcon>
-          3D Shape Quest
-        </MenuItem>
+        {APPS_CATALOG.map((app) => (
+          <MenuItem 
+            key={app.key} 
+            onClick={() => { 
+              handleAppClose(); 
+              window.location.assign((user && app.hrefAuth) ? app.hrefAuth : app.hrefPublic); 
+            }} 
+            sx={{ borderRadius: 2, mb: 0.5 }}
+          >
+            <ListItemIcon><AppImageIcon src={app.icon} alt={app.key.toUpperCase()} /></ListItemIcon>
+            {app.label}
+          </MenuItem>
+        ))}
       </Menu>
 
       <UserAvatarMenu />

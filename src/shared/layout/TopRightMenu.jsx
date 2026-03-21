@@ -8,8 +8,8 @@ import DeleteAccountDialog from "../ui/DeleteAccountDialog";
 export default function TopRightMenu({ user, onDashboardClick }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const loginUrl = "https://sekkeiya.com/login?return_to=%2Fdashboard";
-  const signupUrl = "https://sekkeiya.com/signup?return_to=%2Fdashboard";
+  const loginUrl = "/login?return_to=%2Fdashboard";
+  const signupUrl = "/signup?return_to=%2Fdashboard";
 
   const onLogout = useCallback(async () => {
     try {

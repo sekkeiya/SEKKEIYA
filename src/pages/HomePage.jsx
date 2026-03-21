@@ -29,10 +29,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import FolderSharedRoundedIcon from "@mui/icons-material/FolderSharedRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
-import sharePng from "@/assets/icons/share.png";
-import layoutPng from "@/assets/icons/layout.png";
-import presentsPng from "@/assets/icons/presents.png";
-import questPng from "@/assets/icons/quest.png";
+import { APPS_CATALOG } from "@/shared/constants/appsCatalog";
 
 import SearchBar from "@/features/search/components/SearchBar";
 import { BRAND } from "../shared/ui/theme";
@@ -100,40 +97,14 @@ export default function HomePage() {
   // ✅ ローカルでも本番と同じパスで統一する（Auth統一のため）
   // - 5173 でアクセスし、Vite proxy が 5174/5175 に流す
   const tools = useMemo(
-    () => [
-      {
-        key: "3dss",
-        label: "3D Shape Share",
-        sub: "クラウドストレージ",
-        icon: <img src={sharePng} alt="3DSS" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
-        href: user ? "/app/share/dashboard" : "/app/share/",
-        badge: "開発中",
-      },
-      {
-        key: "3dsl",
-        label: "3D Shape Layout",
-        sub: "レイアウト / 配置",
-        icon: <img src={layoutPng} alt="3DSL" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
-        href: user ? "/app/layout/dashboard" : "/app/layout/",
-        badge: "開発中",
-      },
-      {
-        key: "3dsp",
-        label: "3D Shape Presents",
-        sub: "プレゼン / 資料作成",
-        icon: <img src={presentsPng} alt="3DSP" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
-        href: "/app/presents/", // Presentsはまだダッシュボードがない想定
-        badge: "開発予定",
-      },
-      {
-        key: "3dsq",
-        label: "3D Shape Quest",
-        sub: "探求 / クエスト",
-        icon: <img src={questPng} alt="3DSQ" style={{ width: 48, height: 48, borderRadius: "50%" }} />,
-        href: "/app/quest/", // Quest用のダッシュボード等は今後実装
-        badge: "開発予定",
-      },
-    ],
+    () => APPS_CATALOG.map(app => ({
+      key: app.key,
+      label: app.label,
+      sub: app.sub,
+      icon: <img src={app.icon} alt={app.key.toUpperCase()} style={{ width: 48, height: 48, borderRadius: "50%" }} />,
+      href: (user && app.hrefAuth) ? app.hrefAuth : app.hrefPublic,
+      badge: app.badge,
+    })),
     [user]
   );
 
@@ -255,20 +226,21 @@ export default function HomePage() {
               <SearchBar q={q} setQ={setQ} onSubmit={submit} brand={BRAND} />
 
               {/* Tools */}
-              <Stack
-                direction="row"
-                spacing={{ xs: 2.2, sm: 3.25 }}
+              <Box
                 sx={{
-                  pt: { xs: 1.2, sm: 1.75 },
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  rowGap: { xs: 2, sm: 2.25 },
+                  pt: { xs: 2, sm: 3 },
+                  display: "grid",
+                  gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)" },
+                  columnGap: { xs: 2, sm: 3 },
+                  rowGap: { xs: 2.5, sm: 3.5 },
+                  justifyItems: "center",
+                  width: "100%",
                 }}
               >
                 {tools.map((t) => (
                   <ToolCircle key={t.key} tool={t} onOpen={() => openTool(t)} />
                 ))}
-              </Stack>
+              </Box>
             </Stack>
           </Box>
         </Container>

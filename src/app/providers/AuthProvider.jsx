@@ -10,6 +10,12 @@ export const AuthProvider = ({ children }) => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u || null);
       setAuthLoading(false);
+
+      if (u) {
+        localStorage.setItem("sekkeiya_auth_state", "1");
+      } else {
+        localStorage.removeItem("sekkeiya_auth_state");
+      }
     });
     return () => unsub();
   }, []);
