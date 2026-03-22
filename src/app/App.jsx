@@ -11,6 +11,8 @@ import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import LogoutPage from "@/pages/LogoutPage";
 import ProjectBoardIframePage from "@/pages/ProjectBoardIframePage";
+import BoardManagementPage from "@/pages/BoardManagementPage";
+import ConnectionsPage from "@/pages/ConnectionsPage";
 
 // 外部 (3DSS等) へのリダイレクト。
 // React RouterのSPA遷移を抜け出してハードリロードすることで、
@@ -66,6 +68,8 @@ export default function App() {
             <Route index element={<DashboardHome />} />
             <Route path="drive" element={<DrivePage />} />
             <Route path="projects/:id" element={<ProjectHomePlaceholder />} />
+            <Route path="boards" element={<BoardManagementPage />} />
+            <Route path="connections" element={<ConnectionsPage />} />
           </Route>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />

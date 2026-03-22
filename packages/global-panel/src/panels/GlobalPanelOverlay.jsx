@@ -4,13 +4,14 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useGlobalPanelStore } from '../store/useGlobalPanelStore';
 import { usePanelTheme } from '../theme/ThemeContext.jsx';
 
-export default function GlobalPanelOverlay({ children, panelName }) {
+export default function GlobalPanelOverlay({ children, panelName, isOpen: propIsOpen, onClose: propOnClose }) {
   const activePanel = useGlobalPanelStore((state) => state.activePanel);
-  const closePanel = useGlobalPanelStore((state) => state.closePanel);
+  const storeClosePanel = useGlobalPanelStore((state) => state.closePanel);
   const isSidebarExpanded = useGlobalPanelStore((state) => state.isSidebarExpanded);
   const BRAND = usePanelTheme();
 
-  const isOpen = activePanel === panelName;
+  const isOpen = propIsOpen !== undefined ? propIsOpen : activePanel === panelName;
+  const closePanel = propOnClose !== undefined ? propOnClose : storeClosePanel;
 
   // Handle ESC key to close panel
   useEffect(() => {

@@ -1,23 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, useMediaQuery } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import { BRAND } from "../ui/theme";
-import MiniSidebar from "./sidebar/MiniSidebar";
-import LeftSidebar from "./sidebar/LeftSidebar";
+import LeftSidebar from "./LeftSidebar";
 import BottomBar from "./BottomBar";
-import { usePanelUrlSync, useGlobalPanelStore } from "sekkeiya-global-panel";
+import { usePanelUrlSync } from "sekkeiya-global-panel";
 import GlobalPanelHost from "./panel/GlobalPanelHost";
 
 export default function AppLayout() {
-  const [isExpanded, setIsExpanded] = useState(false);
   const isMobile = useMediaQuery("(max-width:600px)");
   const mobileBottomSafe = isMobile ? 84 : 0;
-  
-  const setSidebarExpanded = useGlobalPanelStore(state => state.setSidebarExpanded);
-  
-  React.useEffect(() => {
-    setSidebarExpanded(isExpanded);
-  }, [isExpanded, setSidebarExpanded]);
   
   // URLとPanel Stateの同期
   usePanelUrlSync();
@@ -38,10 +30,7 @@ export default function AppLayout() {
       {isMobile ? (
         <BottomBar />
       ) : (
-        <Box sx={{ display: "flex", position: "sticky", top: 0, height: "100vh", zIndex: 50 }}>
-          <MiniSidebar isExpanded={isExpanded} onToggle={() => setIsExpanded(!isExpanded)} />
-          {isExpanded && <LeftSidebar onClose={() => setIsExpanded(false)} />}
-        </Box>
+        <LeftSidebar />
       )}
 
       {/* ===== Main ===== */}

@@ -16,11 +16,11 @@
     ],
     "headers": [
       {
-        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|js|css)",
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|js|css|glb|gltf|hdr|wasm)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "max-age=31536000"
+            "value": "max-age=31536000, immutable"
           }
         ]
       },
@@ -44,28 +44,28 @@
         "destination": "/index.html"
       },
       {
-        "source": "/app/share",
-        "destination": "/app/share/index.html"
-      },
-      {
-        "source": "/app/share/",
-        "destination": "/app/share/index.html"
-      },
-      {
         "source": "/app/share/**",
         "destination": "/app/share/index.html"
       },
       {
-        "source": "/app/layout",
-        "destination": "/app/layout/index.html"
-      },
-      {
-        "source": "/app/layout/",
-        "destination": "/app/layout/index.html"
-      },
-      {
         "source": "/app/layout/**",
         "destination": "/app/layout/index.html"
+      },
+      {
+        "source": "/app/create/**",
+        "destination": "/app/create/index.html"
+      },
+      {
+        "source": "/app/presents/**",
+        "destination": "/app/presents/index.html"
+      },
+      {
+        "source": "/app/books/**",
+        "destination": "/app/books/index.html"
+      },
+      {
+        "source": "/app/quest/**",
+        "destination": "/app/quest/index.html"
       },
       {
         "source": "**",

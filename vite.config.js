@@ -45,9 +45,9 @@ export default defineConfig({
         ws: true,
       },
 
-      // 3DSB (5180) を /app/books 配下に見せる
+      // 3DSB (5179) を /app/books 配下に見せる
       "/app/books": {
-        target: "http://localhost:5180",
+        target: "http://localhost:5179",
         changeOrigin: true,
         ws: true,
       },
@@ -63,7 +63,7 @@ export default defineConfig({
 
   build: {
     outDir: "dist",
-    emptyOutDir: false, // ✅ dist/app/* を消さない
+    emptyOutDir: true, // ✅ Clean dist before merging child apps
   },
 
 });

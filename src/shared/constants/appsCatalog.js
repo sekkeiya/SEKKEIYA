@@ -13,7 +13,7 @@ export const APPS_CATALOG = [
     icon: sharePng,
     hrefPublic: "/app/share/",
     hrefAuth: "/app/share/dashboard",
-    badge: "開発中",
+    badge: null,
   },
   {
     key: "3dsl",
@@ -22,7 +22,7 @@ export const APPS_CATALOG = [
     icon: layoutPng,
     hrefPublic: "/app/layout/",
     hrefAuth: "/app/layout/dashboard",
-    badge: "開発中",
+    badge: null,
   },
   {
     key: "3dsc",
@@ -31,7 +31,7 @@ export const APPS_CATALOG = [
     icon: createPng,
     hrefPublic: "/app/create/",
     hrefAuth: null,
-    badge: "開発中",
+    badge: null,
   },
   {
     key: "3dsp",
@@ -40,7 +40,7 @@ export const APPS_CATALOG = [
     icon: presentsPng,
     hrefPublic: "/app/presents/",
     hrefAuth: null,
-    badge: "開発予定",
+    badge: null,
   },
   {
     key: "3dsb",
@@ -49,7 +49,7 @@ export const APPS_CATALOG = [
     icon: booksPng,
     hrefPublic: "/app/books/",
     hrefAuth: null,
-    badge: "開発中",
+    badge: null,
   },
   {
     key: "3dsq",
@@ -58,6 +58,6 @@ export const APPS_CATALOG = [
     icon: questPng,
     hrefPublic: "/app/quest/",
     hrefAuth: null,
-    badge: "開発中",
+    badge: null,
   },
 ];

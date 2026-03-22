@@ -1,146 +1,30 @@
-import React, { useState } from "react";
-import { Box, Tooltip, IconButton, Divider } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Box, Tooltip, IconButton, Divider, Collapse } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
-import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
-
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";
-import SlideshowRoundedIcon from "@mui/icons-material/SlideshowRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import MenuOpenRoundedIcon from "@mui/icons-material/MenuOpenRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import FolderSharedRoundedIcon from "@mui/icons-material/FolderSharedRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 
 import { useAuth } from "@/features/auth/context/AuthContext";
-import sharePng from "@/assets/icons/share.png";
-import sekkeiyaPng from "@/assets/icons/sekkeiya.png";
-import layoutPng from "@/assets/icons/layout.png";
-import presentsPng from "@/assets/icons/presents.png";
-import questPng from "@/assets/icons/quest.png";
-
+import { collection, onSnapshot, query, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "@/shared/config/firebase";
+import { signOut } from "firebase/auth";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BRAND } from "../ui/theme";
-import NavIcon from "../ui/NavIcon";
-import { useGlobalPanelStore } from "sekkeiya-global-panel";
+import { useGlobalPanelStore, MiniSidebar } from "sekkeiya-global-panel";
+import { useBoardStore } from "@/shared/store/useBoardStore";
+import { getBoardRoute } from "@/shared/utils/boardRouting";
+import useBoards from "@/shared/hooks/useBoards";
 
-const AppImageIcon = ({ src, alt }) => (
-  <Box
-    component="img"
-    src={src}
-    alt={alt}
-    sx={{
-      width: 28,
-      height: 28,
-      borderRadius: "50%",
-      objectFit: "cover",
-      border: "1px solid rgba(255,255,255,0.15)",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
-    }}
-  />
-);
+// Replaced inline AppIcons and MiniSidebar
 
-const SekkeiyaIcon = () => <AppImageIcon src={sekkeiyaPng} alt="SEKKEIYA" />;
-const ShareIcon = () => <AppImageIcon src={sharePng} alt="3DSS" />;
-const LayoutIcon = () => <AppImageIcon src={layoutPng} alt="3DSL" />;
-const PresentsIcon = () => <AppImageIcon src={presentsPng} alt="3DSP" />;
-const QuestIcon = () => <AppImageIcon src={questPng} alt="3DSQ" />;
-
-const MiniSidebar = ({ onToggle, isExpanded, activeTab, onSelectTab, sekkeiyaHref, shareHref, layoutHref, presentsHref, questHref }) => (
-  <Box
-    sx={{
-      width: 72,
-      borderRight: `1px solid ${BRAND.line}`,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      py: 1.75,
-      gap: 1,
-      height: "100vh",
-      bgcolor: BRAND.bg,
-      position: "relative",
-      zIndex: 20,
-    }}
-  >
-    <Tooltip title={isExpanded ? "メニューを閉じる" : "メニューを開く"} placement="right">
-      <IconButton 
-        onClick={onToggle} 
-        sx={{ 
-          mb: 1, 
-          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)", 
-          transform: isExpanded ? "rotate(180deg) scale(0.9)" : "rotate(0deg) scale(1)",
-        }}
-      >
-        {isExpanded ? <MenuOpenRoundedIcon sx={{ color: BRAND.text }} /> : <MenuRoundedIcon sx={{ color: BRAND.text }} />}
-      </IconButton>
-    </Tooltip>
-
-    <Box
-      sx={{
-        width: 32,
-        height: 32,
-        borderRadius: 1.5,
-        bgcolor: BRAND.panel2,
-        border: `1px solid ${BRAND.line}`,
-        display: "grid",
-        placeItems: "center",
-        fontWeight: 900,
-        letterSpacing: 0.3,
-        fontSize: 14,
-      }}
-    >
-      S
-    </Box>
-
-    <Tooltip title="New" placement="right">
-      <IconButton
-        sx={{
-          mt: 0.25,
-          width: 42,
-          height: 42,
-          bgcolor: BRAND.panel,
-          border: `1px solid ${BRAND.line}`,
-          "&:hover": { bgcolor: "rgba(255,255,255,0.11)" },
-        }}
-      >
-        <AddRoundedIcon sx={{ color: BRAND.text }} />
-      </IconButton>
-    </Tooltip>
-
-    <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
-
-    <NavIcon icon={<HomeRoundedIcon />} label="ホーム" active={activeTab === "home"} onClick={() => onSelectTab("home")} />
-    <NavIcon icon={<HubRoundedIcon />} label="ハブ" active={activeTab === "hub"} onClick={() => onSelectTab("hub")} />
-    <NavIcon icon={<FolderRoundedIcon />} label="AIドライブ" active={activeTab === "drive"} onClick={() => onSelectTab("drive")} />
-
-    <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
-
-    {/* app tools */}
-    <NavIcon icon={<SekkeiyaIcon />} label="SEKKEIYA" href={sekkeiyaHref} />
-    <NavIcon icon={<ShareIcon />} label="3DSS" href={shareHref} />
-    <NavIcon icon={<LayoutIcon />} label="3DSL" href={layoutHref} />
-    <NavIcon icon={<PresentsIcon />} label="3DSP" href={presentsHref} />
-    <NavIcon icon={<QuestIcon />} label="3DSQ" href={questHref} />
-
-    <Box sx={{ flex: 1 }} />
-
-    <Box
-      sx={{
-        width: 34,
-        height: 34,
-        borderRadius: "50%",
-        bgcolor: "rgba(0, 180, 255, 0.18)",
-        border: `1px solid rgba(0, 180, 255, 0.32)`,
-        mb: 1,
-      }}
-    />
-  </Box>
-);
-
-const ExpandedSidebarItem = ({ icon, label, href, onClick, onDelete }) => {
+const ExpandedSidebarItem = ({ icon, label, href, onClick, onExpand, onDelete, endAdornment, active }) => {
   const handleClick = (e) => {
     if (onClick) {
       onClick(e);
@@ -153,24 +37,22 @@ const ExpandedSidebarItem = ({ icon, label, href, onClick, onDelete }) => {
       if (href.startsWith("http") || href.startsWith("/app/")) {
         window.location.assign(href);
       } else {
-        window.location.assign(href); // using window location since no React Router here
+        window.location.assign(href); 
       }
     }
   };
 
   return (
     <Box
-      onClick={handleClick}
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 1.5,
         px: 2,
-        py: 1.25,
-        cursor: "pointer",
+        py: 0.75,
         borderRadius: 1.5,
         mx: 1.5,
-        color: "rgba(255,255,255,0.7)",
+        color: active ? "#fff" : "rgba(255,255,255,0.7)",
+        bgcolor: active ? "rgba(255,255,255,0.08)" : "transparent",
         "&:hover": {
           bgcolor: "rgba(255,255,255,0.06)",
           color: "#fff",
@@ -180,95 +62,212 @@ const ExpandedSidebarItem = ({ icon, label, href, onClick, onDelete }) => {
         }
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28 }}>
-        {icon}
+      <Box 
+        onClick={handleClick}
+        sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, cursor: "pointer", overflow: "hidden" }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28 }}>
+          {icon}
+        </Box>
+        <Box sx={{ fontSize: 13, fontWeight: active ? 600 : 500, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</Box>
       </Box>
-      <Box sx={{ fontSize: 13, fontWeight: 500, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</Box>
-      {href && <OpenInNewRoundedIcon sx={{ fontSize: 14, opacity: 0.3 }} />}
+
       {onDelete && (
         <IconButton 
           className="delete-btn"
           size="small" 
           onClick={(e) => { e.stopPropagation(); onDelete(); }} 
-          sx={{ opacity: 0, transition: "opacity 0.2s", color: "error.main", p: 0.5 }}
+          sx={{ opacity: 0, transition: "opacity 0.2s", color: "error.main", p: 0.5, ml: href ? 0 : "auto" }}
         >
           <DeleteRoundedIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      )}
+
+      {endAdornment && (
+        <IconButton
+          size="small"
+          onClick={(e) => { e.stopPropagation(); onExpand?.(e); }}
+          sx={{ p: 0.5, ml: 0.5, color: "inherit", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+        >
+          {endAdornment}
         </IconButton>
       )}
     </Box>
   );
 };
 
-const ExpandedSidebar = ({ onClose, projects, onCreateProject, onDeleteProject, onSelectProject, activeTab, onSelectTab }) => (
-  <Box
-    sx={{
-      width: 240,
-      height: "100vh",
-      bgcolor: "rgba(10, 12, 16, 0.95)",
-      borderRight: `1px solid ${BRAND.line}`,
-      display: "flex",
-      flexDirection: "column",
-      py: 1.5,
-      boxShadow: "4px 0 24px rgba(0,0,0,0.4)",
-      overflowY: "auto",
-    }}
-  >
-    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, mb: 1, pl: 3 }}>
-      <Box sx={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5, color: "rgba(255,255,255,0.9)" }}>MENU</Box>
-      <IconButton onClick={onClose} size="small">
-        <CloseRoundedIcon sx={{ color: "rgba(255,255,255,0.5)", fontSize: 18 }} />
-      </IconButton>
-    </Box>
+const BoardAccordion = ({ board, isTeam = false, activeBoardId, activeChatId, onSelectBoard, onSelectChat }) => {
+  const isActiveBoard = activeBoardId === board.id;
+  const [open, setOpen] = useState(isActiveBoard);
+  const [chats, setChats] = useState([]);
+  
+  useEffect(() => {
+    if (!open) return;
+    const q = query(collection(db, `boards/${board.id}/chats`));
+    const unsub = onSnapshot(q, (snap) => {
+      // client-side sort to avoid requiring composite indexes initially
+      const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      fetched.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0));
+      setChats(fetched);
+    });
+    return unsub;
+  }, [board.id, open]);
 
-    <Divider sx={{ opacity: 0.1, my: 1, mx: 2 }} />
+  const handleCreateChat = async () => {
+    try {
+      const q = collection(db, `boards/${board.id}/chats`);
+      const newChatRef = await addDoc(q, {
+        title: "新規チャット",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      onSelectChat(board.id, newChatRef.id);
+      if (!open) setOpen(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-    <ExpandedSidebarItem icon={<HomeRoundedIcon sx={{ fontSize: 20 }} />} label="ホーム" onClick={() => onSelectTab("home")} />
-    <ExpandedSidebarItem icon={<HubRoundedIcon sx={{ fontSize: 20 }} />} label="ハブ" onClick={() => onSelectTab("hub")} />
-
-    <Divider sx={{ opacity: 0.1, my: 1.5, mx: 2 }} />
-    
-    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, mb: 0.5 }}>
-      <Box sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>公開プロジェクト</Box>
-      <IconButton size="small" onClick={() => onCreateProject("public")} sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" } }}>
-        <AddRoundedIcon sx={{ fontSize: 16 }} />
-      </IconButton>
-    </Box>
-    {projects.filter(p => p.type === "public").map(p => (
+  return (
+    <Box sx={{ mb: 0.5 }}>
       <ExpandedSidebarItem 
-        key={p.id} 
-        icon={<FolderSharedRoundedIcon sx={{ fontSize: 18, color: "#3498db" }} />} 
-        label={p.name} 
-        onClick={() => onSelectProject?.(p)} 
-        onDelete={() => onDeleteProject(p.id)} 
+        icon={isTeam ? <FolderSharedRoundedIcon sx={{ fontSize: 18, color: isActiveBoard ? "#3498db" : "inherit" }} /> : <LockRoundedIcon sx={{ fontSize: 18, color: isActiveBoard ? "#9b59b6" : "inherit" }} />} 
+        label={board.name} 
+        active={isActiveBoard}
+        onClick={() => onSelectBoard(board.id)} 
+        onExpand={() => setOpen(!open)}
+        endAdornment={open ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18, opacity: 0.7 }} /> : <KeyboardArrowRightRoundedIcon sx={{ fontSize: 18, opacity: 0.7 }} />}
       />
-    ))}
-
-    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, mt: 2, mb: 0.5 }}>
-      <Box sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>非公開プロジェクト</Box>
-      <IconButton size="small" onClick={() => onCreateProject("private")} sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" } }}>
-        <AddRoundedIcon sx={{ fontSize: 16 }} />
-      </IconButton>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Box sx={{ pl: 6, pr: 1.5, py: 0.5, borderLeft: `1px solid rgba(255,255,255,0.1)`, ml: 3.5 }}>
+          {chats.length === 0 ? (
+            <Box sx={{ py: 1, fontSize: 12, color: 'text.secondary' }}>チャットはありません</Box>
+          ) : (
+            chats.map(chat => {
+              const isActiveChat = activeChatId === chat.id;
+              return (
+                <Box
+                  key={chat.id}
+                  onClick={() => onSelectChat(board.id, chat.id)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    px: 1.5,
+                    py: 1,
+                    mb: 0.5,
+                    cursor: "pointer",
+                    borderRadius: 1,
+                    color: isActiveChat ? "#fff" : "rgba(255,255,255,0.6)",
+                    bgcolor: isActiveChat ? "rgba(255,255,255,0.12)" : "transparent",
+                    borderLeft: isActiveChat ? `2px solid #3498db` : `2px solid transparent`,
+                    "&:hover": {
+                      bgcolor: "rgba(255,255,255,0.06)",
+                      color: "#fff",
+                    }
+                  }}
+                >
+                  <ChatBubbleOutlineRoundedIcon sx={{ fontSize: 14, color: isActiveChat ? "#3498db" : "inherit" }} />
+                  <Box sx={{ fontSize: 12, fontWeight: isActiveChat ? 600 : 400, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {chat.title || "名称未設定チャット"}
+                  </Box>
+                </Box>
+              )
+            })
+          )}
+          <Box
+            onClick={handleCreateChat}
+            sx={{
+              display: "flex", alignItems: "center", gap: 1, px: 1.5, py: 1, cursor: "pointer",
+              color: "rgba(255,255,255,0.5)", borderRadius: 1, fontSize: 12, mt: 0.5,
+              "&:hover": { bgcolor: "rgba(255,255,255,0.06)", color: "#fff" }
+            }}
+          >
+            <AddRoundedIcon sx={{ fontSize: 14 }} /> 新規チャットを作成
+          </Box>
+        </Box>
+      </Collapse>
     </Box>
-    {projects.filter(p => p.type === "private").map(p => (
-      <ExpandedSidebarItem 
-        key={p.id} 
-        icon={<LockRoundedIcon sx={{ fontSize: 18, color: "#9b59b6" }} />} 
-        label={p.name} 
-        onClick={() => onSelectProject?.(p)} 
-        onDelete={() => onDeleteProject(p.id)} 
-      />
-    ))}
-  </Box>
-);
+  );
+};
+
+const ExpandedSidebar = ({ onClose, onCreateProject, activeTab, onSelectTab }) => {
+  const { myBoards, teamBoards } = useBoards();
+  const { currentApp, currentBoardId, setCurrentBoardId, setCurrentChatId, currentChatId } = useBoardStore();
+  const navigate = useNavigate();
+
+  const handleSelectBoard = (boardId) => {
+    setCurrentBoardId(boardId);
+    navigate(getBoardRoute(currentApp, boardId));
+  };
+
+  const handleSelectChat = (boardId, chatId) => {
+    setCurrentBoardId(boardId);
+    setCurrentChatId(chatId);
+    navigate(getBoardRoute(currentApp, boardId));
+  };
+
+  return (
+    <Box
+      sx={{
+        width: 240,
+        height: "100vh",
+        bgcolor: "rgba(10, 12, 16, 0.95)",
+        borderRight: `1px solid ${BRAND.line}`,
+        display: "flex",
+        flexDirection: "column",
+        py: 1.5,
+        boxShadow: "4px 0 24px rgba(0,0,0,0.4)",
+        overflowY: "auto",
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, mb: 1, pl: 3 }}>
+        <Box sx={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5, color: "rgba(255,255,255,0.9)" }}>MENU</Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseRoundedIcon sx={{ color: "rgba(255,255,255,0.5)", fontSize: 18 }} />
+        </IconButton>
+      </Box>
+
+      <Divider sx={{ opacity: 0.1, my: 1, mx: 2 }} />
+
+      <ExpandedSidebarItem icon={<HomeRoundedIcon sx={{ fontSize: 20 }} />} label="ホーム" onClick={() => onSelectTab("home")} />
+      <ExpandedSidebarItem icon={<HubRoundedIcon sx={{ fontSize: 20 }} />} label="ハブ" onClick={() => onSelectTab("hub")} />
+
+      <Divider sx={{ opacity: 0.1, my: 1.5, mx: 2 }} />
+      
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, mb: 0.5 }}>
+        <Box sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>My Boards</Box>
+        <IconButton size="small" onClick={() => navigate("/dashboard/boards")} sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" } }}>
+          <AddRoundedIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Box>
+      {myBoards.map(p => (
+        <BoardAccordion key={p.id} board={p} activeBoardId={currentBoardId} activeChatId={currentChatId} onSelectBoard={handleSelectBoard} onSelectChat={handleSelectChat} />
+      ))}
+
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 3, mt: 2, mb: 0.5 }}>
+        <Box sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>Team Boards</Box>
+        <IconButton size="small" onClick={() => navigate("/dashboard/boards")} sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" } }}>
+          <AddRoundedIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Box>
+      {teamBoards.map(p => (
+        <BoardAccordion key={p.id} board={p} isTeam activeBoardId={currentBoardId} activeChatId={currentChatId} onSelectBoard={handleSelectBoard} onSelectChat={handleSelectChat} />
+      ))}
+    </Box>
+  );
+};
 
 export default function LeftSidebar({ onSelectProject, activeTab, onSelectTab }) {
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [projects, setProjects] = useState([
-    { id: "1", name: "Sample House 3D", type: "public" },
-    { id: "2", name: "Tokyo Office Layout", type: "public" },
-    { id: "3", name: "Personal Concept A", type: "private" },
-  ]);
+  const { myBoards, teamBoards } = useBoards();
+  const boards = [...myBoards, ...teamBoards];
+  const { currentApp, currentBoardId, recentApps } = useBoardStore();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const storeActivePanel = useGlobalPanelStore((state) => state.activePanel);
+  const activePanelState = searchParams.get("panel") || storeActivePanel;
 
   const setSidebarExpanded = useGlobalPanelStore(state => state.setSidebarExpanded);
 
@@ -277,24 +276,18 @@ export default function LeftSidebar({ onSelectProject, activeTab, onSelectTab })
   }, [isExpanded, setSidebarExpanded]);
 
   const handleCreateProject = (type) => {
-    const title = prompt(`${type === "public" ? "公開" : "非公開"}プロジェクト名を入力してください`);
-    if (title && title.trim()) {
-      const newProject = { id: Date.now().toString(), name: title.trim(), type };
-      setProjects([...projects, newProject]);
-    }
+    alert("ボード作成機能はBoard Managementに移行予定です");
   };
 
-  const handleDeleteProject = (id) => {
-    if (window.confirm("このプロジェクトを削除しますか？")) {
-      setProjects(projects.filter(p => p.id !== id));
+  const handleTogglePanel = (panelName) => {
+    const next = new URLSearchParams(searchParams);
+    if (activePanelState === panelName) {
+      next.delete("panel");
+    } else {
+      next.set("panel", panelName);
     }
+    setSearchParams(next);
   };
-
-  const sekkeiyaHref = "/";
-  const shareHref = user ? "/app/share/dashboard" : "/app/share/";
-  const layoutHref = user ? "/app/layout/dashboard" : "/app/layout/";
-  const presentsHref = "/app/presents/";
-  const questHref = "/app/quest/";
 
   return (
     <Box
@@ -307,24 +300,33 @@ export default function LeftSidebar({ onSelectProject, activeTab, onSelectTab })
       }}
     >
       <MiniSidebar
+        currentApp={currentApp || "sekkeiya"}
+        currentBoardId={currentBoardId}
+        boards={boards}
+        user={user}
+        onNavigate={(path) => navigate(path)}
+        onNavigateExternal={(url) => window.location.assign(url)}
+        onOpenChat={() => handleTogglePanel("chat")}
+        onOpenDrive={() => handleTogglePanel("drive")}
+        activePanelState={activePanelState}
+        onLogout={async () => {
+          try {
+            await signOut(auth);
+            window.location.assign("/");
+          } catch (e) {
+            console.error(e);
+            window.location.assign("/");
+          }
+        }}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
-        activeTab={activeTab}
-        onSelectTab={onSelectTab}
-        sekkeiyaHref={sekkeiyaHref}
-        shareHref={shareHref}
-        layoutHref={layoutHref}
-        presentsHref={presentsHref}
-        questHref={questHref}
+        recentApps={recentApps}
       />
       
       {isExpanded && (
         <ExpandedSidebar
           onClose={() => setIsExpanded(false)}
-          projects={projects}
           onCreateProject={handleCreateProject}
-          onDeleteProject={handleDeleteProject}
-          onSelectProject={onSelectProject}
           activeTab={activeTab}
           onSelectTab={onSelectTab}
         />

@@ -12,6 +12,9 @@ import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import ManageAccountsRoundedIcon from "@mui/icons-material/ManageAccountsRounded";
 
 import { useAuth } from "@/features/auth/context/AuthContext";
 import { signOut } from "firebase/auth";
@@ -26,6 +29,8 @@ import { BRAND } from "@/shared/ui/theme";
 import NavIcon from "@/shared/ui/NavIcon";
 import useBoards from "@/shared/hooks/useBoards";
 import { useGlobalPanelStore } from "sekkeiya-global-panel";
+import { useBoardStore } from "@/shared/store/useBoardStore";
+import { getBoardRoute } from "@/shared/utils/boardRouting";
 
 const AppImageIcon = ({ src, alt }) => (
   <Box
@@ -45,6 +50,7 @@ const AppImageIcon = ({ src, alt }) => (
 
 const UserAvatarMenu = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
@@ -103,15 +109,35 @@ const UserAvatarMenu = () => {
         }}
       >
         {user ? [
+          <Box key="user-info" sx={{ px: 2, py: 1.5, pb: 1 }}>
+            <Box sx={{ fontSize: 14, fontWeight: 'bold' }}>{user.displayName || "ユーザー"}</Box>
+            <Box sx={{ fontSize: 12, color: 'text.secondary' }}>{user.email}</Box>
+            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+              <Box>
+                <Box sx={{ fontSize: 14, fontWeight: 'bold' }}>0</Box>
+                <Box sx={{ fontSize: 10, color: 'text.secondary' }}>フォロー</Box>
+              </Box>
+              <Box>
+                <Box sx={{ fontSize: 14, fontWeight: 'bold' }}>0</Box>
+                <Box sx={{ fontSize: 10, color: 'text.secondary' }}>フォロワー</Box>
+              </Box>
+            </Box>
+          </Box>,
+          <Divider key="div1" sx={{ borderColor: BRAND.line }} />,
           <MenuItem key="dashboard" onClick={() => { handleClose(); /* navigate to dashboard home if needed, or already there */ }}>
             <ListItemIcon><DashboardRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
             ダッシュボード
           </MenuItem>,
+          <MenuItem key="connections" onClick={() => { handleClose(); navigate("/dashboard/connections"); }}>
+            <ListItemIcon><PeopleAltRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
+            つながり管理
+          </MenuItem>,
+          <Divider key="div2" sx={{ borderColor: BRAND.line }} />,
           <MenuItem key="delete" onClick={() => { handleClose(); setDeleteDialogOpen(true); }} sx={{ color: "error.main" }}>
             <ListItemIcon><PersonRemoveRoundedIcon fontSize="small" color="error" /></ListItemIcon>
             アカウント削除
           </MenuItem>,
-          <Divider key="div" sx={{ borderColor: BRAND.line }} />,
+          <Divider key="div3" sx={{ borderColor: BRAND.line }} />,
           <MenuItem key="logout" onClick={() => { handleClose(); onLogout(); }}>
             <ListItemIcon><LogoutRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
             ログアウト
@@ -146,6 +172,13 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
   
   const storeActivePanel = useGlobalPanelStore((state) => state.activePanel);
   const activePanel = searchParams.get("panel") || storeActivePanel;
+
+  const { currentApp, currentBoardId, setCurrentBoardId, recentApps } = useBoardStore();
+
+  const handleBoardClick = useCallback((boardId) => {
+    setCurrentBoardId(boardId);
+    navigate(getBoardRoute(currentApp, boardId));
+  }, [currentApp, setCurrentBoardId, navigate]);
 
   const [appAnchorEl, setAppAnchorEl] = useState(null);
 
@@ -237,6 +270,15 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
         }} 
       />
 
+      <NavIcon 
+        icon={<AccountTreeRoundedIcon />} 
+        label="ボード管理" 
+        active={path.startsWith("/dashboard/boards")}
+        onClick={() => {
+          navigate("/dashboard/boards");
+        }} 
+      />
+
       <Divider sx={{ width: "60%", opacity: 0.25, my: 1.5 }} />
 
       {/* My Boards Shortcuts */}
@@ -252,7 +294,7 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
         return (
         <Tooltip title={p.name} placement="right" key={p.id}>
           <Box
-            onClick={() => { navigate(`/dashboard/projects/${p.id}`); }}
+            onClick={() => handleBoardClick(p.id)}
             sx={{
               width: 36,
               height: 36,
@@ -293,7 +335,7 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
         return (
         <Tooltip title={p.name} placement="right" key={p.id}>
           <Box
-            onClick={() => { navigate(`/dashboard/projects/${p.id}`); }}
+            onClick={() => handleBoardClick(p.id)}
             sx={{
               width: 36,
               height: 36,
@@ -322,6 +364,22 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
       <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
 
       <Box sx={{ flex: 1 }} />
+
+      {/* Recent Apps Shortcuts */}
+      {recentApps.length > 0 && recentApps.map(app => {
+        const appInfo = APPS_CATALOG.find(a => a.key === app);
+        if (!appInfo) return null;
+        return (
+          <Tooltip title={`直前のアプリ: ${appInfo.label}`} placement="right" key={app}>
+            <IconButton onClick={() => window.location.assign(user && appInfo.hrefAuth ? appInfo.hrefAuth : appInfo.hrefPublic)} sx={{ mb: 1, bgcolor: "rgba(255,255,255,0.05)" }}>
+              <AppImageIcon 
+                src={appInfo.icon || sekkeiyaPng} 
+                alt={app.toUpperCase()} 
+              />
+            </IconButton>
+          </Tooltip>
+        );
+      })}
 
       {/* App Switcher */}
       <Tooltip title="アプリ一覧" placement="right">
