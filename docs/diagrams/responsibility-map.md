@@ -1,8 +1,3 @@
-
----
-
-# 3. responsibility-map.md
-
 # Responsibility Map
 
 ```mermaid
@@ -31,3 +26,4 @@ flowchart LR
 
     A --> S
     A --> C
+```
