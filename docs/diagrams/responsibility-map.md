@@ -3,7 +3,6 @@
 
 # 3. responsibility-map.md
 
-```md
 # Responsibility Map
 
 ```mermaid
