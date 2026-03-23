@@ -16,7 +16,7 @@ erDiagram
         string userId
         string email
         string plan
-        string path: users/{userId}
+        string path_users_userId
     }
 
     MODELS {
@@ -24,26 +24,26 @@ erDiagram
         string name
         string visibility
         string ownerId
-        string path: users/{userId}/models/{modelId}
+        string path_users_models
     }
 
     MY_BOARDS {
         string boardId
         string name
         string ownerId
-        string path: users/{userId}/myBoards/{boardId}
+        string path_myBoards
     }
 
     TEAM_BOARDS {
         string boardId
         string name
         string members
-        string path: teamBoards/{boardId}
+        string path_teamBoards
     }
 
     BOARD_MODELS {
         string id
         string modelRef
-        string path: */models/{modelId}
+        string path_models_subcollection
     }
 ```
