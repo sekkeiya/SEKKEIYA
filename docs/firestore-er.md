@@ -1,10 +1,10 @@
-# Firestore ER Diagram
+# Firestore ER Diagram (Advanced)
 
 ```mermaid
 erDiagram
 
     USERS ||--o{ MY_BOARDS : owns
-    USERS ||--o{ TEAM_BOARDS : joins
+    USERS ||--o{ TEAM_BOARDS : member
     USERS ||--o{ MODELS : owns
 
     MY_BOARDS ||--o{ BOARD_MODELS : contains
@@ -16,6 +16,7 @@ erDiagram
         string userId
         string email
         string plan
+        string path: users/{userId}
     }
 
     MODELS {
@@ -23,22 +24,26 @@ erDiagram
         string name
         string visibility
         string ownerId
+        string path: users/{userId}/models/{modelId}
     }
 
     MY_BOARDS {
         string boardId
         string name
         string ownerId
+        string path: users/{userId}/myBoards/{boardId}
     }
 
     TEAM_BOARDS {
         string boardId
         string name
         string members
+        string path: teamBoards/{boardId}
     }
 
     BOARD_MODELS {
         string id
         string modelRef
+        string path: */models/{modelId}
     }
 ```
