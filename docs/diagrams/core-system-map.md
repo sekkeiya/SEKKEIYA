@@ -1,7 +1,8 @@
-# SEKKEIYA Core System (Simple)
+# SEKKEIYA Core System
 
 ```mermaid
 flowchart TD
+
     U[User]
 
     U --> S[SEKKEIYA]
@@ -21,7 +22,6 @@ flowchart TD
     R --> A
 
     A --> AD[AI Drive]
-
     P --> AD
 
     AD --> AC[AI Chat]
