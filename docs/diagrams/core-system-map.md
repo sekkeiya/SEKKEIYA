@@ -30,4 +30,5 @@ flowchart TD
 
     AR --> P
     AR --> B
+    AR --> A
 ```
