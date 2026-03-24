@@ -12,7 +12,7 @@ flowchart LR
 
     Sekkeiya[SEKKEIYA]:::sekkeiya
 
-    subgraph SekkeiyaScope [SEKKEIYA 管轄 (マクロ・基盤)]
+    subgraph SekkeiyaScope [SEKKEIYA 管轄]
         P[Project]
         Bs[Boards]
         U[User Profile / Teams]
@@ -21,7 +21,7 @@ flowchart LR
         AR[AI Response / Action]:::ai
     end
 
-    subgraph AppScope [子アプリ 管轄 (ミクロ・作業実体)]
+    subgraph AppScope [子アプリ 管轄]
         B_Mod[Models Board : 3DSS]:::apps
         B_Lay[Layout Board : 3DSL]:::apps
         B_Pre[Presents Board : 3DSP]:::apps

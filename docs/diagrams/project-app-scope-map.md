@@ -15,11 +15,16 @@ flowchart TD
     classDef boards fill:#27ae60,stroke:#2ecc71,stroke-width:2px,color:#fff
     classDef ai fill:#8e44ad,stroke:#9b59b6,stroke-width:2px,color:#fff
 
-    User[User] --> Sekkeiya[SEKKEIYA]:::sekkeiya
-    Sekkeiya --> Proj[Project]:::project
-    Proj --> Bds[Boards]:::boards
+    User[User]
+    Sekkeiya[SEKKEIYA]:::sekkeiya
+    Proj[Project]:::project
+    Bds[Boards]:::boards
 
-    subgraph Workspaces [Board 領域 (アプリへのルーティング)]
+    User --> Sekkeiya
+    Sekkeiya --> Proj
+    Proj --> Bds
+
+    subgraph Workspaces
         Req[Requirements Board]:::sekkeiya
         Mod[Models Board]:::app3dss
         Lay[Layout Board]:::app3dsl
@@ -33,26 +38,32 @@ flowchart TD
     Bds --> Pre
     Bds --> Ana
 
-    Req -.->|appScope = sekkeiya| SekApp1((SEKKEIYA)):::sekkeiya
-    Mod -.->|appScope = 3dss| DSSApp((3DSS)):::app3dss
-    Lay -.->|appScope = 3dsl| DSLApp((3DSL)):::app3dsl
-    Pre -.->|appScope = 3dsp| DSPApp((3DSP)):::app3dsp
-    Ana -.->|appScope = sekkeiya| SekApp2((SEKKEIYA)):::sekkeiya
+    SekApp1((SEKKEIYA)):::sekkeiya
+    DSSApp((3DSS)):::app3dss
+    DSLApp((3DSL)):::app3dsl
+    DSPApp((3DSP)):::app3dsp
+    SekApp2((SEKKEIYA)):::sekkeiya
+
+    Req -->|appScope sekkeiya| SekApp1
+    Mod -->|appScope 3dss| DSSApp
+    Lay -->|appScope 3dsl| DSLApp
+    Pre -->|appScope 3dsp| DSPApp
+    Ana -->|appScope sekkeiya| SekApp2
 
     %% AI レイヤーの統合表示
     AID[AI Drive]:::ai
     AIC[AI Chat]:::ai
     AIR[AI Response / Action]:::ai
 
-    Proj -.->|全Boardのコンテクスト提供| AID
+    Proj -->|全Boardのコンテクスト提供| AID
     AID --> AIC
     User -.-> AIC
     AIC --> AIR
-    AIR -.->|結果適用| Req
-    AIR -.->|結果適用| Mod
-    AIR -.->|結果適用| Lay
-    AIR -.->|結果適用| Pre
-    AIR -.->|結果適用| Ana
+    AIR -->|結果適用| Req
+    AIR -->|結果適用| Mod
+    AIR -->|結果適用| Lay
+    AIR -->|結果適用| Pre
+    AIR -->|結果適用| Ana
 ```
 
 ## appScope の概念

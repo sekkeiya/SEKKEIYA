@@ -17,9 +17,14 @@ flowchart TD
     classDef ai fill:#8e44ad,stroke:#7d3c98,stroke-width:2px,color:#fff
     classDef action fill:#9b59b6,stroke:#8e44ad,stroke-width:2px,color:#fff
 
-    User[User]:::user --> Sekkeiya[SEKKEIYA]:::sekkeiya
-    Sekkeiya --> Project[Project]:::project
-    Project --> Boards[Boards]:::boards
+    User[User]:::user
+    Sekkeiya[SEKKEIYA]:::sekkeiya
+    Project[Project]:::project
+    Boards[Boards]:::boards
+
+    User --> Sekkeiya
+    Sekkeiya --> Project
+    Project --> Boards
 
     Boards --> ReqBoard[Requirements Board]:::board
     Boards --> ModBoard[Models Board]:::board
