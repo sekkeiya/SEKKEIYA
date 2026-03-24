@@ -1,54 +1,54 @@
 # Project / App Scope Map
 
 ## 概要 (Overview)
-この図は、SEKKEIYAの「プロジェクト単位」の中に内包される各ボードが、エコシステム上のどの子アプリ (appScope) に対応しているかを示す Mermaid フローチャートです。
-Project は全体の世界・コンテキストを定義し、各 Board は個別の領域（アプリ機能）へユーザーをルーティングします。
+この図は、SEKKEIYAの「Project」単位内に内包される各 Board が、エコシステム上のどの子アプリ (appScope) に対応しているかを示す Mermaid フローチャートです。
+すべての基本階層（User → SEKKEIYA → Project → Boards → Board → Item → Asset / Metadata → AI Drive → AI Chat → AI Response / Action）に準拠しています。
 
 ```mermaid
 flowchart TD
     %% Styling
-    classDef project fill:#2c3e50,stroke:#34495e,stroke-width:2px,color:#fff
     classDef sekkeiya fill:#2980b9,stroke:#3498db,stroke-width:2px,color:#fff
     classDef app3dss fill:#16a085,stroke:#1abc9c,stroke-width:2px,color:#fff
     classDef app3dsl fill:#d35400,stroke:#e67e22,stroke-width:2px,color:#fff
     classDef app3dsp fill:#8e44ad,stroke:#9b59b6,stroke-width:2px,color:#fff
+    classDef project fill:#2c3e50,stroke:#34495e,stroke-width:2px,color:#fff
+    classDef boards fill:#27ae60,stroke:#2ecc71,stroke-width:2px,color:#fff
+    classDef ai fill:#8e44ad,stroke:#9b59b6,stroke-width:2px,color:#fff
 
-    subgraph The_World [Project 領域 (全体管理)]
-        Project[Project : MyHouse]:::project
+    User[User] --> Sekkeiya[SEKKEIYA]:::sekkeiya
+    Sekkeiya --> Proj[Project]:::project
+    Proj --> Bds[Boards]:::boards
+
+    subgraph Workspaces [Board 領域 (アプリへのルーティング)]
+        Req[Requirements Board]:::sekkeiya
+        Mod[Models Board]:::app3dss
+        Lay[Layout Board]:::app3dsl
+        Pre[Presents Board]:::app3dsp
+        Ana[Analysis Board]:::sekkeiya
     end
 
-    Project --> BoardReq
-    Project --> BoardMod
-    Project --> BoardLay
-    Project --> BoardPre
-    Project --> BoardAna
+    Bds --> Req
+    Bds --> Mod
+    Bds --> Lay
+    Bds --> Pre
+    Bds --> Ana
 
-    subgraph The_Workspaces [Board 領域 (作業単位・アプリへのルーティング)]
-        BoardReq[Requirements Board\n(要件定義・与件情報)]:::sekkeiya --> AppSek_Req((SEKKEIYA\nApp Scope)):::sekkeiya
-        
-        BoardMod[Models Board\n(3Dアセット管理)]:::app3dss --> App3DSS((3DSS\nApp Scope)):::app3dss
-        
-        BoardLay[Layout Board\n(空間レイアウト構築)]:::app3dsl --> App3DSL((3DSL\nApp Scope)):::app3dsl
-        
-        BoardPre[Presents Board\n(プレゼンスライド)]:::app3dsp --> App3DSP((3DSP\nApp Scope)):::app3dsp
-        
-        BoardAna[Analysis Board\n(解析・分析)]:::sekkeiya --> AppSek_Ana((SEKKEIYA\nApp Scope)):::sekkeiya
-    end
+    Req -.->|appScope = sekkeiya| SekApp1((SEKKEIYA)):::sekkeiya
+    Mod -.->|appScope = 3dss| DSSApp((3DSS)):::app3dss
+    Lay -.->|appScope = 3dsl| DSLApp((3DSL)):::app3dsl
+    Pre -.->|appScope = 3dsp| DSPApp((3DSP)):::app3dsp
+    Ana -.->|appScope = sekkeiya| SekApp2((SEKKEIYA)):::sekkeiya
 
-    %% AI の横断性
-    AI((AI Context Layer\nCross-Board Intelligence)) -.->|Context 読取| BoardReq
-    AI -.->|Context 読取| BoardMod
-    AI -.->|Context 読取| BoardLay
-    AI -.->|Context 読取| BoardPre
-    AI -.->|Context 読取| BoardAna
+    %% AI レイヤーの統合表示
+    AID[AI Drive]:::ai
+    AIC[AI Chat]:::ai
+    AIR[AI Response / Action]:::ai
 
-    %% 役割の説明
-    subgraph Legend [役割 (Roles)]
-        L1[SEKKEIYA : 全体管理, 要件, 分析]:::sekkeiya
-        L2[3DSS : 3Dアイテム登録・閲覧]:::app3dss
-        L3[3DSL : 3D配置と空間構成]:::app3dsl
-        L4[3DSP : アウトプット・プレゼン]:::app3dsp
-    end
+    Proj -.->|全Boardのコンテクスト提供| AID
+    AID --> AIC
+    User --> AIC
+    AIC --> AIR
+    AIR -.->|結果適用| Workspaces
 ```
 
 ## appScope の概念

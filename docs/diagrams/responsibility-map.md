@@ -1,29 +1,45 @@
 # Responsibility Map
 
+## 概要 (Overview)
+SEKKEIYA（親アプリ）と各子アプリ（3DSS, 3DSL, 3DSP等）が、それぞれどの階層のデータと機能を管轄しているかを示す責任推移図です。
+
 ```mermaid
 flowchart LR
-    A[SEKKEIYA]
+    %% Styling
+    classDef sekkeiya fill:#2980b9,stroke:#2471a3,stroke-width:2px,color:#fff
+    classDef apps fill:#16a085,stroke:#117a65,stroke-width:2px,color:#fff
+    classDef ai fill:#8e44ad,stroke:#7d3c98,stroke-width:2px,color:#fff
 
-    subgraph S[SEKKEIYAが持つもの]
-        S1[プロジェクト]
-        S2[フォロー / フォロワー]
-        S3[AI Chatの会話文脈]
-        S4[AI Driveの横断文脈]
-        S5[通知]
-        S6[全体プロフィール]
-        S7[チーム / 招待]
-        S8[横断検索]
+    Sekkeiya[SEKKEIYA]:::sekkeiya
+
+    subgraph SekkeiyaScope [SEKKEIYA 管轄 (マクロ・基盤)]
+        P[Project]
+        Bs[Boards]
+        U[User Profile / Teams]
+        AD[AI Drive]:::ai
+        AC[AI Chat]:::ai
+        AR[AI Response / Action]:::ai
     end
 
-    subgraph C[子アプリが持つもの]
-        C1[3DSS: モデル本体 / メタデータ]
-        C2[3DSL: レイアウト / 配置]
-        C3[3DSC: 生成ジョブ / 生成結果]
-        C4[3DSP: プレゼン資料 / ページ要素]
-        C5[3DSB: 書籍 / エピソード]
-        C6[3DSQ: クエスト / 学習進行]
+    subgraph AppScope [子アプリ 管轄 (ミクロ・作業実体)]
+        B_Mod[Models Board : 3DSS]:::apps
+        B_Lay[Layout Board : 3DSL]:::apps
+        B_Pre[Presents Board : 3DSP]:::apps
+        
+        I[Item]
+        A[Asset / Metadata]
     end
 
-    A --> S
-    A --> C
+    Sekkeiya --> SekkeiyaScope
+    Sekkeiya --> AppScope
+
+    Bs --> B_Mod
+    Bs --> B_Lay
+    Bs --> B_Pre
+    
+    B_Mod --> I
+    B_Lay --> I
+    B_Pre --> I
+    
+    I --> A
 ```
