@@ -30,8 +30,8 @@ flowchart LR
         A[Asset / Metadata]
     end
 
-    Sekkeiya --> SekkeiyaScope
-    Sekkeiya --> AppScope
+    Sekkeiya --> P
+    Sekkeiya --> B_Mod
 
     Bs --> B_Mod
     Bs --> B_Lay

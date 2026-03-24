@@ -46,9 +46,13 @@ flowchart TD
 
     Proj -.->|全Boardのコンテクスト提供| AID
     AID --> AIC
-    User --> AIC
+    User -.-> AIC
     AIC --> AIR
-    AIR -.->|結果適用| Workspaces
+    AIR -.->|結果適用| Req
+    AIR -.->|結果適用| Mod
+    AIR -.->|結果適用| Lay
+    AIR -.->|結果適用| Pre
+    AIR -.->|結果適用| Ana
 ```
 
 ## appScope の概念
