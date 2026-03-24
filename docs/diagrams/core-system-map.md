@@ -1,5 +1,3 @@
-# SEKKEIYA Core System
-
 ```mermaid
 flowchart TD
 
