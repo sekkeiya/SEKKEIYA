@@ -10,9 +10,9 @@ flowchart TD
 
     P --> B[Boards]
 
-    B --> M[Models (3DSS)]
-    B --> L[Layouts (3DSL)]
-    B --> PR[Presents (3DSP)]
+    B --> M[Models - 3DSS]
+    B --> L[Layouts - 3DSL]
+    B --> PR[Presents - 3DSP]
     B --> R[Requirements]
 
     M --> A[Assets / Metadata]
