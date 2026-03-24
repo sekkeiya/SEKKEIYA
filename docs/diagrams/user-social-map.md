@@ -13,7 +13,7 @@ flowchart TD
     Profile["プロフィール"]:::social
     Following["フォロー (Following)"]:::social
     Followers["フォロワー (Followers)"]:::social
-    Projects["参加プロジェクト (Projects)"]:::social
+    Projects["参加 Projects"]:::social
     
     PublicAssets["公開成果物 (Public Assets)"]:::artifact
     
@@ -35,5 +35,6 @@ flowchart TD
 ```
 
 **補足説明:**
-- ユーザー同士はフォロー関係を持ち、相互のアクティビティ（公開モデルの追加など）をタイムライン等でウォッチできます。
-- 個人が作成した各子アプリの資産（Models, Layouts, Presentsなど）のうち、`isPublic = true` なものだけが `Public Assets` として集約・インデックス（例: `publicModelIndex`）化され、他ユーザーの横断検索機能の対象となります。
+- ユーザー同士はフォロー関係を持ち、相互のアクティビティ（公開アセットの追加など）をタイムライン等でウォッチできます。
+- 個人が作成した各子アプリの資産（Models, Layouts, Presentsなど）のうち、`isPublic = true` なものだけが `Public Assets` として集約・インデックス化され、他ユーザーの横断検索機能の対象となります。
+- チームでのコラボレーションは通常、共有の `Project` を通じて行われます。

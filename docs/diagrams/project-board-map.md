@@ -31,10 +31,10 @@ flowchart TD
     Boards --> B_Presen
     Boards --> B_Req
 
-    B_Ref -.->|"参照"| App_3DSS
-    B_Layout -.->|"配置"| App_3DSL
-    B_Presen -.->|"スライド"| App_3DSP
-    B_Req -.->|"メモ"| App_Req
+    B_Ref -->|"参照"| App_3DSS
+    B_Layout -->|"配置"| App_3DSL
+    B_Presen -->|"スライド"| App_3DSP
+    B_Req -->|"メモ"| App_Req
 ```
 
 **補足説明:**
