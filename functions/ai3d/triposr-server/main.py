@@ -26,8 +26,12 @@ def process_job(provider_job_id: str):
     # Assume generation was successful
     jobs[provider_job_id]['status'] = 'success'
     
-    # Return a local endpoint serving a sample GLB
-    jobs[provider_job_id]['glbUrl'] = f"http://127.0.0.1:8000/files/{provider_job_id}.glb"
+    # Return an external mock GLB URL instead of a local file
+    mock_url = os.getenv(
+        "MOCK_GLB_URL", 
+        "https://firebasestorage.googleapis.com/v0/b/shapeshare1d.appspot.com/o/assets%2Fsystem%2Fsekkeiya_demo.glb?alt=media"
+    )
+    jobs[provider_job_id]['glbUrl'] = mock_url
 
 @app.post("/jobs", response_model=JobResponse)
 async def create_job(request: JobRequest, background_tasks: BackgroundTasks):
@@ -60,17 +64,6 @@ async def get_job(provider_job_id: str):
         }
     else:
         return {"status": "failed", "error": "Unknown status"}
-
-@app.get("/files/{filename}")
-async def get_file(filename: str):
-    # SEKKEIYAにある既存のサンプルGLBを返す
-    sample_path = os.path.join(os.path.dirname(__file__), "sample.glb")
-    sample_path = os.path.abspath(sample_path)
-    
-    if os.path.exists(sample_path):
-        return FileResponse(sample_path, media_type="model/gltf-binary", filename=filename)
-    else:
-        raise HTTPException(status_code=404, detail="Mock sample.glb not found")
 
 if __name__ == "__main__":
     import uvicorn
