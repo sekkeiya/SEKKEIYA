@@ -1,8 +1,0 @@
-*.glb
-*.bin
-*.fbx
-*.obj
-*.zip
-__pycache__/
-venv/
-.env

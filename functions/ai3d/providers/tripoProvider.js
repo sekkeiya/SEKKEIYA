@@ -17,14 +17,46 @@ async function runTripoProvider(jobId, uid, data) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    // 1.5 Download the image and upload to Tripo first to avoid URL validation errors
+    console.log("Downloading image from storage...");
+    const imageRes = await fetch(data.inputImageUrl);
+    if (!imageRes.ok) throw new Error("Failed to download input image from storage: " + imageRes.statusText);
+    const imageBlob = await imageRes.blob();
+
+    const formData = new FormData();
+    formData.append('file', imageBlob, 'image.png');
+
+    console.log("Uploading image to Tripo API...");
+    const uploadRes = await fetch("https://api.tripo3d.ai/v2/openapi/upload", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: formData
+    });
+
+    const uploadText = await uploadRes.text();
+    let uploadResult;
+    try {
+      uploadResult = JSON.parse(uploadText);
+    } catch (e) {
+      throw new Error(`Tripo upload returned non-JSON (${uploadRes.status}): ${uploadText.slice(0, 150)}`);
+    }
+
+    if (!uploadRes.ok || uploadResult.code !== 0) {
+      throw new Error(`Tripo Upload Error: ${uploadRes.status} - ${uploadResult.message || JSON.stringify(uploadResult)}`);
+    }
+
+    const file_token = uploadResult.data.image_token;
+    console.log("Tripo image uploaded, token:", file_token);
+
     const payload = {
       type: "image_to_model",
       file: {
         type: "png",
-        url: data.inputImageUrl
+        file_token: file_token
       },
-      texture: true,
-      pbr: true
+      model_version: "v2.5-20250123"
     };
 
     console.log("Tripo API Request Payload:", JSON.stringify(payload));
@@ -34,12 +66,19 @@ async function runTripoProvider(jobId, uid, data) {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "SEKKEIYA/1.0"
       },
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json();
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Tripo API returned non-JSON (${response.status}): ${text.slice(0, 150)}`);
+    }
     console.log("Tripo API Response:", JSON.stringify(result));
 
     if (!response.ok || result.code !== 0) {
@@ -84,11 +123,18 @@ async function checkTripoProvider(jobId, uid, jobData) {
     const response = await fetch(`https://api.tripo3d.ai/v2/openapi/task/${jobData.providerJobId}`, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${apiKey}`
+        "Authorization": `Bearer ${apiKey}`,
+        "User-Agent": "SEKKEIYA/1.0"
       }
     });
 
-    const result = await response.json();
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Tripo API Check returned non-JSON (${response.status}): ${text.slice(0, 150)}`);
+    }
 
     if (!response.ok || result.code !== 0) {
       throw new Error(`Tripo Check Error: ${response.status} - ${result.message || JSON.stringify(result)}`);
