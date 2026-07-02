@@ -1,55 +1,66 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { aiPricing } = require("./pricing");
+const { renderPricing } = require("./pricing");
 const { CREDIT_COST, consume } = require("../payments/creditLedger");
-const { runMockProvider } = require("./providers/mockProvider");
-const { defineSecret } = require("firebase-functions/params");
-const tripoApiKey = defineSecret("TRIPO_API_KEY");
+const { geminiApiKey } = require("./providers/nanobananaProvider");
 
-// timeoutSeconds: startJob（画像DL→Tripoアップロード→タスク作成）を await するため、
-// デフォルト60秒では大きい画像で不足する可能性がある。
-exports.requestAiGeneration = onCall({ secrets: [tripoApiKey], timeoutSeconds: 180 }, async (request) => {
+exports.requestAiRender = onCall(
+  {
+    secrets: [geminiApiKey],
+    // Image generation can legitimately take 30–90s; default 60s timeout is too tight.
+    timeoutSeconds: 180,
+    // Loading + base64-encoding a multi-MB image needs headroom over the 256Mi default.
+    memory: "512MiB",
+  },
+  async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be logged in");
   }
 
   const uid = request.auth.uid;
-  const { provider = "mock", inputImageUrl, inputImageStoragePath, imageHash, projectId, workspaceId } = request.data;
+  const {
+    provider = "nanobanana",
+    prompt = "",
+    inputImageUrl = null,
+    inputImageStoragePath = null,
+    projectId = null,
+    workspaceId = null,
+  } = request.data || {};
 
-  if (aiPricing.imageTo3D[provider] === undefined) {
+  if (renderPricing.imageRender[provider] === undefined) {
     throw new HttpsError("invalid-argument", `Unsupported provider: ${provider}`);
   }
+  if (!String(prompt).trim() && !inputImageUrl) {
+    throw new HttpsError("invalid-argument", "prompt or inputImageUrl is required");
+  }
 
-  const tokenCost = aiPricing.imageTo3D[provider];
+  const tokenCost = renderPricing.imageRender[provider];
   const db = admin.firestore();
 
   let jobId;
   try {
-    // Transaction to safely check limits, deduct tokens, and create the job
     jobId = await db.runTransaction(async (transaction) => {
-      // 1. Fetch User Document (for plan, aiUsage, customAiLimits)
       const userRef = db.collection("users").doc(uid);
       const userDoc = await transaction.get(userRef);
-      
+
       const userData = userDoc.exists ? userDoc.data() : {};
       const plan = userData.plan || "free";
-      
+
       // クレジット消費（統合プール）。docs/17 / docs/18。
-      // customAiLimits を持つ特別アカウントは従量枠をバイパス（コンプ扱い）。
-      const cost = CREDIT_COST.model3d;
+      const cost = CREDIT_COST.imageRender;
       const bypass = !!userData.customAiLimits?.[provider];
       let creditsResult = null;
       if (!bypass) {
-        creditsResult = consume(plan, userData.credits, cost); // 不足なら INSUFFICIENT_CREDITS を throw
+        creditsResult = consume(plan, userData.credits, cost); // 不足なら INSUFFICIENT_CREDITS
       }
 
       // aiUsage は分析・ジョブ記録用に加算（enforcement はクレジット側）。
       const now = new Date();
-      const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const currentDayStr = `${currentMonthStr}-${String(now.getDate()).padStart(2, '0')}`;
-      let aiUsage = userData.aiUsage || {};
-      let providerUsage = aiUsage[provider] || {
-        dailyCount: 0, monthlyCount: 0, lastDailyResetAt: null, lastMonthlyResetAt: null
+      const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      const currentDayStr = `${currentMonthStr}-${String(now.getDate()).padStart(2, "0")}`;
+      const aiUsage = userData.aiUsage || {};
+      const providerUsage = aiUsage[provider] || {
+        dailyCount: 0, monthlyCount: 0, lastDailyResetAt: null, lastMonthlyResetAt: null,
       };
       if (providerUsage.lastDailyResetAt !== currentDayStr) {
         providerUsage.dailyCount = 0;
@@ -69,16 +80,19 @@ exports.requestAiGeneration = onCall({ secrets: [tripoApiKey], timeoutSeconds: 1
       }
       transaction.set(userRef, userPatch, { merge: true });
 
-      // 4. Create Job
-      const jobRef = db.collection("users").doc(uid).collection("aiJobs").doc();
+      const jobRef = db
+        .collection("users")
+        .doc(uid)
+        .collection("aiJobs")
+        .doc();
       transaction.set(jobRef, {
-        type: "image_to_3d",
+        type: "image_render",
         provider,
         selectedModel: provider,
         planAtGeneration: plan,
         usageCountAfterGeneration: {
           dailyCount: providerUsage.dailyCount,
-          monthlyCount: providerUsage.monthlyCount
+          monthlyCount: providerUsage.monthlyCount,
         },
         costTokens: tokenCost,
         costCredits: bypass ? 0 : cost,
@@ -86,20 +100,15 @@ exports.requestAiGeneration = onCall({ secrets: [tripoApiKey], timeoutSeconds: 1
         creditFromTopup: creditsResult ? creditsResult.fromTopup : 0,
         providerJobId: null,
         status: "pending",
-        projectId: request.data.projectId || null,
-        workspaceId: request.data.workspaceId || null,
-        autoPlace: request.data.autoPlace || false,
-        cost: tokenCost, // legacy compatibility
+        projectId,
+        workspaceId,
+        prompt: String(prompt),
         inputImageUrl: inputImageUrl || null,
         inputImageStoragePath: inputImageStoragePath || null,
-        imageHash: imageHash || null,
         errorMessage: null,
-        pollCount: 0,
-        maxPollCount: 60,
-        retryCount: 0,
         createdBy: uid,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       return jobRef.id;
@@ -111,13 +120,19 @@ exports.requestAiGeneration = onCall({ secrets: [tripoApiKey], timeoutSeconds: 1
     throw new HttpsError("internal", err.message);
   }
 
-  // Start the provider job BEFORE returning. Cloud Functions v2 throttles CPU to
-  // near-zero after the response is sent, so fire-and-forget work (image download →
-  // Tripo upload → task creation) silently dies, leaving the job stuck in
-  // "pending"/"processing" with no providerJobId. Awaiting keeps the instance alive.
-  // startJob handles its own errors by marking the job "failed", so we don't rethrow.
-  const { providerFactory } = require("./providers/providerFactory");
-  await providerFactory.startJob(jobId, uid, request.data).catch(console.error);
+  // Kick off provider asynchronously
+  const { renderProviderFactory } = require("./providers/providerFactory");
+  renderProviderFactory
+    .startJob(jobId, uid, {
+      provider,
+      prompt,
+      inputImageUrl,
+      inputImageStoragePath,
+      projectId,
+      workspaceId,
+    })
+    .catch(console.error);
 
-  return { success: true, jobId, message: "Job created and processing started." };
-});
+  return { success: true, jobId, message: "Render job created and processing started." };
+  }
+);

@@ -7,22 +7,22 @@ const aiPricing = {
   }
 };
 
-const aiLimits = {
-  free: {
-    triposr: { daily: 3, monthly: 20 },
-    tripo3d: { daily: Infinity, monthly: 3 },
-    mock: { daily: Infinity, monthly: Infinity },
-  },
-  pro: {
-    triposr: { daily: Infinity, monthly: 200 },
-    tripo3d: { daily: Infinity, monthly: 30 },
-    mock: { daily: Infinity, monthly: Infinity },
-  },
-  enterprise: {
-    triposr: { daily: Infinity, monthly: Infinity },
-    tripo3d: { daily: Infinity, monthly: 100 },
-    mock: { daily: Infinity, monthly: Infinity },
-  }
-};
+// 月次3D生成上限は料金プランの「月次クレジット ÷ 10」から導出する（docs/17・クライアント ai-model-plans.ts と同値）。
+// free 30cr→3 / standard 120→12 / premium 200→20 / pro 400→40 / enterprise ∞。
+const PLAN_MONTHLY_CREDITS = { free: 30, standard: 120, premium: 200, pro: 400, enterprise: null };
+const CREDIT_PER_3D = 10;
+function monthly3d(plan) {
+  const c = PLAN_MONTHLY_CREDITS[plan];
+  return c == null ? Infinity : Math.floor(c / CREDIT_PER_3D);
+}
 
-module.exports = { aiPricing, aiLimits };
+const aiLimits = {};
+for (const plan of Object.keys(PLAN_MONTHLY_CREDITS)) {
+  aiLimits[plan] = {
+    triposr: { daily: Infinity, monthly: Infinity }, // ローカル/廃止予定・原価なし
+    tripo3d: { daily: Infinity, monthly: monthly3d(plan) },
+    mock: { daily: Infinity, monthly: Infinity },
+  };
+}
+
+module.exports = { aiPricing, aiLimits, PLAN_MONTHLY_CREDITS };
