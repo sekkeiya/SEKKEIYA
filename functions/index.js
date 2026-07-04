@@ -35,11 +35,25 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
     throw new HttpsError("unauthenticated", "Only authenticated users can use SEKKEIYA Chat.");
   }
   try {
-    const { messages, model } = request.data || {};
+    const { messages, model, projectId } = request.data || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       throw new HttpsError("invalid-argument", "Missing messages");
     }
-    const result = await agentTurn({ messages, model });
+    // 🧠 AIメモリー注入（docs/21 Phase A）: user=常時 / project=プロジェクト文脈のときだけ。
+    // digest 各1read。取得失敗は注入なしで続行（チャット本体を巻き込まない）
+    let memorySection = "";
+    try {
+      const { getDigestLines, buildMemorySection } = require("./reporter/aiMemory");
+      const db = admin.firestore();
+      const [u, p] = await Promise.all([
+        getDigestLines(db, "user", request.auth.uid),
+        projectId ? getDigestLines(db, "project", String(projectId)) : Promise.resolve([]),
+      ]);
+      memorySection = buildMemorySection(u, p);
+    } catch (e) {
+      console.warn("agentTurn memory inject failed:", e.message);
+    }
+    const result = await agentTurn({ messages, model, memorySection });
     return { success: true, result };
   } catch (error) {
     console.error("agentTurn Error:", error);
