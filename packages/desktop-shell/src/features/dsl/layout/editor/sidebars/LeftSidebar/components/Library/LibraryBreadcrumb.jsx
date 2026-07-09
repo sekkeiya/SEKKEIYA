@@ -9,7 +9,7 @@ export default function LibraryBreadcrumb({ path, onNavigateToRoot, onNavigateUp
 
   return (
     <Breadcrumbs 
-      separator={<NavigateNextIcon sx={{ fontSize: 14, color: alpha("#fff", 0.3) }} />} 
+      separator={<NavigateNextIcon sx={{ fontSize: 14, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }} />} 
       aria-label="library breadcrumb"
       sx={{
         "& .MuiBreadcrumbs-ol": { flexWrap: "wrap" },
@@ -22,10 +22,10 @@ export default function LibraryBreadcrumb({ path, onNavigateToRoot, onNavigateUp
         sx={{
           display: "flex",
           alignItems: "center",
-          color: alpha("#fff", 0.5),
+          color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
           cursor: "pointer",
           transition: "color 0.15s ease",
-          "&:hover": { color: "#fff" },
+          "&:hover": { color: "var(--brand-fg)" },
         }}
       >
         <CategoryRoundedIcon sx={{ fontSize: 16 }} />
@@ -40,10 +40,10 @@ export default function LibraryBreadcrumb({ path, onNavigateToRoot, onNavigateUp
             sx={{
               fontSize: 12,
               fontWeight: isLast ? 600 : 400,
-              color: isLast ? "#fff" : alpha("#fff", 0.5),
+              color: isLast ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
               cursor: isLast ? "default" : "pointer",
               transition: "color 0.15s ease",
-              "&:hover": { color: isLast ? "#fff" : alpha("#fff", 0.9) },
+              "&:hover": { color: isLast ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 90%, transparent)" },
             }}
           >
             {node.label}

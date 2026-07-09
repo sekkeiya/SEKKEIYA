@@ -443,7 +443,7 @@ export const PresentsEditorPage = () => {
                    {/* Source Switcher */}
                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 2 }}>
                      <Button size="small" variant={assetSource === 'aiDrive' ? 'contained' : 'outlined'} onClick={() => setAssetSource('aiDrive')} sx={{ borderRadius: 2 }}>AI Drive</Button>
-                     <Button size="small" variant={assetSource === '3dss' ? 'contained' : 'outlined'} onClick={() => setAssetSource('3dss')} sx={{ borderRadius: 2 }}>S.Models</Button>
+                     <Button size="small" variant={assetSource === '3dss' ? 'contained' : 'outlined'} onClick={() => setAssetSource('3dss')} sx={{ borderRadius: 2 }}>S.Model</Button>
                      <Button size="small" variant={assetSource === '3dsc' ? 'contained' : 'outlined'} onClick={() => setAssetSource('3dsc')} sx={{ borderRadius: 2 }}>S.Create</Button>
                      <Button size="small" variant={assetSource === 'upload' ? 'contained' : 'outlined'} onClick={() => setAssetSource('upload')} sx={{ borderRadius: 2 }}>Upload</Button>
                    </Box>

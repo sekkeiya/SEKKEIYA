@@ -134,7 +134,7 @@ const GridCell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
             sx={{
               position: 'absolute', top: 10, left: 10,
               width: 22, height: 22, borderRadius: '6px',
-              border: `2px solid ${pickerSelected ? '#ffd740' : 'rgba(255,255,255,0.6)'}`,
+              border: `2px solid ${pickerSelected ? '#ffd740' : 'rgb(var(--brand-fg-rgb) / 0.6)'}`,
               bgcolor: pickerSelected ? '#ffd740' : 'rgba(0,0,0,0.45)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', zIndex: 10,

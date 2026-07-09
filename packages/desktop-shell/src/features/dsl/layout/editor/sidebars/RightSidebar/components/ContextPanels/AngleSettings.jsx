@@ -12,7 +12,7 @@ import { layoutSceneRef } from "../../../../../services/layoutSceneRef";
 import { captureLayoutPerspective } from "../../../../../services/layoutPerspectiveCapture";
 
 const SectionLabel = ({ children }) => (
-  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.45), letterSpacing: 0.4, mb: 0.6 }}>
+  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", letterSpacing: 0.4, mb: 0.6 }}>
     {children}
   </Typography>
 );
@@ -65,7 +65,7 @@ export default function AngleSettings({ shotId, accent = "#6c87ff" }) {
     <Box sx={{ mb: 1.5, p: 1, borderRadius: 1.5, border: `1px solid ${alpha(accent, 0.4)}`, background: alpha(accent, 0.06) }}>
       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.75 }}>
         <CameraAltRoundedIcon sx={{ fontSize: 14, color: accent }} />
-        <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: "#fff" }}>選択中アングルの設定</Typography>
+        <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: "var(--brand-fg)" }}>選択中アングルの設定</Typography>
       </Stack>
 
       <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
@@ -79,7 +79,7 @@ export default function AngleSettings({ shotId, accent = "#6c87ff" }) {
             onBlur={commitName}
             onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
             sx={{ width: "100%", background: alpha("#fff", 0.06), border: `1px solid ${alpha("#fff", 0.12)}`, borderRadius: 1, outline: "none",
-              color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "inherit", px: 0.75, py: 0.4,
+              color: "var(--brand-fg)", fontSize: 12, fontWeight: 700, fontFamily: "inherit", px: 0.75, py: 0.4,
               "&:focus": { borderColor: accent } }}
           />
         </Box>
@@ -98,7 +98,7 @@ export default function AngleSettings({ shotId, accent = "#6c87ff" }) {
           onChange={(_, v) => handleLens(Number(v))}
           onChangeCommitted={(_, v) => handleLensCommitted(Number(v))}
           marks={[{ value: 14, label: "広角" }, { value: 35, label: "標準" }, { value: 70, label: "望遠" }]}
-          sx={{ color: accent, "& .MuiSlider-markLabel": { fontSize: 9, color: alpha("#fff", 0.4) }, "& .MuiSlider-thumb": { width: 12, height: 12 }, "& .MuiSlider-rail": { opacity: 0.2 } }}
+          sx={{ color: accent, "& .MuiSlider-markLabel": { fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }, "& .MuiSlider-thumb": { width: 12, height: 12 }, "& .MuiSlider-rail": { opacity: 0.2 } }}
         />
       </Box>
     </Box>

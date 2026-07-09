@@ -49,12 +49,12 @@ export const ProductImportDialog: React.FC<Props> = ({ open, onClose, onImport }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}>
       <DialogTitle sx={{ pb: 1 }}>URL / カタログから取り込み</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', gap: 1, p: 1.25, mb: 2, borderRadius: 1.5, bgcolor: 'rgba(66,165,245,0.08)', border: '1px solid rgba(66,165,245,0.25)' }}>
-          <InfoOutlinedIcon sx={{ fontSize: 18, color: '#42a5f5', flexShrink: 0, mt: 0.2 }} />
-          <Typography sx={{ fontSize: 11.5, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6 }}>
+          <InfoOutlinedIcon sx={{ fontSize: 18, color: 'light-dark(#095fa5, #42a5f5)', flexShrink: 0, mt: 0.2 }} />
+          <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.75)', lineHeight: 1.6 }}>
             商品ページ / デジタルカタログの URL を 1 行に 1 つ貼り付けてください。ドメインからメーカーを自動判定し、ドラフトを作成します。
             価格・耐久・防火などの詳細はカード上で補完してください（カタログ本文からの自動抽出は今後 AI 連携で対応予定）。
           </Typography>
@@ -63,18 +63,18 @@ export const ProductImportDialog: React.FC<Props> = ({ open, onClose, onImport }
         <TextField
           fullWidth multiline minRows={6} placeholder={'https://www.sangetsu.co.jp/...\nhttps://www.lixil.co.jp/...'}
           value={text} onChange={(e) => setText(e.target.value)}
-          sx={{ '& .MuiInputBase-input': { color: '#fff', fontSize: 12.5, fontFamily: 'monospace' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+          sx={{ '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12.5, fontFamily: 'monospace' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
         />
 
         {urls.length > 0 && (
           <Box sx={{ mt: 1.5 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 0.75 }}>{urls.length} 件を取り込みます（メーカー自動判定）</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.75 }}>{urls.length} 件を取り込みます（メーカー自動判定）</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {urls.map((u, i) => {
                 const maker = detectManufacturerFromUrl(u);
                 return (
                   <Chip key={i} size="small" label={maker || hostOf(u) || 'unknown'}
-                    sx={{ height: 22, fontSize: 10.5, color: '#fff', bgcolor: maker ? `${ACCENT}22` : 'rgba(255,255,255,0.08)', border: `1px solid ${maker ? `${ACCENT}55` : 'rgba(255,255,255,0.18)'}` }} />
+                    sx={{ height: 22, fontSize: 10.5, color: 'var(--brand-fg)', bgcolor: maker ? `${ACCENT}22` : 'rgb(var(--brand-fg-rgb) / 0.08)', border: `1px solid ${maker ? `${ACCENT}55` : 'rgb(var(--brand-fg-rgb) / 0.18)'}` }} />
                 );
               })}
             </Box>
@@ -82,7 +82,7 @@ export const ProductImportDialog: React.FC<Props> = ({ open, onClose, onImport }
         )}
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button variant="contained" disabled={urls.length === 0} onClick={handleImport}
           sx={{ bgcolor: ACCENT, '&:hover': { bgcolor: '#f06292' }, textTransform: 'none' }}>
           {urls.length || ''} 件を取り込む

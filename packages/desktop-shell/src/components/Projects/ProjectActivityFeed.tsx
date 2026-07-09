@@ -44,9 +44,11 @@ export interface ProjectActivity {
 
 export interface ProjectActivityFeedProps {
   loading?: boolean;
+  /** 狭いサイドバー埋め込み用（Research & Memo タブ右ペイン）。1カラム固定・余白圧縮 */
+  compact?: boolean;
 }
 
-export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loading = false }) => {
+export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loading = false, compact = false }) => {
   const [isFocused, setIsFocused] = useState(false);
   const { contextLevel, setContextLevel, watchedScopes, toggleWatchedScope } = useJournalAiStore();
   const {
@@ -127,8 +129,8 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
   if (!activeProject) {
     return (
       <Box sx={{ py: 8, textAlign: 'center' }}>
-        <MenuBookIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.12)', mb: 1.5 }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem' }}>
+        <MenuBookIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.12)', mb: 1.5 }} />
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.875rem' }}>
           左のサイドバーからプロジェクトを選択すると<br />そのプロジェクトのメモが表示されます
         </Typography>
       </Box>
@@ -138,27 +140,27 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
   if (loading) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>Loading notes...</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>Loading notes...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ px: { xs: 2, md: 3, lg: 4 }, py: 2, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, boxSizing: 'border-box' }}>
+    <Box sx={{ px: compact ? 2 : { xs: 2, md: 3, lg: 4 }, py: 2, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, boxSizing: 'border-box' }}>
 
       {/* ── Compact top bar (Schedules & Tasks スタイル) ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, gap: 1.5, flexShrink: 0, minHeight: 36 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#a18cd1', flexShrink: 0 }} />
-          <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 0.5, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+          <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
             プロジェクト
           </Typography>
           <Box sx={{ px: 1.25, py: 0.25, bgcolor: 'rgba(161,140,209,0.1)', border: '1px solid rgba(161,140,209,0.25)', borderRadius: 1.5 }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#a18cd1', whiteSpace: 'nowrap' }}>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'light-dark(#48327c, #a18cd1)', whiteSpace: 'nowrap' }}>
               {activeProject.name}
             </Typography>
           </Box>
-          <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)' }}>
+          <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
             {entries.length} 件のメモ
           </Typography>
         </Box>
@@ -169,16 +171,16 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
         <Box sx={{ width: '100%', maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Paper elevation={0} sx={{
             display: 'flex', flexDirection: 'column', p: '10px 16px',
-            bgcolor: 'rgba(255,255,255,0.02)',
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
             border: '1px solid',
-            borderColor: isFocused ? '#00BFFF' : 'rgba(255,255,255,0.12)',
+            borderColor: isFocused ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.12)',
             borderRadius: 3,
             transition: 'border-color 0.2s',
             boxShadow: isFocused ? '0 0 0 1px rgba(0,191,255,0.2)' : 'none',
           }}>
             {(isFocused || inputText.length > 0) && (
               <InputBase
-                sx={{ width: '100%', color: '#fff', py: 0.5, fontSize: 14, fontWeight: 600, mb: 1, borderBottom: '1px solid rgba(255,255,255,0.08)' }}
+                sx={{ width: '100%', color: 'var(--brand-fg)', py: 0.5, fontSize: 14, fontWeight: 600, mb: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}
                 placeholder="Title (optional)"
                 value={inputTitle}
                 onChange={e => setInputTitle(e.target.value)}
@@ -188,7 +190,7 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
               multiline
               minRows={isFocused || inputText.length > 0 ? 3 : 1}
               maxRows={10}
-              sx={{ flex: 1, color: 'rgba(255,255,255,0.85)', py: 1, fontSize: 14 }}
+              sx={{ flex: 1, color: 'rgb(var(--brand-fg-rgb) / 0.85)', py: 1, fontSize: 14 }}
               placeholder="今日の検討内容や議事録を書く...　(Shift+Enter で保存)"
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
@@ -202,16 +204,16 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
 
             <Box sx={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              mt: 1, borderTop: isFocused ? '1px solid rgba(255,255,255,0.07)' : 'none',
+              mt: 1, borderTop: isFocused ? '1px solid rgb(var(--brand-fg-rgb) / 0.07)' : 'none',
               pt: isFocused ? 1 : 0, opacity: isFocused ? 1 : 0.6, transition: 'all 0.2s',
             }}>
               {/* AI Context */}
               <Box
-                sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(161,140,209,0.1)', color: '#a18cd1', px: 1, py: 0.4, borderRadius: 1.5, cursor: 'pointer', gap: 0.5, '&:hover': { bgcolor: 'rgba(161,140,209,0.18)' } }}
+                sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(161,140,209,0.1)', color: 'light-dark(#48327c, #a18cd1)', px: 1, py: 0.4, borderRadius: 1.5, cursor: 'pointer', gap: 0.5, '&:hover': { bgcolor: 'rgba(161,140,209,0.18)' } }}
                 onMouseDown={e => { e.preventDefault(); setCustomAnchorEl(e.currentTarget as any); }}
               >
                 <MemoryIcon sx={{ fontSize: 13 }} />
-                <Typography sx={{ fontSize: '0.68rem', fontWeight: 600 }}>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   AI Context: {contextLevel === 'off' ? 'OFF' : contextLevel === 'workspace' ? 'Workspace' : contextLevel === 'project' ? 'Project' : 'Custom'}
                 </Typography>
                 <KeyboardArrowDownIcon sx={{ fontSize: 13 }} />
@@ -219,21 +221,21 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
 
               {/* Actions */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.4)', p: 0.5, '&:hover': { color: '#fff' } }}>
+                <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.5, '&:hover': { color: 'var(--brand-fg)' } }}>
                   <CheckSquare sx={{ fontSize: 18 }} />
                 </IconButton>
-                <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.4)', p: 0.5, '&:hover': { color: '#fff' } }}>
+                <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.5, '&:hover': { color: 'var(--brand-fg)' } }}>
                   <Brush sx={{ fontSize: 18 }} />
                 </IconButton>
                 <input type="file" accept="image/*" hidden ref={fileInputRef}
                   onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]); }} />
-                <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.4)', p: 0.5, '&:hover': { color: '#fff' } }}
+                <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.5, '&:hover': { color: 'var(--brand-fg)' } }}
                   onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                   <ImageIcon sx={{ fontSize: 18 }} />
                 </IconButton>
                 <Button size="small" variant="contained" disabled={!inputText.trim() || isSubmitting || isUploading}
                   onClick={handleSubmit}
-                  sx={{ ml: 1, textTransform: 'none', borderRadius: 2, height: 28, fontWeight: 700, fontSize: '0.72rem', bgcolor: '#a18cd1', '&:hover': { bgcolor: '#b89fe0' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)' } }}>
+                  sx={{ ml: 1, textTransform: 'none', borderRadius: 2, height: 28, fontWeight: 700, fontSize: '0.72rem', bgcolor: '#a18cd1', '&:hover': { bgcolor: '#b89fe0' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
                   {isSubmitting || isUploading ? '保存中...' : '保存'}
                 </Button>
               </Box>
@@ -249,15 +251,15 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
             pointerEvents: isFocused ? 'auto' : 'none',
           }}>
             <Button size="small" startIcon={<AutoAwesomeIcon sx={{ fontSize: 13 }} />}
-              sx={{ fontSize: '0.65rem', color: '#a18cd1', bgcolor: 'rgba(161,140,209,0.1)', textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: 'rgba(161,140,209,0.18)' } }}>
+              sx={{ fontSize: '0.65rem', color: 'light-dark(#48327c, #a18cd1)', bgcolor: 'rgba(161,140,209,0.1)', textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: 'rgba(161,140,209,0.18)' } }}>
               AIに相談
             </Button>
             <Button size="small" startIcon={<FlashOnIcon sx={{ fontSize: 13 }} />}
-              sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.05)', textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.09)' } }}>
+              sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.09)' } }}>
               不足項目を確認
             </Button>
             <Button size="small" startIcon={<MenuBookIcon sx={{ fontSize: 13 }} />}
-              sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.05)', textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.09)' } }}>
+              sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.09)' } }}>
               要約
             </Button>
           </Box>
@@ -269,27 +271,27 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
           anchorEl={customAnchorEl}
           onClose={() => setCustomAnchorEl(null)}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          PaperProps={{ sx: { bgcolor: '#131920', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', p: 1, minWidth: 220, mt: 1, backgroundImage: 'none', borderRadius: 2 } }}
+          PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', p: 1, minWidth: 220, mt: 1, backgroundImage: 'none', borderRadius: 2 } }}
         >
-          <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', mb: 1, px: 1 }}>AI Context Level</Typography>
+          <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 1, px: 1 }}>AI Context Level</Typography>
           <Select value={contextLevel} onChange={e => setContextLevel(e.target.value as any)}
             size="small" fullWidth
-            MenuProps={{ PaperProps: { sx: { bgcolor: '#131920', border: '1px solid rgba(255,255,255,0.1)', backgroundImage: 'none' } } }}
-            sx={{ color: '#fff', fontSize: '0.8rem', mb: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#a18cd1' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#a18cd1' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' } }}>
-            <MenuItem value="off" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>OFF（通常メモ）</MenuItem>
-            <MenuItem value="workspace" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>Workspace（現在画面のみ）</MenuItem>
-            <MenuItem value="project" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>Project（案件全体推奨）</MenuItem>
-            <MenuItem value="custom" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>Custom（個別選択）</MenuItem>
+            MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', backgroundImage: 'none' } } }}
+            sx={{ color: 'var(--brand-fg)', fontSize: '0.8rem', mb: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#a18cd1' }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#a18cd1' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}>
+            <MenuItem value="off" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>OFF（通常メモ）</MenuItem>
+            <MenuItem value="workspace" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>Workspace（現在画面のみ）</MenuItem>
+            <MenuItem value="project" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>Project（案件全体推奨）</MenuItem>
+            <MenuItem value="custom" sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>Custom（個別選択）</MenuItem>
           </Select>
           {contextLevel === 'custom' && (
-            <Box sx={{ mt: 1, borderTop: '1px solid rgba(255,255,255,0.08)', pt: 1 }}>
-              <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', px: 1, mb: 0.5 }}>Watching Scopes</Typography>
+            <Box sx={{ mt: 1, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pt: 1 }}>
+              <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', px: 1, mb: 0.5 }}>Watching Scopes</Typography>
               <FormGroup sx={{ px: 1 }}>
                 {['requirements', 'workfiles', 'models', 'layout', 'presents', 'journal'].map(scope => (
                   <FormControlLabel key={scope}
                     control={<Checkbox size="small" checked={watchedScopes.includes(scope as any)} onChange={() => toggleWatchedScope(scope as any)}
-                      sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: '#a18cd1' }, py: 0.25 }} />}
-                    label={<Typography sx={{ fontSize: '0.75rem', textTransform: 'capitalize', color: 'rgba(255,255,255,0.7)' }}>{scope}</Typography>}
+                      sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&.Mui-checked': { color: 'light-dark(#48327c, #a18cd1)' }, py: 0.25 }} />}
+                    label={<Typography sx={{ fontSize: '0.75rem', textTransform: 'capitalize', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>{scope}</Typography>}
                     sx={{ m: 0 }} />
                 ))}
               </FormGroup>
@@ -301,20 +303,21 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
       {/* ── Note grid (masonry) ── */}
       <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5,
         '&::-webkit-scrollbar': { width: 6 },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 3 } }}>
+        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 3 } }}>
         {entries.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 8 }}>
-            <MenuBookIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.1)', mb: 1.5 }} />
-            <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem', lineHeight: 2 }}>
+            <MenuBookIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.1)', mb: 1.5 }} />
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: '0.875rem', lineHeight: 2 }}>
               まだメモがありません<br />
-              <Box component="span" sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.22)' }}>
+              <Box component="span" sx={{ fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.22)' }}>
                 プロジェクトの検討内容や議事録を記録しましょう
               </Box>
             </Typography>
           </Box>
         ) : (
           <Box sx={{
-            columnCount: { xs: 1, sm: 2, md: 3, lg: 4, xl: 5 },
+            // compact はコンテナ幅が狭い（≒400pxサイドバー）ため、ビューポート基準のブレークポイントを使わない
+            columnCount: compact ? 1 : { xs: 1, sm: 2, md: 3, lg: 4, xl: 5 },
             columnGap: '12px',
             '& > div': { breakInside: 'avoid', mb: '12px' },
           }}>
@@ -325,9 +328,9 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
                 key={entry.id}
                 onClick={() => setSelectedEntryId(entry.id)}
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.02)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
                   borderRadius: 2.5,
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                   p: 2,
                   cursor: 'pointer',
                   position: 'relative',
@@ -344,20 +347,20 @@ export const ProjectActivityFeed: React.FC<ProjectActivityFeedProps> = ({ loadin
                   position: 'absolute', top: 8, right: 8, opacity: 0, transition: 'opacity 0.15s',
                   display: 'flex', gap: 0.5, bgcolor: 'rgba(15,20,30,0.85)', borderRadius: 1,
                 }}>
-                  <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.5)', p: 0.4, '&:hover': { color: '#fff' } }}>
+                  <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', p: 0.4, '&:hover': { color: 'var(--brand-fg)' } }}>
                     <Pin sx={{ fontSize: 15 }} />
                   </IconButton>
                 </Box>
 
                 {entry.title && (
-                  <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.88rem', mb: 1, pr: 3, wordBreak: 'break-word' }}>
+                  <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: '0.88rem', mb: 1, pr: 3, wordBreak: 'break-word' }}>
                     {entry.title}
                   </Typography>
                 )}
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', mb: 1.5 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.82rem', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word', mb: 1.5 }}>
                   {entry.excerpt}
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem' }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: '0.65rem' }}>
                   {new Date(entry.createdAt).toLocaleString()}
                 </Typography>
               </Box>

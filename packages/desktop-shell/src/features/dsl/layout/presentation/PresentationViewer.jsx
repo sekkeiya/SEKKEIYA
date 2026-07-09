@@ -22,6 +22,7 @@ import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import DirectionsWalkRoundedIcon from "@mui/icons-material/DirectionsWalkRounded";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, useGLTF } from "@react-three/drei";
@@ -29,6 +30,10 @@ import { layoutSceneRef } from "../services/layoutSceneRef";
 // @ts-ignore
 import ParametricRoom, { normalizeRoomSpec } from "../canvas/scene/ParametricRoom.jsx";
 import { useResolvedUrl } from "../hooks/useResolvedUrl";
+import WalkthroughController from "../canvas/tools/walkthrough/WalkthroughController.jsx";
+import { useEditorModeStore } from "../store/useEditorModeStore";
+import { useSceneObjectRegistryStore } from "../store/sceneObjectRegistryStore";
+import { focalLengthToFov } from "../store/useViewportEnvStore";
 
 /* ============================================================
  * 編集補助の判定（毎フレーム非表示にする対象）
@@ -99,15 +104,20 @@ function SelfGlbInner({ url, onBounds }) {
   const reported = useRef(false);
   useEffect(() => {
     if (!scene) return;
+    const meshes = [];
     scene.traverse((o) => {
       if (o.isMesh) {
         o.castShadow = true;
         o.receiveShadow = true;
+        meshes.push(o);
       }
     });
-    if (!reported.current && typeof onBounds === "function") {
-      const box = new THREE.Box3().setFromObject(scene);
-      if (!box.isEmpty()) {
+    // 共有先（ライブシーン無し）でもウォークスルーが歩けるよう躯体をコライダー登録
+    useSceneObjectRegistryStore.getState().setBaseColliders(meshes);
+    const box = new THREE.Box3().setFromObject(scene);
+    if (!box.isEmpty()) {
+      useEditorModeStore.getState().setSceneMaxY(box.max.y);
+      if (!reported.current && typeof onBounds === "function") {
         reported.current = true;
         onBounds({ center: box.getCenter(new THREE.Vector3()), size: box.getSize(new THREE.Vector3()) });
       }
@@ -156,6 +166,18 @@ function SelfBuiltScene({ baseGlbUrl, roomSpec, items, onBounds, frameRadius, ce
   const cy = center?.y ?? 0;
   const cz = center?.z ?? 0;
   const r = frameRadius || 6;
+  // 自前シーンを畳むときはコライダーを掃除（エディタ内ではこのシーンは出ない）
+  useEffect(() => () => { useSceneObjectRegistryStore.getState().setBaseColliders([]); }, []);
+  const onRoomLoaded = useCallback((payload) => {
+    const meshes = payload?.snap?.baseMeshes || [];
+    useSceneObjectRegistryStore.getState().setBaseColliders(Array.isArray(meshes) ? meshes : []);
+    if (payload?.root) {
+      try {
+        const box = new THREE.Box3().setFromObject(payload.root);
+        if (!box.isEmpty()) useEditorModeStore.getState().setSceneMaxY(box.max.y);
+      } catch { /* noop */ }
+    }
+  }, []);
   return (
     <>
       <hemisphereLight args={["#dfe8f5", "#3a3630", 0.6]} />
@@ -181,7 +203,7 @@ function SelfBuiltScene({ baseGlbUrl, roomSpec, items, onBounds, frameRadius, ce
       {baseGlbUrl ? (
         <SelfGlbBase url={baseGlbUrl} onBounds={onBounds} />
       ) : roomSpec ? (
-        <ParametricRoom spec={normalizeRoomSpec(roomSpec)} onLoaded={() => {}} isTopView={false} />
+        <ParametricRoom spec={normalizeRoomSpec(roomSpec)} onLoaded={onRoomLoaded} isTopView={false} />
       ) : null}
 
       {(items || []).map((it) => (it?.glbUrl ? <SelfItem key={it.id} item={it} /> : null))}
@@ -227,6 +249,22 @@ function CameraTuner({ radius }) {
     camera.far = Math.max(2000, radius * 80);
     camera.updateProjectionMatrix();
   }, [radius, camera]);
+  return null;
+}
+
+/* ウォークスルー中：視点モードのレンズ長を FOV に反映（離脱時に俯瞰用へ戻す） */
+function WalkthroughFovSync({ baseFov = 50 }) {
+  const { camera } = useThree();
+  const viewMode = useEditorModeStore((s) => s.walkthroughViewMode);
+  const lens = useEditorModeStore((s) => s.walkthroughLens);
+  useEffect(() => {
+    camera.fov = focalLengthToFov(lens?.[viewMode] || 24);
+    camera.updateProjectionMatrix();
+  }, [camera, viewMode, lens]);
+  useEffect(() => () => {
+    camera.fov = baseFov;
+    camera.updateProjectionMatrix();
+  }, [camera, baseFov]);
   return null;
 }
 
@@ -333,10 +371,13 @@ function buildScenes(bounds) {
     { id: "ext-left", group: "exterior", label: "左", pos: diag(-1.0, 0.45), look: ctr.clone() },
     // インテリア：階別の平断面パース（天井オープンのドールハウス俯瞰）。現状は単層 = 1F
     { id: "int-1f", group: "interior", label: "1F", pos: v(c.x + sx * 0.45, c.y + r * 1.0, c.z + sz * 0.62), look: ctr.clone() },
+    // 内観：本物のウォークスルー（WASD＋重力。既定は三人称）
+    { id: WALK_SCENE_ID, group: "interior", label: "内観（歩く）", walk: true },
   ];
 }
 
 const DEFAULT_SCENE_ID = "int-1f";
+const WALK_SCENE_ID = "walk";
 
 function readBounds(roomSpec) {
   const baseRoot = layoutSceneRef.baseRoot;
@@ -885,6 +926,9 @@ export default function PresentationViewer({
 
   const scenes = useMemo(() => buildScenes(bounds), [bounds]);
   const activeScene = useMemo(() => scenes.find((s) => s.id === activeSceneId) || scenes[0], [scenes, activeSceneId]);
+  const walkActive = activeSceneId === WALK_SCENE_ID;
+  const walkthroughViewMode = useEditorModeStore((s) => s.walkthroughViewMode);
+  const setWalkthroughViewMode = useEditorModeStore((s) => s.setWalkthroughViewMode);
   const selectedItem = useMemo(
     () => (selectedPinId ? items.find((it) => it.id === selectedPinId) || null : null),
     [selectedPinId, items]
@@ -901,6 +945,24 @@ export default function PresentationViewer({
     setActiveSceneId(sc.id);
     setSelectedPinId(null);
   }, []);
+
+  // 内観（歩く）：ウォークスルーへ入場。既定は三人称（アバターでスケール感が伝わる）
+  const enterWalkScene = useCallback(() => {
+    useEditorModeStore.getState().setWalkthroughViewMode("third");
+    camTargetRef.current.active = false;
+    if (controlsRef.current) controlsRef.current.enabled = false;
+    setActiveSceneId(WALK_SCENE_ID);
+    setSelectedPinId(null);
+  }, []);
+
+  const selectScene = useCallback(
+    (sc) => {
+      if (!sc) return;
+      if (sc.walk) enterWalkScene();
+      else goToScene(sc);
+    },
+    [enterWalkScene, goToScene]
+  );
 
   // ピン → そのアイテムにカメラフォーカス
   // 部屋の内側・上方から見下ろす構図にして壁の遮蔽を避ける（天井はオープン）
@@ -929,7 +991,7 @@ export default function PresentationViewer({
 
   // 各シーンのサムネを遅延キャプチャ（カメラ静定後・ピン未選択時のみ、一度だけ）
   useEffect(() => {
-    if (!open || selectedPinId) return;
+    if (!open || selectedPinId || walkActive) return;
     if (sceneThumbs[activeSceneId]) return;
     const t = setTimeout(() => {
       const gl = glRef.current;
@@ -1119,12 +1181,21 @@ export default function PresentationViewer({
           <OrbitControls
             ref={controlsRef}
             makeDefault
+            enabled={!walkActive}
             enableDamping
             dampingFactor={0.08}
             enablePan={false}
             minDistance={frameRadius * 0.02}
             maxDistance={frameRadius * 80}
           />
+
+          {/* 内観（歩く）：エディタと同一の WalkthroughController を再利用 */}
+          {walkActive && (
+            <>
+              <WalkthroughFovSync baseFov={50} />
+              <WalkthroughController active />
+            </>
+          )}
 
           <Suspense fallback={null}>
             {sceneObj ? (
@@ -1141,13 +1212,78 @@ export default function PresentationViewer({
             )}
           </Suspense>
 
-          {activeScene?.group === "interior" && (
+          {activeScene?.group === "interior" && !walkActive && (
             <Pins items={items} onSelect={focusItem} selectedId={selectedPinId} />
           )}
         </Canvas>
       </Box>
 
-      {/* ===== 左：情報カード（常時表示） ===== */}
+      {/* ===== ウォークスルー HUD（視点切替＋操作ヒント） ===== */}
+      {walkActive && (
+        <>
+          <Box
+            sx={{
+              position: "absolute",
+              top: 86,
+              right: 28,
+              zIndex: 11,
+              display: "flex",
+              gap: "2px",
+              p: "3px",
+              borderRadius: 1.5,
+              background: alpha("#0b0f18", 0.82),
+              border: `1px solid ${alpha("#fff", 0.12)}`,
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            {[["first", "一人称"], ["third", "三人称"], ["fly", "フライ"]].map(([m, label]) => (
+              <Box
+                key={m}
+                onClick={() => setWalkthroughViewMode(m)}
+                sx={{
+                  px: 1.2,
+                  py: 0.5,
+                  borderRadius: 1,
+                  cursor: "pointer",
+                  fontSize: "0.74rem",
+                  fontWeight: walkthroughViewMode === m ? 700 : 400,
+                  color: walkthroughViewMode === m ? "#fff" : alpha("#fff", 0.55),
+                  background: walkthroughViewMode === m ? alpha("#4f8cff", 0.55) : "transparent",
+                  transition: "all 0.15s",
+                  userSelect: "none",
+                }}
+              >
+                {label}
+              </Box>
+            ))}
+          </Box>
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: 158,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 11,
+              px: 1.5,
+              py: 0.55,
+              borderRadius: 999,
+              background: alpha("#0b0f18", 0.72),
+              border: `1px solid ${alpha("#fff", 0.1)}`,
+              backdropFilter: "blur(8px)",
+              pointerEvents: "none",
+            }}
+          >
+            <Typography sx={{ color: alpha("#fff", 0.82), fontSize: "0.72rem", whiteSpace: "nowrap" }}>
+              {walkthroughViewMode === "fly"
+                ? "WASD 飛行 ・ Space/Q 上昇 ・ C/E 下降 ・ Shift 加速 ・ 右ドラッグで見渡す"
+                : "WASD 移動 ・ Shift 走る ・ Space ジャンプ ・ 右ドラッグで見渡す ・ 下のビューで俯瞰へ戻る"}
+            </Typography>
+          </Box>
+        </>
+      )}
+
+      {/* ===== 左：情報カード（ウォークスルー中は没入のため非表示） ===== */}
+      {!walkActive && (
       <Box
         sx={{
           position: "absolute",
@@ -1213,6 +1349,7 @@ export default function PresentationViewer({
           </Button>
         </Box>
       </Box>
+      )}
 
       {/* ===== 下部：フィルムストリップ（ビュー＋ギャラリー） ===== */}
       <Box
@@ -1276,7 +1413,7 @@ export default function PresentationViewer({
                     thumb={sceneThumbs[sc.id]}
                     label={sc.label}
                     active={sc.id === activeSceneId && !selectedPinId}
-                    onClick={() => goToScene(sc)}
+                    onClick={() => selectScene(sc)}
                   />
                 ))}
             </Stack>
@@ -1296,7 +1433,8 @@ export default function PresentationViewer({
                     thumb={sceneThumbs[sc.id]}
                     label={sc.label}
                     active={sc.id === activeSceneId && !selectedPinId}
-                    onClick={() => goToScene(sc)}
+                    onClick={() => selectScene(sc)}
+                    icon={sc.walk ? <DirectionsWalkRoundedIcon sx={{ color: alpha("#fff", 0.6), fontSize: 26 }} /> : null}
                   />
                 ))}
             </Stack>

@@ -12,7 +12,7 @@ interface WalkthroughCatalogState {
   error: string | null;
   matches: CatalogMatch[];
   // 登録済みカタログ商品のサムネ補完: productUrl → cropDataUrl（S.Library 索引より）。
-  // S.Models 詳細「似ている商品・購入先」と同じ画像を出すため。
+  // S.Model 詳細「似ている商品・購入先」と同じ画像を出すため。
   thumbMap: Record<string, string>;
   thumbsLoaded: boolean;
   thumbsLoading: boolean;

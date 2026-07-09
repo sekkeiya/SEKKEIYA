@@ -147,7 +147,7 @@ export default function MaterialLibraryPanel({ onClose }) {
         <ToggleButtonGroup
           exclusive size="small" value={source}
           onChange={(_, v) => v && setSource(v)}
-          sx={{ ml: 1, "& .MuiToggleButton-root": { color: alpha("#fff", 0.6), border: `1px solid ${alpha("#fff", 0.12)}`, px: 1, py: 0.25, fontSize: 11, textTransform: "none" }, "& .Mui-selected": { color: "#fff !important", background: `${alpha("#ec407a", 0.25)} !important` } }}
+          sx={{ ml: 1, "& .MuiToggleButton-root": { color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", border: `1px solid ${alpha("#fff", 0.12)}`, px: 1, py: 0.25, fontSize: 11, textTransform: "none" }, "& .Mui-selected": { color: "#fff !important", background: `${alpha("#ec407a", 0.25)} !important` } }}
         >
           <ToggleButton value="dsmt">S.Material</ToggleButton>
           <ToggleButton value="scene">Scene</ToggleButton>
@@ -155,8 +155,8 @@ export default function MaterialLibraryPanel({ onClose }) {
 
         <Box sx={{ flex: 1 }} />
 
-        <FilterListRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.4), cursor: "pointer", transition: "color 0.2s", "&:hover": { color: alpha("#fff", 0.9) } }} />
-        <CleaningServicesRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.4), cursor: "pointer", transition: "color 0.2s", "&:hover": { color: alpha("#fff", 0.9) }, mr: 1 }} />
+        <FilterListRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", cursor: "pointer", transition: "color 0.2s", "&:hover": { color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)" } }} />
+        <CleaningServicesRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", cursor: "pointer", transition: "color 0.2s", "&:hover": { color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)" }, mr: 1 }} />
         
         {onClose && (
           <IconButton size="small" onClick={onClose} sx={{ borderRadius: 1.5 }}>
@@ -178,9 +178,9 @@ export default function MaterialLibraryPanel({ onClose }) {
         {source === "dsmt" ? (
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
             {!projectId ? (
-              <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.45) }}>プロジェクトを選択すると S.Material の素材が表示されます。</Typography>
+              <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>プロジェクトを選択すると S.Material の素材が表示されます。</Typography>
             ) : dsmtMaterials.length === 0 ? (
-              <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.45) }}>このプロジェクトに S.Material 素材がありません。</Typography>
+              <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>このプロジェクトに S.Material 素材がありません。</Typography>
             ) : dsmtMaterials.map((mt) => (
               <Box key={mt.id} onClick={() => handlePickDsmt(mt)}
                 sx={{ width: 72, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5, cursor: "pointer", opacity: building === mt.id ? 0.5 : 1, "&:hover .thumb-box": { borderColor: alpha("#fff", 0.2), background: alpha("#fff", 0.06) } }}>
@@ -191,7 +191,7 @@ export default function MaterialLibraryPanel({ onClose }) {
                     <Box sx={{ width: 52, height: 52, borderRadius: "50%", background: `radial-gradient(circle at 35% 35%, #fff 0%, ${dsmtColor(mt)} 45%, #111 85%)`, boxShadow: "0 4px 6px rgba(0,0,0,0.4)" }} />
                   )}
                 </Box>
-                <Typography noWrap sx={{ width: "100%", fontSize: 10.5, fontWeight: 500, color: alpha("#fff", 0.55), px: 0.5 }}>
+                <Typography noWrap sx={{ width: "100%", fontSize: 10.5, fontWeight: 500, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", px: 0.5 }}>
                   {mt.title || "Material"}
                 </Typography>
               </Box>
@@ -215,12 +215,12 @@ export default function MaterialLibraryPanel({ onClose }) {
             }}
           >
             <Box sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <AddRoundedIcon sx={{ fontSize: 22, color: alpha("#fff", 0.5) }} />
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: alpha("#fff", 0.5), mt: 0.2 }}>
+              <AddRoundedIcon sx={{ fontSize: 22, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }} />
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mt: 0.2 }}>
                 Standard
               </Typography>
             </Box>
-            <Box sx={{ width: 1, background: alpha("#000", 0.3) }} />
+            <Box sx={{ width: 1, background: "color-mix(in srgb, var(--brand-bg) 30%, transparent)" }} />
             <Box sx={{ 
               width: 24, 
               display: "flex", 
@@ -228,7 +228,7 @@ export default function MaterialLibraryPanel({ onClose }) {
               justifyContent: "center",
               "&:hover": { background: alpha("#fff", 0.05) }
             }}>
-              <MoreVertRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.3) }} />
+              <MoreVertRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }} />
             </Box>
           </Box>
 
@@ -277,7 +277,7 @@ export default function MaterialLibraryPanel({ onClose }) {
                       borderTopLeftRadius: "6px"
                     }}
                   >
-                    <CheckRoundedIcon sx={{ position: "absolute", top: -23, left: 2, fontSize: 10, color: alpha("#fff", 0.5) }} />
+                    <CheckRoundedIcon sx={{ position: "absolute", top: -23, left: 2, fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }} />
                   </Box>
 
                   {/* Simulated CSS Sphere */}
@@ -299,7 +299,7 @@ export default function MaterialLibraryPanel({ onClose }) {
                     width: "100%", 
                     fontSize: 10.5, 
                     fontWeight: 500, 
-                    color: alpha("#fff", 0.4), 
+                    color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", 
                     px: 0.5 
                   }}
                 >

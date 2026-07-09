@@ -22,7 +22,7 @@ export interface SaveItemAsNewModelInput {
 }
 
 /**
- * S.Layout 上で寸法を編集したアイテムを、独立した新規モデルとして S.Models（グローバル /assets）へ保存する。
+ * S.Layout 上で寸法を編集したアイテムを、独立した新規モデルとして S.Model（グローバル /assets）へ保存する。
  * 元の GLB を複製アップロードし、寸法だけを差し替えた新しいアセットを作成する。
  * （マテリアルの焼き込みは未対応。GLBジオメトリは元モデルと同一で、寸法のみメタデータ上書き。）
  * @returns 作成された新規モデルの ID

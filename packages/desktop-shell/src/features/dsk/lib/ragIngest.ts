@@ -16,11 +16,14 @@ export function ragSourceKey(entry: LibraryEntry): string {
   return entry.relPath || entry.filePath || entry.title;
 }
 
-/** 既存ナレッジに同一ソースが取り込み済みか判定する。 */
+/** 既存ナレッジに同一ソースが取り込み済みか判定する。
+ *  取り込み中/失敗のテンポラリソース（status 'ingesting'/'error'）は「追加済み」と
+ *  みなさない（失敗しても追加済み表示になる誤検知を防ぐ）。 */
 export function isEntryIngested(entry: LibraryEntry, sources: KnowledgeSource[]): boolean {
   const key = ragSourceKey(entry);
   return sources.some(
-    (s) => (!!s.sourceFile && s.sourceFile === key) || s.title === entry.title,
+    (s) => (s.status == null || s.status === 'ready') &&
+      ((!!s.sourceFile && s.sourceFile === key) || s.title === entry.title),
   );
 }
 
@@ -28,6 +31,7 @@ export function isEntryIngested(entry: LibraryEntry, sources: KnowledgeSource[])
  * エントリをナレッジ (RAG) へ取り込む。
  * - PDF/書籍: ローカル PDF を読み、テキスト抽出（テキスト層が乏しければ OCR 画像も同送）
  * - メモ: bodyMarkdown を本文として送る
+ * - 法令: law.json（条文構造）を条単位ヘッダ付きで平文化して送る（出典が常に残る）
  * - その他テキストファイル: バイト列を UTF-8 デコード
  */
 export async function ingestEntryToRag(
@@ -43,7 +47,12 @@ export async function ingestEntryToRag(
   let text = '';
   let images: { data: string; mimeType: string }[] | undefined;
 
-  if (path) {
+  if (entry.kind === 'law') {
+    onProgress?.('条文を読み込み中…');
+    const { loadLawDoc, buildLawRagText } = await import('../law/lawImport');
+    const doc = await loadLawDoc(entry);
+    text = buildLawRagText(doc);
+  } else if (path) {
     onProgress?.('ファイルを読み込み中…');
     const bytes = await readLocalBinaryFile(path);
     const buf = new Uint8Array(bytes).buffer;

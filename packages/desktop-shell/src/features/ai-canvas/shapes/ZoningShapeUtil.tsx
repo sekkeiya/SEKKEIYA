@@ -17,7 +17,7 @@ export class ZoningShapeUtil extends ShapeUtil<any> {
       w: 150,
       h: 150,
       text: 'LDK',
-      color: '#FFF9C4', // standard light yellow
+      color: 'light-dark(#ad9c00, #FFF9C4)', // standard light yellow
     }
   }
 

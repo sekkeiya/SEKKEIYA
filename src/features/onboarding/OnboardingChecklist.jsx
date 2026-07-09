@@ -14,7 +14,7 @@ const GRAD = "linear-gradient(135deg, #7C3AED 0%, #2563EB 100%)";
 
 const BASE_ITEMS = [
   { key: "layout",  label: "S.Layout で AI レイアウトを試す", desc: "タブから S.Layout を開いて生成してみよう" },
-  { key: "models",  label: "3D モデルを空間に置く",          desc: "S.Models から家具を選んで配置" },
+  { key: "models",  label: "3D モデルを空間に置く",          desc: "S.Model から家具を選んで配置" },
   { key: "project", label: "プロジェクトを作成する",          desc: "左サイドバーの「MY PROJECTS ＋」から" },
 ];
 

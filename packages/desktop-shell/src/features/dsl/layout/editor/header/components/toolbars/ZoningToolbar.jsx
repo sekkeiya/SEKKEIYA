@@ -56,10 +56,10 @@ export default function ZoningToolbar() {
     textTransform: "none",
     fontWeight: 700,
     fontSize: 12,
-    color: alpha("#fff", 0.6),
+    color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
     borderColor: alpha("#fff", 0.1),
     "&.Mui-selected": {
-      color: "#fff",
+      color: "var(--brand-fg)",
       backgroundColor: alpha("#fff", 0.15),
     },
     gap: 0.5,
@@ -67,7 +67,7 @@ export default function ZoningToolbar() {
 
   const selectStyle = {
     height: 28,
-    color: "#fff",
+    color: "var(--brand-fg)",
     fontSize: 12,
     fontWeight: 600,
     "& .MuiOutlinedInput-notchedOutline": {
@@ -80,7 +80,7 @@ export default function ZoningToolbar() {
       borderColor: alpha("#fff", 0.5),
     },
     "& .MuiSvgIcon-root": {
-      color: alpha("#fff", 0.6),
+      color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
     },
   };
 
@@ -160,9 +160,9 @@ export default function ZoningToolbar() {
                 MenuProps={{
                   PaperProps: {
                     sx: {
-                      bgcolor: "#1e293b",
+                      bgcolor: "var(--brand-surface2)",
                       border: `1px solid ${alpha("#fff", 0.1)}`,
-                      "& .MuiMenuItem-root": { fontSize: 13, color: "#fff" }
+                      "& .MuiMenuItem-root": { fontSize: 13, color: "var(--brand-fg)" }
                     }
                   }
                 }}
@@ -172,7 +172,7 @@ export default function ZoningToolbar() {
                 <MenuItem value={1200}>1200</MenuItem>
                 <MenuItem value={1500}>1500</MenuItem>
               </Select>
-              <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.5) }}>mm</Typography>
+              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>mm</Typography>
             </Box>
 
             {isZoningActionSelect && selectedCirc && (

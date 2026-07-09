@@ -95,28 +95,28 @@ export const LocalSaveDialog: React.FC<Props> = ({ job }) => {
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#0f172a',
+          bgcolor: 'var(--brand-surface)',
           backgroundImage: 'none',
           border: '1px solid rgba(96,165,250,0.3)',
         }
       }}
     >
-      <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'center', gap: 1, color: '#60a5fa' }}>
+      <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'center', gap: 1, color: 'light-dark(#054ea8, #60a5fa)' }}>
         <CloudOffRoundedIcon />
-        AI Drive に保存（ローカル）
+        SEKKEIYA Drive に保存（ローカル）
       </DialogTitle>
 
       <DialogContent>
         {success ? (
           <Alert severity="success" sx={{ my: 2 }}>
             ローカルに保存しました！<br />
-            S.Modelsライブラリの「ローカル」タブから確認・クラウド同期できます。
+            S.Modelライブラリの「ローカル」タブから確認・クラウド同期できます。
           </Alert>
         ) : (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Rhinoの選択オブジェクトを <strong style={{ color: '#94a3b8' }}>SEKKEIYA</strong> にローカル保存します。<br />
-              クラウドには送信されません。後からS.Modelsライブラリで同期できます。
+              Rhinoの選択オブジェクトを <strong style={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)' }}>SEKKEIYA</strong> にローカル保存します。<br />
+              クラウドには送信されません。後からS.Modelライブラリで同期できます。
             </Typography>
 
             {error && (
@@ -161,14 +161,14 @@ export const LocalSaveDialog: React.FC<Props> = ({ job }) => {
                 gap: 1,
               }}
             >
-              <FolderRoundedIcon sx={{ color: '#60a5fa', fontSize: 18, mt: 0.3, flexShrink: 0 }} />
+              <FolderRoundedIcon sx={{ color: 'light-dark(#054ea8, #60a5fa)', fontSize: 18, mt: 0.3, flexShrink: 0 }} />
               <Box>
-                <Typography variant="caption" sx={{ color: 'rgba(148,163,184,0.7)', display: 'block', mb: 0.3 }}>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--slate-ink-rgb) / 0.7)', display: 'block', mb: 0.3 }}>
                   保存先プレビュー
                 </Typography>
                 <Typography
                   variant="caption"
-                  sx={{ color: '#94a3b8', fontFamily: 'monospace', wordBreak: 'break-all', fontSize: 11 }}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontFamily: 'monospace', wordBreak: 'break-all', fontSize: 11 }}
                 >
                   {savePath}
                 </Typography>

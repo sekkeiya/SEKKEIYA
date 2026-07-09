@@ -11,14 +11,14 @@ import { WorkspaceTabBar } from '../shared/layout/workspace/WorkspaceTabBar';
 import { useProjectCreation } from '../features/projects/useProjectCreation';
 import { SchedulesTasksList } from '../components/Projects/SchedulesTasksList';
 import { AllProjectsFilesList } from '../components/Projects/AllProjectsFilesList';
-import { AccountMemoTab }    from '../components/Projects/AccountMemoTab';
+import { AccountResearchMemoTab } from '../components/Projects/AccountResearchMemoTab';
 
 const TAB_SX = {
   minHeight: 40,
   textTransform: 'none' as const,
   fontSize: 13,
   transition: 'color 0.2s',
-  '&:hover': { color: '#fff' },
+  '&:hover': { color: 'var(--brand-fg)' },
 };
 
 // アカウントサイト（＝ログイン後ダッシュボード／公開ポートフォリオ）。
@@ -31,7 +31,7 @@ const TAB_ITEMS = [
   { id: 'schedule',  label: 'Schedules & Tasks' },
   { id: 'cadfiles',  label: 'CAD Files' },
   { id: 'workfiles', label: 'Work Files' },
-  { id: 'memo',      label: 'Memo' },
+  { id: 'memo',      label: 'Research & Memo' },
 ];
 
 const MySitePage: React.FC = () => {
@@ -89,7 +89,7 @@ const MySitePage: React.FC = () => {
   if (!user?.uid) {
     return (
       <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>ログインするとマイサイトを作成できます。</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>ログインするとマイサイトを作成できます。</Typography>
       </Box>
     );
   }
@@ -121,7 +121,7 @@ const MySitePage: React.FC = () => {
           sx={{
             ...TAB_SX,
             fontWeight: activeTab === t.id ? 700 : 500,
-            color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.6)',
+            color: activeTab === t.id ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)',
           }}
         />
       ))}
@@ -136,8 +136,8 @@ const MySitePage: React.FC = () => {
       {!mergeTabsIntoToolbar && (
         <Box sx={{
           px: { xs: 2, md: 3, lg: 4 },
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          bgcolor: 'rgba(10,15,25,0.8)',
+          borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+          bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.8))',
           backdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
@@ -150,7 +150,7 @@ const MySitePage: React.FC = () => {
       )}
 
       {/* コンテンツ */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: activeTab === 'home' ? 'hidden' : 'auto' }}>
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: (activeTab === 'home' || activeTab === 'memo') ? 'hidden' : 'auto' }}>
         {activeTab === 'home' ? (
           <ProjectSiteCanvas
             source={{ kind: 'account', id: user.uid }}
@@ -172,7 +172,9 @@ const MySitePage: React.FC = () => {
             <AllProjectsFilesList filterMode="other" />
           </Box>
         ) : activeTab === 'memo' ? (
-          <AccountMemoTab />
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative' }}>
+            <AccountResearchMemoTab />
+          </Box>
         ) : null}
       </Box>
 

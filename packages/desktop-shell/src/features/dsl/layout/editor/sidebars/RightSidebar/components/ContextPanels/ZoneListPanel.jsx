@@ -18,7 +18,7 @@ import { getRoomCategoryMeta, zoneAreaLabel } from '../../../../../constants/roo
 import { autoZoning } from '../../../../../services/autoZoning';
 
 const LABEL_SX = {
-  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+  fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)',
   letterSpacing: 0.6, textTransform: 'uppercase', mb: 0.5,
 };
 
@@ -42,10 +42,10 @@ export default function ZoneListPanel() {
       {/* ヘッダー */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <DashboardRoundedIcon sx={{ fontSize: 16, color: '#2dd4bf' }} />
-        <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', flex: 1 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>
           ゾーン
         </Typography>
-        <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.45), fontVariantNumeric: 'tabular-nums' }}>
+        <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontVariantNumeric: 'tabular-nums' }}>
           {zones.length} 件
         </Typography>
       </Box>
@@ -63,7 +63,7 @@ export default function ZoneListPanel() {
       >
         自動ゾーニング
       </Button>
-      <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.28), mt: -0.7 }}>
+      <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 28%, transparent)", mt: -0.7 }}>
         自動ラベルの床・内壁から部屋（ゾーン）を自動生成します
       </Typography>
 
@@ -71,7 +71,7 @@ export default function ZoneListPanel() {
       <Box>
         <Typography sx={LABEL_SX}>ゾーン一覧</Typography>
         {zones.length === 0 ? (
-          <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.35), lineHeight: 1.6 }}>
+          <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", lineHeight: 1.6 }}>
             ゾーンがありません。「自動ゾーニング」を実行するか、Top ビューで2点クリックして矩形ゾーンを描画してください。
           </Typography>
         ) : (
@@ -88,14 +88,14 @@ export default function ZoneListPanel() {
                     px: 0.8, py: 0.5, borderRadius: 1, cursor: 'pointer',
                     bgcolor: alpha('#fff', 0.04), border: `1px solid ${alpha('#fff', 0.08)}`,
                     transition: 'all 0.12s',
-                    '&:hover': { bgcolor: alpha(color, 0.12), borderColor: alpha(color, 0.4) },
+                    '&:hover': { bgcolor: `color-mix(in srgb, ${color} 12%, transparent)`, borderColor: `color-mix(in srgb, ${color} 40%, transparent)` },
                   }}
                 >
                   <Box sx={{ width: 9, height: 9, borderRadius: 0.5, bgcolor: color, flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 11.5, color: '#e2e8f0', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <Typography sx={{ fontSize: 11.5, color: 'var(--brand-fg)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {z.name || meta?.label || 'ゾーン'}
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.4), fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                     {zoneAreaLabel(z.rect)}
                   </Typography>
                 </Box>

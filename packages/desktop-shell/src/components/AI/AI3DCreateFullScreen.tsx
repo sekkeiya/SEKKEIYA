@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Box, Typography, TextField, Button, IconButton, CircularProgress, Select, MenuItem, FormControl, InputLabel, Dialog, Slider } from '@mui/material';
 import { useAppStore } from '../../store/useAppStore';
 import { useAI3DCreateStore } from '../../store/useAI3DCreateStore';
-import { useAIDriveStore } from '../../store/useAIDriveStore';
+import { useDriveAssets, PICKER_LAYERS } from '../../features/drive/driveAccess';
 import { BRAND } from '../../styles/theme';
 
 import { uploadImageAndGetUrl } from '../../lib/firebase/uploadImage';
@@ -52,11 +52,8 @@ const AI3DCreateFullScreen: React.FC = () => {
   const [uploadModalOpen, setUploadModalOpen] = React.useState(false);
   const [uploadFiles, setUploadFiles] = React.useState<File[]>([]);
   
-  // AI Drive Image Assets for the picker
-  const assets = useAIDriveStore(s => s.assets);
-  const driveAssets = React.useMemo(() => {
-    return assets.filter(a => a.type === 'image' || (!a.type && (a.storageUrl?.includes('.png') || a.storageUrl?.includes('.jpg'))));
-  }, [assets]);
+  // SEKKEIYA Drive の画像資産（driveAccess = 単一の読み取り窓口・決定的プール）。
+  const { assets: driveAssets } = useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
 
   const [resultAssetId, setResultAssetId] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState(0);
@@ -537,7 +534,7 @@ const AI3DCreateFullScreen: React.FC = () => {
       <Box sx={{ width: { xs: 240, md: 340 }, display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel, borderRight: `1px solid ${BRAND.line}`, flexShrink: 0, zIndex: 5, transition: 'width 0.2s' }}>
         {/* Sidebar Header */}
         <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${BRAND.line}`, minHeight: 64 }}>
-           <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 'bold' }}>AI 3D Generate</Typography>
+           <Typography variant="h6" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 'bold' }}>AI 3D Generate</Typography>
         </Box>
         
         {/* Sidebar Content */}
@@ -545,7 +542,7 @@ const AI3DCreateFullScreen: React.FC = () => {
           
           {/* AI Model Selection Cards */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
               AI Model
             </Typography>
             {AI_MODELS.map(m => {
@@ -570,27 +567,27 @@ const AI3DCreateFullScreen: React.FC = () => {
                     flexDirection: 'column',
                     p: 1.5,
                     borderRadius: 2,
-                    border: `1px solid ${active ? '#90caf9' : 'rgba(255,255,255,0.1)'}`,
-                    bgcolor: active ? 'rgba(144, 202, 249, 0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${active ? '#90caf9' : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
+                    bgcolor: active ? 'rgba(144, 202, 249, 0.08)' : 'rgb(var(--brand-fg-rgb) / 0.02)',
                     cursor: (locked || busy || status === 'running') ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s',
                     opacity: locked ? 0.6 : 1,
                     '&:hover': {
-                      bgcolor: (!locked && !busy && status !== 'running') ? (active ? 'rgba(144, 202, 249, 0.12)' : 'rgba(255,255,255,0.05)') : undefined,
+                      bgcolor: (!locked && !busy && status !== 'running') ? (active ? 'rgba(144, 202, 249, 0.12)' : 'rgb(var(--brand-fg-rgb) / 0.05)') : undefined,
                     }
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: active ? '#90caf9' : 'rgba(255,255,255,0.9)' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: active ? 'light-dark(#095fa5, #90caf9)' : 'rgb(var(--brand-fg-rgb) / 0.9)' }}>
                       {title}
                     </Typography>
                     {locked && <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>🔒 Locked</Typography>}
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                       {desc}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: active ? '#90caf9' : 'rgba(255,255,255,0.5)', fontWeight: 'bold' }}>
+                    <Typography variant="caption" sx={{ color: active ? 'light-dark(#095fa5, #90caf9)' : 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 'bold' }}>
                       {getRemainingText(m.id).replace(/[()]/g, '')}
                     </Typography>
                   </Box>
@@ -601,7 +598,7 @@ const AI3DCreateFullScreen: React.FC = () => {
 
           {/* Input block */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
               画像を選択して、AIモデルで3Dメッシュを自動生成します。
             </Typography>
 
@@ -616,12 +613,12 @@ const AI3DCreateFullScreen: React.FC = () => {
                 sx={{ 
                   borderRadius: 2, 
                   textTransform: 'none', 
-                  color: 'rgba(255,255,255,0.9)',
-                  borderColor: 'rgba(255,255,255,0.2)',
+                  color: 'rgb(var(--brand-fg-rgb) / 0.9)',
+                  borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                   borderStyle: 'dashed',
                   borderWidth: 2,
                   py: 2,
-                  '&:hover': { borderColor: '#fff', borderWidth: 2, bgcolor: 'rgba(255,255,255,0.05)' }
+                  '&:hover': { borderColor: '#fff', borderWidth: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
                 }}
               >
                 ローカルから
@@ -638,15 +635,15 @@ const AI3DCreateFullScreen: React.FC = () => {
                 sx={{ 
                   borderRadius: 2, 
                   textTransform: 'none', 
-                  color: 'rgba(255,255,255,0.9)',
-                  borderColor: 'rgba(255,255,255,0.2)',
+                  color: 'rgb(var(--brand-fg-rgb) / 0.9)',
+                  borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                   borderStyle: 'dashed',
                   borderWidth: 2,
                   py: 2,
-                  '&:hover': { borderColor: '#fff', borderWidth: 2, bgcolor: 'rgba(255,255,255,0.05)' }
+                  '&:hover': { borderColor: '#fff', borderWidth: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
                 }}
               >
-                AI Driveから
+                SEKKEIYA Driveから
               </Button>
             </Box>
           </Box>
@@ -655,7 +652,7 @@ const AI3DCreateFullScreen: React.FC = () => {
 
           {/* Action Buttons for generated model */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>アクション</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>アクション</Typography>
             <Button 
               size="large"
               variant="contained" 
@@ -663,7 +660,7 @@ const AI3DCreateFullScreen: React.FC = () => {
               startIcon={<AddToPhotosRoundedIcon />}
               onClick={() => handleAddToWorkspace()}
               disabled={!glbUrl || hasUnsavedEdits}
-              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: BRAND.primary, color: '#fff', '&:hover': { bgcolor: BRAND.primaryDark } }}
+              sx={{ textTransform: 'none', borderRadius: 2, bgcolor: BRAND.primary, color: 'var(--brand-fg)', '&:hover': { bgcolor: BRAND.primaryDark } }}
             >
               {hasUnsavedEdits ? '配置するには確定してください' : 'ワークスペースに配置'}
             </Button>
@@ -674,9 +671,9 @@ const AI3DCreateFullScreen: React.FC = () => {
               startIcon={<CloudUploadRoundedIcon />}
               onClick={() => handleSaveToDrive()}
               disabled={!glbUrl || hasUnsavedEdits}
-              sx={{ textTransform: 'none', borderRadius: 2, borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+              sx={{ textTransform: 'none', borderRadius: 2, borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }}
             >
-              {hasUnsavedEdits ? '保存するには確定してください' : 'S.Modelsに保存'}
+              {hasUnsavedEdits ? '保存するには確定してください' : 'S.Modelに保存'}
             </Button>
             <Button 
               size="large"
@@ -685,13 +682,13 @@ const AI3DCreateFullScreen: React.FC = () => {
               startIcon={<DownloadRoundedIcon />}
               onClick={() => handleDownload()}
               disabled={!glbUrl || hasUnsavedEdits}
-              sx={{ textTransform: 'none', borderRadius: 2, borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}
+              sx={{ textTransform: 'none', borderRadius: 2, borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }}
             >
               {hasUnsavedEdits ? '保存するには確定してください' : 'ダウンロード'}
             </Button>
 
             {/* 一旦セパレータを入れて棄却ボタン */}
-            <Box sx={{ my: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.1)' }} />
+            <Box sx={{ my: 1, height: '1px', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
             <Button 
               size="large"
               variant="text" 
@@ -717,14 +714,14 @@ const AI3DCreateFullScreen: React.FC = () => {
                 variant="outlined" 
                 size="small"
                 onClick={() => setAutoRotate(!autoRotate)}
-                sx={{ bgcolor: 'rgba(20,22,27,0.7)', color: 'white', borderColor: 'rgba(255,255,255,0.1)', '&:hover': { bgcolor: 'rgba(20,22,27,0.9)' } }}
+                sx={{ bgcolor: 'rgba(20,22,27,0.7)', color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', '&:hover': { bgcolor: 'rgba(20,22,27,0.9)' } }}
               >
                 {autoRotate ? '回転を止める' : '回転を再開'}
               </Button>
             )}
             <IconButton 
               onClick={() => setAI3DCreateExpanded(false)}
-              sx={{ bgcolor: 'rgba(20,22,27,0.7)', color: 'white', border: `1px solid rgba(255,255,255,0.1)`, '&:hover': { bgcolor: 'rgba(20,22,27,0.9)' } }}
+              sx={{ bgcolor: 'rgba(20,22,27,0.7)', color: 'var(--brand-fg)', border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`, '&:hover': { bgcolor: 'rgba(20,22,27,0.9)' } }}
             >
               <CloseFullscreenRoundedIcon />
             </IconButton>
@@ -733,7 +730,7 @@ const AI3DCreateFullScreen: React.FC = () => {
          {/* Viewer Header Info (Status) */}
          <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 10 }}>
             {(taskId || busy) && (
-              <Box sx={{ bgcolor: 'rgba(20,22,27,0.7)', color: status === 'done' ? '#66bb6a' : '#3498db', px: 2, py: 1, borderRadius: 2, border: `1px solid rgba(255,255,255,0.1)`, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ bgcolor: 'rgba(20,22,27,0.7)', color: status === 'done' ? '#66bb6a' : '#3498db', px: 2, py: 1, borderRadius: 2, border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 {status !== 'error' && status !== 'done' && <CircularProgress size={16} sx={{ color: 'inherit' }} />}
                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{status.toUpperCase()}</Typography>
               </Box>
@@ -742,7 +739,7 @@ const AI3DCreateFullScreen: React.FC = () => {
 
          {/* Inner Viewer Layout */}
          <Box sx={{ flexGrow: 1, p: 4, display: 'flex', flexDirection: 'column' }}>
-           <Box sx={{ flexGrow: 1, bgcolor: 'rgba(0,0,0,0.6)', borderRadius: 4, overflow: 'hidden', position: 'relative', border: `1px solid rgba(255,255,255,0.05)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }}>
+           <Box sx={{ flexGrow: 1, bgcolor: 'rgba(0,0,0,0.6)', borderRadius: 4, overflow: 'hidden', position: 'relative', border: `1px solid rgb(var(--brand-fg-rgb) / 0.05)`, boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }}>
               {glbUrl ? (
                 <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ flexGrow: 1, minHeight: 0, position: 'relative' }}>
@@ -796,53 +793,53 @@ const AI3DCreateFullScreen: React.FC = () => {
 
                   </Box>
 
-                  <Box sx={{ p: { xs: 1, sm: 2 }, bgcolor: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 2 }, alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ p: { xs: 1, sm: 2 }, bgcolor: 'rgba(0,0,0,0.4)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', display: 'flex', flexWrap: 'wrap', gap: { xs: 1, sm: 2 }, alignItems: 'center', justifyContent: 'center' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 'bold', mr: { xs: 0, sm: 1 }, whiteSpace: 'nowrap' }}>モデルのサイズ (mm):</Typography>
+                      <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 'bold', mr: { xs: 0, sm: 1 }, whiteSpace: 'nowrap' }}>モデルのサイズ (mm):</Typography>
                       <TextField 
                         size="small" 
                         label="W (幅 / X)" 
                         type="number" 
                         value={dimensions.width}
                         onChange={e => setDimensions(d => ({ ...d, width: Number(e.target.value) }))}
-                        sx={{ width: { xs: 80, sm: 110 }, '& .MuiInputBase-root': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' } }}
+                        sx={{ width: { xs: 80, sm: 110 }, '& .MuiInputBase-root': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
                       />
-                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.3)' }}>×</Typography>
+                      <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>×</Typography>
                       <TextField 
                         size="small" 
                         label="D (奥行 / Y)" 
                         type="number" 
                         value={dimensions.depth}
                         onChange={e => setDimensions(d => ({ ...d, depth: Number(e.target.value) }))}
-                        sx={{ width: { xs: 80, sm: 110 }, '& .MuiInputBase-root': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' } }}
+                        sx={{ width: { xs: 80, sm: 110 }, '& .MuiInputBase-root': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
                       />
-                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.3)' }}>×</Typography>
+                      <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>×</Typography>
                       <TextField 
                         size="small" 
                         label="H (高さ / Z)" 
                         type="number" 
                         value={dimensions.height}
                         onChange={e => setDimensions(d => ({ ...d, height: Number(e.target.value) }))}
-                        sx={{ width: { xs: 80, sm: 110 }, '& .MuiInputBase-root': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' } }}
+                        sx={{ width: { xs: 80, sm: 110 }, '& .MuiInputBase-root': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
                       />
                     </Box>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                       <Button variant="outlined" size="small" onClick={() => {
                         setRotX(r => (r + 90) % 360);
                         setDimensions(d => ({ ...d, depth: d.height, height: d.depth }));
-                      }} sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', whiteSpace: 'nowrap' }}>
+                      }} sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', color: 'var(--brand-fg)', whiteSpace: 'nowrap' }}>
                         X軸回転(幅)
                       </Button>
                       <Button variant="outlined" size="small" onClick={() => {
                         setRotZ(r => (r + 90) % 360);
                         setDimensions(d => ({ ...d, width: d.height, height: d.width }));
-                      }} sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', whiteSpace: 'nowrap' }}>
+                      }} sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', color: 'var(--brand-fg)', whiteSpace: 'nowrap' }}>
                         Y軸回転(奥行)
                       </Button>
                       <Button variant="outlined" size="small" onClick={() => {
                         setRotY(r => (r + 90) % 360);
                         setDimensions(d => ({ ...d, width: d.depth, depth: d.width }));
-                      }} sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', whiteSpace: 'nowrap' }}>
+                      }} sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', color: 'var(--brand-fg)', whiteSpace: 'nowrap' }}>
                         Z軸回転(高さ)
                       </Button>
                       <Button 
@@ -877,7 +874,7 @@ const AI3DCreateFullScreen: React.FC = () => {
                         '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } 
                       }}
                     >
-                      <CloseRoundedIcon fontSize="large" sx={{ color: '#fff' }} />
+                      <CloseRoundedIcon fontSize="large" sx={{ color: 'var(--brand-fg)' }} />
                     </IconButton>
                   )}
                   
@@ -897,18 +894,18 @@ const AI3DCreateFullScreen: React.FC = () => {
                              justifyContent: 'center',
                            }}
                          >
-                           <Typography variant="caption" component="div" sx={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>
+                           <Typography variant="caption" component="div" sx={{ color: 'var(--brand-fg)', fontWeight: 'bold', fontSize: 14 }}>
                              {Math.round(progress)}%
                            </Typography>
                          </Box>
                        </Box>
-                       <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: { xs: 14, sm: 16 } }}>AIモデル生成中...</Typography>
-                       <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: { xs: 11, sm: 13 } }}>完了まで数十秒〜数分かかる場合があります</Typography>
+                       <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: { xs: 14, sm: 16 } }}>AIモデル生成中...</Typography>
+                       <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: { xs: 11, sm: 13 } }}>完了まで数十秒〜数分かかる場合があります</Typography>
                     </Box>
                   )}
                   {!(busy || status === 'running') && (
-                     <Box sx={{ position: 'absolute', bottom: { xs: 20, md: 40 }, left: '50%', transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,0.8)', px: { xs: 2, sm: 4 }, py: { xs: 1.5, sm: 2 }, borderRadius: 8, backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: { xs: 1.5, sm: 4 }, width: 'max-content', maxWidth: '90%' }}>
-                        <Typography sx={{ color: '#fff', fontSize: { xs: 13, sm: 15 }, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>ベース画像が選択されました</Typography>
+                     <Box sx={{ position: 'absolute', bottom: { xs: 20, md: 40 }, left: '50%', transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,0.8)', px: { xs: 2, sm: 4 }, py: { xs: 1.5, sm: 2 }, borderRadius: 8, backdropFilter: 'blur(10px)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)', display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: { xs: 1.5, sm: 4 }, width: 'max-content', maxWidth: '90%' }}>
+                        <Typography sx={{ color: 'var(--brand-fg)', fontSize: { xs: 13, sm: 15 }, fontWeight: 600, textAlign: 'center', whiteSpace: 'nowrap' }}>ベース画像が選択されました</Typography>
                         <Button 
                           variant="outlined" 
                           size="large"
@@ -922,10 +919,10 @@ const AI3DCreateFullScreen: React.FC = () => {
                             textTransform: 'none', 
                             px: { xs: 2, sm: 4 }, 
                             fontWeight: 'bold',
-                            borderColor: 'rgba(255,255,255,0.2)',
-                            color: 'white',
+                            borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                            color: 'var(--brand-fg)',
                             whiteSpace: 'nowrap',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: '#fff' }
+                            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderColor: '#fff' }
                           }}
                         >
                           キャンセル
@@ -952,10 +949,10 @@ const AI3DCreateFullScreen: React.FC = () => {
                   )}
                 </Box>
               ) : (
-                <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.3)', gap: 2 }}>
+                <Box sx={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'rgb(var(--brand-fg-rgb) / 0.3)', gap: 2 }}>
                   <ViewInArRoundedIcon sx={{ fontSize: 64, opacity: 0.5 }} />
                   <Typography variant="body1">モデルはまだ生成されていません</Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.2)' }}>左側のパネルから画像をアップロードしてAI生成を開始してください</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>左側のパネルから画像をアップロードしてAI生成を開始してください</Typography>
                 </Box>
               )}
            </Box>
@@ -973,11 +970,11 @@ const AI3DCreateFullScreen: React.FC = () => {
         PaperProps={{
           sx: {
             height: '90vh',
-            bgcolor: '#141518',
+            bgcolor: 'var(--brand-surface)',
             borderRadius: 3,
             overflow: 'hidden',
             backgroundImage: 'none',
-            border: '1px solid rgba(255,255,255,0.1)'
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)'
           }
         }}
       >

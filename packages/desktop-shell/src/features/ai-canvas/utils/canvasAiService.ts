@@ -62,7 +62,7 @@ export const executeCanvasAiPrompt = async (prompt: string): Promise<CanvasAiRes
           w: 100,
           h: 60,
           props: {
-            color: '#E0F7FA',
+            color: 'var(--brand-fg)',
             text: `Desk ${idCounter}`
           }
         });
@@ -97,10 +97,10 @@ export const executeCanvasAiPrompt = async (prompt: string): Promise<CanvasAiRes
       params: {
         title: prompt,
         zones: [
-          { text: 'LDK', color: '#FFF9C4', areaStr: '30㎡' },
-          { text: '寝室', color: '#F5F5F5', areaStr: '12㎡' },
-          { text: '水回り', color: '#E1F5FE', areaStr: '8㎡' },
-          { text: '玄関', color: '#EFEBE9', areaStr: '5㎡' }
+          { text: 'LDK', color: 'light-dark(#ad9c00, #FFF9C4)', areaStr: '30㎡' },
+          { text: '寝室', color: 'var(--brand-fg)', areaStr: '12㎡' },
+          { text: '水回り', color: 'var(--brand-fg)', areaStr: '8㎡' },
+          { text: '玄関', color: 'var(--brand-fg)', areaStr: '5㎡' }
         ]
       }
     };

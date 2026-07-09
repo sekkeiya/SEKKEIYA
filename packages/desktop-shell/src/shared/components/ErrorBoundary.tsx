@@ -26,11 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', bgcolor: '#0D0E12', color: '#fff' }}>
+        <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', bgcolor: 'var(--brand-bg)', color: 'var(--brand-fg)' }}>
           <Typography variant="h5" color="error" gutterBottom>
             システムエラーが発生しました
           </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 3 }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 3 }}>
             {this.state.error?.message || '不明なエラー'}
           </Typography>
           <Button variant="contained" onClick={() => window.location.reload()}>

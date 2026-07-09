@@ -38,10 +38,10 @@ export default function ProductLP() {
   const siblings = ECOSYSTEM_SERVICES.filter((s) => s.category === service.category && s.id !== service.id);
 
   // 表記ゆれ対策: 「smodels」「slayout」等のドット無し検索は、Google が
-  // 「S.Models」を s / models に分割するため素通りする。連結表記（SModels）を
+  // 「S.Model」を s / models に分割するため素通りする。連結表記（SModels）を
   // title・本文・JSON-LD alternateName に明示して拾えるようにする。
-  const alias = service.title.replace(/\./g, "");        // S.Models → SModels
-  const aliasSpaced = service.title.replace(/\./g, " "); // S.Models → S Models
+  const alias = service.title.replace(/\./g, "");        // S.Model → SModels
+  const aliasSpaced = service.title.replace(/\./g, " "); // S.Model → S Models
 
   return (
     <Box sx={{ bgcolor: "#000", color: "#fff", overflowX: "hidden" }}>

@@ -187,13 +187,13 @@ export default function PopulatePanel({
           display: "flex", alignItems: "center", background: alpha("#fff", 0.04), border: `1px solid ${alpha("#fff", 0.1)}`, 
           borderRadius: 24, px: 2, height: 34, width: 220
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.4), mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mr: 1 }} />
           <TextField
              variant="standard"
              placeholder="Search items..."
              value={q}
              onChange={(e) => setQ(e.target.value)}
-             InputProps={{ disableUnderline: true, style: { fontSize: 12, color: "#fff", fontWeight: 600 } }}
+             InputProps={{ disableUnderline: true, style: { fontSize: 12, color: "var(--brand-fg)", fontWeight: 600 } }}
              sx={{ flex: 1 }}
           />
           {q && (
@@ -206,7 +206,7 @@ export default function PopulatePanel({
         <Box sx={{ flex: 1 }} />
         
         {/* Total Badge */}
-        <Typography sx={{ fontWeight: 800, fontSize: 12, color: alpha("#fff", 0.5), mr: 1 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mr: 1 }}>
           TOTAL: {placedItems.length}
         </Typography>
 
@@ -241,7 +241,7 @@ export default function PopulatePanel({
               sx={{
                 position: "relative",
                 borderRadius: "12px",
-                background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+                background: "linear-gradient(180deg, rgb(var(--brand-fg-rgb) / 0.04) 0%, rgb(var(--brand-fg-rgb) / 0.01) 100%)",
                 boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
                 border: active ? `1px solid ${theme.palette.primary.main}` : `1px solid ${alpha("#fff", 0.03)}`,
                 overflow: "hidden",
@@ -249,12 +249,12 @@ export default function PopulatePanel({
                 aspectRatio: "1 / 1",
                 transition: "all 0.2s",
                 ...(active && {
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)",
+                  background: "linear-gradient(180deg, rgb(var(--brand-fg-rgb) / 0.08) 0%, rgb(var(--brand-fg-rgb) / 0.02) 100%)",
                 }),
                 "&:hover": {
                   background: active 
-                    ? "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%)"
-                    : "linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)",
+                    ? "linear-gradient(180deg, rgb(var(--brand-fg-rgb) / 0.1) 0%, rgb(var(--brand-fg-rgb) / 0.03) 100%)"
+                    : "linear-gradient(180deg, rgb(var(--brand-fg-rgb) / 0.07) 0%, rgb(var(--brand-fg-rgb) / 0.02) 100%)",
                   transform: "translateY(-2px)",
                   boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
                 },
@@ -293,7 +293,7 @@ export default function PopulatePanel({
                   top: 8,
                   right: 8,
                   bgcolor: theme.palette.primary.main,
-                  color: "#fff",
+                  color: "var(--brand-fg)",
                   width: 24,
                   height: 24,
                   borderRadius: "50%",
@@ -330,7 +330,7 @@ export default function PopulatePanel({
               </Box>
 
               {/* Bottom Gradient Overlay */}
-              <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%)", pointerEvents: "none", zIndex: 1 }} />
+              <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "60%", background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, light-dark(rgba(15,23,42,0), rgba(0,0,0,0)) 100%)", pointerEvents: "none", zIndex: 1 }} />
 
               {/* Count Badge (Top Left) */}
               <Box
@@ -338,9 +338,9 @@ export default function PopulatePanel({
                   position: "absolute",
                   top: 8,
                   left: 8,
-                  bgcolor: alpha("#000", 0.6),
+                  bgcolor: "color-mix(in srgb, var(--brand-bg) 60%, transparent)",
                   backdropFilter: "blur(4px)",
-                  color: "#fff",
+                  color: "var(--brand-fg)",
                   px: 1,
                   py: 0.25,
                   borderRadius: "10px",
@@ -355,7 +355,7 @@ export default function PopulatePanel({
 
               {/* Title (Bottom Left) */}
               <Box sx={{ position: "absolute", bottom: 10, left: 10, right: 10, display: "flex", alignItems: "center", zIndex: 2 }}>
-                <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: "rgba(255,255,255,0.95)", textShadow: "0 2px 6px rgba(0,0,0,0.8)" }} noWrap>
+                <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: "rgb(var(--brand-fg-rgb) / 0.95)", textShadow: "0 2px 6px rgba(0,0,0,0.8)" }} noWrap>
                   {g.label}
                 </Typography>
               </Box>

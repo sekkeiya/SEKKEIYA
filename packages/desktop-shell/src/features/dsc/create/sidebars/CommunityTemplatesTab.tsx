@@ -43,8 +43,8 @@ function TemplateCard({
       onMouseLeave={() => setHovered(false)}
       sx={{
         borderRadius: 2,
-        border: '1px solid rgba(255,255,255,0.07)',
-        bgcolor: hovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+        border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
+        bgcolor: hovered ? 'rgb(var(--brand-fg-rgb) / 0.05)' : 'rgb(var(--brand-fg-rgb) / 0.02)',
         overflow: 'hidden',
         transition: 'all 0.15s',
         cursor: 'default',
@@ -54,7 +54,7 @@ function TemplateCard({
       <Box
         onClick={() => onLoad(tmpl)}
         sx={{
-          width: '100%', height: 90, bgcolor: '#0d1117',
+          width: '100%', height: 90, bgcolor: 'var(--brand-bg)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', position: 'relative', overflow: 'hidden',
         }}
@@ -94,7 +94,7 @@ function TemplateCard({
       <Box sx={{ px: 1.25, py: 0.9 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0.5 }}>
           <Typography sx={{
-            fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.88)',
+            fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.88)',
             lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
           }}>
             {tmpl.name}
@@ -104,7 +104,7 @@ function TemplateCard({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
               <Tooltip title={tmpl.visibility === 'public' ? '非公開にする' : 'コミュニティに公開'} placement="top">
                 <IconButton size="small" onClick={() => onToggleVisibility?.(tmpl)}
-                  sx={{ p: 0.3, color: tmpl.visibility === 'public' ? '#4caf50' : 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff' } }}>
+                  sx={{ p: 0.3, color: tmpl.visibility === 'public' ? '#4caf50' : 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'var(--brand-fg)' } }}>
                   {tmpl.visibility === 'public'
                     ? <PublicRoundedIcon sx={{ fontSize: 12 }} />
                     : <LockRoundedIcon  sx={{ fontSize: 12 }} />}
@@ -112,7 +112,7 @@ function TemplateCard({
               </Tooltip>
               <Tooltip title="削除" placement="top">
                 <IconButton size="small" onClick={() => onDelete?.(tmpl)}
-                  sx={{ p: 0.3, color: 'rgba(255,255,255,0.25)', '&:hover': { color: '#ff4d4f' } }}>
+                  sx={{ p: 0.3, color: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { color: '#ff4d4f' } }}>
                   <DeleteOutlineRoundedIcon sx={{ fontSize: 12 }} />
                 </IconButton>
               </Tooltip>
@@ -122,9 +122,9 @@ function TemplateCard({
 
         {/* カテゴリ + パーツ数 */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.4 }}>
-          <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', lineHeight: 1 }}>{tmpl.category}</Typography>
-          <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>·</Typography>
-          <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>
+          <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1 }}>{tmpl.category}</Typography>
+          <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>·</Typography>
+          <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
             {(() => { try { return JSON.parse(tmpl.componentsJson).length; } catch { return '?'; } })()}P
           </Typography>
         </Box>
@@ -134,15 +134,15 @@ function TemplateCard({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.6 }}>
             <Avatar
               src={tmpl.creatorPhotoUrl || undefined}
-              sx={{ width: 14, height: 14, fontSize: 8, bgcolor: 'rgba(255,255,255,0.15)' }}
+              sx={{ width: 14, height: 14, fontSize: 8, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)' }}
             >
               <PersonRoundedIcon sx={{ fontSize: 10 }} />
             </Avatar>
-            <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>
+            <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>
               {tmpl.creatorName || '---'}
             </Typography>
             {tmpl.useCount > 0 && (
-              <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', ml: 'auto', flexShrink: 0 }}>
+              <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.2)', ml: 'auto', flexShrink: 0 }}>
                 {tmpl.useCount}回使用
               </Typography>
             )}
@@ -155,7 +155,7 @@ function TemplateCard({
             {tmpl.tags.slice(0, 3).map(t => (
               <Typography key={t} sx={{
                 fontSize: 8.5, px: 0.6, py: 0.1, borderRadius: 0.75,
-                bgcolor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', color: 'rgb(var(--brand-fg-rgb) / 0.35)',
               }}>{t}</Typography>
             ))}
           </Box>
@@ -267,7 +267,7 @@ export const CommunityTemplatesTab: React.FC = () => {
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── タブ切り替え（マイ / コミュニティ） ── */}
-      <Box sx={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', flexShrink: 0 }}>
         {([
           { key: 'my' as ViewMode,        label: 'マイ',         icon: <LockRoundedIcon sx={{ fontSize: 12 }} /> },
           { key: 'community' as ViewMode, label: 'コミュニティ', icon: <PublicRoundedIcon sx={{ fontSize: 12 }} /> },
@@ -279,14 +279,14 @@ export const CommunityTemplatesTab: React.FC = () => {
               flex: 1, py: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5,
               cursor: 'pointer',
               borderBottom: viewMode === key ? `2px solid ${ACCENT}` : '2px solid transparent',
-              color: viewMode === key ? ACCENT : 'rgba(255,255,255,0.4)',
+              color: viewMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.4)',
               transition: 'all 0.15s',
-              '&:hover': { color: viewMode === key ? ACCENT : 'rgba(255,255,255,0.7)', bgcolor: 'rgba(255,255,255,0.03)' },
+              '&:hover': { color: viewMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' },
             }}
           >
             {icon}
             <Typography sx={{ fontSize: 10, fontWeight: 700 }}>{label}</Typography>
-            <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>
+            <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
               ({(viewMode === key ? filtered : (key === 'my' ? myTemplates : communityTemplates)).length})
             </Typography>
           </Box>
@@ -295,7 +295,7 @@ export const CommunityTemplatesTab: React.FC = () => {
         <Tooltip title="再読み込み" placement="left">
           <span>
             <IconButton size="small" onClick={load} disabled={loading}
-              sx={{ m: 0.5, color: 'rgba(255,255,255,0.3)', '&:hover': { color: ACCENT } }}>
+              sx={{ m: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: ACCENT } }}>
               <RefreshRoundedIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </span>
@@ -309,11 +309,11 @@ export const CommunityTemplatesTab: React.FC = () => {
           placeholder="テンプレートを検索..."
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
-          InputProps={{ startAdornment: <SearchRoundedIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', mr: 0.5 }} /> }}
+          InputProps={{ startAdornment: <SearchRoundedIcon sx={{ fontSize: 14, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mr: 0.5 }} /> }}
           sx={{
-            '& .MuiInputBase-input': { color: '#fff', fontSize: 11, py: '5px' },
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-            '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.25)' },
+            '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 11, py: '5px' },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+            '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)' },
             '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
           }}
         />
@@ -330,8 +330,8 @@ export const CommunityTemplatesTab: React.FC = () => {
                 px: 0.85, py: 0.25, borderRadius: 1, cursor: 'pointer', flexShrink: 0,
                 fontSize: 9.5, fontWeight: 600,
                 bgcolor: activeCat === cat ? 'rgba(255,167,38,0.18)' : 'transparent',
-                color:   activeCat === cat ? ACCENT : 'rgba(255,255,255,0.38)',
-                border:  `1px solid ${activeCat === cat ? ACCENT : 'rgba(255,255,255,0.09)'}`,
+                color:   activeCat === cat ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.38)',
+                border:  `1px solid ${activeCat === cat ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.09)'}`,
                 transition: 'all 0.12s',
                 '&:hover': { color: ACCENT, borderColor: ACCENT },
               }}
@@ -351,7 +351,7 @@ export const CommunityTemplatesTab: React.FC = () => {
             <Typography sx={{ fontSize: 24, mb: 1 }}>
               {viewMode === 'my' ? '📦' : '🌐'}
             </Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.7 }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.7 }}>
               {viewMode === 'my'
                 ? 'テンプレートがまだありません\nツールバーの「テンプレート登録」から\n家具を保存してみましょう'
                 : searchText || activeCat !== 'すべて'

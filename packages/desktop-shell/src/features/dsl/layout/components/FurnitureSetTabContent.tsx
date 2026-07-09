@@ -30,7 +30,7 @@ import { SetSceneCanvas } from '../canvas/SetSceneCanvas';
 import type { FurnitureSet, FurnitureSetItem } from '../types/furnitureSet';
 
 const ACCENT = '#a78bfa';
-const LINE = 'rgba(255,255,255,0.1)';
+const LINE = 'rgb(var(--brand-fg-rgb) / 0.1)';
 const BG_SUBTLE = alpha('#fff', 0.015);
 
 interface Props {
@@ -177,7 +177,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
 
         {/* ヘッダー */}
         <Box sx={{ px: 1.5, py: 1.25, borderBottom: `1px solid ${LINE}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: alpha('#fff', 0.7) }}>セット一覧</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>セット一覧</Typography>
           {setsStore.sets.length > 0 && (
             <Chip label={setsStore.sets.length} size="small"
               sx={{ height: 16, fontSize: 10, bgcolor: alpha(ACCENT, 0.18), color: alpha(ACCENT, 0.9), '& .MuiChip-label': { px: 0.75 } }} />
@@ -192,8 +192,8 @@ export function FurnitureSetTabContent({ projectId }: Props) {
             </Box>
           ) : setsStore.sets.length === 0 && !creatingNew ? (
             <Box sx={{ p: 2, textAlign: 'center', mt: 1 }}>
-              <ChairRoundedIcon sx={{ fontSize: 28, color: alpha('#fff', 0.1), mb: 1 }} />
-              <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.3), lineHeight: 1.7 }}>
+              <ChairRoundedIcon sx={{ fontSize: 28, color: "color-mix(in srgb, var(--brand-fg) 10%, transparent)", mb: 1 }} />
+              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", lineHeight: 1.7 }}>
                 セットがありません<br />下の「＋セット追加」から作成
               </Typography>
             </Box>
@@ -212,7 +212,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                     transition: 'all 0.12s',
                   }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: isActive ? '#fff' : alpha('#fff', 0.75), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: isActive ? 'var(--brand-fg)' : "color-mix(in srgb, var(--brand-fg) 75%, transparent)", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
                       {set.name}
                     </Typography>
                     <Typography sx={{ fontSize: 10, color: isActive ? alpha(ACCENT, 0.7) : alpha('#fff', 0.3), mt: 0.1 }}>
@@ -221,7 +221,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                   </Box>
                   <Tooltip title="削除" placement="right">
                     <IconButton size="small" onClick={e => { e.stopPropagation(); handleDeleteSet(set.id); }}
-                      sx={{ color: alpha('#fff', 0.2), '&:hover': { color: '#f87171', bgcolor: alpha('#f87171', 0.1) }, borderRadius: 1 }}>
+                      sx={{ color: "color-mix(in srgb, var(--brand-fg) 20%, transparent)", '&:hover': { color: 'light-dark(#a50808, #f87171)', bgcolor: alpha('#f87171', 0.1) }, borderRadius: 1 }}>
                       <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
                     </IconButton>
                   </Tooltip>
@@ -235,7 +235,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
         <Box sx={{ borderTop: `1px solid ${LINE}`, flexShrink: 0 }}>
           {creatingNew ? (
             <Box sx={{ p: 1.25 }}>
-              <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.45), mb: 0.75 }}>セット名を入力</Typography>
+              <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", mb: 0.75 }}>セット名を入力</Typography>
               <TextField
                 autoFocus size="small" fullWidth placeholder="例：リビングセット"
                 value={newSetName} onChange={e => setNewSetName(e.target.value)}
@@ -246,7 +246,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                 sx={{
                   mb: 1,
                   '& .MuiOutlinedInput-root': {
-                    color: '#fff', fontSize: 12,
+                    color: 'var(--brand-fg)', fontSize: 12,
                     '& fieldset': { borderColor: alpha(ACCENT, 0.5) },
                     '&:hover fieldset': { borderColor: ACCENT },
                     '&.Mui-focused fieldset': { borderColor: ACCENT },
@@ -256,11 +256,11 @@ export function FurnitureSetTabContent({ projectId }: Props) {
               />
               <Box sx={{ display: 'flex', gap: 0.75 }}>
                 <Button size="small" fullWidth onClick={handleCreateSet} disabled={!newSetName.trim()}
-                  sx={{ bgcolor: ACCENT, color: '#fff', fontWeight: 700, fontSize: 12, '&:hover': { bgcolor: '#8b5cf6' }, '&.Mui-disabled': { bgcolor: alpha(ACCENT, 0.2), color: alpha('#fff', 0.3) }, borderRadius: 1.5, py: 0.75, textTransform: 'none' }}>
+                  sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', fontWeight: 700, fontSize: 12, '&:hover': { bgcolor: '#8b5cf6' }, '&.Mui-disabled': { bgcolor: alpha(ACCENT, 0.2), color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }, borderRadius: 1.5, py: 0.75, textTransform: 'none' }}>
                   作成
                 </Button>
                 <Button size="small" onClick={() => { setCreatingNew(false); setNewSetName(''); }}
-                  sx={{ color: alpha('#fff', 0.4), fontSize: 11, '&:hover': { bgcolor: alpha('#fff', 0.05) }, minWidth: 44, textTransform: 'none' }}>
+                  sx={{ color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", fontSize: 11, '&:hover': { bgcolor: alpha('#fff', 0.05) }, minWidth: 44, textTransform: 'none' }}>
                   取消
                 </Button>
               </Box>
@@ -287,12 +287,12 @@ export function FurnitureSetTabContent({ projectId }: Props) {
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {!editingSet ? (
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 2 }}>
-            <GridViewRoundedIcon sx={{ fontSize: 48, color: alpha('#fff', 0.08) }} />
+            <GridViewRoundedIcon sx={{ fontSize: 48, color: "color-mix(in srgb, var(--brand-fg) 8%, transparent)" }} />
             <Box sx={{ textAlign: 'center' }}>
-              <Typography sx={{ fontSize: 13, color: alpha('#fff', 0.35), fontWeight: 600 }}>
+              <Typography sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", fontWeight: 600 }}>
                 セットを選択してください
               </Typography>
-              <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.2), mt: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 20%, transparent)", mt: 0.5 }}>
                 左パネルから既存セットを選ぶか、新規作成
               </Typography>
             </Box>
@@ -307,7 +307,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                 onChange={e => setEditingSet(s => s ? { ...s, name: e.target.value } : s)}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    color: '#fff', fontSize: 13, fontWeight: 700,
+                    color: 'var(--brand-fg)', fontSize: 13, fontWeight: 700,
                     '& fieldset': { borderColor: 'transparent' },
                     '&:hover fieldset': { borderColor: LINE },
                     '&.Mui-focused fieldset': { borderColor: ACCENT },
@@ -321,7 +321,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
               <Chip
                 label={`${editingSet.items.length} 点`}
                 size="small"
-                sx={{ height: 20, fontSize: 10.5, bgcolor: alpha('#fff', 0.06), color: alpha('#fff', 0.5), '& .MuiChip-label': { px: 1 } }}
+                sx={{ height: 20, fontSize: 10.5, bgcolor: alpha('#fff', 0.06), color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", '& .MuiChip-label': { px: 1 } }}
               />
 
               <Box sx={{ flex: 1 }} />
@@ -334,13 +334,13 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                   </Typography>
                   <Tooltip title="90° 回転 (R)">
                     <IconButton size="small" onClick={handleRotate}
-                      sx={{ color: alpha('#fff', 0.55), '&:hover': { color: ACCENT, bgcolor: alpha(ACCENT, 0.12) }, borderRadius: 1, p: 0.4 }}>
+                      sx={{ color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", '&:hover': { color: ACCENT, bgcolor: alpha(ACCENT, 0.12) }, borderRadius: 1, p: 0.4 }}>
                       <RotateRightRoundedIcon sx={{ fontSize: 15 }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="削除 (Del)">
                     <IconButton size="small" onClick={() => handleRemoveItem(selectedItemId!)}
-                      sx={{ color: alpha('#fff', 0.35), '&:hover': { color: '#f87171', bgcolor: alpha('#f87171', 0.1) }, borderRadius: 1, p: 0.4 }}>
+                      sx={{ color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", '&:hover': { color: 'light-dark(#a50808, #f87171)', bgcolor: alpha('#f87171', 0.1) }, borderRadius: 1, p: 0.4 }}>
                       <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
                     </IconButton>
                   </Tooltip>
@@ -378,11 +378,11 @@ export function FurnitureSetTabContent({ projectId }: Props) {
               />
               {editingSet.items.length === 0 && (
                 <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                  <Box sx={{ textAlign: 'center', bgcolor: alpha('#000', 0.55), px: 3.5, py: 2.5, borderRadius: 2, border: `1px solid ${alpha('#fff', 0.07)}` }}>
-                    <Typography sx={{ fontSize: 13, color: alpha('#fff', 0.5), fontWeight: 600 }}>
+                  <Box sx={{ textAlign: 'center', bgcolor: "color-mix(in srgb, var(--brand-bg) 55%, transparent)", px: 3.5, py: 2.5, borderRadius: 2, border: `1px solid ${alpha('#fff', 0.07)}` }}>
+                    <Typography sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", fontWeight: 600 }}>
                       家具がありません
                     </Typography>
-                    <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.3), mt: 0.5 }}>
+                    <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", mt: 0.5 }}>
                       右パネルからカテゴリをクリックして追加
                     </Typography>
                   </Box>
@@ -399,8 +399,8 @@ export function FurnitureSetTabContent({ projectId }: Props) {
         {/* ヘッダー + 検索 */}
         <Box sx={{ px: 1.5, pt: 1.25, pb: 1, borderBottom: `1px solid ${LINE}`, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: alpha('#fff', 0.7) }}>家具を追加</Typography>
-            <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.3) }}>クリックで追加</Typography>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>家具を追加</Typography>
+            <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }}>クリックで追加</Typography>
           </Box>
           <TextField
             size="small" fullWidth placeholder="検索…"
@@ -408,13 +408,13 @@ export function FurnitureSetTabContent({ projectId }: Props) {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchRoundedIcon sx={{ fontSize: 14, color: alpha('#fff', 0.3) }} />
+                  <SearchRoundedIcon sx={{ fontSize: 14, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }} />
                 </InputAdornment>
               ),
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                color: '#fff', fontSize: 11.5,
+                color: 'var(--brand-fg)', fontSize: 11.5,
                 '& fieldset': { borderColor: alpha('#fff', 0.12) },
                 '&:hover fieldset': { borderColor: alpha('#fff', 0.25) },
                 '&.Mui-focused fieldset': { borderColor: alpha(ACCENT, 0.5) },
@@ -438,11 +438,11 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                   sx={{
                     display: 'flex', alignItems: 'center', px: 1.5, py: 0.75,
                     cursor: 'pointer', position: 'sticky', top: 0, zIndex: 1,
-                    bgcolor: alpha('#1a1a2e', 0.95),
+                    bgcolor: "color-mix(in srgb, var(--brand-surface2) 95%, transparent)",
                     borderBottom: `1px solid ${LINE}`,
-                    '&:hover': { bgcolor: alpha('#1a1a2e', 1) },
+                    '&:hover': { bgcolor: "color-mix(in srgb, var(--brand-surface2) 100%, transparent)" },
                   }}>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha('#fff', 0.45), flex: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", flex: 1, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                     {group}
                   </Typography>
                   {groupCount > 0 && (
@@ -450,7 +450,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                       sx={{ height: 15, fontSize: 9.5, bgcolor: alpha(ACCENT, 0.2), color: alpha(ACCENT, 0.9), mr: 0.5, '& .MuiChip-label': { px: 0.6 } }} />
                   )}
                   <ExpandMoreRoundedIcon
-                    sx={{ fontSize: 14, color: alpha('#fff', 0.25), transition: 'transform 0.2s', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }} />
+                    sx={{ fontSize: 14, color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)", transition: 'transform 0.2s', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }} />
                 </Box>
 
                 {/* グループ内アイテム */}
@@ -480,10 +480,10 @@ export function FurnitureSetTabContent({ projectId }: Props) {
                             {!entry && '□'}
                           </Avatar>
                           <Box sx={{ minWidth: 0, flex: 1 }}>
-                            <Typography sx={{ fontSize: 11, fontWeight: 600, color: alpha('#fff', 0.82), lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "color-mix(in srgb, var(--brand-fg) 82%, transparent)", lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {cat.label}
                             </Typography>
-                            <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.28), lineHeight: 1.2 }}>
+                            <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 28%, transparent)", lineHeight: 1.2 }}>
                               {cat.widthMm}×{cat.depthMm}mm
                             </Typography>
                           </Box>
@@ -503,7 +503,7 @@ export function FurnitureSetTabContent({ projectId }: Props) {
 
           {filteredGroups.length === 0 && (
             <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.25) }}>
+              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)" }}>
                 「{searchQuery}」に一致する家具が見つかりません
               </Typography>
             </Box>

@@ -985,7 +985,7 @@ export const PresentsCanvas: React.FC = () => {
     <Box
       sx={{
          flex: 1,
-         bgcolor: '#1e1e1e',
+         bgcolor: 'var(--brand-surface2)',
          position: 'relative',
          overflow: 'hidden',
          cursor: activeTool === 'pencil' ? 'crosshair' : (isPanDragging ? 'grabbing' : 'auto')
@@ -1266,7 +1266,7 @@ export const PresentsCanvas: React.FC = () => {
                    if (!imgData.src) {
                      return (
                        <Box
-                         sx={{ width: '100%', height: '100%', border: '2px dashed #c7c7cc', borderRadius: data.borderRadius || 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.5)', color: '#8e8e93', cursor: 'pointer', gap: 1, transition: 'all 0.15s', '&:hover': { borderColor: '#007aff', bgcolor: 'rgba(0,122,255,0.05)', color: '#007aff' } }}
+                         sx={{ width: '100%', height: '100%', border: '2px dashed #c7c7cc', borderRadius: data.borderRadius || 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.5)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', cursor: 'pointer', gap: 1, transition: 'all 0.15s', '&:hover': { borderColor: '#007aff', bgcolor: 'rgba(0,122,255,0.05)', color: '#007aff' } }}
                          onDoubleClick={(e) => { e.stopPropagation(); openImageFilePicker(el.id); }}
                        >
                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -1338,10 +1338,10 @@ export const PresentsCanvas: React.FC = () => {
                          })}
                          {/* Confirm / Cancel tooltip */}
                          <Box sx={{ position: 'absolute', bottom: -34, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'rgba(0,0,0,0.72)', borderRadius: 1.5, px: 1.5, py: 0.5, zIndex: 10, pointerEvents: 'auto', whiteSpace: 'nowrap' }}>
-                           <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', cursor: 'pointer', '&:hover': { color: '#fff' } }}
+                           <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.65)', cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' } }}
                              onPointerDown={(e) => { e.stopPropagation(); setCropMode(null); }}>Esc — キャンセル</Typography>
-                           <Box sx={{ width: 1, height: 12, bgcolor: 'rgba(255,255,255,0.25)', mx: 0.5 }} />
-                           <Typography sx={{ fontSize: 11, color: '#4da0ff', fontWeight: 700, cursor: 'pointer', '&:hover': { color: '#007aff' } }}
+                           <Box sx={{ width: 1, height: 12, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.25)', mx: 0.5 }} />
+                           <Typography sx={{ fontSize: 11, color: 'light-dark(#0051ad, #4da0ff)', fontWeight: 700, cursor: 'pointer', '&:hover': { color: '#007aff' } }}
                              onPointerDown={(e) => { e.stopPropagation(); applyCropModeRef.current(); }}>Enter — 適用</Typography>
                          </Box>
                        </Box>
@@ -1364,7 +1364,7 @@ export const PresentsCanvas: React.FC = () => {
                    );
                  })()}
                  {el.type === 'modelCard' && (
-                   <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', border: '1px solid #e5e5ea', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                   <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.8)', backdropFilter: 'blur(8px)', border: '1px solid #e5e5ea', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 16px light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.06))' }}>
                      <Box component="img" src={data.thumbnailUrl} sx={{ flex: 1, objectFit: 'cover' }} />
                      <Box sx={{ p: 1.5 }}>
                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#1d1d1f', display: 'block' }}>{data.title}</Typography>
@@ -1373,7 +1373,7 @@ export const PresentsCanvas: React.FC = () => {
                    </Box>
                  )}
                  {el.type === 'link' && (
-                   <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', p: 1, borderRadius: data.borderRadius || 1, bgcolor: data.bgcolor || 'rgba(255,255,255,0.8)', border: data.border || '1px solid #e5e5ea', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                   <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', p: 1, borderRadius: data.borderRadius || 1, bgcolor: data.bgcolor || 'rgb(var(--brand-fg-rgb) / 0.8)', border: data.border || '1px solid #e5e5ea', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                      <a href={data.url} target="_blank" rel="noopener noreferrer" style={{ color: data.color || '#007aff', textDecoration: 'underline', fontSize: data.fontSize || '14px', width: '100%', textAlign: data.textAlign || 'left', userSelect: 'none', pointerEvents: isDragging ? 'none' : 'auto' }} onPointerDown={(e) => {
                        // prevent navigating if we are just selecting or dragging
                        if (isSelected) { e.preventDefault(); }
@@ -1437,20 +1437,20 @@ export const PresentsCanvas: React.FC = () => {
                  {/* Sizing Handles (Apple-style hollow blue circles) */}
                  {isSelected && selectedElementIds.length === 1 && el.type !== 'line' && !isDragging && (
                    <>
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'tl', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top:-6, left:-6, cursor:'nwse-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 't', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top:-6, left:'calc(50% - 6px)', cursor:'ns-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'tr', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top:-6, right:-6, cursor:'nesw-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'l', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top:'calc(50% - 6px)', left:-6, cursor:'ew-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'r', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top:'calc(50% - 6px)', right:-6, cursor:'ew-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'bl', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', bottom:-6, left:-6, cursor:'nesw-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'b', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', bottom:-6, left:'calc(50% - 6px)', cursor:'ns-resize', borderRadius: '50%', zIndex: 10 }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'br', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', bottom:-6, right:-6, cursor:'nwse-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'tl', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top:-6, left:-6, cursor:'nwse-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 't', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top:-6, left:'calc(50% - 6px)', cursor:'ns-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'tr', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top:-6, right:-6, cursor:'nesw-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'l', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top:'calc(50% - 6px)', left:-6, cursor:'ew-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'r', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top:'calc(50% - 6px)', right:-6, cursor:'ew-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'bl', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', bottom:-6, left:-6, cursor:'nesw-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'b', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', bottom:-6, left:'calc(50% - 6px)', cursor:'ns-resize', borderRadius: '50%', zIndex: 10 }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'br', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', bottom:-6, right:-6, cursor:'nwse-resize', borderRadius: '50%', zIndex: 10 }} />
                    </>
                  )}
                  {isSelected && el.type === 'line' && selectedElementIds.length === 1 && !isDragging && (
                    <>
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'start', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top:-6, left:-6, cursor:'move', borderRadius: '50%' }} />
-                     <Box onPointerDown={(e) => handleResizeDown(e, 'end', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', top: renderH - 6, left: renderW - 6, cursor:'move', borderRadius: '50%' }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'start', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top:-6, left:-6, cursor:'move', borderRadius: '50%' }} />
+                     <Box onPointerDown={(e) => handleResizeDown(e, 'end', el)} sx={{ position:'absolute', width:12, height:12, bgcolor:'#fff', border: '1.5px solid #007aff', boxShadow: '0 1px 3px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', top: renderH - 6, left: renderW - 6, cursor:'move', borderRadius: '50%' }} />
                    </>
                  )}
                </Box>
@@ -1506,7 +1506,7 @@ export const PresentsCanvas: React.FC = () => {
           {/* Arrow hint */}
           <Box sx={{
             fontSize: 18,
-            color: 'rgba(41,182,246,0.9)',
+            color: 'light-dark(rgba(7,117,166,0.9), rgba(41,182,246,0.9))',
             lineHeight: 1,
             animation: 'dsp-bounce 0.6s ease-in-out infinite alternate',
           }}>
@@ -1517,7 +1517,7 @@ export const PresentsCanvas: React.FC = () => {
             width: 72,
             height: 3,
             borderRadius: 2,
-            bgcolor: 'rgba(255,255,255,0.12)',
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)',
             overflow: 'hidden',
           }}>
             <Box sx={{

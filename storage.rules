@@ -126,7 +126,7 @@ service firebase.storage {
       allow read, write, delete: if isMe(uid);
     }
 
-    /* ---------- Presentation Templates (S.Presentation user templates) ---------- */
+    /* ---------- Presentation Templates (S.Slide user templates) ---------- */
     // サムネ: 公開テンプレのカード表示のため read 公開、write は署名済み
     //   (所有判定は Firestore ルールで担保。既存 dsd-thumbnails / workFiles と同方針)
     match /presentationTemplates/{templateId}/{fileName} {

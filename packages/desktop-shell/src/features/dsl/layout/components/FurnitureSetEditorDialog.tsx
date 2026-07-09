@@ -28,7 +28,7 @@ import { SetSceneCanvas } from '../canvas/SetSceneCanvas';
 import type { FurnitureSet, FurnitureSetItem } from '../types/furnitureSet';
 
 const ACCENT = '#a78bfa';
-const LINE = 'rgba(255,255,255,0.1)';
+const LINE = 'rgb(var(--brand-fg-rgb) / 0.1)';
 
 interface Props {
   open: boolean;
@@ -160,9 +160,9 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
           width: '95vw', maxWidth: 1400,
           height: '90vh',
           borderRadius: 3,
-          background: '#12121c',
+          background: 'var(--brand-surface)',
           border: `1px solid ${LINE}`,
-          color: '#fff',
+          color: 'var(--brand-fg)',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
         },
@@ -172,10 +172,10 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: `1px solid ${LINE}`, py: 1.5, px: 2.5, flexShrink: 0 }}>
         <GridViewRoundedIcon sx={{ fontSize: 20, color: ACCENT }} />
         <Typography sx={{ fontWeight: 800, fontSize: 16, flex: 1 }}>デフォルトセット家具</Typography>
-        <Typography sx={{ fontSize: 12, color: alpha('#fff', 0.4), mr: 1 }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mr: 1 }}>
           よく使う家具の組み合わせを登録して自動レイアウトで活用する
         </Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: alpha('#fff', 0.5), '&:hover': { color: '#fff' } }}>
+        <IconButton size="small" onClick={onClose} sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </DialogTitle>
@@ -184,9 +184,9 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
         {/* ── 左: セット一覧 ── */}
         <Box sx={{ width: 220, flexShrink: 0, borderRight: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: alpha('#fff', 0.015) }}>
           <Box sx={{ px: 1.5, py: 1.25, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, flex: 1, color: alpha('#fff', 0.7) }}>セット一覧</Typography>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, flex: 1, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>セット一覧</Typography>
             <Tooltip title="新規セット">
-              <IconButton size="small" onClick={() => setCreatingNew(true)} sx={{ color: alpha('#fff', 0.5), '&:hover': { color: ACCENT } }}>
+              <IconButton size="small" onClick={() => setCreatingNew(true)} sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", '&:hover': { color: ACCENT } }}>
                 <AddRoundedIcon sx={{ fontSize: 16 }} />
               </IconButton>
             </Tooltip>
@@ -203,13 +203,13 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
                 value={newSetName}
                 onChange={e => setNewSetName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreateSet(); if (e.key === 'Escape') setCreatingNew(false); }}
-                sx={{ '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 12, '& fieldset': { borderColor: ACCENT }, }, '& input': { py: '6px' } }}
+                sx={{ '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 12, '& fieldset': { borderColor: ACCENT }, }, '& input': { py: '6px' } }}
               />
               <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
                 <Button size="small" onClick={handleCreateSet} disabled={!newSetName.trim()}
                   sx={{ flex: 1, fontSize: 11, bgcolor: alpha(ACCENT, 0.2), color: ACCENT, '&:hover': { bgcolor: alpha(ACCENT, 0.3) } }}>作成</Button>
                 <Button size="small" onClick={() => setCreatingNew(false)}
-                  sx={{ flex: 1, fontSize: 11, color: alpha('#fff', 0.5) }}>キャンセル</Button>
+                  sx={{ flex: 1, fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>キャンセル</Button>
               </Box>
             </Box>
           )}
@@ -220,7 +220,7 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
               <Box sx={{ display: 'flex', justifyContent: 'center', pt: 3 }}><CircularProgress size={18} sx={{ color: ACCENT }} /></Box>
             ) : setsStore.sets.length === 0 && !creatingNew ? (
               <Box sx={{ p: 2, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: 11.5, color: alpha('#fff', 0.35), lineHeight: 1.6 }}>
+                <Typography sx={{ fontSize: 11.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", lineHeight: 1.6 }}>
                   セットがありません<br />「+」で新規作成
                 </Typography>
               </Box>
@@ -238,16 +238,16 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
                   }}
                 >
                   <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: activeSetId === set.id ? '#fff' : alpha('#fff', 0.8), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: activeSetId === set.id ? 'var(--brand-fg)' : "color-mix(in srgb, var(--brand-fg) 80%, transparent)", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {set.name}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.35) }}>
+                    <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }}>
                       {set.items.length} アイテム
                     </Typography>
                   </Box>
                   <Tooltip title="削除">
                     <IconButton size="small" onClick={e => { e.stopPropagation(); handleDeleteSet(set.id); }}
-                      sx={{ color: alpha('#fff', 0.25), '&:hover': { color: '#f87171' } }}>
+                      sx={{ color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)", '&:hover': { color: 'light-dark(#a50808, #f87171)' } }}>
                       <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
                     </IconButton>
                   </Tooltip>
@@ -261,8 +261,8 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
           {!editingSet ? (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1.5 }}>
-              <GridViewRoundedIcon sx={{ fontSize: 48, color: alpha('#fff', 0.12) }} />
-              <Typography sx={{ fontSize: 13, color: alpha('#fff', 0.35) }}>
+              <GridViewRoundedIcon sx={{ fontSize: 48, color: "color-mix(in srgb, var(--brand-fg) 12%, transparent)" }} />
+              <Typography sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }}>
                 左のセット一覧からセットを選択するか、新規作成してください
               </Typography>
             </Box>
@@ -274,21 +274,21 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
                   size="small"
                   value={editingSet.name}
                   onChange={e => setEditingSet(s => s ? { ...s, name: e.target.value } : s)}
-                  sx={{ '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 13, fontWeight: 700, '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: LINE }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px' } }}
+                  sx={{ '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 13, fontWeight: 700, '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: LINE }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px' } }}
                 />
                 <Box sx={{ flex: 1 }} />
                 {selectedItem && (
                   <>
-                    <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.5) }}>
+                    <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>
                       選択: {selectedItem.title}
                     </Typography>
                     <Tooltip title="90° 回転">
-                      <IconButton size="small" onClick={handleRotate} sx={{ color: alpha('#fff', 0.6), '&:hover': { color: ACCENT } }}>
+                      <IconButton size="small" onClick={handleRotate} sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", '&:hover': { color: ACCENT } }}>
                         <RotateRightRoundedIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="削除">
-                      <IconButton size="small" onClick={() => handleRemoveItem(selectedItemId!)} sx={{ color: alpha('#fff', 0.4), '&:hover': { color: '#f87171' } }}>
+                      <IconButton size="small" onClick={() => handleRemoveItem(selectedItemId!)} sx={{ color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", '&:hover': { color: 'light-dark(#a50808, #f87171)' } }}>
                         <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
@@ -318,8 +318,8 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
                     alignItems: 'center', justifyContent: 'center',
                     pointerEvents: 'none',
                   }}>
-                    <Box sx={{ textAlign: 'center', bgcolor: alpha('#000', 0.5), px: 3, py: 2, borderRadius: 2 }}>
-                      <Typography sx={{ fontSize: 13, color: alpha('#fff', 0.5) }}>
+                    <Box sx={{ textAlign: 'center', bgcolor: "color-mix(in srgb, var(--brand-bg) 50%, transparent)", px: 3, py: 2, borderRadius: 2 }}>
+                      <Typography sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>
                         右のパネルから家具カテゴリを追加してください
                       </Typography>
                     </Box>
@@ -333,10 +333,10 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
         {/* ── 右: カテゴリ追加パネル ── */}
         <Box sx={{ width: 240, flexShrink: 0, borderLeft: `1px solid ${LINE}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: alpha('#fff', 0.015) }}>
           <Box sx={{ px: 1.5, py: 1.25, borderBottom: `1px solid ${LINE}`, flexShrink: 0 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: alpha('#fff', 0.7) }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
               家具を追加
             </Typography>
-            <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.35), mt: 0.25 }}>
+            <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", mt: 0.25 }}>
               クリックしてセットに追加
             </Typography>
           </Box>
@@ -364,10 +364,10 @@ export function FurnitureSetEditorDialog({ open, onClose, projectId }: Props) {
                     {!entry && '□'}
                   </Avatar>
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: alpha('#fff', 0.85), lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)", lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {cat.label}
                     </Typography>
-                    <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.3), lineHeight: 1.2 }}>
+                    <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", lineHeight: 1.2 }}>
                       {cat.widthMm}×{cat.depthMm}mm
                     </Typography>
                   </Box>

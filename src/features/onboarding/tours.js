@@ -61,9 +61,9 @@ export const HERO_TOUR = {
     },
     {
       id: "models",
-      title: "⑤ 世界中の素材を、空間へ — S.Models",
-      body: "家具や建材の3DモデルをS.Modelsで検索。「ソファ」「テーブル」など日本語でも探せて、気に入ったモデルをそのまま空間に配置できます。",
-      hint: "S.Models に切り替わりました",
+      title: "⑤ 世界中の素材を、空間へ — S.Model",
+      body: "家具や建材の3DモデルをS.Modelで検索。「ソファ」「テーブル」など日本語でも探せて、気に入ったモデルをそのまま空間に配置できます。",
+      hint: "S.Model に切り替わりました",
       onEnter: async (a) => { await a.switchTab("3dss"); await a.sleep(700); },
       target: '[data-tour="3dss"]',
       waitTarget: true,
@@ -196,11 +196,11 @@ export const CHAPTERS = {
 
   models: {
     id: "models",
-    label: "S.Models でモデルを探して配置",
+    label: "S.Model でモデルを探して配置",
     steps: [
       {
         id: "mdl-open",
-        title: "S.Models を開きます",
+        title: "S.Model を開きます",
         body: "3Dモデルのライブラリ。家具・建材・設備を検索して、空間に配置できます。",
         onEnter: async (a) => { await a.switchTab("3dss"); await a.sleep(700); },
         target: '[data-tour="3dss"]',

@@ -10,8 +10,10 @@ import { AiStudioTraining } from './Training/AiStudioTraining';
 import { AiStudioScore } from './Score/AiStudioScore';
 import { AiStudioModels } from './AiModels/AiStudioModels';
 import { AiStudioAutomation } from './Automation/AiStudioAutomation';
+import { AiStudioMemory } from './Memory/AiStudioMemory';
+import { AiStudioApi } from './Api/AiStudioApi';
 
-export type AiStudioView = 'overview' | 'aimodels' | 'automation' | 'save-data' | 'documents' | 'training' | 'score';
+export type AiStudioView = 'overview' | 'aimodels' | 'automation' | 'memory' | 'save-data' | 'documents' | 'training' | 'score' | 'api';
 
 export const AiStudioShell: React.FC = () => {
   const [currentView, setCurrentView] = useState<AiStudioView>('overview');
@@ -38,10 +40,12 @@ export const AiStudioShell: React.FC = () => {
       case 'overview': return <AiStudioOverview onNavigate={setCurrentView} onOpenModel={openModel} />;
       case 'aimodels': return <AiStudioModels initialProfileId={focusProfileId} />;
       case 'automation': return <AiStudioAutomation />;
+      case 'memory': return <AiStudioMemory />;
       case 'save-data': return <AiStudioSaveData />;
       case 'documents': return <AiStudioDocuments />;
       case 'training': return <AiStudioTraining />;
       case 'score': return <AiStudioScore />;
+      case 'api': return <AiStudioApi />;
       default: return <AiStudioOverview onNavigate={setCurrentView} onOpenModel={openModel} />;
     }
   };

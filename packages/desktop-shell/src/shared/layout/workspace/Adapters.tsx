@@ -7,6 +7,7 @@ import { DslDashboard } from '../../../features/dsl/DslDashboard';
 
 import { DscDashboard } from '../../../features/dsc/DscDashboard';
 import { DspDashboard } from '../../../features/dsp/DspDashboard';
+import { DspTemplatesView } from '../../../features/dsp/DspTemplatesView';
 
 interface AdapterContext {
   projectId: string;
@@ -500,7 +501,7 @@ const useGlobalProjectsService = (scope: 'global_projects' | 'global_following_p
   return { isInitializing, data };
 };
 
-// S.Models「Local Models」サービス。LocalAssets\Models ＋ユーザー追加フォルダを Tauri で
+// S.Model「Local Models」サービス。LocalAssets\Models ＋ユーザー追加フォルダを Tauri で
 // 走査し、3Dモデル（3dm/glb/gltf/blend）を asset:// 参照で返す（読み取り専用）。
 // glb/gltf 本体・隣接コンパニオン GLB は files.glb として詳細ビューの3Dプレビューに使える。
 const useLocalModelsService = (active: boolean) => {
@@ -722,7 +723,8 @@ const useGlobalPresentationsService = (scope: string) => {
  */
 const useDspService = (payload?: AdapterContext) => {
   const dspScope = useAppStore(s => s.dspScope);
-  const isGlobalPresentations = ['global_presentations', 'my_public_presentations', 'my_private_presentations'].includes(dspScope);
+  // my_templates は自前でデータ取得する専用ビュー → globalPresentations サービスへ流し(validScopes ガードで空返し)、payload 依存を切る
+  const isGlobalPresentations = ['global_presentations', 'my_public_presentations', 'my_private_presentations', 'my_templates'].includes(dspScope);
   const isGlobalProjects = dspScope === 'global_projects';
   const isGlobal = isGlobalPresentations || isGlobalProjects;
 
@@ -1073,6 +1075,7 @@ const useDslService = () => {
 
 
 import { useAppStore } from '../../../store/useAppStore';
+import { useDsiEditorStore } from '../../../features/dsi/store/useDsiEditorStore';
 import { useImageSourcesStore } from '../../../features/dsi/store/useImageSourcesStore';
 import { useModelSourcesStore } from '../../../features/dss/store/useModelSourcesStore';
 import { useLocalUploadStore } from '../../../features/dss/store/useLocalUploadStore';
@@ -1150,17 +1153,26 @@ const DspEditorLazy = React.lazy(() => import('../../../features/dsp/editor/DspE
 
 export const DspAdapter: React.FC<AdapterProps> = ({ payload }) => {
   const dspScope = useAppStore(s => s.dspScope);
-  const isGlobal = ['global_presentations', 'my_public_presentations', 'my_private_presentations', 'global_projects'].includes(dspScope);
+  const isGlobal = ['global_presentations', 'my_public_presentations', 'my_private_presentations', 'global_projects', 'my_templates'].includes(dspScope);
   const { isInitializing, data } = useDspService(payload);
   const dspShellMode = useAppStore(s => s.dspShellMode);
   const selectedItem = useAppStore(s => payload?.workspaceId ? s.panelSelections[payload.workspaceId] : null);
+
+  // テンプレート管理は専用ビュー（scope 駆動・shellMode に依存しない）
+  if (dspScope === 'my_templates') {
+    return (
+      <Box sx={{ flex: 1, height: '100%', overflow: 'hidden' }}>
+        <DspTemplatesView />
+      </Box>
+    );
+  }
 
   // グローバルスコープでは projectId が不要。プロジェクトスコープのみ必須チェック
   if (!isGlobal && (!payload || !payload.workspaceId || !payload.projectId)) {
     return (
       <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
         <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
-        <Typography variant="body1">Please select a S.Presentations workspace from the Project Overview to continue.</Typography>
+        <Typography variant="body1">Please select a S.Slide workspace from the Project Overview to continue.</Typography>
       </Box>
     );
   }
@@ -1170,7 +1182,7 @@ export const DspAdapter: React.FC<AdapterProps> = ({ payload }) => {
       <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', bgcolor: 'background.default' }}>
         <React.Suspense fallback={
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
-            <CircularProgress sx={{ color: '#29b6f6', mb: 2 }} />
+            <CircularProgress sx={{ color: 'light-dark(#0775a6, #29b6f6)', mb: 2 }} />
             <Typography color="text.secondary">Loading 3D Shape Presents Engine...</Typography>
           </Box>
         }>
@@ -1248,7 +1260,7 @@ export const DscAdapter: React.FC<AdapterProps> = ({ payload }) => {
       <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', bgcolor: 'background.default' }}>
         <React.Suspense fallback={
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
-            <CircularProgress sx={{ color: '#ffa726', mb: 2 }} />
+            <CircularProgress sx={{ color: 'light-dark(#ad6700, #ffa726)', mb: 2 }} />
             <Typography color="text.secondary">Loading 3D Shape Create (造作ビルダー) Engine...</Typography>
           </Box>
         }>
@@ -1304,7 +1316,7 @@ export const DslAdapter: React.FC<AdapterProps> = ({ payload }) => {
     <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative' }}>
       <React.Suspense fallback={
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
-          <CircularProgress sx={{ color: '#fa709a', mb: 2 }} />
+          <CircularProgress sx={{ color: 'light-dark(#a80637, #fa709a)', mb: 2 }} />
           <Typography color="text.secondary">Loading 3D Layout Engine...</Typography>
         </Box>
       }>
@@ -1951,8 +1963,11 @@ const useLocalImagesService = (active: boolean) => {
           }
           return;
         }
-        const assets: any[] = await invoke('list_local_image_assets');
-        console.log('[useLocalImagesService] found', assets.length, 'assets');
+        const rawAssets: any[] = await invoke('list_local_image_assets');
+        // S.Image は静止画・テクスチャのみ扱う。動画(Movies 配下含む)は S.Movie の担当なので除外。
+        // ※Rust の list_local_image_assets 自体は S.Movie 等が動画取得に使うため据え置き、ここで絞る。
+        const assets = rawAssets.filter((a) => a.mediaType !== 'video');
+        console.log('[useLocalImagesService] found', assets.length, 'image assets (videos excluded)');
         const items = assets.map((a) => {
           const src = convertFileSrc(String(a.path).replace(/\\/g, '/'));
           return {
@@ -1976,10 +1991,19 @@ const useLocalImagesService = (active: boolean) => {
           };
         });
         if (!cancelled) {
-          // ソース別の枚数をストアへ反映（サイドバーのバッジ用）。
+          // ソース別の枚数＋サブフォルダ別の枚数をストアへ反映（サイドバーのバッジ／フォルダツリー用）。
           const counts: Record<string, number> = {};
-          for (const it of items) counts[it.sourceId] = (counts[it.sourceId] || 0) + 1;
-          useImageSourcesStore.getState().setCounts(counts);
+          // sourceId → サブフォルダ相対パス → 直下の件数。
+          const subCounts: Record<string, Record<string, number>> = {};
+          for (const it of items) {
+            counts[it.sourceId] = (counts[it.sourceId] || 0) + 1;
+            const sub = String(it.subfolder || '');
+            if (!subCounts[it.sourceId]) subCounts[it.sourceId] = {};
+            subCounts[it.sourceId][sub] = (subCounts[it.sourceId][sub] || 0) + 1;
+          }
+          const imgStore = useImageSourcesStore.getState();
+          imgStore.setCounts(counts);
+          imgStore.setSubfolderCounts(subCounts);
           setData({ status: 'ready', items, sets: [] });
           setIsInitializing(false);
         }
@@ -2018,12 +2042,22 @@ const useDsiService = (payload?: AdapterContext) => {
 
 // @ts-ignore
 const DsiDashboardLazy = React.lazy(() => import('../../../features/dsi/DsiDashboard').then(m => ({ default: m.DsiDashboard })));
+const DsiEditorLazy = React.lazy(() => import('../../../features/dsi/DsiEditor').then(m => ({ default: m.DsiEditor })));
 
 export const DsiAdapter: React.FC<AdapterProps> = ({ payload }) => {
   const dsiScope = useAppStore(s => s.dsiScope);
+  const dsiShellMode = useAppStore(s => s.dsiShellMode);
+  const setDsiShellMode = useAppStore(s => s.setDsiShellMode);
   const { isInitializing, data } = useDsiService(payload);
   const isGlobal = DSI_GLOBAL_SCOPES.includes(dsiScope);
   const isLocal = dsiScope === 'local_assets';
+  // エディターの保存先。プロジェクトスコープは payload、横断ビュー（Private/Public Image）は
+  // 開いた画像の projectId をエディターストアに保持している。ローカル素材は保存先が無いので不可。
+  const editTargetProjectId = useDsiEditorStore((s) => s.targetProjectId);
+  const canEdit = !isLocal && (!!payload?.projectId || !!editTargetProjectId);
+  useEffect(() => {
+    if (dsiShellMode === 'editor' && !canEdit) setDsiShellMode('dashboard');
+  }, [dsiShellMode, canEdit, setDsiShellMode]);
 
   const handleDeleteItem = useCallback(async (item: any) => {
     if (!payload?.projectId) return;
@@ -2066,19 +2100,23 @@ export const DsiAdapter: React.FC<AdapterProps> = ({ payload }) => {
           <Typography color="text.secondary">Loading S.Image...</Typography>
         </Box>
       }>
-        <DsiDashboardLazy
-          payload={payload}
-          images={data?.items || []}
-          sets={data?.sets || []}
-          projects={data?.projects || null}
-          isInitializing={isInitializing}
-          isGlobal={isGlobal}
-          isLocal={isLocal}
-          localError={isLocal ? data?.error : undefined}
-          onDeleteItem={handleDeleteItem}
-          onSelectItem={handleSelectItem}
-          onOpenProject={handleOpenProject}
-        />
+        {dsiShellMode === 'editor' && canEdit ? (
+          <DsiEditorLazy payload={payload} onBack={() => setDsiShellMode('dashboard')} />
+        ) : (
+          <DsiDashboardLazy
+            payload={payload}
+            images={data?.items || []}
+            sets={data?.sets || []}
+            projects={data?.projects || null}
+            isInitializing={isInitializing}
+            isGlobal={isGlobal}
+            isLocal={isLocal}
+            localError={isLocal ? data?.error : undefined}
+            onDeleteItem={handleDeleteItem}
+            onSelectItem={handleSelectItem}
+            onOpenProject={handleOpenProject}
+          />
+        )}
       </React.Suspense>
     </Box>
   );
@@ -2428,7 +2466,7 @@ export const DsbAdapter: React.FC<AdapterProps> = ({ payload }) => {
     <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', bgcolor: 'background.default' }}>
       <React.Suspense fallback={
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
-          <CircularProgress sx={{ color: blogScope === 'official' ? '#38bdf8' : '#e57373', mb: 2 }} />
+          <CircularProgress sx={{ color: blogScope === 'official' ? 'light-dark(#0676a8, #38bdf8)' : 'light-dark(#921b1b, #e57373)', mb: 2 }} />
           <Typography color="text.secondary">Loading S.Blog...</Typography>
         </Box>
       }>
@@ -2496,7 +2534,7 @@ const useDsmtProjectService = (payload?: AdapterContext) => {
 /**
  * global_materials（全公開 / フォロー中公開を dsmtGlobalFilter で切替）
  * / my_public_materials / my_private_materials。
- * クエリのフィールド構成は S.Presentations(3dsp) と同一のため既存の複合 index を再利用する。
+ * クエリのフィールド構成は S.Slide(3dsp) と同一のため既存の複合 index を再利用する。
  */
 const useGlobalMaterialsService = (scope: string) => {
   const user = useAuthStore(s => s.currentUser);

@@ -124,8 +124,8 @@ export const CropOverlay: React.FC<Props> = ({ src, initialCrop, onApply, onCanc
     >
       {/* Header hint */}
       <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <CropRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.5)' }} />
-        <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+        <CropRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
+        <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
           ドラッグしてトリミング範囲を調整 — Enter で適用 / Esc でキャンセル
         </Typography>
       </Box>
@@ -156,10 +156,10 @@ export const CropOverlay: React.FC<Props> = ({ src, initialCrop, onApply, onCanc
             {/* Crop border */}
             <rect x={px.left} y={px.top} width={px.width} height={px.height} fill="none" stroke="white" strokeWidth={1.5} />
             {/* Rule-of-thirds grid */}
-            <line x1={px.left + px.width / 3} y1={px.top} x2={px.left + px.width / 3} y2={px.top + px.height} stroke="rgba(255,255,255,0.35)" strokeWidth={1} />
-            <line x1={px.left + px.width * 2 / 3} y1={px.top} x2={px.left + px.width * 2 / 3} y2={px.top + px.height} stroke="rgba(255,255,255,0.35)" strokeWidth={1} />
-            <line x1={px.left} y1={px.top + px.height / 3} x2={px.left + px.width} y2={px.top + px.height / 3} stroke="rgba(255,255,255,0.35)" strokeWidth={1} />
-            <line x1={px.left} y1={px.top + px.height * 2 / 3} x2={px.left + px.width} y2={px.top + px.height * 2 / 3} stroke="rgba(255,255,255,0.35)" strokeWidth={1} />
+            <line x1={px.left + px.width / 3} y1={px.top} x2={px.left + px.width / 3} y2={px.top + px.height} stroke="rgb(var(--brand-fg-rgb) / 0.35)" strokeWidth={1} />
+            <line x1={px.left + px.width * 2 / 3} y1={px.top} x2={px.left + px.width * 2 / 3} y2={px.top + px.height} stroke="rgb(var(--brand-fg-rgb) / 0.35)" strokeWidth={1} />
+            <line x1={px.left} y1={px.top + px.height / 3} x2={px.left + px.width} y2={px.top + px.height / 3} stroke="rgb(var(--brand-fg-rgb) / 0.35)" strokeWidth={1} />
+            <line x1={px.left} y1={px.top + px.height * 2 / 3} x2={px.left + px.width} y2={px.top + px.height * 2 / 3} stroke="rgb(var(--brand-fg-rgb) / 0.35)" strokeWidth={1} />
           </svg>
         )}
 
@@ -196,7 +196,7 @@ export const CropOverlay: React.FC<Props> = ({ src, initialCrop, onApply, onCanc
         <Button
           variant="outlined" size="small"
           onClick={onCancel}
-          sx={{ color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.3)', '&:hover': { borderColor: '#fff' } }}
+          sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { borderColor: '#fff' } }}
         >
           キャンセル
         </Button>

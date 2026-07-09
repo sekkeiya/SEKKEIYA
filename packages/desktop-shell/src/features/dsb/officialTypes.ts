@@ -104,8 +104,8 @@ export function articleToDraft(a: OfficialArticle): OfficialDraft {
 }
 
 export const OFFICIAL_STATUS_META: Record<OfficialStatus, { label: string; color: string; bg: string }> = {
-  draft: { label: '下書き', color: '#fbbf24', bg: 'rgba(245,158,11,0.12)' },
-  interview: { label: '🎤 取材待ち', color: '#fb923c', bg: 'rgba(251,146,60,0.14)' },
-  review: { label: '🤖 レビュー待ち', color: '#c084fc', bg: 'rgba(192,132,252,0.14)' },
+  draft: { label: '下書き', color: 'light-dark(#aa7c03, #fbbf24)', bg: 'rgba(245,158,11,0.12)' },
+  interview: { label: '🎤 取材待ち', color: 'light-dark(#aa4e03, #fb923c)', bg: 'rgba(251,146,60,0.14)' },
+  review: { label: '🤖 レビュー待ち', color: 'light-dark(#5704a9, #c084fc)', bg: 'rgba(192,132,252,0.14)' },
   published: { label: '公開済み', color: '#4ade80', bg: 'rgba(74,222,128,0.14)' },
 };

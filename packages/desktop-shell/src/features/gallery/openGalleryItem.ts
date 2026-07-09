@@ -19,7 +19,7 @@ export async function openGalleryItem(item: GalleryItem): Promise<void> {
   const ref = item.ref;
 
   try {
-    // ── S.Models: 詳細を右パネルに表示（assets はグローバル） ──
+    // ── S.Model: 詳細を右パネルに表示（assets はグローバル） ──
     if (ref.kind === 'model') {
       const snap = await getDoc(doc(db, 'assets', ref.assetId));
       if (!snap.exists()) return;

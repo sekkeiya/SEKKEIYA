@@ -1,6 +1,6 @@
 // useWalkthroughCharacters.js
 //
-// S.Models（assets コレクション）に登録された「キャラクター」カテゴリのモデルを
+// S.Model（assets コレクション）に登録された「キャラクター」カテゴリのモデルを
 // ウォークスルー用の記述子へ正規化して返す。公開モデル + 自分のプロジェクトモデルを統合。
 
 import { useMemo } from "react";

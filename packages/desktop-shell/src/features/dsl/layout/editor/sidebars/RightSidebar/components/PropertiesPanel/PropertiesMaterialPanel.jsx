@@ -84,9 +84,9 @@ function PropertyRow({ icon, label, onClick, right, disabled = false }) {
           display: "grid",
           placeItems: "center",
           borderRadius: 1.2,
-          background: alpha("#000", 0.18),
+          background: "color-mix(in srgb, var(--brand-bg) 18%, transparent)",
           border: `1px solid ${alpha("#fff", 0.10)}`,
-          color: alpha("#fff", 0.9),
+          color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
         }}
       >
         {icon}
@@ -324,7 +324,7 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
     () => ({
       width: "100%",
       height: "100%",
-      color: alpha("#fff", 0.92),
+      color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)",
       display: "flex",
       flexDirection: "column",
       minHeight: 0,
@@ -395,10 +395,10 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
                 width: 32,
                 height: 32,
                 borderRadius: 2,
-                color: alpha("#fff", 0.85),
+                color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)",
                 border: `1px solid ${alpha("#fff", 0.10)}`,
-                background: alpha("#000", 0.18),
-                "&:hover": { background: alpha("#000", 0.25) },
+                background: "color-mix(in srgb, var(--brand-bg) 18%, transparent)",
+                "&:hover": { background: "color-mix(in srgb, var(--brand-bg) 25%, transparent)" },
               }}
               onClick={() => console.log("[MaterialPanel] more")}
             >
@@ -426,10 +426,10 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
             "& .MuiTab-root": {
               minHeight: 40,
               textTransform: "none",
-              color: alpha("#fff", 0.7),
+              color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)",
               px: 1,
             },
-            "& .Mui-selected": { color: "#fff" },
+            "& .Mui-selected": { color: "var(--brand-fg)" },
           }}
         >
           <Tab value="main" label={<TabLabel icon={<GridViewRoundedIcon sx={{ fontSize: 16 }} />} label="Main" />} />
@@ -463,7 +463,7 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
             mt: 1.1,
             borderRadius: 2,
             border: `1px solid ${alpha("#fff", 0.10)}`,
-            background: alpha("#000", 0.22),
+            background: "color-mix(in srgb, var(--brand-bg) 22%, transparent)",
             overflow: "hidden",
           }}
         >
@@ -472,7 +472,7 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
               height: 170,
               position: "relative",
               background:
-                "radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(0,0,0,0.55))",
+                "radial-gradient(circle at 30% 25%, rgb(var(--brand-fg-rgb) / 0.18), rgba(0,0,0,0.55))",
             }}
           >
             <Box sx={{ position: "absolute", inset: 0 }}>
@@ -542,10 +542,10 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
                   width: 32,
                   height: 32,
                   borderRadius: 2,
-                  color: alpha("#fff", 0.86),
+                  color: "color-mix(in srgb, var(--brand-fg) 86%, transparent)",
                   border: `1px solid ${alpha("#fff", 0.12)}`,
-                  background: alpha("#000", 0.22),
-                  "&:hover": { background: alpha("#000", 0.30) },
+                  background: "color-mix(in srgb, var(--brand-bg) 22%, transparent)",
+                  "&:hover": { background: "color-mix(in srgb, var(--brand-bg) 30%, transparent)" },
                 }}
               >
                 <MoreHorizRoundedIcon fontSize="small" />
@@ -586,7 +586,7 @@ export default function PropertiesMaterialPanel({ selection, textureLibrary = []
                       borderRadius: 1.2,
                       overflow: "hidden",
                       border: `1px solid ${alpha("#fff", 0.14)}`,
-                      background: alpha("#000", 0.25),
+                      background: "color-mix(in srgb, var(--brand-bg) 25%, transparent)",
                       display: "grid",
                       placeItems: "center",
                       cursor: "pointer",

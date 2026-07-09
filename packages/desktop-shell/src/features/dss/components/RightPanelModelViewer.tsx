@@ -96,7 +96,7 @@ const DimensionOverlay = ({ box, dims }: { box: THREE.Box3; dims: ViewerDimensio
             <Html position={mid} center zIndexRange={[100, 0]} style={{ pointerEvents: 'none' }}>
               <div
                 style={{
-                  background: 'rgba(15,23,42,0.85)',
+                  background: 'rgb(var(--slate-panel-rgb) / 0.85)',
                   border: `1px solid ${l.color}`,
                   color: l.color,
                   padding: '1px 6px',

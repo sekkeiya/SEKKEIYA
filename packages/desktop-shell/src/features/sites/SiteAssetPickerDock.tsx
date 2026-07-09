@@ -594,7 +594,7 @@ const AssetPicker: React.FC<{
               マイ素材がありません
             </Typography>
             <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.18)', mt: 0.5, lineHeight: 1.6 }}>
-              各子アプリや AI Drive から<br />素材を保存してください
+              各子アプリや SEKKEIYA Drive から<br />素材を保存してください
             </Typography>
           </Box>
         ) : (

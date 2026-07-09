@@ -78,7 +78,7 @@ export default function BottomDock({
       py: 2,
       width: 56,
       borderRadius: "28px",
-      background: alpha("#070b18", 0.7),
+      background: "color-mix(in srgb, var(--brand-bg) 70%, transparent)",
       backdropFilter: "blur(12px)",
       border: `1px solid ${alpha("#ffffff", 0.1)}`,
       boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
@@ -86,7 +86,7 @@ export default function BottomDock({
       opacity: 0.15, // dim normally
       "&:hover": {
         opacity: 1, // reveal on hover
-        background: alpha("#070b18", 0.8),
+        background: "color-mix(in srgb, var(--brand-bg) 80%, transparent)",
       }
     }),
     []
@@ -101,7 +101,7 @@ export default function BottomDock({
       border: `1px solid ${
         active ? theme.palette.primary.main : alpha("#fff", 0.10)
       }`,
-      color: active ? "#ffffff" : alpha("#fff", 0.82),
+      color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 82%, transparent)",
       boxShadow: active ? `0 0 12px ${alpha(theme.palette.primary.main, 0.6)}` : "none",
       "&:hover": { background: active ? theme.palette.primary.main : alpha("#fff", 0.06) },
     }),

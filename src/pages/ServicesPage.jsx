@@ -333,7 +333,7 @@ const APP_CATEGORIES = [
     badge: "Design & Modeling",
     lead: "3Dモデルの管理から造作家具・図面・環境ダイアグラムまで、設計の土台をつくる。",
     apps: [
-      { name: "S.Models",   desc: "3Dモデルの管理・共有・高品質プレビュー",   status: "正式版" },
+      { name: "S.Model",   desc: "3Dモデルの管理・共有・高品質プレビュー",   status: "正式版" },
       { name: "S.Create",   desc: "造作家具をブラウザで設計・編集",           status: "Beta" },
       { name: "S.Diagram",  desc: "日照・配置・敷地・環境ダイアグラムを図解", status: "Beta" },
       { name: "S.Drawing",  desc: "図面・設計図書をクラウドで一元管理",       status: "Beta" },
@@ -355,7 +355,7 @@ const APP_CATEGORIES = [
     badge: "Proposal & Knowledge",
     lead: "歩ける3Dプレゼンやポートフォリオ、AI検索ライブラリで提案と学習を支える。",
     apps: [
-      { name: "S.Presentations", desc: "歩き回れる3Dプレゼンデッキ構築",       status: "正式版" },
+      { name: "S.Slide", desc: "歩き回れる3Dプレゼンデッキ構築",       status: "正式版" },
       { name: "S.Library",       desc: "製品資料・知識ライブラリ（AI検索）",   status: "正式版" },
       { name: "S.Portfolio",     desc: "PDFポートフォリオの管理・公開",        status: "Beta" },
       { name: "S.Quest",         desc: "建築・インテリアの学習コース",         status: "Beta" },
@@ -374,7 +374,7 @@ const AI_SUITE = [
 const FAQS = [
   { q: "SEKKEIYAはどんなソフトですか？", a: "SEKKEIYAは、AIとの対話で建築・インテリア設計を進める「AI空間設計OS」です。家具の自動レイアウト、3Dモデルの管理・共有、PBR素材作成、歩ける3Dプレゼン、AIレンダリングなど、設計に必要な12のアプリとAIスイートを1つに統合しています。" },
   { q: "ブラウザだけで使えますか？", a: "はい。主要機能はWebブラウザのWeb版で動作し、登録なしですぐに試せます。加えて、より高度な機能を備えたWindows / macOS版のデスクトップアプリも提供しています。" },
-  { q: "Rhinoなど既存の設計ツールと連携できますか？", a: "S.ModelsとAI Driveを通じて、Rhinoや各種DCCツールの3Dモデル（glb等）を取り込み・共有できます。既存のワークフローを置き換えずに、データを統合できます。" },
+  { q: "Rhinoなど既存の設計ツールと連携できますか？", a: "S.ModelとAI Driveを通じて、Rhinoや各種DCCツールの3Dモデル（glb等）を取り込み・共有できます。既存のワークフローを置き換えずに、データを統合できます。" },
   { q: "料金はかかりますか？", a: "登録なしのゲスト利用と無料プランから始められます。チーム機能や高度なAI機能を含むプランの詳細は料金ページをご覧ください。" },
   { q: "正式版とBetaの違いは何ですか？", a: "正式版は安定して日常利用できる機能、Betaは実用可能ながら改善を続けている機能を指します。各アプリのステータスは本ページの一覧に表示しています。" },
 ];

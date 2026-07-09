@@ -19,7 +19,7 @@ export default function LibraryCategoryTile({ label, icon, onClick, active = fal
         borderRadius: 3,
         background: active ? alpha(theme.palette.primary.main, 0.1) : alpha("#000", 0.2),
         border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.3) : alpha("#fff", 0.05)}`,
-        color: active ? "#fff" : alpha("#fff", 0.6),
+        color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
         cursor: "pointer",
         transition: "all 0.2s ease",
         overflow: "hidden",
@@ -28,7 +28,7 @@ export default function LibraryCategoryTile({ label, icon, onClick, active = fal
           background: alpha(theme.palette.primary.main, 0.1),
           borderColor: alpha(theme.palette.primary.main, 0.3),
           transform: "scale(1.02)",
-          color: "#fff",
+          color: "var(--brand-fg)",
         },
       }}
     >

@@ -69,7 +69,7 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
   const [loadingVersions, setLoadingVersions] = useState<Record<string, boolean>>({});
   const [resolvedSizes, setResolvedSizes]   = useState<Record<string, number>>({});
 
-  // 2D（サムネイル）/ 3D（ライブプレビュー）切り替え。S.Models 詳細と同じ UX。
+  // 2D（サムネイル）/ 3D（ライブプレビュー）切り替え。S.Model 詳細と同じ UX。
   const [viewMode, setViewMode] = useState<'2D' | '3D'>('2D');
   // ファイル切り替え時は 2D に戻す
   useEffect(() => { setViewMode('2D'); }, [selectedFileId]);
@@ -246,11 +246,11 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
         onClose={onClose}
         maxWidth="lg"
         fullWidth
-        PaperProps={{ sx: { bgcolor: '#1a1e27', color: '#fff', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', height: '88vh' } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', height: '88vh' } }}
       >
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>プロジェクト Work Files から ベースを選択</DialogTitle>
 
-        <DialogContent dividers sx={{ borderColor: 'rgba(255,255,255,0.08)', p: 0, display: 'flex', overflow: 'hidden' }}>
+        <DialogContent dividers sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', p: 0, display: 'flex', overflow: 'hidden' }}>
           {loading ? (
             <Box display="flex" justifyContent="center" alignItems="center" flex={1}>
               <CircularProgress sx={{ color: '#00BFFF' }} />
@@ -258,11 +258,11 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
           ) : error ? (
             <Box p={3}><Typography color="error">{error}</Typography></Box>
           ) : workFiles.length === 0 ? (
-            <Box p={3}><Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>プロジェクト内にベースとして利用可能な 3D データが見つかりません。</Typography></Box>
+            <Box p={3}><Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>プロジェクト内にベースとして利用可能な 3D データが見つかりません。</Typography></Box>
           ) : (
             <>
               {/* ══ LEFT: file list ══════════════════════════════════ */}
-              <Box sx={{ width: 240, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.08)', overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.18)', py: 1 }}>
+              <Box sx={{ width: 240, flexShrink: 0, borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflowY: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.06), rgba(0,0,0,0.18))', py: 1 }}>
                 {workFiles.map(fw => {
                   const isSel = selectedFileId === fw.id;
                   const miniThumb = thumbs[fileThumbKey(fw.id)] || fw.thumbnailUrl || undefined;
@@ -277,21 +277,21 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
                         cursor: 'pointer',
                         bgcolor: isSel ? 'rgba(0,191,255,0.12)' : 'transparent',
                         border: '1px solid', borderColor: isSel ? 'rgba(0,191,255,0.4)' : 'transparent',
-                        '&:hover': { bgcolor: isSel ? 'rgba(0,191,255,0.15)' : 'rgba(255,255,255,0.05)' },
+                        '&:hover': { bgcolor: isSel ? 'rgba(0,191,255,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
                         transition: 'background-color 0.12s',
                       }}
                     >
                       {/* Mini thumb */}
-                      <Box sx={{ width: 44, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Box sx={{ width: 44, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.09)', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {miniThumb
                           ? <Box component="img" src={miniThumb} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <ViewInArRoundedIcon sx={{ color: 'rgba(255,255,255,0.25)', fontSize: 18 }} />}
+                          : <ViewInArRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 18 }} />}
                       </Box>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography sx={{ color: '#fff', fontSize: 13, fontWeight: isSel ? 700 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fw.name}</Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>v{fw.latestVersionNumber || 1}{sz ? ` ・ ${sz}` : ''}</Typography>
+                        <Typography sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: isSel ? 700 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fw.name}</Typography>
+                        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11 }}>v{fw.latestVersionNumber || 1}{sz ? ` ・ ${sz}` : ''}</Typography>
                       </Box>
-                      <ChevronRightRoundedIcon sx={{ color: isSel ? '#00BFFF' : 'rgba(255,255,255,0.2)', fontSize: 16, flexShrink: 0 }} />
+                      <ChevronRightRoundedIcon sx={{ color: isSel ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 16, flexShrink: 0 }} />
                     </Box>
                   );
                 })}
@@ -301,17 +301,17 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
               <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                 {!selectedFile ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.3)' }}>← ファイルを選択してください</Typography>
+                    <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>← ファイルを選択してください</Typography>
                   </Box>
                 ) : (
                   <>
                     {/* ── Big preview (2D サムネイル / 3D ライブビュー) ── */}
-                    <Box sx={{ position: 'relative', width: '100%', bgcolor: 'rgba(0,0,0,0.3)', flexShrink: 0 }}>
-                      <Box sx={{ width: '100%', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.02)', position: 'relative' }}>
+                    <Box sx={{ position: 'relative', width: '100%', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', flexShrink: 0 }}>
+                      <Box sx={{ width: '100%', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)', position: 'relative' }}>
                         {viewMode === '2D' ? (
                           bigThumbSrc
                             ? <Box component="img" src={bigThumbSrc} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                            : <ViewInArRoundedIcon sx={{ color: 'rgba(255,255,255,0.15)', fontSize: 80 }} />
+                            : <ViewInArRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.15)', fontSize: 80 }} />
                         ) : (
                           <InlineWorkFilePreview
                             key={`${selectedFile.id}:${activeVer?.id ?? 'head'}`}
@@ -324,22 +324,22 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
                           />
                         )}
 
-                        {/* 2D / 3D 切り替え（S.Models 詳細と同じ） */}
-                        <Box sx={{ position: 'absolute', top: 12, left: 12, display: 'flex', bgcolor: 'rgba(255,255,255,0.92)', borderRadius: 1, overflow: 'hidden', zIndex: 10 }}>
+                        {/* 2D / 3D 切り替え（S.Model 詳細と同じ） */}
+                        <Box sx={{ position: 'absolute', top: 12, left: 12, display: 'flex', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.92)', borderRadius: 1, overflow: 'hidden', zIndex: 10 }}>
                           <Button
                             size="small" startIcon={<ImageRoundedIcon fontSize="small" />}
                             onClick={() => setViewMode('2D')}
                             sx={{ textTransform: 'none', borderRadius: 0, px: 1.75, minWidth: 0,
-                              color: viewMode === '2D' ? '#fff' : '#000', bgcolor: viewMode === '2D' ? '#000' : 'transparent',
-                              '&:hover': { bgcolor: viewMode === '2D' ? '#222' : 'rgba(0,0,0,0.06)' } }}>
+                              color: viewMode === '2D' ? 'var(--brand-fg)' : '#000', bgcolor: viewMode === '2D' ? 'var(--brand-bg)' : 'transparent',
+                              '&:hover': { bgcolor: viewMode === '2D' ? 'var(--brand-surface2)' : 'light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.06))' } }}>
                             2D
                           </Button>
                           <Button
                             size="small" startIcon={<ViewInArRoundedIcon fontSize="small" />}
                             onClick={() => setViewMode('3D')}
                             sx={{ textTransform: 'none', borderRadius: 0, px: 1.75, minWidth: 0,
-                              color: viewMode === '3D' ? '#fff' : '#000', bgcolor: viewMode === '3D' ? '#000' : 'transparent',
-                              '&:hover': { bgcolor: viewMode === '3D' ? '#222' : 'rgba(0,0,0,0.06)' } }}>
+                              color: viewMode === '3D' ? 'var(--brand-fg)' : '#000', bgcolor: viewMode === '3D' ? 'var(--brand-bg)' : 'transparent',
+                              '&:hover': { bgcolor: viewMode === '3D' ? 'var(--brand-surface2)' : 'light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.06))' } }}>
                             3D
                           </Button>
                         </Box>
@@ -350,7 +350,7 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
                     <Box sx={{ px: 3, pt: 2, pb: 1.5 }}>
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 18, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 18, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {selectedFile.name}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
@@ -361,18 +361,18 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
                               <Chip label="Local" size="small" sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'rgba(67,233,123,0.1)', color: '#43e97b' }} />
                             )}
                             {formatBytes(activeSize) && (
-                              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+                              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13 }}>
                                 {formatBytes(activeSize)}
                               </Typography>
                             )}
                             {activeVer && (
-                              <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>
+                              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 12 }}>
                                 {new Date(activeVer.createdAt).toLocaleString()}
                               </Typography>
                             )}
                           </Box>
                           {activeVer?.comment && activeVer.comment !== 'Local File' && (
-                            <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, mt: 0.5 }}>
+                            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 12, mt: 0.5 }}>
                               {activeVer.comment}
                             </Typography>
                           )}
@@ -396,7 +396,7 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         </DialogActions>
       </Dialog>
     </>

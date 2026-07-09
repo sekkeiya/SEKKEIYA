@@ -56,5 +56,14 @@ exports.generateSiteNarration = async ({ projectName, sections }) => {
 
   console.log(`[generateSiteNarration] sections=${sections.length} filled=${filled} ` +
     `in=${resp.usage?.input_tokens} out=${resp.usage?.output_tokens}`);
-  return { narrations };
+  return {
+    narrations,
+    model: MODEL,
+    usage: {
+      inputTokens: resp.usage?.input_tokens,
+      outputTokens: resp.usage?.output_tokens,
+      cacheReadTokens: resp.usage?.cache_read_input_tokens,
+      cacheCreationTokens: resp.usage?.cache_creation_input_tokens,
+    },
+  };
 };

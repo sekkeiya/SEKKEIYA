@@ -54,7 +54,7 @@ export default function PropertiesPanel({
       height: "100%",
       width: "100%",
       p: 1.25,
-      color: alpha("#fff", 0.92),
+      color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)",
       overflow: "auto",
       "&::-webkit-scrollbar": { width: 10 },
       "&::-webkit-scrollbar-thumb": {
@@ -157,7 +157,7 @@ export default function PropertiesPanel({
       <Box sx={{ ...panelSx, display: "flex", flexDirection: "column" }}>
         {/* Top: Global Settings */}
         <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.7), mb: 0.5 }}>用途 (Usage)</Typography>
+          <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", mb: 0.5 }}>用途 (Usage)</Typography>
           <Select
             size="small"
             value={usage}
@@ -165,7 +165,7 @@ export default function PropertiesPanel({
             sx={{
               width: "100%",
               height: 32,
-              color: "#fff",
+              color: "var(--brand-fg)",
               fontSize: 13,
               "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.2) },
               "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.4) },
@@ -175,9 +175,9 @@ export default function PropertiesPanel({
             MenuProps={{
               PaperProps: {
                 sx: {
-                  bgcolor: "#1e293b",
+                  bgcolor: "var(--brand-surface2)",
                   border: `1px solid ${alpha("#fff", 0.1)}`,
-                  "& .MuiMenuItem-root": { fontSize: 13, color: "#fff" }
+                  "& .MuiMenuItem-root": { fontSize: 13, color: "var(--brand-fg)" }
                 }
               }
             }}

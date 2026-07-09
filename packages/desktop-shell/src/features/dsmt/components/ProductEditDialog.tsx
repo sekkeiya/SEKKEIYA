@@ -11,10 +11,10 @@ import { SLibraryCatalogPicker, type CatalogPick } from './SLibraryCatalogPicker
 const ACCENT = '#ec407a';
 
 const fieldSx = {
-  '& .MuiInputBase-input': { color: '#fff' },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.4)' },
+  '& .MuiInputBase-input': { color: 'var(--brand-fg)' },
+  '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
   '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
 } as const;
 
@@ -67,7 +67,7 @@ export const ProductEditDialog: React.FC<Props> = ({ open, product, onClose, onS
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}>
       <DialogTitle sx={{ pb: 1 }}>{product ? '商品を編集' : '商品を追加'}</DialogTitle>
       <DialogContent>
         <Button
@@ -79,16 +79,16 @@ export const ProductEditDialog: React.FC<Props> = ({ open, product, onClose, onS
         </Button>
         <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5 }}>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', mb: 0.5 }}>メーカー *</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 0.5 }}>メーカー *</Typography>
             <Select
               fullWidth size="small" displayEmpty
               value={draft.manufacturer}
               onChange={(e) => set('manufacturer', e.target.value)}
-              sx={{ color: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' } }}
+              sx={{ color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' } }}
             >
               <MenuItem value=""><em>選択 / 自由入力</em></MenuItem>
               {MANUFACTURER_GROUPS.flatMap((g) => [
-                <ListSubheader key={g.group} sx={{ bgcolor: '#0f172a', color: ACCENT, fontSize: 11 }}>{g.group}</ListSubheader>,
+                <ListSubheader key={g.group} sx={{ bgcolor: 'var(--brand-surface)', color: ACCENT, fontSize: 11 }}>{g.group}</ListSubheader>,
                 ...g.items.map((m) => <MenuItem key={m.name} value={m.name} sx={{ fontSize: 13 }}>{m.name}</MenuItem>),
               ])}
             </Select>
@@ -108,7 +108,7 @@ export const ProductEditDialog: React.FC<Props> = ({ open, product, onClose, onS
           <TextField
             label="参考単価" size="small" type="number" value={draft.price ?? ''}
             onChange={(e) => set('price', e.target.value === '' ? undefined : Number(e.target.value))}
-            InputProps={{ startAdornment: <InputAdornment position="start"><span style={{ color: 'rgba(255,255,255,0.5)' }}>¥</span></InputAdornment> }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><span style={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>¥</span></InputAdornment> }}
             sx={{ flex: 1, ...fieldSx }}
           />
           <TextField label="単位" size="small" value={draft.priceUnit ?? ''} onChange={(e) => set('priceUnit', e.target.value)} sx={{ width: 90, ...fieldSx }} />
@@ -120,19 +120,19 @@ export const ProductEditDialog: React.FC<Props> = ({ open, product, onClose, onS
         {/* 耐久性スコア */}
         <Box sx={{ mt: 2.5 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>耐久性・メンテ性</Typography>
-            <Typography sx={{ fontSize: 12, color: '#fff' }}>{draft.durability ?? 0}</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>耐久性・メンテ性</Typography>
+            <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}>{draft.durability ?? 0}</Typography>
           </Box>
-          <Slider size="small" min={0} max={100} step={5} value={draft.durability ?? 0} onChange={(_, v) => set('durability', v as number)} sx={{ color: '#4dd0e1' }} />
+          <Slider size="small" min={0} max={100} step={5} value={draft.durability ?? 0} onChange={(_, v) => set('durability', v as number)} sx={{ color: 'light-dark(#198694, #4dd0e1)' }} />
         </Box>
 
         {/* 防火・安全 */}
         <Box sx={{ mt: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>防火・安全性能</Typography>
-            <Typography sx={{ fontSize: 12, color: '#fff' }}>{draft.fireSafety ?? 0}</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>防火・安全性能</Typography>
+            <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}>{draft.fireSafety ?? 0}</Typography>
           </Box>
-          <Slider size="small" min={0} max={100} step={5} value={draft.fireSafety ?? 0} onChange={(_, v) => set('fireSafety', v as number)} sx={{ color: '#ff8a80' }} />
+          <Slider size="small" min={0} max={100} step={5} value={draft.fireSafety ?? 0} onChange={(_, v) => set('fireSafety', v as number)} sx={{ color: 'light-dark(#ad0e00, #ff8a80)' }} />
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
             {FIRE_RATINGS.map((r) => (
               <Box
@@ -140,9 +140,9 @@ export const ProductEditDialog: React.FC<Props> = ({ open, product, onClose, onS
                 onClick={() => handleFireRating(r.value)}
                 sx={{
                   px: 1, py: 0.25, borderRadius: 1, cursor: 'pointer', fontSize: 11,
-                  bgcolor: draft.fireRating === r.value ? 'rgba(255,138,128,0.3)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${draft.fireRating === r.value ? '#ff8a80' : 'rgba(255,255,255,0.12)'}`,
-                  color: '#fff',
+                  bgcolor: draft.fireRating === r.value ? 'rgba(255,138,128,0.3)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                  border: `1px solid ${draft.fireRating === r.value ? '#ff8a80' : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
+                  color: 'var(--brand-fg)',
                 }}
               >
                 {r.value}
@@ -154,7 +154,7 @@ export const ProductEditDialog: React.FC<Props> = ({ open, product, onClose, onS
         <TextField label="メモ" fullWidth size="small" multiline minRows={2} value={draft.notes ?? ''} onChange={(e) => set('notes', e.target.value)} sx={{ mt: 2, ...fieldSx }} />
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button variant="contained" disabled={!canSave} onClick={() => onSave(draft)}
           sx={{ bgcolor: ACCENT, '&:hover': { bgcolor: '#f06292' }, textTransform: 'none' }}>
           {product ? '更新' : '追加'}

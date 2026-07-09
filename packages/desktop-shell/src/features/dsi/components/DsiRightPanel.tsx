@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Box, Typography, Button, Divider, Chip, TextField, MenuItem, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
@@ -13,11 +14,11 @@ const ACCENT_HOVER = '#f48fb1';
 
 const metaFieldSx = {
   '& .MuiOutlinedInput-root': {
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+    '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+    '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
     '&.Mui-focused fieldset': { borderColor: ACCENT },
   },
-  '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+  '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
 } as const;
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -36,8 +37,8 @@ const formatBytes = (bytes?: number) => {
 
 const Row: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => (
   <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
-    <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{label}</Typography>
-    <Typography sx={{ fontSize: 12, color: '#fff', textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value ?? '—'}</Typography>
+    <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{label}</Typography>
+    <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)', textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value ?? '—'}</Typography>
   </Box>
 );
 
@@ -61,9 +62,11 @@ interface DsiRightPanelProps {
   onSetVisibility?: (item: any, visibility: 'public' | 'private') => void;
   /** カテゴリ・タグの更新 */
   onUpdateMeta?: (item: any, fields: { category?: DsiCategory; tags?: string[] }) => void;
+  /** この画像をベースに S.Image エディター（AI編集）を開く（画像のみ・書き込み可時） */
+  onAiEdit?: (item: any) => void;
 }
 
-export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup, onUngroupTexture, onSetApplications, sets = [], allImages = [], allTextureGroups = [], onMove, onSetVisibility, onUpdateMeta }) => {
+export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup, onUngroupTexture, onSetApplications, sets = [], allImages = [], allTextureGroups = [], onMove, onSetVisibility, onUpdateMeta, onAiEdit }) => {
   const [tagInput, setTagInput] = useState('');
   const categoryFilter = useDsiStore((s) => s.categoryFilter);
   const setCategoryFilter = useDsiStore((s) => s.setCategoryFilter);
@@ -88,11 +91,11 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
 
   return (
     <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#fff', mb: 1.5 }}>{isVideo ? '動画情報' : '画像情報'}</Typography>
+      <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)', mb: 1.5 }}>{isVideo ? '動画情報' : '画像情報'}</Typography>
 
       {/* Preview */}
       {url && (
-        <Box sx={{ borderRadius: 1.5, overflow: 'hidden', mb: 1.5, bgcolor: 'rgba(0,0,0,0.3)', aspectRatio: '4 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ borderRadius: 1.5, overflow: 'hidden', mb: 1.5, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', aspectRatio: '4 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {isVideo ? (
             <Box component="video" src={url} controls sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           ) : (
@@ -102,12 +105,12 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
       )}
 
       {item.category && (
-        <Chip size="small" label={item.category} sx={{ alignSelf: 'flex-start', mb: 1.5, height: 20, color: '#fff', bgcolor: `${ACCENT}33`, border: `1px solid ${ACCENT}55` }} />
+        <Chip size="small" label={item.category} sx={{ alignSelf: 'flex-start', mb: 1.5, height: 20, color: 'var(--brand-fg)', bgcolor: `${ACCENT}33`, border: `1px solid ${ACCENT}55` }} />
       )}
 
-      <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#fff', mb: 1, wordBreak: 'break-word' }}>{item.title || item.name}</Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-fg)', mb: 1, wordBreak: 'break-word' }}>{item.title || item.name}</Typography>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 1 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 1 }} />
 
       <Row label="種別" value={isVideo ? '動画' : '画像'} />
       <Row label="形式" value={item.format ? String(item.format).toUpperCase() : undefined} />
@@ -122,15 +125,15 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
             select size="small" fullWidth label="セット" variant="outlined"
             value={item.parentSetId ?? ''}
             onChange={(e) => onMove(item, e.target.value || null)}
-            InputProps={{ style: { color: '#fff', fontSize: 13 } }}
-            InputLabelProps={{ style: { color: 'rgba(255,255,255,0.6)' } }}
+            InputProps={{ style: { color: 'var(--brand-fg)', fontSize: 13 } }}
+            InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.6)' } }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
                 '&.Mui-focused fieldset': { borderColor: ACCENT },
               },
-              '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+              '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
             }}
           >
             <MenuItem value="">（セットなし）</MenuItem>
@@ -141,13 +144,13 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
 
       {onSetVisibility && (
         <Box sx={{ mt: 1.5 }}>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mb: 0.5 }}>公開設定</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.5 }}>公開設定</Typography>
           <ToggleButtonGroup
             exclusive size="small" fullWidth
             value={item.visibility === 'public' ? 'public' : 'private'}
             onChange={(_, v) => { if (v) onSetVisibility(item, v); }}
             sx={{
-              '& .MuiToggleButton-root': { color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)', fontSize: 12, textTransform: 'none', py: 0.5 },
+              '& .MuiToggleButton-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', fontSize: 12, textTransform: 'none', py: 0.5 },
               '& .Mui-selected': { color: '#fff !important', bgcolor: `${ACCENT} !important` },
             }}
           >
@@ -160,25 +163,25 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
       {/* カテゴリ・タグ編集（S.Image の検索に使用） */}
       {onUpdateMeta && (
         <Box sx={{ mt: 2 }}>
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mb: 1.5 }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', mb: 1.5 }} />
           <TextField
             select size="small" fullWidth label="カテゴリ" variant="outlined"
             value={(DSI_CATEGORIES as readonly string[]).includes(item.category) ? item.category : ''}
             onChange={(e) => onUpdateMeta(item, { category: e.target.value as DsiCategory })}
-            InputProps={{ style: { color: '#fff', fontSize: 13 } }}
-            InputLabelProps={{ style: { color: 'rgba(255,255,255,0.6)' } }}
+            InputProps={{ style: { color: 'var(--brand-fg)', fontSize: 13 } }}
+            InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.6)' } }}
             sx={metaFieldSx}
           >
-            {DSI_CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+            {DSI_CATEGORIES.filter(c => c !== '動画').map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
           </TextField>
 
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mt: 1.75, mb: 0.5 }}>タグ</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mt: 1.75, mb: 0.5 }}>タグ</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
             {(Array.isArray(item.tags) ? item.tags : []).map((t: string) => (
               <Chip
                 key={t} size="small" label={t}
                 onDelete={() => onUpdateMeta(item, { tags: (item.tags || []).filter((x: string) => x !== t) })}
-                sx={{ height: 22, fontSize: 10, color: '#fff', bgcolor: `${ACCENT}22`, border: `1px solid ${ACCENT}44` }}
+                sx={{ height: 22, fontSize: 10, color: 'var(--brand-fg)', bgcolor: `${ACCENT}22`, border: `1px solid ${ACCENT}44` }}
               />
             ))}
             <TextField
@@ -193,7 +196,7 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
                 }
               }}
               size="small" placeholder="＋タグ" variant="standard"
-              sx={{ width: 72, '& input': { fontSize: 11, color: '#fff', py: 0.25 }, '& .MuiInput-underline:before': { borderColor: 'rgba(255,255,255,0.2)' } }}
+              sx={{ width: 72, '& input': { fontSize: 11, color: 'var(--brand-fg)', py: 0.25 }, '& .MuiInput-underline:before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
             />
           </Box>
         </Box>
@@ -203,17 +206,36 @@ export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup
 
       {url && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
-          <Button
-            fullWidth size="small" variant="contained" startIcon={<OpenInNewRoundedIcon />}
-            onClick={() => window.open(url, '_blank')}
-            sx={{ bgcolor: ACCENT, color: '#fff', '&:hover': { bgcolor: ACCENT_HOVER } }}
-          >
-            開く
-          </Button>
+          {(() => {
+            // AI編集は画像のみ・ローカル素材（保存先プロジェクトが無い）を除く。
+            const canAiEdit = !!onAiEdit && !isVideo && !item.isLocal;
+            return (
+              <>
+                {canAiEdit && (
+                  <Button
+                    fullWidth size="small" variant="contained" startIcon={<AutoAwesomeRoundedIcon />}
+                    onClick={() => onAiEdit!(item)}
+                    sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: ACCENT_HOVER } }}
+                  >
+                    AIで編集
+                  </Button>
+                )}
+                <Button
+                  fullWidth size="small" variant={canAiEdit ? 'outlined' : 'contained'} startIcon={<OpenInNewRoundedIcon />}
+                  onClick={() => window.open(url, '_blank')}
+                  sx={canAiEdit
+                    ? { color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT } }
+                    : { bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: ACCENT_HOVER } }}
+                >
+                  開く
+                </Button>
+              </>
+            );
+          })()}
           <Button
             fullWidth size="small" variant="outlined" startIcon={<DownloadRoundedIcon />}
             component="a" href={url} download target="_blank"
-            sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: ACCENT } }}
+            sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT } }}
           >
             ダウンロード
           </Button>
@@ -253,25 +275,25 @@ const DsiFilterPanel: React.FC<{ allImages: any[]; allTextureGroups: TextureGrou
   return (
     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-        <FilterListRoundedIcon sx={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }} />
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>絞り込み</Typography>
+        <FilterListRoundedIcon sx={{ fontSize: 15, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+        <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>絞り込み</Typography>
       </Box>
 
       {/* カテゴリ */}
       <Box>
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', mb: 0.75 }}>カテゴリ</Typography>
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 0.75 }}>カテゴリ</Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-          {(['all', ...DSI_CATEGORIES] as const).map((c) => {
+          {(['all', ...DSI_CATEGORIES.filter(c => c !== '動画')] as const).map((c) => {
             const active = categoryFilter === c;
             return (
               <Chip key={c} size="small" label={c === 'all' ? 'すべて' : c}
                 onClick={() => setCategoryFilter(c)}
                 sx={{
                   height: 22, fontSize: 11, cursor: 'pointer',
-                  color: active ? '#fff' : 'rgba(255,255,255,0.7)',
-                  bgcolor: active ? ACCENT : 'rgba(255,255,255,0.06)',
-                  border: `1px solid ${active ? ACCENT : 'rgba(255,255,255,0.12)'}`,
-                  '&:hover': { bgcolor: active ? ACCENT_HOVER : 'rgba(255,255,255,0.12)' },
+                  color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                  bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.06)',
+                  border: `1px solid ${active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
+                  '&:hover': { bgcolor: active ? ACCENT_HOVER : 'rgb(var(--brand-fg-rgb) / 0.12)' },
                 }}
               />
             );
@@ -283,7 +305,7 @@ const DsiFilterPanel: React.FC<{ allImages: any[]; allTextureGroups: TextureGrou
       {availableApps.length > 0 && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>用途・部位</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>用途・部位</Typography>
             {applicationFilter && (
               <Typography onClick={() => setApplicationFilter(null)}
                 sx={{ fontSize: 10, color: ACCENT, cursor: 'pointer', '&:hover': { color: ACCENT_HOVER } }}>
@@ -299,7 +321,7 @@ const DsiFilterPanel: React.FC<{ allImages: any[]; allTextureGroups: TextureGrou
                   onClick={() => setApplicationFilter(active ? null : a)}
                   sx={{
                     height: 22, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    color: active ? '#fff' : 'rgba(255,255,255,0.8)',
+                    color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.8)',
                     bgcolor: active ? 'rgba(102,187,106,0.7)' : 'rgba(102,187,106,0.18)',
                     border: `1px solid ${active ? '#66bb6a' : 'rgba(102,187,106,0.45)'}`,
                     '&:hover': { bgcolor: active ? 'rgba(102,187,106,0.8)' : 'rgba(102,187,106,0.3)' },
@@ -315,7 +337,7 @@ const DsiFilterPanel: React.FC<{ allImages: any[]; allTextureGroups: TextureGrou
       {topTags.length > 0 && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>タグ</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>タグ</Typography>
             {tagFilter && (
               <Typography onClick={() => setTagFilter(null)}
                 sx={{ fontSize: 10, color: ACCENT, cursor: 'pointer', '&:hover': { color: ACCENT_HOVER } }}>
@@ -331,10 +353,10 @@ const DsiFilterPanel: React.FC<{ allImages: any[]; allTextureGroups: TextureGrou
                   onClick={() => setTagFilter(active ? null : t)}
                   sx={{
                     height: 22, fontSize: 10.5, cursor: 'pointer',
-                    color: active ? '#fff' : 'rgba(255,255,255,0.65)',
-                    bgcolor: active ? 'rgba(236,64,122,0.18)' : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${active ? `${ACCENT}88` : 'rgba(255,255,255,0.1)'}`,
-                    '&:hover': { bgcolor: active ? 'rgba(236,64,122,0.28)' : 'rgba(255,255,255,0.1)' },
+                    color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.65)',
+                    bgcolor: active ? 'rgba(236,64,122,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                    border: `1px solid ${active ? `${ACCENT}88` : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
+                    '&:hover': { bgcolor: active ? 'rgba(236,64,122,0.28)' : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                   }}
                 />
               );
@@ -343,8 +365,8 @@ const DsiFilterPanel: React.FC<{ allImages: any[]; allTextureGroups: TextureGrou
         </Box>
       )}
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', lineHeight: 1.6 }}>
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
+      <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.28)', lineHeight: 1.6 }}>
         画像やテクスチャを選択すると詳細が表示されます
       </Typography>
     </Box>
@@ -379,24 +401,24 @@ const TextureGroupPanel: React.FC<{ group: TextureGroup; onUngroup?: (setId: str
 
   return (
     <Box sx={{ p: 2.5, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#fff', mb: 1.5 }}>テクスチャ素材</Typography>
+      <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)', mb: 1.5 }}>テクスチャ素材</Typography>
 
       {/* 表紙＝ベースカラーのプレビュー */}
       {(cover?.downloadUrl || cover?.thumbnailUrl) && (
-        <Box sx={{ borderRadius: 1.5, overflow: 'hidden', mb: 1.5, bgcolor: 'rgba(0,0,0,0.3)', aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ borderRadius: 1.5, overflow: 'hidden', mb: 1.5, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Box component="img" src={cover.thumbnailUrl || cover.downloadUrl} alt={group.title} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </Box>
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
-        <Chip size="small" label={`テクスチャ・${group.items.length} マップ`} sx={{ height: 20, color: '#fff', bgcolor: `${TEX_ACCENT}33`, border: `1px solid ${TEX_ACCENT}55` }} />
-        {group.manual && <Chip size="small" label="手動セット" sx={{ height: 20, fontSize: 10, color: '#fff', bgcolor: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)' }} />}
+        <Chip size="small" label={`テクスチャ・${group.items.length} マップ`} sx={{ height: 20, color: 'var(--brand-fg)', bgcolor: `${TEX_ACCENT}33`, border: `1px solid ${TEX_ACCENT}55` }} />
+        {group.manual && <Chip size="small" label="手動セット" sx={{ height: 20, fontSize: 10, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.25)' }} />}
       </Box>
-      <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#fff', mb: 1, wordBreak: 'break-word' }}>{group.title}</Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-fg)', mb: 1, wordBreak: 'break-word' }}>{group.title}</Typography>
 
       {/* 部位（自動ラベルと同じ 床/内壁/外壁/天井）。必ず1つ以上。クリックで上書き編集。 */}
       <Box sx={{ mb: 1 }}>
-        <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', mb: 0.5 }}>
+        <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.5 }}>
           部位（自動マテリアルの貼付先）{onSetApplications && '・クリックで変更'}
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -409,9 +431,9 @@ const TextureGroupPanel: React.FC<{ group: TextureGroup; onUngroup?: (setId: str
                 sx={{
                   height: 22, fontSize: 11, fontWeight: 600,
                   cursor: onSetApplications ? 'pointer' : 'default',
-                  color: active ? '#fff' : 'rgba(255,255,255,0.45)',
-                  bgcolor: active ? 'rgba(102,187,106,0.32)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${active ? 'rgba(102,187,106,0.65)' : 'rgba(255,255,255,0.14)'}`,
+                  color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  bgcolor: active ? 'rgba(102,187,106,0.32)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                  border: `1px solid ${active ? 'rgba(102,187,106,0.65)' : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
                   '&:hover': onSetApplications ? { borderColor: 'rgba(102,187,106,0.8)' } : undefined,
                 }}
               />
@@ -421,7 +443,7 @@ const TextureGroupPanel: React.FC<{ group: TextureGroup; onUngroup?: (setId: str
         {group.environments.length > 0 && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
             {group.environments.map((e) => (
-              <Chip key={e} size="small" label={e} sx={{ height: 20, fontSize: 10, color: 'rgba(255,255,255,0.7)', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.16)' }} />
+              <Chip key={e} size="small" label={e} sx={{ height: 20, fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.16)' }} />
             ))}
           </Box>
         )}
@@ -432,7 +454,7 @@ const TextureGroupPanel: React.FC<{ group: TextureGroup; onUngroup?: (setId: str
         <Button
           size="small" variant="outlined" fullWidth
           onClick={() => onUngroup(group.setId!)}
-          sx={{ mb: 1, color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.25)', textTransform: 'none', '&:hover': { borderColor: '#ff8a80', color: '#ff8a80' } }}
+          sx={{ mb: 1, color: 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', textTransform: 'none', '&:hover': { borderColor: '#ff8a80', color: 'light-dark(#ad0e00, #ff8a80)' } }}
         >
           セットを解除
         </Button>
@@ -442,14 +464,14 @@ const TextureGroupPanel: React.FC<{ group: TextureGroup; onUngroup?: (setId: str
       {group.tags.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
           {group.tags.map((t) => (
-            <Chip key={t} size="small" label={t} sx={{ height: 20, fontSize: 10.5, color: '#fff', bgcolor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)' }} />
+            <Chip key={t} size="small" label={t} sx={{ height: 20, fontSize: 10.5, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)' }} />
           ))}
         </Box>
       )}
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 1 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 1 }} />
 
-      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mb: 1 }}>マップ一覧</Typography>
+      <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 1 }}>マップ一覧</Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, overflowY: 'auto' }}>
         {rows.map(({ label, item }, i) => {
           const url = item.downloadUrl || item.thumbnailUrl;
@@ -459,20 +481,20 @@ const TextureGroupPanel: React.FC<{ group: TextureGroup; onUngroup?: (setId: str
               onClick={() => url && window.open(url, '_blank')}
               sx={{
                 display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1.25, cursor: url ? 'pointer' : 'default',
-                bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                 transition: 'border-color 0.15s', '&:hover': { borderColor: `${TEX_ACCENT}88` },
               }}
             >
-              <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'rgba(0,0,0,0.3)' }}>
+              <Box sx={{ width: 44, height: 44, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))' }}>
                 {(item.thumbnailUrl || item.downloadUrl) && (
                   <Box component="img" src={item.thumbnailUrl || item.downloadUrl} alt={label} loading="lazy" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}
               </Box>
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{label}</Typography>
-                <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)' }}>{item.name || item.title}</Typography>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-fg)' }}>{label}</Typography>
+                <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{item.name || item.title}</Typography>
               </Box>
-              {url && <OpenInNewRoundedIcon sx={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />}
+              {url && <OpenInNewRoundedIcon sx={{ fontSize: 15, color: 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }} />}
             </Box>
           );
         })}

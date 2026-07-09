@@ -184,7 +184,7 @@ const ZoneListItem = ({ z, activeZoneId }) => {
               autoFocus
               size="small"
               variant="standard"
-              sx={{ input: { fontSize: 13, color: "#fff", py: 0 }, flex: 1 }}
+              sx={{ input: { fontSize: 13, color: "var(--brand-fg)", py: 0 }, flex: 1 }}
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
@@ -193,7 +193,7 @@ const ZoneListItem = ({ z, activeZoneId }) => {
               sx={{
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#38bdf8" : "inherit",
+                color: isActive ? "light-dark(#0676a8, #38bdf8)" : "inherit",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis"
@@ -230,7 +230,7 @@ const ZoneListItem = ({ z, activeZoneId }) => {
               p: 0.25,
               opacity: 0.6,
               transition: "opacity 0.2s",
-              "&:hover": { opacity: 1, color: "#38bdf8", bgcolor: alpha("#38bdf8", 0.1) },
+              "&:hover": { opacity: 1, color: "light-dark(#0676a8, #38bdf8)", bgcolor: alpha("#38bdf8", 0.1) },
             }}
           >
             <SaveOutlinedIcon sx={{ fontSize: 16 }} />
@@ -290,7 +290,7 @@ const ZoneListItem = ({ z, activeZoneId }) => {
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="caption" sx={{ flex: 1, color: "#ccc", display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Typography variant="caption" sx={{ flex: 1, color: "rgb(var(--brand-fg-rgb) / 0.65)", display: "flex", alignItems: "center", gap: 0.5 }}>
                 {effectiveActiveVersionId === v.id && <CheckIcon sx={{ fontSize: 14, color: "#4caf50" }} />}
                 v{sortedVersions.length - index}
               </Typography>
@@ -422,7 +422,7 @@ const PatternListItem = ({ p, activeCirculationPatternId, circulationPatterns, o
               autoFocus
               size="small"
               variant="standard"
-              sx={{ input: { fontSize: 13, color: "#fff", py: 0 }, flex: 1 }}
+              sx={{ input: { fontSize: 13, color: "var(--brand-fg)", py: 0 }, flex: 1 }}
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
@@ -431,7 +431,7 @@ const PatternListItem = ({ p, activeCirculationPatternId, circulationPatterns, o
               sx={{
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#a855f7" : "inherit",
+                color: isActive ? "light-dark(#5908a6, #a855f7)" : "inherit",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis"
@@ -505,7 +505,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
       id: `zone_${Date.now()}`,
       name: newZoneName.trim(),
       targetSeats: 0,
-      color: "#888888", // Default color
+      color: "rgb(var(--brand-fg-rgb) / 0.65)", // Default color
     });
     setNewZoneName("");
   };
@@ -561,9 +561,9 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
   };
 
   return (
-    <Box sx={{ p: 0, height: "100%", overflowY: "auto", color: "rgba(255,255,255,0.9)" }}>
+    <Box sx={{ p: 0, height: "100%", overflowY: "auto", color: "rgb(var(--brand-fg-rgb) / 0.9)" }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.7), fontWeight: 600 }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontWeight: 600 }}>
           ゾーン
         </Typography>
         <Button 
@@ -604,7 +604,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
       <Divider sx={{ my: 3, borderColor: alpha("#fff", 0.1) }} />
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.7), fontWeight: 600 }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontWeight: 600 }}>
           導線
         </Typography>
         <Button 
@@ -648,7 +648,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
       {editorMode === "zoning" && selectedCirc && (
         <Box sx={{ mt: 3, p: 1.5, bgcolor: alpha("#a855f7", 0.1), borderRadius: 1, border: `1px solid ${alpha("#a855f7", 0.3)}` }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#a855f7" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "light-dark(#5908a6, #a855f7)" }}>
               Selected Circulation
             </Typography>
             <IconButton
@@ -670,7 +670,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
                   sx={{
                     flex: 1, textTransform: "none",
                     bgcolor: selectedCirc.type === "main" ? alpha("#a855f7", 0.8) : alpha("#fff", 0.05),
-                    color: selectedCirc.type === "main" ? "#fff" : alpha("#fff", 0.6),
+                    color: selectedCirc.type === "main" ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
                     "&:hover": { bgcolor: selectedCirc.type === "main" ? "#a855f7" : alpha("#fff", 0.1) }
                   }}
                 >
@@ -682,7 +682,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
                   sx={{
                     flex: 1, textTransform: "none",
                     bgcolor: selectedCirc.type === "sub" ? alpha("#a855f7", 0.8) : alpha("#fff", 0.05),
-                    color: selectedCirc.type === "sub" ? "#fff" : alpha("#fff", 0.6),
+                    color: selectedCirc.type === "sub" ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
                     "&:hover": { bgcolor: selectedCirc.type === "sub" ? "#a855f7" : alpha("#fff", 0.1) }
                   }}
                 >
@@ -702,7 +702,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
                     sx={{
                       minWidth: 40, p: 0.25, fontSize: 12,
                       bgcolor: selectedCirc.width === w ? alpha("#a855f7", 0.8) : alpha("#fff", 0.05),
-                      color: selectedCirc.width === w ? "#fff" : alpha("#fff", 0.6),
+                      color: selectedCirc.width === w ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
                       "&:hover": { bgcolor: selectedCirc.width === w ? "#a855f7" : alpha("#fff", 0.1) }
                     }}
                   >

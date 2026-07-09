@@ -30,7 +30,7 @@ const TeamSitePage: React.FC = () => {
   if (!user?.uid || !team) {
     return (
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>チームが選択されていません。</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>チームが選択されていません。</Typography>
         <Button onClick={() => setCurrentMainView('teams')} sx={{ color: '#3498db', textTransform: 'none' }}>
           チーム一覧へ
         </Button>
@@ -49,7 +49,7 @@ const TeamSitePage: React.FC = () => {
       {/* 戻りバー（チームホームへ） */}
       <Box sx={{
         px: { xs: 2, md: 3 }, py: 0.75, flexShrink: 0,
-        borderBottom: `1px solid ${BRAND.line}`, bgcolor: 'rgba(10,15,25,0.8)',
+        borderBottom: `1px solid ${BRAND.line}`, bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.8))',
         display: 'flex', alignItems: 'center', gap: 1,
       }}>
         <Button
@@ -60,7 +60,7 @@ const TeamSitePage: React.FC = () => {
         >
           {team.name}（チームホーム）
         </Button>
-        <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 12 }}>/ チームサイト</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 12 }}>/ チームサイト</Typography>
       </Box>
 
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

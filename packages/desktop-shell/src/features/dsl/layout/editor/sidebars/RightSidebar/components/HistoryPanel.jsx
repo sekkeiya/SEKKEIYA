@@ -36,10 +36,10 @@ function downloadDataUrl(dataUrl, filename) {
 }
 
 const navBtnSx = {
-  color: "#fff",
+  color: "var(--brand-fg)",
   bgcolor: "rgba(0,0,0,0.4)",
   backdropFilter: "blur(4px)",
-  border: "1px solid rgba(255,255,255,0.15)",
+  border: "1px solid rgb(var(--brand-fg-rgb) / 0.15)",
   "&:hover": { bgcolor: "rgba(0,0,0,0.65)" },
   "&.Mui-disabled": { opacity: 0.2 },
 };
@@ -118,7 +118,7 @@ export default function HistoryPanel() {
             py: 0.5,
             display: "flex",
             justifyContent: "flex-end",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
           }}
         >
           <Tooltip title="すべて削除" placement="left">
@@ -138,8 +138,8 @@ export default function HistoryPanel() {
                 gap: 1,
                 px: 1.25,
                 py: 1,
-                borderBottom: "1px solid rgba(255,255,255,0.05)",
-                "&:hover": { bgcolor: "rgba(255,255,255,0.04)" },
+                borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
+                "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.04)" },
               }}
             >
               {/* Thumbnail */}
@@ -154,7 +154,7 @@ export default function HistoryPanel() {
                   objectFit: "cover",
                   borderRadius: 0.5,
                   flexShrink: 0,
-                  bgcolor: "rgba(0,0,0,0.3)",
+                  bgcolor: "light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))",
                   cursor: "zoom-in",
                   transition: "transform 0.15s",
                   "&:hover": { transform: "scale(1.05)" },
@@ -177,7 +177,7 @@ export default function HistoryPanel() {
                       bgcolor: entry.quality === "cycles"
                         ? alpha("#7c4dff", 0.25)
                         : alpha("#0288d1", 0.25),
-                      color: entry.quality === "cycles" ? "#ce93d8" : "#81d4fa",
+                      color: entry.quality === "cycles" ? "light-dark(#742e7f, #ce93d8)" : "light-dark(#0774a7, #81d4fa)",
                       "& .MuiChip-label": { px: 0.75 },
                     }}
                   />
@@ -255,7 +255,7 @@ export default function HistoryPanel() {
                   background: "linear-gradient(180deg, rgba(0,0,0,0.65) 0%, transparent 100%)",
                 }}
               >
-                <Typography fontSize={14} fontWeight={700} sx={{ color: "#fff" }}>
+                <Typography fontSize={14} fontWeight={700} sx={{ color: "var(--brand-fg)" }}>
                   {previewEntry.shotName}
                 </Typography>
                 <Chip
@@ -268,16 +268,16 @@ export default function HistoryPanel() {
                     bgcolor: previewEntry.quality === "cycles"
                       ? alpha("#7c4dff", 0.4)
                       : alpha("#0288d1", 0.4),
-                    color: "#fff",
+                    color: "var(--brand-fg)",
                     "& .MuiChip-label": { px: 0.9 },
                   }}
                 />
-                <Typography fontSize={11} sx={{ opacity: 0.7, color: "#fff" }}>
+                <Typography fontSize={11} sx={{ opacity: 0.7, color: "var(--brand-fg)" }}>
                   {formatDate(previewEntry.renderedAt)}
                 </Typography>
 
                 {/* Counter */}
-                <Typography fontSize={11} sx={{ opacity: 0.55, color: "#fff", ml: 0.5 }}>
+                <Typography fontSize={11} sx={{ opacity: 0.55, color: "var(--brand-fg)", ml: 0.5 }}>
                   {previewIndex + 1} / {entries.length}
                 </Typography>
 
@@ -287,7 +287,7 @@ export default function HistoryPanel() {
                   <IconButton
                     size="small"
                     onClick={() => handleDownload(previewEntry)}
-                    sx={{ color: "#fff", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+                    sx={{ color: "var(--brand-fg)", "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.1)" } }}
                   >
                     <DownloadRoundedIcon fontSize="small" />
                   </IconButton>
@@ -296,7 +296,7 @@ export default function HistoryPanel() {
                   <IconButton
                     size="small"
                     onClick={closePreview}
-                    sx={{ color: "#fff", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+                    sx={{ color: "var(--brand-fg)", "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.1)" } }}
                   >
                     <CloseRoundedIcon fontSize="small" />
                   </IconButton>

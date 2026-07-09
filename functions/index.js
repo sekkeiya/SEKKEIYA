@@ -19,8 +19,37 @@ const openAiApiKey = defineSecret("OPENAI_API_KEY");
 const anthropicApiKey = defineSecret("ANTHROPIC_API_KEY");
 const { proposeDesktopAction } = require("./orchestrator/proposeDesktopAction");
 const { agentTurn } = require("./orchestrator/agentTurn");
+const { recordUsage } = require("./usage/recordUsage");
+const { pickChatModel, loadChatRouting } = require("./llm/routeChat");
+const { computeExcludedSilos, loadSiloConfig } = require("./llm/siloTools");
+const { getAdminUsageSummary } = require("./usage/getAdminUsageSummary");
+
+// 管理者メール（クライアントの blogAdmin.ts / firestore.rules と揃える）
+const ADMIN_EMAILS = ["hello@sekkeiya.com"];
+
+// 📊 管理者APIモニターの集計（方式A / Phase 2）。管理者のみ。
+exports.getAdminUsageSummary = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+  const email = String(request.auth.token?.email || "").trim().toLowerCase();
+  if (!ADMIN_EMAILS.some((e) => e.toLowerCase() === email)) {
+    throw new HttpsError("permission-denied", "Admins only.");
+  }
+  try {
+    const range = ["7d", "30d", "mtd"].includes((request.data || {}).range)
+      ? request.data.range
+      : "7d";
+    const result = await getAdminUsageSummary({ range });
+    return { success: true, result };
+  } catch (error) {
+    console.error("getAdminUsageSummary Error:", error);
+    throw new HttpsError("internal", error.message || "getAdminUsageSummary failed");
+  }
+});
 const { aggregateFurnitureLogs } = require("./insights/aggregateFurnitureLogs");
 const { aggregateWeeklyTrends } = require("./insights/aggregateWeeklyTrends");
+const { aggregateReactions } = require("./insights/aggregateReactions");
 const { generateTrendArticle } = require("./reporter/generateTrendArticle");
 const { generateKeywordArticle } = require("./reporter/generateKeywordArticle");
 const { synthesizeInterviewArticle } = require("./reporter/synthesizeInterviewArticle");
@@ -47,7 +76,7 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
     throw new HttpsError("unauthenticated", "Only authenticated users can use SEKKEIYA Chat.");
   }
   try {
-    const { messages, model, projectId, clientContext } = request.data || {};
+    const { messages, model, projectId, clientContext, excludeSilos } = request.data || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       throw new HttpsError("invalid-argument", "Missing messages");
     }
@@ -69,7 +98,52 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
     // 暴走ペイロード対策で上限を切る（通常は数千〜1万文字程度）。
     const safeClientContext =
       typeof clientContext === "string" ? clientContext.slice(0, 60000) : "";
-    const result = await agentTurn({ messages, model, memorySection, clientContext: safeClientContext });
+    // 💰 前置き削減①: Google Calendar 接続状態を確認し、未接続なら gcal_* ツールを外す。
+    // コネクタは users/{uid}/connectors/google_calendar に保存（存在=接続）。読み取り失敗は未接続扱い。
+    let gcalConnected = false;
+    try {
+      const snap = await admin.firestore()
+        .doc(`users/${request.auth.uid}/connectors/google_calendar`).get();
+      gcalConnected = snap.exists;
+    } catch (e) {
+      console.warn("gcal connector check failed:", e.message);
+    }
+    // 💰 モデル自動振り分け（Phase 1）: 軽い会話=Haiku / 実務・重要=Sonnet。
+    // クライアントが model を明示していれば尊重。設定は config/aiModels.chatRouting で調整可能。
+    let routedModel = model;
+    try {
+      const routing = await loadChatRouting(admin.firestore());
+      const picked = pickChatModel({ messages, clientModel: model, routing });
+      routedModel = picked.model;
+      console.log(`[agentTurn] route tier=${picked.tier} reason=${picked.reason} model=${picked.model}`);
+    } catch (e) {
+      console.warn("agentTurn model routing failed, using client/default:", e.message);
+    }
+    // 💰 前置き削減②B（Phase B）: 会話で触れていないドメインのツール群(silo)をサーバー側で除外。
+    // クライアント指定の excludeSilos と自動判定をマージ（重複は除く）。設定は config/aiModels.toolSilos。
+    let mergedExcludeSilos = Array.isArray(excludeSilos) ? excludeSilos.slice() : [];
+    try {
+      const siloCfg = await loadSiloConfig(admin.firestore());
+      const auto = computeExcludedSilos({ messages, config: siloCfg });
+      mergedExcludeSilos = Array.from(new Set([...mergedExcludeSilos, ...auto]));
+      if (auto.length) console.log(`[agentTurn] silo exclude=[${mergedExcludeSilos.join(",")}]`);
+    } catch (e) {
+      console.warn("agentTurn tool silo failed, keeping all tools:", e.message);
+    }
+    const result = await agentTurn({
+      messages, model: routedModel, memorySection, clientContext: safeClientContext, gcalConnected,
+      excludeSilos: mergedExcludeSilos,
+    });
+    // 📊 使用量トラッキング（方式A）。fire-and-forget: 記録失敗でチャットを巻き込まない。
+    // model は実際に使われた結果のモデル（振り分け後）を記録 → モニターの「モデル別」に内訳が出る。
+    void recordUsage({
+      uid: request.auth.uid,
+      email: request.auth.token?.email || null,
+      feature: "chat",
+      provider: "anthropic",
+      model: result.model || routedModel || null,
+      usage: result.usage,
+    });
     return { success: true, result };
   } catch (error) {
     console.error("agentTurn Error:", error);
@@ -87,6 +161,14 @@ exports.suggestNextActions = onCall({ secrets: [anthropicApiKey] }, async (reque
   try {
     const { projectName, digest } = request.data || {};
     const result = await suggestNextActions({ projectName, digest });
+    void recordUsage({
+      uid: request.auth.uid,
+      email: request.auth.token?.email || null,
+      feature: "chat-suggest",
+      provider: "anthropic",
+      model: result.model || null,
+      usage: result.usage,
+    });
     return { success: true, result };
   } catch (error) {
     console.error("suggestNextActions Error:", error);
@@ -107,6 +189,14 @@ exports.generateSiteNarration = onCall({ secrets: [anthropicApiKey], timeoutSeco
       throw new HttpsError("invalid-argument", "Missing sections");
     }
     const result = await generateSiteNarration({ projectName, sections });
+    void recordUsage({
+      uid: request.auth.uid,
+      email: request.auth.token?.email || null,
+      feature: "site-narration",
+      provider: "anthropic",
+      model: result.model || null,
+      usage: result.usage,
+    });
     return { success: true, result };
   } catch (error) {
     console.error("generateSiteNarration Error:", error);
@@ -242,6 +332,18 @@ exports.aggregateWeeklyTrends = onCall({ secrets: [] }, async (request) => {
     return await aggregateWeeklyTrends(request.data, { auth: request.auth });
   } catch (e) {
     console.error("aggregateWeeklyTrends Error:", e);
+    throw new HttpsError("internal", e.message || "Aggregation failed");
+  }
+});
+
+// 反応ログ日次集計: reactionLogs を insights/reactionPatterns に集計（学習サイクル Phase 1）
+// 実行: firebase functions:call aggregateReactions --data '{"day":"YYYY-MM-DD"}'（省略時は今日JST）
+exports.aggregateReactions = onCall({ secrets: [] }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+  try {
+    return await aggregateReactions(request.data, { auth: request.auth });
+  } catch (e) {
+    console.error("aggregateReactions Error:", e);
     throw new HttpsError("internal", e.message || "Aggregation failed");
   }
 });

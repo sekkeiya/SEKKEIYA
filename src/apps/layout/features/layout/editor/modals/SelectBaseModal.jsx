@@ -308,7 +308,7 @@ export default function SelectBaseModal({
         <Stack direction="row" spacing={1} alignItems="center">
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontWeight: 900 }} noWrap>
-              {uiSubTypeLabel} を選択（S.Models）
+              {uiSubTypeLabel} を選択（S.Model）
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.7 }} noWrap>
               models.type = {String(categoryValue || "建築")}（visibility={visibilityValue}） / {subTypeField} ∈{" "}

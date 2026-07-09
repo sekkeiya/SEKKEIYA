@@ -1,4 +1,6 @@
 import React, { type ReactNode, useState, useCallback, useRef, useEffect, useMemo } from 'react';
+// AI設定（チャット基本モデル/画像生成モデル）を起動時にロードし、既定チャットモデルを適用する
+import '../store/useAiSettingsStore';
 import { Box, CssBaseline, ThemeProvider, Slide, useMediaQuery, Typography, IconButton, Tooltip, Badge } from '@mui/material';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
@@ -6,6 +8,7 @@ import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import PushPinRoundedIcon from '@mui/icons-material/PushPinRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -29,6 +32,7 @@ import { ProjectSidebar } from '../shared/layout/project-sidebar/ProjectSidebar'
 import AIChatPanel from '../components/AI/AIChatPanel';
 import { TeamChatPanel } from '../features/team-chat/TeamChatPanel';
 import ProjectChatBrowser from '../features/team-chat/ProjectChatBrowser';
+import { ProjectViewStrip } from '../shared/navigation/ProjectViewStrip';
 import { TeamChatNavigator } from '../features/team-chat/TeamChatNavigator';
 import ChatScopeNavigator from '../components/AI/ChatScopeNavigator';
 import AIDrivePanel from '../components/AI/AIDrivePanel';
@@ -46,6 +50,7 @@ import { DsdSidebar } from '../shared/layout/dsd-sidebar/DsdSidebar';
 import { DsdEditorSidebar } from '../features/dsd/editor/DsdEditorSidebar';
 import { DsrSidebar } from '../shared/layout/dsr-sidebar/DsrSidebar';
 import { DsiSidebar } from '../shared/layout/dsi-sidebar/DsiSidebar';
+import { DsiEditorSidebar } from '../features/dsi/editor/DsiEditorSidebar';
 import { DsqSidebar } from '../shared/layout/dsq-sidebar/DsqSidebar';
 import { DsfSidebar } from '../shared/layout/dsf-sidebar/DsfSidebar';
 import { DskSidebar } from '../shared/layout/dsk-sidebar/DskSidebar';
@@ -61,12 +66,14 @@ import AI3DCreateFullScreen from '../components/AI/AI3DCreateFullScreen';
 import AIRenderPanel from '../components/AI/AIRenderPanel';
 import AIRenderFullScreen from '../components/AI/AIRenderFullScreen';
 import AIToolbar from '../components/AI/AIToolbar';
-import { darkDesktopTheme, BRAND } from '../styles/theme';
+import { BRAND } from '../styles/theme';
+import { useAppTheme } from '../styles/useAppTheme';
 import MobileFeed from '../pages/MobileFeed';
 import CameraCapture from '../components/CameraCapture';
 import { useNotificationsStore } from '../store/useNotificationsStore';
 import { useAuthStore } from '../store/useAuthStore';
 import sekkeiyaChatIcon from '../../src-tauri/src/assets/icons/sekkeiya-s-trans.png';
+import { isTauri } from '../lib/platform';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -81,23 +88,6 @@ import { useDscStore } from '../features/dsc/store/useDscStore';
 
 const TEAM_CHAT_WIDTH = 360;
 
-// フローティング・チャットのリサイズ用：方向 → カーソル。
-const RESIZE_CURSORS: Record<string, string> = {
-  n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize',
-  ne: 'nesw-resize', sw: 'nesw-resize', nw: 'nwse-resize', se: 'nwse-resize',
-};
-// 各辺・四隅のヒット領域（枠に重ねる薄い帯/角）。
-const RESIZE_HANDLES: { dir: string; sx: Record<string, any> }[] = [
-  { dir: 'n',  sx: { top: 0, left: 12, right: 12, height: 6 } },
-  { dir: 's',  sx: { bottom: 0, left: 12, right: 12, height: 6 } },
-  { dir: 'w',  sx: { left: 0, top: 12, bottom: 12, width: 6 } },
-  { dir: 'e',  sx: { right: 0, top: 12, bottom: 12, width: 6 } },
-  { dir: 'nw', sx: { top: 0, left: 0, width: 14, height: 14 } },
-  { dir: 'ne', sx: { top: 0, right: 0, width: 14, height: 14 } },
-  { dir: 'sw', sx: { bottom: 0, left: 0, width: 14, height: 14 } },
-  { dir: 'se', sx: { bottom: 0, right: 0, width: 14, height: 14 } },
-];
-
 // フローティング・チャットの既定は「右端の縦パネル（右レール）」。
 const CHAT_RIGHT_MARGIN = 16;
 const CHAT_TOP_MARGIN = 80;     // 上部ツールバー/タブの下から
@@ -110,6 +100,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   // On phones the desktop column layout (mini-rail + 240px sidebar + content + 300-360px panels)
   // would crush the center to ~0px. On mobile we overlay the sidebar/panels instead.
   const isMobile = useMediaQuery('(max-width:768px)');
+  // Global Settings > 一般 のテーマ設定（dark/light/system）を反映したテーマ。
+  const appTheme = useAppTheme();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   // Mobile bottom-bar tab. feed is the default home experience.
   const [mobileTab, setMobileTab] = useState<'feed' | 'search' | 'mysite' | 'chat' | 'profile'>('feed');
@@ -146,6 +138,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
   const activeProjectId = useAppStore(s => s.activeProjectId);
   const projects = useAppStore(s => s.projects);
+  // SEKKEIYA OS を別ウィンドウへ切り出している間は、本体内のフローティング・チャット（右下の
+  // 「S」ピル＋ピーク）を丸ごと隠して成果物ビューを広く使う（会話は別ウィンドウに集約）。
+  const isChatPoppedOut = useAppStore(s => s.isChatPoppedOut);
   const currentMainView = useAppStore(s => s.currentMainView);
   const dslLeftPanel = useAppStore(s => s.dslLeftPanel);
   const isProjectSidebarOpen = useAppStore(s => s.isProjectSidebarOpen);
@@ -153,6 +148,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const dscShellMode = useAppStore(s => s.dscShellMode);
   const dsdShellMode = useAppStore(s => s.dsdShellMode);
   const dsmShellMode = useAppStore(s => s.dsmShellMode);
+  const dsiShellMode = useAppStore(s => s.dsiShellMode);
   const setProjectSidebarOpen = useAppStore(s => s.setProjectSidebarOpen);
   const setCurrentMainView = useAppStore(s => s.setCurrentMainView);
   const toggleAIChat = useAppStore(s => s.toggleAIChat);
@@ -269,80 +265,53 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     try { localStorage.setItem('sekkeiya.chatFloat', JSON.stringify(chatFloat)); } catch { /* noop */ }
   }, [chatFloat]);
 
-  // ピン化に伴う右上への自動再配置をスキップするフラグ（ヘッダードラッグで掴んだ位置から動かすため）。
-  const skipPinRepositionRef = useRef(false);
-  // 統合ヘッダーの左ドラッグでパネルを移動。未ピン（右レール）の場合は、その場の見た目位置を
-  // 固定座標に確定して自由移動モードへ切り替える（＝掴んだ瞬間に飛ばない）。ボタン上では移動しない。
-  const startChatHeaderDrag = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
+  // ドックから「切り離す」＝フローティング化（＝右下ピルから生えるピーク）。既定は未ピン。
+  // 未ピンはホバーを外すとヘッダーを残して畳む（消えはしない）ので、ピン留めしなくても良い。
+  // ピン留めすると「右サイドバー」としてレイアウトに常駐する（本文を左へ押しやる）。
+  const detachChatToFloat = useCallback(() => {
+    const s = useAppStore.getState();
+    s.setAIChatDetached(true);
+    s.setAIChatPinned(false);
+  }, []);
+
+  // チャットを独立ネイティブウィンドウへポップアウトする。
+  // 会話は1箇所で行う運用のため、切り離したら本体のチャットパネルは畳む
+  // （同時2窓のメッセージはリアルタイム相互反映されないため）。窓側は履歴を
+  // localStorage 共有で引き継ぐ。Web版・生成失敗時はドックのまま維持する。
+  const popOutChat = useCallback(async () => {
+    if (!isTauri()) return;
+    const { openChatWindow } = await import('../utils/openChatWindow');
+    const ok = await openChatWindow(useAppStore.getState().activeProjectId ?? null);
+    if (ok) useAppStore.getState().setAIChatOpen(false);
+  }, []);
+
+  // 右サイドバーとしてピン留め中の幅リサイズ（左端をドラッグ。左へ引くほど広がる）。
+  const startResizeChatDock = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const el = chatFloatRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (!useAppStore.getState().isAIChatPinned) {
-      skipPinRepositionRef.current = true;
-      setChatFloat({ x: rect.left, y: rect.top, w: rect.width, h: rect.height });
-      useAppStore.getState().setAIChatPinned(true);
-    }
-    const start = { mx: e.clientX, my: e.clientY, x: rect.left, y: rect.top };
-    let nx = start.x, ny = start.y;
-    document.body.style.cursor = 'move';
+    const start = { mx: e.clientX, w: chatFloat.w };
+    let nw = start.w;
+    document.body.style.cursor = 'ew-resize';
     document.body.style.userSelect = 'none';
     const onMove = (ev: MouseEvent) => {
-      nx = Math.min(Math.max(0, start.x + (ev.clientX - start.mx)), window.innerWidth - 140);
-      ny = Math.min(Math.max(0, start.y + (ev.clientY - start.my)), window.innerHeight - 56);
-      el.style.left = `${nx}px`; el.style.top = `${ny}px`;
-      el.style.right = 'auto'; el.style.bottom = 'auto';
+      nw = Math.min(Math.max(320, start.w - (ev.clientX - start.mx)), Math.round(window.innerWidth * 0.7));
+      if (el) el.style.width = `${nw}px`;
     };
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      // 隅へのスナップはしない。離した位置にそのまま留める。
-      setChatFloat(f => ({ ...f, x: nx, y: ny, w: rect.width, h: rect.height }));
+      setChatFloat(f => ({ ...f, w: nw }));
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, []);
-
-  // ドックから「切り離す」＝フローティング化。既定は未ピン。
-  // 未ピンはホバーを外すとヘッダーを残して畳む（消えはしない）ので、ピン留めしなくても良い。
-  // ピン留めは「ドラッグで動かす」「常に開いたまま固定したい」ときに明示的に行う。
-  const detachChatToFloat = useCallback(() => {
-    const s = useAppStore.getState();
-    s.setAIChatDetached(true);
-    s.setAIChatPinned(false);
-  }, []);
-  const dockChat = useCallback(() => {
-    useAppStore.getState().setAIChatDetached(false);
-  }, []);
+  }, [chatFloat.w]);
 
   // 開閉はホバーのイベントハンドラ内で同期的に行う（store の
   // openChatPeek / closeChatPeekSoon / cancelChatPeekClose）。
   // useEffect を介さないので、ホバー→表示／離脱→収納がフレーム遅延なく即時。
-
-  // ピン留めした瞬間：保留中の収納をキャンセルし、ピーク（右レール）と同じ位置・サイズを
-  // chatFloat に確定して、ドラッグ可能パネルへ滑らかに引き継ぐ（飛ばないように）。
-  const prevPinnedRef = useRef(isAIChatPinned);
-  useEffect(() => {
-    const was = prevPinnedRef.current;
-    prevPinnedRef.current = isAIChatPinned;
-    if (isAIChatPinned) useAppStore.getState().cancelChatPeekClose();
-    if (!was && isAIChatPinned && isAIChatDetached && !isMobile) {
-      // ヘッダードラッグ起点のピン化は、掴んだ位置から動かすので右上への再配置はしない。
-      if (skipPinRepositionRef.current) {
-        skipPinRepositionRef.current = false;
-      } else {
-        setChatFloat(f => ({
-          ...f,
-          x: Math.max(SNAP_MARGIN, window.innerWidth - CHAT_RIGHT_MARGIN - f.w),
-          y: CHAT_TOP_MARGIN,
-          h: Math.max(360, window.innerHeight - CHAT_TOP_MARGIN - CHAT_BOTTOM_MARGIN),
-        }));
-      }
-    }
-  }, [isAIChatPinned, isAIChatDetached, isMobile]);
 
   // 閉じてもピン留め／チャット階層サイドバーの状態は維持する（次回は前回の状態で開く）。
   // ホバーフラグだけ念のためリセットしておく。
@@ -403,46 +372,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     }
   }, [chatPanelTab, activeProjectId, activeWorkspaceId]);
 
-  const startResizeChatFloat = useCallback((e: React.MouseEvent, dir: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const el = chatFloatRef.current;
-    const MINW = 320, MINH = 380;
-    const start = { mx: e.clientX, my: e.clientY, x: chatFloat.x, y: chatFloat.y, w: chatFloat.w, h: chatFloat.h };
-    let nx = start.x, ny = start.y, nw = start.w, nh = start.h;
-    document.body.style.cursor = RESIZE_CURSORS[dir] ?? 'nwse-resize';
-    document.body.style.userSelect = 'none';
-    const onMove = (ev: MouseEvent) => {
-      const dx = ev.clientX - start.mx;
-      const dy = ev.clientY - start.my;
-      if (dir.includes('e')) nw = Math.min(Math.max(MINW, start.w + dx), window.innerWidth - start.x - 8);
-      if (dir.includes('s')) nh = Math.min(Math.max(MINH, start.h + dy), window.innerHeight - start.y - 8);
-      if (dir.includes('w')) {
-        const right = start.x + start.w;
-        nx = Math.min(Math.max(0, start.x + dx), right - MINW);
-        nw = right - nx;
-      }
-      if (dir.includes('n')) {
-        const bottom = start.y + start.h;
-        ny = Math.min(Math.max(0, start.y + dy), bottom - MINH);
-        nh = bottom - ny;
-      }
-      if (el) {
-        el.style.left = `${nx}px`; el.style.top = `${ny}px`;
-        el.style.width = `${nw}px`; el.style.height = `${nh}px`;
-      }
-    };
-    const onUp = () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      setChatFloat({ x: nx, y: ny, w: nw, h: nh });
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [chatFloat.x, chatFloat.y, chatFloat.w, chatFloat.h]);
-
   const startDragCreate = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     dragContext.current = { startX: e.clientX, startWidth: createWidth };
@@ -493,12 +422,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   useEffect(() => {
     const rightW =
       (isAIChatOpen && !isAIChatDetached ? chatWidth : 0) +
+      // 右サイドバーとしてピン留めしたコックピットもレイアウト幅を占有する
+      (isAIChatOpen && isAIChatDetached && isAIChatPinned && !isMobile ? chatFloat.w : 0) +
       (isTeamChatOpen ? TEAM_CHAT_WIDTH : 0) +
       (isAIDriveOpen && !isAIDriveExpanded ? driveWidth : 0) +
       (isAI3DCreateOpen && !isAI3DCreateExpanded ? createWidth : 0) +
       (isAIRenderOpen && !isAIRenderExpanded ? renderWidth : 0);
     setAiTaskOuterRight(rightW);
-  }, [isAIChatOpen, isAIChatDetached, chatWidth, isTeamChatOpen, isAIDriveOpen, isAIDriveExpanded, driveWidth, isAI3DCreateOpen, isAI3DCreateExpanded, createWidth, isAIRenderOpen, isAIRenderExpanded, renderWidth, setAiTaskOuterRight]);
+  }, [isAIChatOpen, isAIChatDetached, isAIChatPinned, isMobile, chatFloat.w, chatWidth, isTeamChatOpen, isAIDriveOpen, isAIDriveExpanded, driveWidth, isAI3DCreateOpen, isAI3DCreateExpanded, createWidth, isAIRenderOpen, isAIRenderExpanded, renderWidth, setAiTaskOuterRight]);
 
   // Show ModelsSidebar if we are in workspace view and the active workspace is models
   const showModelsSidebar = currentMainView === 'workspace' && activeWorkspaceId === 'models';
@@ -592,7 +523,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     if (showDsrSidebar) return <DsrSidebar />;
 
-    if (showDsiSidebar) return <DsiSidebar />;
+    if (showDsiSidebar) {
+      // エディター中は素材サイドバー、それ以外はプロジェクトナビ（S.Movie パターン）
+      if (dsiShellMode === 'editor') return <DsiEditorSidebar />;
+      return <DsiSidebar />;
+    }
 
     if (showDsqSidebar) return <DsqSidebar />;
 
@@ -684,7 +619,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       currentMainView, activeWorkspaceId,
       dscShellMode, dscShowProjectBrowser,
       dspIsHydrated, dspShowProjectBrowser,
-      dsdShellMode, dsmShellMode,
+      dsdShellMode, dsmShellMode, dsiShellMode,
       panelSelections, hasDslLeftSections, showDslDashboard,
     ],
   );
@@ -697,19 +632,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   // SEKKEIYA Chat コックピットのタブ。すべてパネル内で中身を切り替える。
   const cockpitTabs: { key: string; label: string; icon: React.ReactNode; active: boolean; onClick: () => void }[] = [
-    { key: 'chat', label: 'Chat', icon: <ForumRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'chat', onClick: () => setChatPanelTab('chat') },
-    { key: 'drive', label: 'AI Drive', icon: <FolderRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'drive', onClick: () => setChatPanelTab('drive') },
+    { key: 'chat', label: 'Agent', icon: <ForumRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'chat', onClick: () => setChatPanelTab('chat') },
+    { key: 'drive', label: 'SEKKEIYA Drive', icon: <FolderRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'drive', onClick: () => setChatPanelTab('drive') },
     { key: 'teamchat', label: 'DM', icon: <AlternateEmailRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'teamchat', onClick: () => setChatPanelTab('teamchat') },
     { key: 'render', label: 'AI Render', icon: <ImageRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'render', onClick: () => setChatPanelTab('render') },
     { key: 'gen3d', label: 'AI 3D Generate', icon: <ViewInArRoundedIcon sx={{ fontSize: '1.05rem' }} />, active: chatPanelTab === 'gen3d', onClick: () => setChatPanelTab('gen3d') },
   ];
 
+  // ピン留め＝コックピットを「右サイドバー」としてレイアウトに常駐させる（本文を左へ押しやる）。
+  // 未ピン＝右下ピルから生えるフローティングのピーク（ホバーで開閉、本文には重なる）。
+  const chatDocked = !isMobile && isAIChatOpen && isAIChatDetached && isAIChatPinned;
+
   return (
-    <ThemeProvider theme={darkDesktopTheme}>
+    <ThemeProvider theme={appTheme}>
       <CssBaseline />
       {/* ネイティブのタイトルバー(Win/macOS とも)の下に webview が配置されるため、
-          上部に追加の内側余白は不要。高さは実ウィンドウ(#root=100%)に揃える。 */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+          上部に追加の内側余白は不要。高さは実ウィンドウ(#root=100%)に揃える。
+          チャットを右サイドバーとしてピン留め中は、右端をチャット幅ぶん空けて
+          （＝上部ツールバーも含めて全体を左へ縮め）、その空きにチャットを最上部から
+          落とし込む（ツールバー右側の無駄な帯を無くす）。 */}
+      <Box sx={{
+        display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden',
+        paddingRight: chatDocked ? `${chatFloat.w}px` : 0,
+        transition: 'padding-right 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
 
         {/* ── AI ツールバー（デスクトップのみ・ネイティブメニュー直下） ── */}
         {!isMobile && <AIToolbar />}
@@ -941,8 +887,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             sx={{
               width: isAIChatOpen && !isAIChatDetached && isChatHistorySidebarOpen ? 260 : 0,
               flexShrink: 0,
-              borderLeft: isAIChatOpen && !isAIChatDetached && isChatHistorySidebarOpen ? `1px solid rgba(255,255,255,0.06)` : 'none',
-              bgcolor: '#161b26',
+              borderLeft: isAIChatOpen && !isAIChatDetached && isChatHistorySidebarOpen ? `1px solid ${BRAND.line}` : 'none',
+              bgcolor: BRAND.surface,
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -953,7 +899,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           >
             {isAIChatOpen && !isAIChatDetached && isChatHistorySidebarOpen && (
               <>
-                <Typography sx={{ px: 1.5, pt: 1.25, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, flexShrink: 0 }}>
+                <Typography sx={{ px: 1.5, pt: 1.25, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: BRAND.sub2, fontWeight: 600, flexShrink: 0 }}>
                   チャット階層
                 </Typography>
                 <Box sx={{ flex: 1, minHeight: 0 }}>
@@ -999,7 +945,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             )}
             <Box sx={{ width: '100%', height: '100%', minWidth: isAIChatOpen && (isMobile || !isAIChatDetached) ? 250 : 0, overflow: 'hidden' }}>
               {isAIChatOpen && (isMobile || !isAIChatDetached) && (
-                <AIChatPanel onToggleDetached={isMobile ? undefined : detachChatToFloat} />
+                <AIChatPanel onToggleDetached={isMobile ? undefined : detachChatToFloat} onPopOut={isMobile ? undefined : popOutChat} />
               )}
             </Box>
           </Box>
@@ -1009,7 +955,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               ピン＝ドラッグ＆リサイズ可能な常駐パネル。
               再マウント遅延を無くすため、切り離し中は常にマウントしたまま
               表示/非表示を animate で切り替える（2回目以降のホバーは瞬時に開く）。 */}
-          {!isMobile && (isAIChatDetached || (prewarmChat && !isAIChatOpen)) && (
+          {!isMobile && !isChatPoppedOut && (isAIChatDetached || (prewarmChat && !isAIChatOpen)) && (
               <motion.div
                 key="sekkeiya-chat-float"
                 ref={chatFloatRef}
@@ -1029,50 +975,61 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 // 縦長パネルを大きく拡大すると毎回の再ラスタライズで重くなるため、
                 // スケールは使わず純粋なフェードのみ（コンポジタ合成だけで最速・ジャンクなし）。
                 // ホバー表示は「瞬時に出て瞬時に消える」体感を優先し、ごく短いフェードにする。
-                animate={isAIChatOpen ? { opacity: 1 } : { opacity: 0 }}
+                animate={chatDocked ? { opacity: 1 } : (isAIChatOpen ? { opacity: 1 } : { opacity: 0 })}
                 transition={{ duration: 0.05, ease: 'linear' }}
-                style={{
-                  position: 'fixed',
-                  // ピン＝保存位置・サイズ（ドラッグ可）。未ピン＝右端の縦パネル（右レール）。
-                  ...(isAIChatPinned
-                    ? { left: chatFloat.x, top: chatFloat.y, width: chatFloat.w, height: chatFloat.h }
-                    // 未ピン＝右レール。畳んでいる時は bottom を外して高さ自動（ヘッダーのみ）にする。
-                    : { right: CHAT_RIGHT_MARGIN, top: CHAT_TOP_MARGIN, width: chatFloat.w, ...(chatCollapsed ? {} : { bottom: CHAT_BOTTOM_MARGIN }) }),
-                  transformOrigin: isAIChatPinned ? 'center' : 'bottom right',
-                  // MUI のメニュー/ダイアログ（z-index 1300）より下にして、
-                  // モデル選択・添付メニュー・履歴ダイアログがチャットの上に出るようにする。
-                  zIndex: 1290,
-                  // 非表示中はクリックを透過させる。
-                  pointerEvents: isAIChatOpen ? 'auto' : 'none',
-                  // レイヤーを温存して表示/非表示の切替を速くする。
-                  willChange: 'transform, opacity',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'visible',
-                }}
+                style={chatDocked
+                  ? {
+                    // ピン＝右サイドバーとして最上部から最下部まで常駐（占有幅は親 Box の
+                    // paddingRight で確保済みなので、ここは fixed で右端いっぱいに落とし込む）。
+                    position: 'fixed',
+                    top: 0, right: 0, bottom: 0,
+                    width: chatFloat.w,
+                    zIndex: 1250,
+                    pointerEvents: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'visible',
+                  }
+                  : {
+                    // 未ピン＝右端の縦パネル（右レール）のフローティング・ピーク。
+                    position: 'fixed',
+                    // 畳んでいる時は bottom を外して高さ自動（ヘッダーのみ）にする。
+                    right: CHAT_RIGHT_MARGIN, top: CHAT_TOP_MARGIN, width: chatFloat.w, ...(chatCollapsed ? {} : { bottom: CHAT_BOTTOM_MARGIN }),
+                    transformOrigin: 'bottom right',
+                    // MUI のメニュー/ダイアログ（z-index 1300）より下にして、
+                    // モデル選択・添付メニュー・履歴ダイアログがチャットの上に出るようにする。
+                    zIndex: 1290,
+                    // 非表示中はクリックを透過させる。
+                    pointerEvents: isAIChatOpen ? 'auto' : 'none',
+                    // レイヤーを温存して表示/非表示の切替を速くする。
+                    willChange: 'transform, opacity',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'visible',
+                  }}
               >
                 {/* 本体（枠・影・クリップ）。フローティングは任意のコンテンツ上に重なるため、
                     半透明の BRAND.panel ではなく不透明色にして透けないようにする。 */}
                 <Box sx={{
                   position: 'relative',
                   width: '100%', height: (chatCollapsed && !isAIChatPinned) ? 'auto' : '100%',
-                  bgcolor: '#1a1f2b',
-                  border: `1px solid ${BRAND.line}`,
-                  borderRadius: '8px',
-                  boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+                  bgcolor: BRAND.surface2,
+                  // 右サイドバー（ドック）時は枠を角丸・影なしにして左境界線だけの“サイドバー”見た目にする。
+                  border: chatDocked ? 'none' : `1px solid ${BRAND.line}`,
+                  borderLeft: chatDocked ? `1px solid ${BRAND.line}` : undefined,
+                  borderRadius: chatDocked ? 0 : '8px',
+                  boxShadow: chatDocked ? 'none' : '0 16px 48px rgba(0,0,0,0.6)',
                   overflow: 'hidden',
                   display: 'flex', flexDirection: 'column',
                 }}>
-                  {/* 統合ヘッダー（全幅・1行）。左ドラッグでパネルを移動（ボタン上は除く）。
+                  {/* 統合ヘッダー（全幅・1行）。
                       タブ｜（Chat時のみ）階層・新規・履歴｜ピン・閉じる をこの1行に集約。 */}
                   <Box
-                    onMouseDown={startChatHeaderDrag}
                     sx={{
                       display: 'flex', alignItems: 'center', gap: 0.25,
                       px: 0.75, py: 0.5, flexShrink: 0,
-                      bgcolor: '#161b26',
-                      borderBottom: '1px solid rgba(255,255,255,0.06)',
-                      cursor: 'move',
+                      bgcolor: BRAND.surface,
+                      borderBottom: `1px solid ${BRAND.line}`,
                     }}
                   >
                     {cockpitTabs.map((t) => (
@@ -1081,21 +1038,27 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                           size="small"
                           onClick={t.onClick}
                           sx={{
-                            color: t.active ? '#3498db' : 'rgba(255,255,255,0.5)',
+                            color: t.active ? '#3498db' : BRAND.sub2,
                             bgcolor: t.active ? 'rgba(52,152,219,0.15)' : 'transparent',
                             borderRadius: 1.5,
-                            '&:hover': { color: t.active ? '#3498db' : '#fff', bgcolor: t.active ? 'rgba(52,152,219,0.22)' : 'rgba(255,255,255,0.08)' },
+                            '&:hover': { color: t.active ? '#3498db' : BRAND.text, bgcolor: t.active ? 'rgba(52,152,219,0.22)' : BRAND.panel2 },
                           }}
                         >
                           {t.icon}
                         </IconButton>
                       </Tooltip>
                     ))}
+                    {/* この会話の文脈（プロジェクト／アカウントサイト）のページを開くリモコン。 */}
+                    {chatPanelTab === 'chat' && (
+                      <Box sx={{ pl: 0.75, ml: 0.5, borderLeft: `1px solid ${BRAND.line}`, display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
+                        <ProjectViewStrip />
+                      </Box>
+                    )}
                     <Box sx={{ flex: 1 }} />
                     {/* 左サイドバーの表示トグル（全タブ共通：各タブ専用の左サイドバーを開閉） */}
                     <Tooltip title="左サイドバー" placement="bottom">
                       <IconButton size="small" onClick={toggleChatHistorySidebar}
-                        sx={{ color: isChatHistorySidebarOpen ? '#ffd740' : 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                        sx={{ color: isChatHistorySidebarOpen ? 'light-dark(#ad8900, #ffd740)' : BRAND.sub2, '&:hover': { color: BRAND.text, bgcolor: BRAND.panel } }}>
                         <ViewSidebarRoundedIcon sx={{ fontSize: '1.05rem' }} />
                       </IconButton>
                     </Tooltip>
@@ -1106,34 +1069,42 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         {isTtsAvailable() && (
                           <Tooltip title={isChatVoiceModeOn ? '音声モードOFF' : '音声モードON（AIの応答を読み上げながら作業できます）'} placement="bottom">
                             <IconButton size="small" onClick={toggleChatVoiceMode}
-                              sx={{ color: isChatVoiceModeOn ? '#ffd740' : 'rgba(255,255,255,0.4)', bgcolor: isChatVoiceModeOn ? 'rgba(255,215,64,0.12)' : 'transparent', '&:hover': { color: isChatVoiceModeOn ? '#ffd740' : '#fff', bgcolor: isChatVoiceModeOn ? 'rgba(255,215,64,0.18)' : 'rgba(255,255,255,0.05)' } }}>
+                              sx={{ color: isChatVoiceModeOn ? 'light-dark(#ad8900, #ffd740)' : BRAND.sub2, bgcolor: isChatVoiceModeOn ? 'rgba(255,215,64,0.12)' : 'transparent', '&:hover': { color: isChatVoiceModeOn ? 'light-dark(#ad8900, #ffd740)' : BRAND.text, bgcolor: isChatVoiceModeOn ? 'rgba(255,215,64,0.18)' : BRAND.panel } }}>
                               {isChatVoiceModeOn ? <VolumeUpRoundedIcon sx={{ fontSize: '1.05rem' }} /> : <VolumeOffRoundedIcon sx={{ fontSize: '1.05rem' }} />}
                             </IconButton>
                           </Tooltip>
                         )}
                         <Tooltip title="新規チャット" placement="bottom">
                           <IconButton size="small" onClick={() => { if (activeProjectId) createChatSession(activeProjectId); }}
-                            sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                            sx={{ color: BRAND.sub2, '&:hover': { color: BRAND.text, bgcolor: BRAND.panel } }}>
                             <AddRoundedIcon sx={{ fontSize: '1.05rem' }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="履歴" placement="bottom">
                           <IconButton size="small" onClick={() => setChatHistoryDialogOpen(true)}
-                            sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                            sx={{ color: BRAND.sub2, '&:hover': { color: BRAND.text, bgcolor: BRAND.panel } }}>
                             <HistoryRoundedIcon sx={{ fontSize: '1.05rem' }} />
                           </IconButton>
                         </Tooltip>
                       </>
                     )}
-                    <Tooltip title={isAIChatPinned ? 'ピンを外す' : 'ピン留め'} placement="bottom">
+                    {chatPanelTab === 'chat' && !activeTeamProject && isTauri() && (
+                      <Tooltip title="別ウィンドウで開く（デスクトップへ切り離す）" placement="bottom">
+                        <IconButton size="small" onClick={popOutChat}
+                          sx={{ color: BRAND.sub2, '&:hover': { color: BRAND.text, bgcolor: BRAND.panel } }}>
+                          <OpenInNewRoundedIcon sx={{ fontSize: '1.05rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title={isAIChatPinned ? '右サイドバーを解除（フローティングに戻す）' : '右サイドバーとしてピン留め'} placement="bottom">
                       <IconButton size="small" onClick={toggleAIChatPinned}
-                        sx={{ color: isAIChatPinned ? '#3498db' : 'rgba(255,255,255,0.4)', '&:hover': { color: isAIChatPinned ? '#3498db' : '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                        sx={{ color: isAIChatPinned ? '#3498db' : BRAND.sub2, '&:hover': { color: isAIChatPinned ? '#3498db' : BRAND.text, bgcolor: BRAND.panel } }}>
                         {isAIChatPinned ? <PushPinRoundedIcon sx={{ fontSize: '1rem' }} /> : <PushPinOutlinedIcon sx={{ fontSize: '1rem' }} />}
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="閉じる" placement="bottom">
                       <IconButton size="small" onClick={() => setAIChatOpen(false)}
-                        sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                        sx={{ color: BRAND.sub2, '&:hover': { color: BRAND.text, bgcolor: BRAND.panel } }}>
                         <CloseRoundedIcon sx={{ fontSize: '1.05rem' }} />
                       </IconButton>
                     </Tooltip>
@@ -1141,10 +1112,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
                   {/* コックピット本体（タブで中身を切替。各タブが専用の左サイドバーを持つ）。
                       未ピン折りたたみ時は display:none で隠す（アンマウントせず状態・プリウォーム維持）。 */}
-                  <Box sx={{ flex: 1, minHeight: 0, display: (chatCollapsed && !isAIChatPinned) ? 'none' : 'flex', overflow: 'hidden', bgcolor: '#1a1f2b' }}>
+                  <Box sx={{ flex: 1, minHeight: 0, display: (chatCollapsed && !isAIChatPinned) ? 'none' : 'flex', overflow: 'hidden', bgcolor: BRAND.surface2 }}>
                     {/* 左サイドバー（全タブ共通の枠。中身はタブごとに差し替え。トグルで開閉） */}
                     {isChatHistorySidebarOpen && (
-                      <Box sx={{ width: 200, flexShrink: 0, borderRight: '1px solid rgba(255,255,255,0.06)', bgcolor: '#161b26', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <Box sx={{ width: 200, flexShrink: 0, borderRight: `1px solid ${BRAND.line}`, bgcolor: BRAND.surface, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         {chatPanelTab === 'chat' && (
                           <ProjectChatBrowser
                             activeTopicId={chatTopicId}
@@ -1204,14 +1175,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                       <Box sx={{ flex: 1, minWidth: 0 }}><AI3DCreatePanel /></Box>
                     )}
                   </Box>
-                  {/* リサイズハンドル（ピン留め時のみ。各辺・四隅でカーソルが変わる） */}
-                  {isAIChatPinned && RESIZE_HANDLES.map(({ dir, sx }) => (
+                  {/* 幅リサイズ（右サイドバー・ドック時のみ。左端をドラッグ） */}
+                  {chatDocked && (
                     <Box
-                      key={dir}
-                      onMouseDown={(e) => startResizeChatFloat(e, dir)}
-                      sx={{ position: 'absolute', zIndex: dir.length === 2 ? 7 : 6, cursor: RESIZE_CURSORS[dir], ...sx }}
+                      onMouseDown={startResizeChatDock}
+                      sx={{
+                        position: 'absolute', left: -3, top: 0, bottom: 0, width: 6, zIndex: 8,
+                        cursor: 'ew-resize',
+                        '&:hover': { bgcolor: '#3498db' },
+                      }}
                     />
-                  ))}
+                  )}
                 </Box>
                 {/* ピル↔パネルを繋ぐ透明ブリッジ（ピーク時のみ。ホバーが途切れないように） */}
                 {!isAIChatPinned && (
@@ -1228,8 +1202,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             sx={{
               width: isTeamChatOpen && isTeamChatSidebarOpen ? 260 : 0,
               flexShrink: 0,
-              borderLeft: isTeamChatOpen && isTeamChatSidebarOpen ? `1px solid rgba(255,255,255,0.06)` : 'none',
-              bgcolor: '#161b26',
+              borderLeft: isTeamChatOpen && isTeamChatSidebarOpen ? `1px solid ${BRAND.line}` : 'none',
+              bgcolor: BRAND.surface,
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -1310,7 +1284,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               {
                 id: 'chat',
                 primary: true,
-                icon: <Box component="img" src={sekkeiyaChatIcon} alt="SEKKEIYA Chat" sx={{ width: 24, height: 24, objectFit: 'contain', display: 'block' }} />,
+                icon: <Box component="img" src={sekkeiyaChatIcon} alt="SEKKEIYA OS" sx={{ width: 24, height: 24, objectFit: 'contain', display: 'block' }} />,
                 active: isAIChatOpen,
                 onClick: () => { setMobileTab('chat'); toggleAIChat(); },
               },
@@ -1332,7 +1306,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   <Badge
                     badgeContent={unreadCount}
                     max={99}
-                    sx={{ '& .MuiBadge-badge': { bgcolor: '#3498db', color: '#fff', fontSize: 9, fontWeight: 700, minWidth: 16, height: 16 } }}
+                    sx={{ '& .MuiBadge-badge': { bgcolor: '#3498db', color: 'var(--brand-fg)', fontSize: 9, fontWeight: 700, minWidth: 16, height: 16 } }}
                   >
                     <User size={24} />
                   </Badge>
@@ -1370,7 +1344,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     border: '1px solid rgba(0,0,0,0.18)',
                     boxShadow: item.active
                       ? 'inset 0 2px 4px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.3), 0 0 0 2px rgba(52,152,219,0.7)'
-                      : '0 3px 7px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.95), inset 0 -3px 5px rgba(0,0,0,0.14)',
+                      : '0 3px 7px rgba(0,0,0,0.45), inset 0 1px 1px rgb(var(--brand-fg-rgb) / 0.95), inset 0 -3px 5px rgba(0,0,0,0.14)',
                     transition: 'box-shadow 0.12s, transform 0.1s',
                     '&:active': { transform: 'scale(0.95)' },
                   }}>
@@ -1379,7 +1353,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 ) : (
                   <Box sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: item.active ? '#3498db' : 'rgba(255,255,255,0.55)',
+                    color: item.active ? '#3498db' : BRAND.sub2,
                     transition: 'color 0.15s',
                   }}>
                     {item.icon}

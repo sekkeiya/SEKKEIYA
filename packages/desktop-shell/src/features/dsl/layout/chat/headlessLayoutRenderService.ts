@@ -143,6 +143,107 @@ function fitShadowCameras(box: THREE.Box3, casters: THREE.DirectionalLight[]): v
   }
 }
 
+// ── 撮影スタイル別の自動アングル（ヘッドレス版）─────────────────────────────
+// autoCameraAngles.ts（ライブシーン必須）の考え方を、bbox＋家具重心だけで動く純関数に移植。
+// プリセットは useAutoAngleSettingsStore の STYLE_DEFAULTS に整合（不動産/雑誌/カタログ）。
+
+export type AngleStyle = 'realestate' | 'magazine' | 'catalog';
+
+export const ANGLE_STYLE_LABEL: Record<AngleStyle, string> = {
+  realestate: '不動産',
+  magazine: '雑誌',
+  catalog: 'カタログ',
+};
+
+const STYLE_PRESET: Record<AngleStyle, { count: number; eyeMm: number; radiusFactor: number; fov: number }> = {
+  // 不動産: 立ち目線・ワイドで広さを見せる
+  realestate: { count: 6, eyeMm: 1500, radiusFactor: 0.46, fov: 62 },
+  // 雑誌: 座り目線・標準画角で家具を主役にドラマチックに
+  magazine:   { count: 5, eyeMm: 1150, radiusFactor: 0.40, fov: 52 },
+  // カタログ: 座り目線・タイトに寄って質感を見せる
+  catalog:    { count: 6, eyeMm: 1150, radiusFactor: 0.33, fov: 45 },
+};
+
+/** 8方位の XZ 単位ベクトル。 */
+const DIRS: Record<string, [number, number]> = {
+  N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0],
+  NE: [0.707, -0.707], NW: [-0.707, -0.707], SE: [0.707, 0.707], SW: [-0.707, 0.707],
+};
+
+interface StyleShotSpec {
+  dir: keyof typeof DIRS;
+  fov?: number;          // 省略時はプリセット fov
+  radius?: number;       // baseRadius に対する倍率（寄り=小さく）
+  eye?: number;          // 目線高さ mm の上書き（ロー/ハイアングル）
+  target?: 'room' | 'furniture';
+  targetH?: number;      // 注視点の高さ mm
+}
+
+/** スタイルごとのショット構成（順番に採用。二点透視→一点透視→変化球）。 */
+const STYLE_SHOTS: Record<AngleStyle, StyleShotSpec[]> = {
+  realestate: [
+    { dir: 'SW' }, { dir: 'NE' }, { dir: 'SE' }, { dir: 'NW' },
+    { dir: 'S', fov: 55 },                                  // 正面 一点透視
+    { dir: 'NE', eye: 2400, fov: 58, radius: 0.55 },        // 少し高めの見下ろし
+  ],
+  magazine: [
+    { dir: 'SW', target: 'furniture' },
+    { dir: 'SE', fov: 50, target: 'furniture' },
+    { dir: 'NE', fov: 54, target: 'furniture' },
+    { dir: 'W', fov: 48 },                                  // 奥行き 一点透視
+    { dir: 'SW', eye: 700, fov: 56, target: 'furniture' },  // ローアングル
+  ],
+  catalog: [
+    { dir: 'NE', target: 'furniture' },
+    { dir: 'SW', fov: 42, radius: 0.8, target: 'furniture' },
+    { dir: 'SE', target: 'furniture' },
+    { dir: 'E', fov: 40, radius: 0.62, target: 'furniture', targetH: 800 }, // ディテール（寄り）
+    { dir: 'NW', target: 'furniture' },
+    { dir: 'S', fov: 44, target: 'furniture' },
+  ],
+};
+
+/**
+ * 撮影スタイルから内観アングルを生成する（ライブシーン不要）。
+ * @param box 躯体＋家具のジオメトリ境界（mm）
+ * @param furnitureCenter 家具の重心（無ければ null → 部屋中心を注視）
+ */
+function computeStyleCameras(
+  box: THREE.Box3,
+  furnitureCenter: THREE.Vector3 | null,
+  style: AngleStyle,
+  count: number,
+): ShotCamera[] {
+  const p = STYLE_PRESET[style];
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const baseRadius = Math.max(size.x, size.z) * p.radiusFactor;
+  const eyeBase = box.min.y + Math.min(p.eyeMm, size.y * 0.55);
+  const roomTarget = new THREE.Vector3(center.x, box.min.y + Math.min(1100, size.y * 0.38), center.z);
+
+  // 家具重心が部屋の外（データ異常）なら使わない。
+  const fc = furnitureCenter && box.containsPoint(new THREE.Vector3(furnitureCenter.x, box.min.y + 500, furnitureCenter.z))
+    ? furnitureCenter : null;
+
+  const cams: ShotCamera[] = [];
+  const shots = STYLE_SHOTS[style];
+  for (let i = 0; i < Math.min(count, shots.length); i++) {
+    const s = shots[i];
+    const d = DIRS[s.dir];
+    const r = baseRadius * (s.radius ?? 1);
+    const eyeY = s.eye != null ? box.min.y + Math.min(s.eye, size.y * 0.9) : eyeBase;
+    const tgt = s.target === 'furniture' && fc
+      ? new THREE.Vector3(fc.x, box.min.y + (s.targetH ?? 950), fc.z)
+      : (s.targetH != null ? new THREE.Vector3(roomTarget.x, box.min.y + s.targetH, roomTarget.z) : roomTarget);
+    cams.push({
+      position: [center.x + d[0] * r, eyeY, center.z + d[1] * r],
+      target: [tgt.x, tgt.y, tgt.z],
+      fov: s.fov ?? p.fov,
+    });
+  }
+  return cams;
+}
+
 /** 保存済みカメラが無い場合に、躯体 bbox から内観アングルを生成する。 */
 function computeDefaultCameras(box: THREE.Box3, count: number): ShotCamera[] {
   const center = box.getCenter(new THREE.Vector3());
@@ -210,10 +311,11 @@ export async function renderLayoutHeadless(
   projectId: string,
   planId: string,   // 描画対象リーフ（Plan / Option）。家具とレンダー保存先。
   baseId: string,   // 躯体・ライティング・カメラ状態の取得元（rootBaseId）。
-  count: number,
+  count: number,    // 0/未指定 = スタイル既定（style あり）または 3。
   createdBy: string,
+  style?: AngleStyle, // 撮影スタイル（不動産/雑誌/カタログ）。指定時は保存アングルより優先。
 ): Promise<HeadlessRenderResult> {
-  const max = Math.min(6, Math.max(1, count || 3));
+  const max = Math.min(6, Math.max(1, count || (style ? STYLE_PRESET[style].count : 3)));
 
   // 1. リーフ doc（家具）。対象は resolveRenderTarget で Plan/Option に解決済み。
   const planRef = doc(db, 'projects', projectId, 'workspaces', WORKSPACE_ID, 'layouts', planId);
@@ -281,7 +383,8 @@ export async function renderLayoutHeadless(
     scene.add(baseRoot);
     disposables.push(baseRoot);
 
-    // 6. 家具アイテム
+    // 6. 家具アイテム（スタイルアングルの注視点用に配置位置も集める）
+    const furniturePositions: THREE.Vector3[] = [];
     for (const item of items) {
       const rawUrl: string | undefined = item.glbUrl || item.swapModels?.[0]?.glbUrl;
       const url = await resolveStorageUrl(rawUrl);
@@ -321,6 +424,7 @@ export async function renderLayoutHeadless(
         applyShadowFlags(grp);
         scene.add(grp);
         disposables.push(grp);
+        furniturePositions.push(grp.position.clone());
       } catch (e) {
         console.warn('[headlessRender] item load failed (skip):', url, e);
       }
@@ -359,8 +463,17 @@ export async function renderLayoutHeadless(
     }
     fitShadowCameras(geomBox, casters);
 
-    // 8. カメラ決定（保存アングル優先、無ければジオメトリ境界から内観アングル生成）
-    let cameras = savedShots.slice(0, max);
+    // 8. カメラ決定
+    //    style 指定あり → 撮影スタイルの自動アングル（保存アングルより優先。「提案書用に撮影して」等）。
+    //    style なし     → 保存アングル優先、無ければ既定の内観アングル。
+    let cameras: ShotCamera[] = [];
+    if (style) {
+      const fc = furniturePositions.length
+        ? furniturePositions.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(furniturePositions.length)
+        : null;
+      cameras = computeStyleCameras(geomBox, fc, style, max);
+    }
+    if (cameras.length === 0) cameras = savedShots.slice(0, max);
     if (cameras.length === 0) cameras = computeDefaultCameras(geomBox, max);
     if (cameras.length === 0) return { ok: false, error: 'カメラアングルを決定できませんでした。' };
 
@@ -382,7 +495,7 @@ export async function renderLayoutHeadless(
       const renderId = await saveRenderToLayout(
         dataUrl,
         { projectId, workspaceId: WORKSPACE_ID, planId, createdBy },
-        { quality: 'standard', shotName: `レンダー ${i + 1}`, width: RENDER_W, height: RENDER_H, setAsHero: i === 0, mediaType: 'image' },
+        { quality: 'standard', shotName: style ? `${ANGLE_STYLE_LABEL[style]}アングル ${i + 1}` : `レンダー ${i + 1}`, width: RENDER_W, height: RENDER_H, setAsHero: i === 0, mediaType: 'image' },
       );
       renderIds.push(renderId);
     }

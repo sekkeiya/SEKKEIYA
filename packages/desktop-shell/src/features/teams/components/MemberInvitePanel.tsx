@@ -164,7 +164,7 @@ export const MemberInvitePanel: React.FC<Props> = ({ open, onClose, team }) => {
             fullWidth
             sx={{
               mb: 1.5,
-              '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 },
+              '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 2 },
               '& .MuiInputBase-input': { color: BRAND.text, fontSize: 13 },
             }}
           />
@@ -207,7 +207,7 @@ export const MemberInvitePanel: React.FC<Props> = ({ open, onClose, team }) => {
                     )}
                   </Box>
                   {isMember ? (
-                    <Chip label="参加中" size="small" sx={{ fontSize: 11, bgcolor: 'rgba(255,255,255,0.08)', color: BRAND.sub }} />
+                    <Chip label="参加中" size="small" sx={{ fontSize: 11, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: BRAND.sub }} />
                   ) : isInvited ? (
                     <Chip label="招待済" size="small" sx={{ fontSize: 11, bgcolor: 'rgba(52,152,219,0.15)', color: '#3498db' }} />
                   ) : (
@@ -249,7 +249,7 @@ export const MemberInvitePanel: React.FC<Props> = ({ open, onClose, team }) => {
               type="email"
               sx={{
                 flex: 1,
-                '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 },
+                '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 2 },
                 '& .MuiInputBase-input': { color: BRAND.text, fontSize: 13 },
               }}
             />
@@ -258,7 +258,7 @@ export const MemberInvitePanel: React.FC<Props> = ({ open, onClose, team }) => {
               disabled={!emailInput.trim() || atLimit || sendingEmail}
               onClick={handleInviteEmail}
               sx={{
-                bgcolor: '#3498db', color: '#fff', fontWeight: 700, fontSize: 12,
+                bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, fontSize: 12,
                 textTransform: 'none', borderRadius: 2, px: 2, whiteSpace: 'nowrap',
                 '&:hover': { bgcolor: '#2980b9' },
               }}
@@ -282,7 +282,7 @@ export const MemberInvitePanel: React.FC<Props> = ({ open, onClose, team }) => {
                     key={inv.id}
                     sx={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      px: 1.5, py: 1, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 2,
+                      px: 1.5, py: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 2,
                     }}
                   >
                     <Typography sx={{ fontSize: 12, color: BRAND.sub }}>

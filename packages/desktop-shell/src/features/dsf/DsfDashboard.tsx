@@ -82,13 +82,13 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
       {/* Main column */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
                 Portfolio Library
               </Typography>
-              <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>
+              <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>
                 {isProjectsMode ? '公開プロジェクト' : 'ポートフォリオ'}
               </Typography>
             </Box>
@@ -100,7 +100,7 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
                     variant="contained" size="small" startIcon={<CloudUploadRoundedIcon />}
                     disabled={!canWrite}
                     onClick={() => setUploadOpen(true)}
-                    sx={{ bgcolor: ACCENT, color: '#fff', '&:hover': { bgcolor: '#9575cd' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                    sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: '#9575cd' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
                   >
                     アップロード
                   </Button>
@@ -120,10 +120,10 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
                     onClick={() => setCategoryFilter(tab.key)}
                     sx={{
                       px: 1.5, py: 0.5, borderRadius: 1.5, cursor: 'pointer', fontSize: 12, fontWeight: active ? 600 : 500,
-                      color: active ? '#fff' : 'rgba(255,255,255,0.7)',
-                      bgcolor: active ? ACCENT : 'rgba(255,255,255,0.05)',
+                      color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                      bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
                       transition: 'background-color 0.15s',
-                      '&:hover': { bgcolor: active ? ACCENT : 'rgba(255,255,255,0.1)' },
+                      '&:hover': { bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                     }}
                   >
                     {tab.label}
@@ -141,18 +141,18 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
               {(projects || []).map((p: any) => (
                 <Box key={p.id} onClick={() => onOpenProject?.(p)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderRadius: 2, cursor: 'pointer',
-                    bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                     transition: 'border-color 0.15s, transform 0.15s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' } }}>
+                    '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', transform: 'translateY(-2px)' } }}>
                   <FolderSpecialRoundedIcon sx={{ fontSize: 28, color: ACCENT }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography noWrap sx={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
-                    <Typography noWrap sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
+                    <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
+                    <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
                   </Box>
                 </Box>
               ))}
               {(projects || []).length === 0 && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
                   公開プロジェクトがありません
                 </Typography>
               )}
@@ -171,7 +171,7 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
 
       {/* Right info panel */}
       {!isProjectsMode && (
-        <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(0,0,0,0.15)' }}>
+        <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
           <DsfRightPanel
             item={selectedItem}
             onOpen={(item) => setViewerPortfolioId(item.id)}
@@ -192,15 +192,15 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
 
       {/* Delete confirm dialog */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#1a1e27', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 420 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 420 } }}>
         <DialogTitle sx={{ pb: 1 }}>削除の確認</DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
             「{deleteTarget?.title || deleteTarget?.name || 'このポートフォリオ'}」を削除しますか？この操作は元に戻せません。
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleConfirmDelete} disabled={deleting} variant="contained" color="error">
             {deleting ? '削除中...' : '削除'}
           </Button>

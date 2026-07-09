@@ -53,7 +53,7 @@ const BindingModel: React.FC<{ url: string; binding: MaterialBinding | null; onS
 };
 
 const SwatchDot: React.FC<{ color?: string; size?: number }> = ({ color = '#888', size = 18 }) => (
-  <Box sx={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: `radial-gradient(circle at 33% 28%, rgba(255,255,255,0.6), ${color} 60%, rgba(0,0,0,0.4))`, border: '1px solid rgba(255,255,255,0.15)' }} />
+  <Box sx={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: `radial-gradient(circle at 33% 28%, rgb(var(--brand-fg-rgb) / 0.6), ${color} 60%, rgba(0,0,0,0.4))`, border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)' }} />
 );
 
 interface Props { model: any; projectId?: string }
@@ -141,16 +141,16 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
   };
 
   if (!projectId) {
-    return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>マテリアルの割り当てにはプロジェクトを選択してください。</Typography></Box>;
+    return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13 }}>マテリアルの割り当てにはプロジェクトを選択してください。</Typography></Box>;
   }
   if (!glbUrl) {
-    return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>このモデルには GLB がないためマテリアル編集できません。</Typography></Box>;
+    return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13 }}>このモデルには GLB がないためマテリアル編集できません。</Typography></Box>;
   }
 
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 2 }}>
       {/* プレビュー */}
-      <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 320, bgcolor: '#05060a', borderRadius: 2, border: '1px solid rgba(255,255,255,0.08)', position: 'relative', overflow: 'hidden' }}>
+      <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 320, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', position: 'relative', overflow: 'hidden' }}>
         {resolving || !resolvedUrl ? (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: ACCENT }} /></Box>
         ) : (
@@ -168,14 +168,14 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
       {/* スロット一覧 */}
       <Box sx={{ flex: '1 1 360px', minWidth: 300 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>マテリアルスロット</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)' }}>マテリアルスロット</Typography>
           {busy && <CircularProgress size={14} sx={{ color: ACCENT }} />}
           <Box sx={{ flex: 1 }} />
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{slots.length} スロット</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{slots.length} スロット</Typography>
         </Box>
 
         {slots.length === 0 ? (
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>モデルを解析中…（スロットが出ない場合は単一マテリアルの可能性があります）</Typography>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>モデルを解析中…（スロットが出ない場合は単一マテリアルの可能性があります）</Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {slots.map((slot) => {
@@ -184,15 +184,15 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
               const assignedMat = materials.find((m) => m.id === assign?.materialId);
               const assignColor = assignedMat?.params?.baseColor || assign?.material?.params?.baseColor || slot.baseColor;
               return (
-                <Box key={key} sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <Box key={key} sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
                     <SwatchDot color={assignColor} />
-                    <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', flex: 1 }} noWrap>
+                    <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.85)', flex: 1 }} noWrap>
                       {slot.materialName}{slot.meshName ? ` · ${slot.meshName}` : ''}
                     </Typography>
                     {assign && (
                       <Tooltip title="割り当て解除"><span>
-                        <Button size="small" onClick={() => clearSlot(slot)} sx={{ minWidth: 0, p: 0.5, color: 'rgba(255,255,255,0.5)' }}><ClearRoundedIcon sx={{ fontSize: 16 }} /></Button>
+                        <Button size="small" onClick={() => clearSlot(slot)} sx={{ minWidth: 0, p: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}><ClearRoundedIcon sx={{ fontSize: 16 }} /></Button>
                       </span></Tooltip>
                     )}
                   </Box>
@@ -202,7 +202,7 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
                       value={labels[key] ?? ''}
                       onChange={(e) => setLabels((p) => ({ ...p, [key]: e.target.value }))}
                       onBlur={() => commitLabel(slot)}
-                      sx={{ flex: 1, '& .MuiInputBase-input': { color: '#fff', fontSize: 12, py: 0.75 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' } }}
+                      sx={{ flex: 1, '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12, py: 0.75 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
                     />
                     <Button size="small" variant={assign ? 'outlined' : 'contained'} startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
                       onClick={(e) => setPicker({ anchor: e.currentTarget, slot })}
@@ -216,20 +216,20 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
           </Box>
         )}
 
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', mt: 1.5 }}>
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mt: 1.5 }}>
           ※ 単一メッシュのモデル（Tripo 生成など）は「役割名」を空のままにするとオブジェクト全体に適用されます。
         </Typography>
       </Box>
 
       {/* 素材ピッカー */}
       <Menu anchorEl={picker?.anchor} open={!!picker} onClose={() => setPicker(null)}
-        slotProps={{ paper: { sx: { bgcolor: '#14161b', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 240, maxHeight: 360 } } }}>
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 240, maxHeight: 360 } } }}>
         {picker && (
           <MenuItem onClick={() => registerEmbedded(picker.slot)} sx={{ fontSize: 12, gap: 1 }}>
             <SwatchDot color={picker.slot.baseColor} size={16} /> 埋め込み素材をライブラリに登録して割当
           </MenuItem>
         )}
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
         {materials.length === 0 ? (
           <MenuItem disabled sx={{ fontSize: 12 }}>このプロジェクトに素材がありません</MenuItem>
         ) : materials.map((m) => {
@@ -238,7 +238,7 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
             <MenuItem key={m.id} onClick={() => picker && assignMaterial(picker.slot, m)} sx={{ fontSize: 12, gap: 1 }}>
               <SwatchDot color={m.params?.baseColor} size={16} />
               <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 12 }} noWrap>{m.title || '無題'}</Typography></Box>
-              <Chip label={meta.label} size="small" sx={{ height: 16, fontSize: 9, bgcolor: `${meta.color}22`, color: meta.color }} />
+              <Chip label={meta.label} size="small" sx={{ height: 16, fontSize: 9, bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color }} />
             </MenuItem>
           );
         })}

@@ -71,7 +71,7 @@ export const TeamsManagementPage: React.FC = () => {
             startIcon={<AddRoundedIcon />}
             onClick={openCreate}
             sx={{
-              bgcolor: '#3498db', color: '#fff', fontWeight: 700, fontSize: 13,
+              bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, fontSize: 13,
               textTransform: 'none', borderRadius: 2,
               '&:hover': { bgcolor: '#2980b9' },
             }}
@@ -94,8 +94,8 @@ export const TeamsManagementPage: React.FC = () => {
         ) : teams.length === 0 ? (
           <Box sx={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            py: 10, borderRadius: 3, border: `1px dashed rgba(255,255,255,0.12)`,
-            bgcolor: 'rgba(255,255,255,0.02)',
+            py: 10, borderRadius: 3, border: `1px dashed rgb(var(--brand-fg-rgb) / 0.12)`,
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
           }}>
             <GroupsRoundedIcon sx={{ fontSize: 56, color: BRAND.sub2, mb: 2 }} />
             <Typography sx={{ fontSize: 15, fontWeight: 600, color: BRAND.sub, mb: 1 }}>
@@ -124,7 +124,7 @@ export const TeamsManagementPage: React.FC = () => {
                   onClick={() => handleTeamClick(team.id)}
                   sx={{
                     borderRadius: 3, border: `1px solid ${BRAND.line}`,
-                    bgcolor: 'rgba(255,255,255,0.03)', p: 2.5,
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', p: 2.5,
                     display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1.5,
                     '&:hover': { bgcolor: 'rgba(52,152,219,0.06)', borderColor: 'rgba(52,152,219,0.3)' },
                     transition: 'background 0.15s, border-color 0.15s',
@@ -149,7 +149,7 @@ export const TeamsManagementPage: React.FC = () => {
                         size="small"
                         sx={{
                           fontSize: 10, height: 18,
-                          bgcolor: 'rgba(255,255,255,0.08)', color: BRAND.sub,
+                          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: BRAND.sub,
                           '& .MuiChip-icon': { color: BRAND.sub },
                         }}
                       />
@@ -201,7 +201,7 @@ export const TeamsManagementPage: React.FC = () => {
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={() => setCreateOpen(false)} disabled={creating} sx={{ color: BRAND.sub, textTransform: 'none', fontWeight: 600 }}>キャンセル</Button>
           <Button onClick={handleCreate} disabled={!newName.trim() || creating} variant="contained"
-            sx={{ bgcolor: '#3498db', color: '#fff', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}>
+            sx={{ bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}>
             {creating ? <CircularProgress size={16} color="inherit" /> : '作成'}
           </Button>
         </DialogActions>

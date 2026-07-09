@@ -765,7 +765,7 @@ function FurnitureItemComponent({
   const infoGlb = swapActive ? (swapActive?.glbUrl || swapAsset?.glbUrl || null) : (item?.glbUrl || null);
   const infoDims = effectiveDimensions || item?.dimensionsMm || null;
 
-  // S.Models 相当のリッチ情報のソース（カテゴリ/寸法/価格/素材/タグ/関連リンク）。
+  // S.Model 相当のリッチ情報のソース（カテゴリ/寸法/価格/素材/タグ/関連リンク）。
   // 差し替え中は差し替え先アセットを優先。通常はストア→Firestore→配置アイテムの順。
   // カタログ/関連リンクは「ストアに無くても Firestore には有る」ことがあるため、
   // 単一ソースに固定せず、各ソースから値が在るものをフィールド単位で拾う。
@@ -853,7 +853,7 @@ function FurnitureItemComponent({
         materials,
         tags,
         catalogLinks,
-        // S.Models 詳細を開くためのモデルオブジェクト（アセット情報を含める）
+        // S.Model 詳細を開くためのモデルオブジェクト（アセット情報を含める）
         model: modelId ? {
           id: modelId,
           title: infoTitle,

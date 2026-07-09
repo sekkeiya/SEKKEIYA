@@ -152,7 +152,7 @@ function Slot({ label, active, onClick, onHover, onLeave, onDelete }) {
       sx={{
         position: "relative", height: 30, px: 1.4, display: "flex", alignItems: "center",
         borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap",
-        color: active ? "#06210f" : alpha("#fff", 0.82),
+        color: active ? "#06210f" : "color-mix(in srgb, var(--brand-fg) 82%, transparent)",
         background: active ? `linear-gradient(180deg, ${alpha("#34d399", 0.95)} 0%, ${alpha("#059669", 0.9)} 100%)` : "transparent",
         transition: "background 0.12s, color 0.12s",
         "&:hover": { background: active ? undefined : alpha("#fff", 0.1) },
@@ -166,7 +166,7 @@ function Slot({ label, active, onClick, onHover, onLeave, onDelete }) {
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           sx={{
             position: "absolute", top: -7, right: -5, p: 0.15, opacity: 0, transition: "opacity 0.15s",
-            color: "#fff", bgcolor: alpha("#0b0f18", 0.95), border: `1px solid ${alpha("#fff", 0.25)}`,
+            color: "var(--brand-fg)", bgcolor: "color-mix(in srgb, var(--brand-bg) 95%, transparent)", border: `1px solid ${alpha("#fff", 0.25)}`,
             "&:hover": { bgcolor: "#e0564f" },
           }}
         >
@@ -185,7 +185,7 @@ function ViewTile({ thumb, label, active, busy, onClick, onRemove }) {
         onClick={onClick}
         sx={{
           position: "relative", width: 104, height: 66, borderRadius: 1.5, overflow: "hidden", cursor: "pointer",
-          border: `2px solid ${active ? "#34d399" : alpha("#fff", 0.14)}`, background: alpha("#0b0f18", 0.7),
+          border: `2px solid ${active ? "#34d399" : alpha("#fff", 0.14)}`, background: "color-mix(in srgb, var(--brand-bg) 70%, transparent)",
           display: "flex", alignItems: "center", justifyContent: "center",
           transition: "border-color 0.15s",
           "&:hover": { borderColor: active ? "#34d399" : alpha("#fff", 0.4) },
@@ -196,20 +196,20 @@ function ViewTile({ thumb, label, active, busy, onClick, onRemove }) {
         {thumb ? (
           <img src={thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "transform 0.2s" }} />
         ) : busy ? (
-          <CircularProgress size={15} sx={{ color: alpha("#fff", 0.6) }} />
+          <CircularProgress size={15} sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }} />
         ) : (
-          <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.35) }}>—</Typography>
+          <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }}>—</Typography>
         )}
         {onRemove && (
           <IconButton
             className="rm" size="small" onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            sx={{ position: "absolute", top: 1, right: 1, p: 0.25, opacity: 0, transition: "opacity 0.15s", color: "#fff", bgcolor: alpha("#000", 0.5), "&:hover": { bgcolor: "#e0564f" } }}
+            sx={{ position: "absolute", top: 1, right: 1, p: 0.25, opacity: 0, transition: "opacity 0.15s", color: "var(--brand-fg)", bgcolor: "color-mix(in srgb, var(--brand-bg) 50%, transparent)", "&:hover": { bgcolor: "#e0564f" } }}
           >
             <CloseRoundedIcon sx={{ fontSize: 12 }} />
           </IconButton>
         )}
       </Box>
-      <Typography sx={{ mt: 0.3, textAlign: "center", fontSize: 10.5, fontWeight: 700, color: active ? "#fff" : alpha("#fff", 0.65), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <Typography sx={{ mt: 0.3, textAlign: "center", fontSize: 10.5, fontWeight: 700, color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 65%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {label}
       </Typography>
     </Box>
@@ -468,7 +468,7 @@ export default function EditorAngleBar() {
         direction="row" spacing={0.3} alignItems="center"
         sx={{
           px: 0.7, py: 0.5, borderRadius: 999,
-          background: alpha("#0b0f18", 0.82), border: `1px solid ${alpha("#fff", 0.12)}`,
+          background: "color-mix(in srgb, var(--brand-bg) 82%, transparent)", border: `1px solid ${alpha("#fff", 0.12)}`,
           backdropFilter: "blur(10px)", boxShadow: `0 8px 24px ${alpha("#000", 0.4)}`,
         }}
       >
@@ -498,13 +498,13 @@ export default function EditorAngleBar() {
               sx={{
                 position: "relative", height: 30, px: 1.3, display: "flex", alignItems: "center", gap: 0.5,
                 borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap",
-                color: activeInCat ? "#06210f" : alpha("#fff", 0.82),
+                color: activeInCat ? "#06210f" : "color-mix(in srgb, var(--brand-fg) 82%, transparent)",
                 background: activeInCat ? `linear-gradient(180deg, ${alpha("#34d399", 0.95)} 0%, ${alpha("#059669", 0.9)} 100%)` : "transparent",
                 "&:hover": { background: activeInCat ? undefined : alpha("#fff", 0.1) },
               }}
             >
               {cat}
-              <Box component="span" sx={{ fontSize: 10.5, fontWeight: 800, px: 0.5, borderRadius: 999, color: activeInCat ? alpha("#06210f", 0.7) : alpha("#fff", 0.5), bgcolor: activeInCat ? alpha("#06210f", 0.14) : alpha("#fff", 0.1) }}>
+              <Box component="span" sx={{ fontSize: 10.5, fontWeight: 800, px: 0.5, borderRadius: 999, color: activeInCat ? alpha("#06210f", 0.7) : alpha("#fff", 0.5), bgcolor: activeInCat ? "color-mix(in srgb, var(--brand-surface) 14%, transparent)" : alpha("#fff", 0.1) }}>
                 {list.length}
               </Box>
               <KeyboardArrowDownRoundedIcon sx={{ fontSize: 14, ml: -0.3, opacity: 0.7 }} />
@@ -539,24 +539,24 @@ export default function EditorAngleBar() {
           paper: {
             sx: {
               mt: 1, p: 0.8, borderRadius: 2, overflow: "hidden",
-              background: alpha("#0b0f18", 0.95), border: `1px solid ${alpha("#fff", 0.14)}`,
+              background: "color-mix(in srgb, var(--brand-bg) 95%, transparent)", border: `1px solid ${alpha("#fff", 0.14)}`,
               backdropFilter: "blur(12px)", boxShadow: `0 14px 40px ${alpha("#000", 0.55)}`,
             },
           },
         }}
       >
-        <Box sx={{ width: 220, height: 138, borderRadius: 1.5, overflow: "hidden", background: alpha("#000", 0.4), display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Box sx={{ width: 220, height: 138, borderRadius: 1.5, overflow: "hidden", background: "color-mix(in srgb, var(--brand-bg) 40%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {isFloorHover ? (
-            <LayersRoundedIcon sx={{ fontSize: 34, color: alpha("#fff", 0.35) }} />
+            <LayersRoundedIcon sx={{ fontSize: 34, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }} />
           ) : previewThumb ? (
             <img src={previewThumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           ) : previewBusy ? (
-            <CircularProgress size={20} sx={{ color: alpha("#fff", 0.6) }} />
+            <CircularProgress size={20} sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }} />
           ) : (
-            <Typography sx={{ fontSize: 11, color: alpha("#fff", 0.4) }}>サムネ準備中…</Typography>
+            <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>サムネ準備中…</Typography>
           )}
         </Box>
-        <Typography sx={{ mt: 0.6, mb: 0.2, textAlign: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>{previewLabel}</Typography>
+        <Typography sx={{ mt: 0.6, mb: 0.2, textAlign: "center", fontSize: 12, fontWeight: 700, color: "var(--brand-fg)" }}>{previewLabel}</Typography>
       </Popover>
 
       {/* カテゴリ・ドロップダウン（サムネのグリッドで選択。多数登録でも選びやすい） */}
@@ -575,7 +575,7 @@ export default function EditorAngleBar() {
             onMouseLeave: scheduleCloseCat,
             sx: {
               mt: 1, p: 1.4, borderRadius: 2.5, pointerEvents: "auto",
-              background: alpha("#0b0f18", 0.95), border: `1px solid ${alpha("#fff", 0.14)}`,
+              background: "color-mix(in srgb, var(--brand-bg) 95%, transparent)", border: `1px solid ${alpha("#fff", 0.14)}`,
               backdropFilter: "blur(14px)", boxShadow: `0 16px 46px ${alpha("#000", 0.55)}`,
             },
           },
@@ -589,11 +589,11 @@ export default function EditorAngleBar() {
             <Box sx={{ width: "min(70vw, 660px)" }}>
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: "#fff" }}>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: "var(--brand-fg)" }}>
                     {catMenu.category}（{list.length}）
                   </Typography>
                   {list.length > 1 && (
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.5) }}>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>
                       ← → で切替
                     </Typography>
                   )}
@@ -614,7 +614,7 @@ export default function EditorAngleBar() {
                 </Button>
               </Stack>
               {list.length === 0 ? (
-                <Box sx={{ py: 2.5, textAlign: "center", border: `1px dashed ${alpha("#fff", 0.16)}`, borderRadius: 1.5, color: alpha("#fff", 0.45), fontSize: 12 }}>
+                <Box sx={{ py: 2.5, textAlign: "center", border: `1px dashed ${alpha("#fff", 0.16)}`, borderRadius: 1.5, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontSize: 12 }}>
                   {catMenu.category === CAT_SECTION ? "断面線を出した状態で「現在を登録」" : "アングルを合わせて「現在を登録」"}
                 </Box>
               ) : (

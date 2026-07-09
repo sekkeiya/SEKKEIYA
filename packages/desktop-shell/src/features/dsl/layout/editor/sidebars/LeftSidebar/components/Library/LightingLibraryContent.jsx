@@ -15,7 +15,7 @@ function DirectionalPreview() {
       sx={{
         width: "100%",
         height: "100%",
-        background: "#0e1422",
+        background: "var(--brand-surface)",
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -72,7 +72,7 @@ function SpotPreview() {
       sx={{
         width: "100%",
         height: "100%",
-        background: "#0a0e18",
+        background: "var(--brand-bg)",
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -158,7 +158,7 @@ function NeonPreview() {
       sx={{
         width: "100%",
         height: "100%",
-        background: "#0a0a16",
+        background: "var(--brand-bg)",
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -230,7 +230,7 @@ function RectAreaPreview() {
       sx={{
         width: "100%",
         height: "100%",
-        background: "#0a0c16",
+        background: "var(--brand-bg)",
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -337,8 +337,8 @@ function LightCard({ type, label, Preview, accentColor, onAdd }) {
         userSelect: "none",
         transition: "all 0.16s ease",
         "&:hover": {
-          border: `1px solid ${alpha(accentColor, 0.55)}`,
-          boxShadow: `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${alpha(accentColor, 0.2)}`,
+          border: `1px solid ${`color-mix(in srgb, ${accentColor} 55%, transparent)`}`,
+          boxShadow: `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${`color-mix(in srgb, ${accentColor} 20%, transparent)`}`,
           "& .light-preview-overlay": {
             opacity: 1,
           },
@@ -371,7 +371,7 @@ function LightCard({ type, label, Preview, accentColor, onAdd }) {
           sx={{
             position: "absolute",
             inset: 0,
-            background: `radial-gradient(circle at 50% 50%, ${alpha(accentColor, 0.12)}, transparent 70%)`,
+            background: `radial-gradient(circle at 50% 50%, ${`color-mix(in srgb, ${accentColor} 12%, transparent)`}, transparent 70%)`,
             opacity: 0,
             transition: "opacity 0.16s",
           }}
@@ -383,7 +383,7 @@ function LightCard({ type, label, Preview, accentColor, onAdd }) {
         sx={{
           px: 1,
           py: 0.6,
-          background: alpha("#000", 0.25),
+          background: "color-mix(in srgb, var(--brand-bg) 25%, transparent)",
           borderTop: `1px solid ${alpha("#fff", 0.05)}`,
         }}
       >

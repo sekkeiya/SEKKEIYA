@@ -300,9 +300,9 @@ export const DslDashboard: React.FC<{
                     }}
                     sx={{
                       fontSize: 24, fontWeight: 700, cursor: 'pointer',
-                      color: dslScope === sc ? '#fff' : 'rgba(255,255,255,0.4)',
+                      color: dslScope === sc ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                       transition: 'color 0.2s',
-                      '&:hover': { color: '#fff' },
+                      '&:hover': { color: 'var(--brand-fg)' },
                     }}
                   >
                     {sc === 'global_layouts' ? 'Explore' : 'Following'}
@@ -313,7 +313,7 @@ export const DslDashboard: React.FC<{
               <>
                 <Box sx={styles.pageTitle}>{scopeTitle}</Box>
                 {scopeDescription && (
-                  <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.55)', lineHeight: 1.3, mt: '2px' }}>
+                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.55)', lineHeight: 1.3, mt: '2px' }}>
                     {scopeDescription}
                   </Typography>
                 )}
@@ -347,7 +347,7 @@ export const DslDashboard: React.FC<{
             onPointerDown={(e) => e.stopPropagation()}
             sx={{
               textTransform: 'none', whiteSpace: 'nowrap', fontSize: 11, mr: 1,
-              color: '#a78bfa', borderColor: 'rgba(167,139,250,0.35)',
+              color: 'light-dark(#2f07a6, #a78bfa)', borderColor: 'rgba(167,139,250,0.35)',
               '&:hover': { borderColor: '#a78bfa', background: 'rgba(167,139,250,0.08)' },
             }}
           >
@@ -364,8 +364,8 @@ export const DslDashboard: React.FC<{
               onPointerDown={(e) => e.stopPropagation()}
               sx={{
                 textTransform: 'none', whiteSpace: 'nowrap', fontSize: 11, mr: 1,
-                color: 'rgba(229,231,235,0.9)', borderColor: 'rgba(148,163,184,0.3)',
-                '&:hover': { borderColor: '#ec407a', color: '#fff', background: 'rgba(236,64,122,0.08)' },
+                color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))', borderColor: 'rgb(var(--slate-ink-rgb) / 0.3)',
+                '&:hover': { borderColor: '#ec407a', color: 'var(--brand-fg)', background: 'rgba(236,64,122,0.08)' },
               }}
             >
               画像・動画は S.Image へ
@@ -404,8 +404,8 @@ export const DslDashboard: React.FC<{
                     cursor: 'pointer',
                     borderBottom: `2px solid ${active ? '#00BFFF' : 'transparent'}`,
                     transition: 'color 0.15s, border-color 0.15s',
-                    color: active ? '#fff' : 'rgba(148,163,184,0.55)',
-                    '&:hover': { color: active ? '#fff' : 'rgba(229,231,235,0.8)' },
+                    color: active ? 'var(--brand-fg)' : 'rgb(var(--slate-ink-rgb) / 0.55)',
+                    '&:hover': { color: active ? 'var(--brand-fg)' : 'rgba(229,231,235,0.8)' },
                   }}
                 >
                   <Typography sx={{ fontSize: 13, fontWeight: active ? 700 : 500, lineHeight: 1 }}>
@@ -464,9 +464,9 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 20,
-    background: 'rgba(2,6,23,0.92)',
+    background: 'rgb(var(--slate-deep-rgb) / 0.92)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(148,163,184,0.18)',
+    borderBottom: '1px solid rgb(var(--slate-ink-rgb) / 0.18)',
     minWidth: 0,
     flexShrink: 0,
   },
@@ -486,7 +486,7 @@ const styles = {
   },
   breadcrumb: {
     fontSize: 11,
-    color: 'rgba(148,163,184,0.85)',
+    color: 'rgb(var(--slate-ink-rgb) / 0.85)',
     lineHeight: 1.2,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -497,7 +497,7 @@ const styles = {
     fontWeight: 760,
     letterSpacing: 0.2,
     lineHeight: 1.2,
-    color: '#fa709a',
+    color: 'light-dark(#a80637, #fa709a)',
   },
   searchWrap: {
     display: 'flex',
@@ -505,19 +505,19 @@ const styles = {
     gap: 1,
     padding: '7px 10px',
     borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.30)',
-    background: 'rgba(15,23,42,0.62)',
+    border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.62)',
     width: 'min(560px, 100%)',
     minWidth: 220,
   },
-  searchIcon: { fontSize: 18, color: 'rgba(148,163,184,0.9)' },
+  searchIcon: { fontSize: 18, color: 'rgb(var(--slate-ink-rgb) / 0.9)' },
   searchInput: {
     width: '100%',
     minWidth: 0,
     border: 'none',
     outline: 'none',
     background: 'transparent',
-    color: '#e5e7eb',
+    color: 'var(--brand-fg)',
     fontSize: 12,
   },
   viewBlock: {
@@ -526,14 +526,14 @@ const styles = {
     alignItems: 'flex-end',
     gap: '4px',
   },
-  miniLabel: { fontSize: 11, color: 'rgba(148,163,184,0.85)' },
+  miniLabel: { fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)' },
   densityGroup: {
-    '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgba(148,163,184,0.22)' },
+    '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)' },
   },
   densityBtn: {
-    color: 'rgba(229,231,235,0.9)',
-    background: 'rgba(15,23,42,0.32)',
-    borderColor: 'rgba(148,163,184,0.22)',
+    color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))',
+    background: 'rgb(var(--slate-panel-rgb) / 0.32)',
+    borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)',
     padding: '3px 10px',
     fontSize: 11,
   },
@@ -552,7 +552,7 @@ const styles = {
     px: 2,
     pb: 0,
     pt: 0.5,
-    borderTop: '1px solid rgba(255,255,255,0.05)',
+    borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
   },
   content: {
     flex: 1,

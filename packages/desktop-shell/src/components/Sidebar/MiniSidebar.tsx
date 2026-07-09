@@ -80,11 +80,11 @@ const NavIcon = ({ icon, label, active, onClick, isBrand, disabled }: any) => {
           border: 'none',
           borderRadius: 2,
           cursor: disabled ? 'not-allowed' : 'pointer',
-          bgcolor: active ? 'rgba(255,255,255,0.12)' : 'transparent',
-          color: active ? '#3498db' : 'rgba(255,255,255,0.8)',
+          bgcolor: active ? BRAND.panel2 : 'transparent',
+          color: active ? '#3498db' : BRAND.sub,
           opacity: disabled ? 0.4 : 1,
           textAlign: 'left',
-          '&:active': { bgcolor: 'rgba(255,255,255,0.16)' },
+          '&:active': { bgcolor: BRAND.panel2 },
         }}
       >
         <Box sx={{ display: 'flex', width: 24, justifyContent: 'center', flexShrink: 0 }}>
@@ -103,16 +103,16 @@ const NavIcon = ({ icon, label, active, onClick, isBrand, disabled }: any) => {
       <IconButton
         onClick={disabled ? undefined : onClick}
         sx={{
-          bgcolor: active ? (isBrand ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.15)') : 'transparent',
-          color: active ? '#3498db' : 'rgba(255,255,255,0.6)',
-          boxShadow: active && isBrand ? '0 0 12px rgba(255,255,255,0.3)' : 'none',
-          border: active && isBrand ? '1px solid rgba(255,255,255,0.5)' : (isBrand ? '1px solid transparent' : 'none'),
+          bgcolor: active ? (isBrand ? BRAND.panel : BRAND.panel2) : 'transparent',
+          color: active ? '#3498db' : BRAND.sub2,
+          boxShadow: active && isBrand ? `0 0 12px ${BRAND.glow}` : 'none',
+          border: active && isBrand ? `1px solid ${BRAND.line2}` : (isBrand ? '1px solid transparent' : 'none'),
           opacity: disabled ? 0.4 : 1,
           cursor: disabled ? 'not-allowed' : 'pointer',
           '&:hover': {
-            bgcolor: disabled ? 'transparent' : (isBrand ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.1)'),
-            color: disabled ? 'rgba(255,255,255,0.6)' : '#fff',
-            borderColor: disabled ? 'transparent' : (isBrand ? 'rgba(255,255,255,0.3)' : 'none')
+            bgcolor: disabled ? 'transparent' : BRAND.panel2,
+            color: disabled ? BRAND.sub2 : BRAND.text,
+            borderColor: disabled ? 'transparent' : (isBrand ? BRAND.line2 : 'none')
           },
           p: 0.75,
           borderRadius: isBrand ? '50%' : undefined
@@ -143,9 +143,9 @@ const AppImageFallback = ({ src, fallback, size = 22 }: { src?: string, fallback
 
 type SubAppDef = { label: string; scope: AppScope; workspaceId: string; src?: string; Fallback: React.ComponentType<any> };
 const ALL_SUB_APPS: SubAppDef[] = [
-  { label: 'S.Models',        scope: '3dss', workspaceId: 'models',   src: icon3DSS, Fallback: ViewInArRoundedIcon    },
+  { label: 'S.Model',        scope: '3dss', workspaceId: 'models',   src: icon3DSS, Fallback: ViewInArRoundedIcon    },
   { label: 'S.Layout',        scope: '3dsl', workspaceId: 'layout',   src: icon3DSL, Fallback: GridViewRoundedIcon    },
-  { label: 'S.Presentations', scope: '3dsp', workspaceId: 'presents', src: icon3DSP, Fallback: PresentToAllRoundedIcon },
+  { label: 'S.Slide', scope: '3dsp', workspaceId: 'presents', src: icon3DSP, Fallback: PresentToAllRoundedIcon },
   { label: 'S.Create',        scope: '3dsc', workspaceId: 'create',   src: icon3DSC, Fallback: BrushRoundedIcon       },
   { label: 'S.Diagram',       scope: '3dsd', workspaceId: 'diagram',  src: icon3DSD, Fallback: WbSunnyRoundedIcon     },
   { label: 'S.Drawing',       scope: '3dsr', workspaceId: 'drawing',  src: icon3DSR, Fallback: SquareFootRoundedIcon  },
@@ -379,7 +379,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
               ...SITE_ICON_POP,
               animation: currentMainView === 'my-site' ? 'siteIconPop 0.42s cubic-bezier(0.22,1,0.36,1)' : undefined,
               transition: 'border 0.18s ease, box-shadow 0.18s ease, transform 0.13s ease',
-              '&:hover': { transform: 'scale(1.08)', border: currentMainView === 'my-site' ? '2px solid #90caf9' : '2px solid rgba(255,255,255,0.35)' },
+              '&:hover': { transform: 'scale(1.08)', border: currentMainView === 'my-site' ? '2px solid #90caf9' : `2px solid ${BRAND.line2}` },
               '&:active': { transform: 'scale(0.9)' },
             }}
           >
@@ -408,7 +408,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
         width: '100%', pt: 1,
         '&::-webkit-scrollbar': { width: 2 },
         '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
-        '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.12)', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { bgcolor: BRAND.line, borderRadius: 2 },
       }}>
         {/* MY PROJECTS */}
         {myProjects.map(project => {
@@ -430,7 +430,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
                   ...SITE_ICON_POP,
                   animation: isActive ? 'siteIconPop 0.42s cubic-bezier(0.22,1,0.36,1)' : undefined,
                   transition: 'border 0.18s ease, box-shadow 0.18s ease, transform 0.13s ease',
-                  '&:hover': { transform: 'scale(1.08)', border: isActive ? '2px solid #90caf9' : '2px solid rgba(255,255,255,0.35)' },
+                  '&:hover': { transform: 'scale(1.08)', border: isActive ? '2px solid #90caf9' : `2px solid ${BRAND.line2}` },
                   '&:active': { transform: 'scale(0.9)' },
                 }}
               >
@@ -441,7 +441,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
                   radius="8px"
                   fallbackBg={`hsl(${hue},55%,38%)`}
                   fallbackContent={
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff', userSelect: 'none', lineHeight: 1 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)', userSelect: 'none', lineHeight: 1 }}>
                       {project.name.trim().charAt(0).toUpperCase()}
                     </Typography>
                   }
@@ -475,7 +475,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
                   ...SITE_ICON_POP,
                   animation: isActive ? 'siteIconPop 0.42s cubic-bezier(0.22,1,0.36,1)' : undefined,
                   transition: 'border 0.18s ease, box-shadow 0.18s ease, transform 0.13s ease',
-                  '&:hover': { transform: 'scale(1.08)', border: isActive ? '2px solid #90caf9' : '2px solid rgba(255,255,255,0.35)' },
+                  '&:hover': { transform: 'scale(1.08)', border: isActive ? '2px solid #90caf9' : `2px solid ${BRAND.line2}` },
                   '&:active': { transform: 'scale(0.9)' },
                 }}
               >
@@ -486,7 +486,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
                   radius="50%"
                   fallbackBg={color}
                   fallbackContent={
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff', userSelect: 'none', lineHeight: 1 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)', userSelect: 'none', lineHeight: 1 }}>
                       {project.name.trim().charAt(0).toUpperCase()}
                     </Typography>
                   }
@@ -505,10 +505,10 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
               width: 32, height: 32, borderRadius: '8px', flexShrink: 0, mt: 0.5,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
-              color: Boolean(createMenuAnchor) ? '#fff' : 'rgba(255,255,255,0.45)',
-              border: `1px dashed ${Boolean(createMenuAnchor) ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)'}`,
+              color: Boolean(createMenuAnchor) ? BRAND.text : BRAND.sub2,
+              border: `1px dashed ${Boolean(createMenuAnchor) ? BRAND.line2 : BRAND.line}`,
               transition: 'border 0.15s, color 0.15s, transform 0.15s',
-              '&:hover': { transform: 'scale(1.08)', color: '#fff', borderColor: 'rgba(255,255,255,0.5)' },
+              '&:hover': { transform: 'scale(1.08)', color: BRAND.text, borderColor: BRAND.line2 },
             }}
           >
             <AddRoundedIcon sx={{ fontSize: 18 }} />
@@ -526,36 +526,36 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
         slotProps={{
           paper: {
             sx: {
-              bgcolor: 'rgba(20,20,20,0.92)', backdropFilter: 'blur(16px)', color: '#fff',
-              border: '1px solid rgba(255,255,255,0.1)', minWidth: 220, ml: 1, borderRadius: 2,
+              bgcolor: BRAND.glass, backdropFilter: 'blur(16px)', color: BRAND.text,
+              border: `1px solid ${BRAND.line}`, minWidth: 220, ml: 1, borderRadius: 2,
               boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             },
           },
         }}
       >
-        <Typography sx={{ px: 2, pt: 1.25, pb: 0.5, fontSize: 11, fontWeight: 600, letterSpacing: 1, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+        <Typography sx={{ px: 2, pt: 1.25, pb: 0.5, fontSize: 11, fontWeight: 600, letterSpacing: 1, color: BRAND.sub2, textTransform: 'uppercase' }}>
           新規作成
         </Typography>
         <MenuItem
           disabled={isCreating}
           onClick={() => { setCreateMenuAnchor(null); createMyProject(); }}
-          sx={{ py: 1.25, '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' } }}
+          sx={{ py: 1.25, '&:hover': { bgcolor: BRAND.panel } }}
         >
-          <ListItemIcon><FolderRoundedIcon fontSize="small" sx={{ color: '#90caf9' }} /></ListItemIcon>
+          <ListItemIcon><FolderRoundedIcon fontSize="small" sx={{ color: 'light-dark(#095fa5, #90caf9)' }} /></ListItemIcon>
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>My Project</Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>個人プロジェクト（対話で作成）</Typography>
+            <Typography sx={{ fontSize: 11, color: BRAND.sub2 }}>個人プロジェクト（対話で作成）</Typography>
           </Box>
         </MenuItem>
         <MenuItem
           disabled={isCreating}
           onClick={() => { setCreateMenuAnchor(null); openTeamSheet(); }}
-          sx={{ py: 1.25, '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' } }}
+          sx={{ py: 1.25, '&:hover': { bgcolor: BRAND.panel } }}
         >
           <ListItemIcon><GroupsRoundedIcon fontSize="small" sx={{ color: '#3498db' }} /></ListItemIcon>
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Team Project</Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>チームを選んで対話で作成</Typography>
+            <Typography sx={{ fontSize: 11, color: BRAND.sub2 }}>チームを選んで対話で作成</Typography>
           </Box>
         </MenuItem>
       </Menu>
@@ -578,9 +578,9 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
           slotProps={{
             paper: {
               sx: {
-                bgcolor: 'rgba(18,20,26,0.97)',
+                bgcolor: BRAND.glass,
                 backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: `1px solid ${BRAND.line}`,
                 borderRadius: 2.5,
                 boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
                 ml: 1, p: 1.5,
@@ -589,7 +589,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
             },
           }}
         >
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1, px: 0.5, pb: 1, textTransform: 'uppercase' }}>
+          <Typography sx={{ fontSize: 11, color: BRAND.sub2, fontWeight: 600, letterSpacing: 1, px: 0.5, pb: 1, textTransform: 'uppercase' }}>
             インストール済みアプリ
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5 }}>
@@ -605,13 +605,13 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
                     bgcolor: isActive ? 'rgba(52,152,219,0.18)' : 'transparent',
                     border: `1px solid ${isActive ? 'rgba(52,152,219,0.4)' : 'transparent'}`,
                     transition: 'background-color 0.15s',
-                    '&:hover': { bgcolor: isActive ? 'rgba(52,152,219,0.25)' : 'rgba(255,255,255,0.07)' },
+                    '&:hover': { bgcolor: isActive ? 'rgba(52,152,219,0.25)' : BRAND.panel },
                   }}
                 >
                   <Box sx={{ width: 36, height: 36, borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
                     <AppImageFallback src={app.src} fallback={<app.Fallback />} size={36} />
                   </Box>
-                  <Typography sx={{ fontSize: 10, color: isActive ? '#3498db' : 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.2, fontWeight: isActive ? 600 : 400 }} noWrap>
+                  <Typography sx={{ fontSize: 10, color: isActive ? '#3498db' : BRAND.sub, textAlign: 'center', lineHeight: 1.2, fontWeight: isActive ? 600 : 400 }} noWrap>
                     {app.label.replace('S.', '')}
                   </Typography>
                 </Box>
@@ -623,7 +623,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
       {/* ══ 下部固定（常に表示） ══ */}
       <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, pb: 1, width: '100%' }}>
 
-        <Divider sx={{ width: '80%', my: 0.75, borderColor: 'rgba(255,255,255,0.22)' }} />
+        <Divider sx={{ width: '80%', my: 0.75, borderColor: BRAND.line2 }} />
 
         {/* 管理・発見（SEKKEIYA SEARCH は SEKKEIYA Chat ハブのホバーメニューに集約） */}
         <NavIcon
@@ -660,11 +660,11 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
               onClick={e => setAppsPopoverAnchor(e.currentTarget)}
               sx={{
                 p: 0.75,
-                color: Boolean(appsPopoverAnchor) ? '#3498db' : 'rgba(255,255,255,0.45)',
+                color: Boolean(appsPopoverAnchor) ? '#3498db' : BRAND.sub2,
                 bgcolor: Boolean(appsPopoverAnchor) ? 'rgba(52,152,219,0.15)' : 'transparent',
                 border: `1px solid ${Boolean(appsPopoverAnchor) ? 'rgba(52,152,219,0.4)' : 'transparent'}`,
                 borderRadius: 1.5,
-                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' },
+                '&:hover': { color: BRAND.text, bgcolor: BRAND.panel2 },
               }}
             >
               <AppsRoundedIcon fontSize="small" />
@@ -689,14 +689,14 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
       <Tooltip title="通知" placement="right">
         <IconButton
           onClick={e => setNotifAnchorEl(e.currentTarget)}
-          sx={{ color: unreadCount > 0 ? '#3498db' : 'rgba(255,255,255,0.6)', p: 0.75 }}
+          sx={{ color: unreadCount > 0 ? '#3498db' : BRAND.sub2, p: 0.75 }}
         >
           <Badge
             badgeContent={unreadCount}
             max={9}
             sx={{
               '& .MuiBadge-badge': {
-                bgcolor: '#ef4444', color: '#fff',
+                bgcolor: '#ef4444', color: 'var(--brand-fg)',
                 fontSize: 10, minWidth: 16, height: 16,
               },
             }}
@@ -733,11 +733,11 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         slotProps={{ 
           paper: { 
-            sx: { 
-              bgcolor: 'rgba(20, 20, 20, 0.85)', 
+            sx: {
+              bgcolor: BRAND.glass,
               backdropFilter: 'blur(16px)',
-              color: '#fff', 
-              border: `1px solid rgba(255, 255, 255, 0.1)`, 
+              color: BRAND.text,
+              border: `1px solid ${BRAND.line}`,
               minWidth: 240, 
               ml: 2,
               mb: 1,
@@ -749,7 +749,7 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
         }}
       >
         {currentUser && (
-          <Box sx={{ px: 2.5, py: 2, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'rgba(255, 255, 255, 0.03)' }}>
+          <Box sx={{ px: 2.5, py: 2, display: 'flex', alignItems: 'center', gap: 2, bgcolor: BRAND.panel }}>
             <Avatar 
               src={currentUser.photoURL || undefined}
               sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontWeight: 'bold' }}
@@ -757,10 +757,10 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
               {currentUser.email?.[0]?.toUpperCase() || 'U'}
             </Avatar>
             <Box sx={{ minWidth: 0 }}>
-              <Typography noWrap sx={{ fontSize: 14, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>
+              <Typography noWrap sx={{ fontSize: 14, fontWeight: 600, color: BRAND.text, lineHeight: 1.2 }}>
                 {currentUser.displayName || "ユーザー"}
               </Typography>
-              <Typography noWrap sx={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', mt: 0.5 }}>
+              <Typography noWrap sx={{ fontSize: 12, color: BRAND.sub2, mt: 0.5 }}>
                 {currentUser.email}
               </Typography>
               <Box sx={{ mt: 1 }}>
@@ -769,26 +769,26 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
             </Box>
           </Box>
         )}
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+        <Divider sx={{ borderColor: BRAND.line }} />
         
         <Box sx={{ p: 1 }}>
           <MenuItem
             onClick={openMyProfile}
-            sx={{ borderRadius: 2, mb: 0.5, py: 1.5, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.06)' } }}
+            sx={{ borderRadius: 2, mb: 0.5, py: 1.5, '&:hover': { bgcolor: BRAND.panel } }}
           >
-            <ListItemIcon><PersonRoundedIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} /></ListItemIcon>
+            <ListItemIcon><PersonRoundedIcon fontSize="small" sx={{ color: BRAND.sub }} /></ListItemIcon>
             <Typography sx={{ fontSize: 13, fontWeight: 500 }}>マイページ</Typography>
           </MenuItem>
           <MenuItem
             onClick={() => { setAnchorEl(null); openUserSettings(0); }}
-            sx={{ borderRadius: 2, py: 1.5, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.06)' } }}
+            sx={{ borderRadius: 2, py: 1.5, '&:hover': { bgcolor: BRAND.panel } }}
           >
-            <ListItemIcon><ManageAccountsRoundedIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }} /></ListItemIcon>
+            <ListItemIcon><ManageAccountsRoundedIcon fontSize="small" sx={{ color: BRAND.sub }} /></ListItemIcon>
             <Typography sx={{ fontSize: 13, fontWeight: 500 }}>アカウント設定</Typography>
           </MenuItem>
         </Box>
         
-        <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+        <Divider sx={{ borderColor: BRAND.line }} />
         <Box sx={{ p: 1 }}>
           <MenuItem 
             onClick={() => { setAnchorEl(null); handleLogout(); }}

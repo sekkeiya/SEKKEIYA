@@ -86,7 +86,7 @@ export function SetupGate({ children }: { children: ReactNode }) {
                   fontSize: 11,
                   fontWeight: 700,
                   letterSpacing: '0.25em',
-                  color: alpha('#fff', 0.3),
+                  color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)",
                   mb: 1,
                   textTransform: 'uppercase',
                 }}
@@ -95,7 +95,7 @@ export function SetupGate({ children }: { children: ReactNode }) {
               </Typography>
 
               <Typography
-                sx={{ fontSize: 20, fontWeight: 800, color: '#fff', mb: 0.75 }}
+                sx={{ fontSize: 20, fontWeight: 800, color: 'var(--brand-fg)', mb: 0.75 }}
               >
                 {phase === 'downloading' ? 'セットアップ中…' : '初回セットアップ'}
               </Typography>
@@ -103,7 +103,7 @@ export function SetupGate({ children }: { children: ReactNode }) {
               <Typography
                 sx={{
                   fontSize: 13,
-                  color: alpha('#fff', 0.5),
+                  color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
                   lineHeight: 1.75,
                   mb: 4,
                 }}
@@ -131,13 +131,13 @@ export function SetupGate({ children }: { children: ReactNode }) {
                     justifyContent="space-between"
                     sx={{ mb: 1 }}
                   >
-                    <Typography sx={{ fontSize: 12, color: alpha('#fff', 0.55) }}>
+                    <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
                       {progress?.phase === 'extracting'
                         ? `展開中… ${progress.pct ?? 0}%`
                         : `ダウンロード中… ${progress?.pct ?? 0}%`}
                     </Typography>
                     {progress?.phase === 'downloading' && progress.total > 0 && (
-                      <Typography sx={{ fontSize: 12, color: alpha('#fff', 0.35) }}>
+                      <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }}>
                         {Math.round(progress.downloaded / 1024 / 1024)} /{' '}
                         {Math.round(progress.total / 1024 / 1024)} MB
                       </Typography>
@@ -170,7 +170,7 @@ export function SetupGate({ children }: { children: ReactNode }) {
                 <Typography
                   sx={{
                     fontSize: 11,
-                    color: '#f87171',
+                    color: 'light-dark(#a50808, #f87171)',
                     mb: 2,
                     background: alpha('#f87171', 0.1),
                     borderRadius: 1,
@@ -192,8 +192,8 @@ export function SetupGate({ children }: { children: ReactNode }) {
                     sx={{
                       textTransform: 'none',
                       fontSize: 12,
-                      color: alpha('#fff', 0.4),
-                      '&:hover': { color: alpha('#fff', 0.65) },
+                      color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
+                      '&:hover': { color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)" },
                     }}
                   >
                     スキップ（あとで設定）

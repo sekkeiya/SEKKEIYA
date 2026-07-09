@@ -95,32 +95,32 @@ export const DsmEditorSidebar: React.FC = () => {
           size="small"
           startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 14 }} />}
           onClick={() => setDsmShellMode('dashboard')}
-          sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, textTransform: 'none', mb: 1, '&:hover': { color: '#fff' } }}
+          sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 11, textTransform: 'none', mb: 1, '&:hover': { color: 'var(--brand-fg)' } }}
         >
           ダッシュボードへ戻る
         </Button>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
             素材 — Movies
           </Typography>
           <Tooltip title="再読み込み">
-            <IconButton size="small" onClick={load} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+            <IconButton size="small" onClick={load} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
               <RefreshRoundedIcon sx={{ fontSize: 15 }} />
             </IconButton>
           </Tooltip>
         </Box>
         <Box sx={{
           display: 'flex', alignItems: 'center', mt: 1,
-          bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, px: 1.25, py: 0.4,
-          border: '1px solid rgba(255,255,255,0.05)',
-          '&:focus-within': { borderColor: 'rgba(255,255,255,0.15)' },
+          bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.25, py: 0.4,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', mr: 0.75 }} />
+          <SearchRoundedIcon sx={{ fontSize: 14, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 0.75 }} />
           <InputBase
             placeholder="検索..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 11, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 11, flex: 1 }}
           />
         </Box>
       </Box>
@@ -132,7 +132,7 @@ export const DsmEditorSidebar: React.FC = () => {
             <CircularProgress size={18} sx={{ color: ACCENT }} />
           </Box>
         ) : filtered.length === 0 ? (
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', px: 1, py: 2, lineHeight: 1.7 }}>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', px: 1, py: 2, lineHeight: 1.7 }}>
             LocalAssets/Movies に動画がありません。下のボタンからファイルを追加できます。
           </Typography>
         ) : (
@@ -142,9 +142,9 @@ export const DsmEditorSidebar: React.FC = () => {
               <Box key={a.id} sx={{
                 display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 2,
                 opacity: used ? 0.45 : 1, transition: 'opacity 0.2s, background-color 0.15s',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', '& .add-btn': { opacity: 1 } },
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', '& .add-btn': { opacity: 1 } },
               }}>
-                <Box sx={{ width: 56, height: 36, borderRadius: 1.5, overflow: 'hidden', flexShrink: 0, bgcolor: '#0d0c0b' }}>
+                <Box sx={{ width: 56, height: 36, borderRadius: 1.5, overflow: 'hidden', flexShrink: 0, bgcolor: 'var(--brand-bg)' }}>
                   <video
                     src={a.src}
                     muted
@@ -157,7 +157,7 @@ export const DsmEditorSidebar: React.FC = () => {
                   />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography noWrap sx={{ fontSize: 11, color: '#fff' }}>{a.name}</Typography>
+                  <Typography noWrap sx={{ fontSize: 11, color: 'var(--brand-fg)' }}>{a.name}</Typography>
                   <Typography sx={{ fontSize: 9, fontFamily: MONO, color: BLUEPRINT }}>
                     {a.durationSec != null ? fmtSec(a.durationSec) : '…'}{used ? ' ・使用中' : ''}
                   </Typography>
@@ -186,9 +186,9 @@ export const DsmEditorSidebar: React.FC = () => {
           fullWidth size="small" startIcon={<VideoFileRoundedIcon />}
           onClick={handleAddFromFile}
           sx={{
-            color: 'rgba(255,255,255,0.75)', fontSize: 11, justifyContent: 'flex-start', textTransform: 'none',
-            border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 2, px: 1.5,
-            '&:hover': { borderColor: ACCENT, color: '#fff', bgcolor: `${ACCENT}11` },
+            color: 'rgb(var(--brand-fg-rgb) / 0.75)', fontSize: 11, justifyContent: 'flex-start', textTransform: 'none',
+            border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 2, px: 1.5,
+            '&:hover': { borderColor: ACCENT, color: 'var(--brand-fg)', bgcolor: `${ACCENT}11` },
           }}
         >
           ファイルから追加…

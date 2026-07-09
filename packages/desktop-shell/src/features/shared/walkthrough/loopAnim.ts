@@ -1,6 +1,6 @@
 // 通常モデルに付ける「常時ループ」アニメーションの仕様。
 // gimmick(クリック開閉) とは別軸の、展示物のように動き続ける演出。
-// 保存先: asset.extendedMetadata.anim。S.Models / S.Layout 双方で同じ spec を使う。
+// 保存先: asset.extendedMetadata.anim。S.Model / S.Layout 双方で同じ spec を使う。
 
 export type LoopAnimType = 'rotate' | 'move';
 

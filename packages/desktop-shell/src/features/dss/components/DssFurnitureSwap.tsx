@@ -32,11 +32,11 @@ const Thumb: React.FC<{ url?: string | null; selected?: boolean; onClick?: () =>
   <Tooltip title={title || ''}>
     <Box onClick={onClick} sx={{
       width: 84, height: 84, borderRadius: 1.5, flexShrink: 0, overflow: 'hidden', cursor: 'pointer',
-      bgcolor: 'rgba(0,0,0,0.3)', border: selected ? `2px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.15)',
+      bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', border: selected ? `2px solid ${ACCENT}` : '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
       boxShadow: selected ? `0 0 0 2px ${ACCENT}55` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       {url ? <img src={url} alt={title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        : <ImageRoundedIcon sx={{ color: 'rgba(255,255,255,0.25)' }} />}
+        : <ImageRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} />}
     </Box>
   </Tooltip>
 );
@@ -132,11 +132,11 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 2 }}>
       {/* プレビュー */}
-      <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 340, bgcolor: '#05060a', borderRadius: 2, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+      <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 340, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
         {selected.glbUrl ? (
           <RightPanelModelViewer modelUrl={selected.glbUrl} />
         ) : (
-          <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', gap: 1 }}>
+          <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgb(var(--brand-fg-rgb) / 0.4)', gap: 1 }}>
             <ImageRoundedIcon /><Typography sx={{ fontSize: 12 }}>3Dプレビューを表示できません</Typography>
           </Box>
         )}
@@ -145,13 +145,13 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
       {/* 右ペイン */}
       <Box sx={{ flex: '1 1 320px', minWidth: 300 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#fff', flex: 1 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>
             {isEditing ? '家具置き換え（候補を登録）' : '家具を切り替え'}
           </Typography>
           {saving && <CircularProgress size={14} sx={{ color: ACCENT }} />}
         </Box>
 
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 1 }}>
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1 }}>
           {isEditing ? '同カテゴリの他モデルを登録すると、閲覧者がサムネをクリックして家具を差し替えられます。' : 'サムネをクリックすると家具が差し替わります。'}
         </Typography>
 
@@ -160,11 +160,11 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
             <Box key={o.id} sx={{ position: 'relative', width: 84 }}>
               <Thumb url={o.thumbUrl} selected={selectedId === o.id} onClick={() => setSelectedId(o.id)} title={o.title} />
               {o.id === model?.id && (
-                <Typography sx={{ position: 'absolute', bottom: 2, left: 4, fontSize: 9, color: '#fff', fontWeight: 700, textShadow: '0 1px 2px #000' }}>元</Typography>
+                <Typography sx={{ position: 'absolute', bottom: 2, left: 4, fontSize: 9, color: 'var(--brand-fg)', fontWeight: 700, textShadow: '0 1px 2px #000' }}>元</Typography>
               )}
               {isEditing && o.id !== model?.id && (
                 <IconButton size="small" onClick={() => removeModel(o.id)}
-                  sx={{ position: 'absolute', top: -6, right: -6, p: 0.2, bgcolor: 'rgba(0,0,0,0.7)', color: '#fff', '&:hover': { bgcolor: '#ef5350' } }}>
+                  sx={{ position: 'absolute', top: -6, right: -6, p: 0.2, bgcolor: 'rgba(0,0,0,0.7)', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#ef5350' } }}>
                   <CloseRoundedIcon sx={{ fontSize: 13 }} />
                 </IconButton>
               )}
@@ -178,21 +178,21 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
           )}
         </Box>
         {!isEditing && options.length <= 1 && (
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', mt: 1 }}>置き換え候補は未設定です。</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontStyle: 'italic', mt: 1 }}>置き換え候補は未設定です。</Typography>
         )}
       </Box>
 
       {/* 候補ピッカー */}
       <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { bgcolor: '#141821', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' } }}>
         <DialogTitle sx={{ fontSize: 15, fontWeight: 900 }}>置き換え候補を選ぶ（同カテゴリ）</DialogTitle>
         <DialogContent>
           <TextField fullWidth size="small" placeholder="モデル名で検索" value={search} onChange={(e) => setSearch(e.target.value)}
-            sx={{ mb: 1.5, '& .MuiInputBase-root': { color: '#fff', bgcolor: 'rgba(0,0,0,0.25)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' } }} />
+            sx={{ mb: 1.5, '& .MuiInputBase-root': { color: 'var(--brand-fg)', bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }} />
           {loadingCands ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress sx={{ color: ACCENT }} /></Box>
           ) : shownCandidates.length === 0 ? (
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', py: 2 }}>同カテゴリの候補が見つかりません。</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', py: 2 }}>同カテゴリの候補が見つかりません。</Typography>
           ) : (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
               {shownCandidates.map((c) => {
@@ -207,7 +207,7 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
                         </Box>
                       )}
                     </Box>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', mt: 0.5 }} noWrap>{c.title || c.name || '—'}</Typography>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.7)', mt: 0.5 }} noWrap>{c.title || c.name || '—'}</Typography>
                   </Box>
                 );
               })}
@@ -215,7 +215,7 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPickerOpen(false)} sx={{ textTransform: 'none', color: 'rgba(255,255,255,0.7)' }}>閉じる</Button>
+          <Button onClick={() => setPickerOpen(false)} sx={{ textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>閉じる</Button>
         </DialogActions>
       </Dialog>
     </Box>

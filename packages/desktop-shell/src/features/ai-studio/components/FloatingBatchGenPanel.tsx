@@ -71,8 +71,8 @@ const STATUS_LABEL: Record<BatchItemStatus, string> = {
   queued: '待機', submitting: '送信中', generating: '生成中', done: '完了', failed: '失敗', skipped: 'スキップ',
 };
 const STATUS_COLOR: Record<BatchItemStatus, string> = {
-  queued: 'rgba(255,255,255,0.5)', submitting: '#8ab4f8', generating: '#ffb74d',
-  done: '#66bb6a', failed: '#ef5350', skipped: 'rgba(255,255,255,0.35)',
+  queued: 'rgb(var(--brand-fg-rgb) / 0.5)', submitting: '#8ab4f8', generating: '#ffb74d',
+  done: '#66bb6a', failed: '#ef5350', skipped: 'rgb(var(--brand-fg-rgb) / 0.35)',
 };
 
 function formatDuration(ms: number): string {
@@ -137,6 +137,9 @@ export const FloatingBatchGenPanel: React.FC = () => {
   const isAIDriveOpen = useAppStore(s => s.isAIDriveOpen);
   const isAIRenderOpen = useAppStore(s => s.isAIRenderOpen);
   const isAI3DCreateOpen = useAppStore(s => s.isAI3DCreateOpen);
+  // SEKKEIYA OS を別ウィンドウへ切り出している間は、右下の AI ハブ・ピルを隠す
+  // （操作は別ウィンドウのチャットに集約し、本体の成果物ビューを広く使う）。
+  const isChatPoppedOut = useAppStore(s => s.isChatPoppedOut);
   const [aiTasks, setAiTasks] = useState<AiTaskMini[]>([]);
   const [gen3dQuota, setGen3dQuota] = useState<{ used: number; limit: number; plan: string } | null>(null);
 
@@ -153,15 +156,27 @@ export const FloatingBatchGenPanel: React.FC = () => {
     hubCloseTimer.current = window.setTimeout(() => setHubOpen(false), 120);
   };
   useEffect(() => () => { if (hubCloseTimer.current) clearTimeout(hubCloseTimer.current); }, []);
-  // ピル本体クリック／Chat項目＝チャット直行（常駐パネルとして開く）。
-  const openChatDirect = (tab: 'chat' | 'drive' | 'teamchat' | 'render' | 'gen3d' = 'chat') => {
+  // 本体内フローティング・コックピットを指定タブで開く（Drive/Render/3D/DM 等の専用面用）。
+  const openCockpit = (tab: 'chat' | 'drive' | 'teamchat' | 'render' | 'gen3d') => {
     const s = useAppStore.getState();
-    // コックピット（フローティング）を指定タブで開く。ピン留め／チャット階層サイドバーの
-    // 状態はいじらず前回を踏襲（初回はストア既定＝未ピン＋チャット階層サイドバー開）。
+    // ピン留め／チャット階層サイドバーの状態はいじらず前回を踏襲。
     s.setChatPanelTab(tab);
     s.setAIChatDetached(true);
     s.setAIChatOpen(true);
     setHubOpen(false);
+  };
+  // ピル本体クリック／Chat項目＝チャットは別ウィンドウ（SEKKEIYA OS）で開く。
+  // SEKKEIYA の操作の中心＝別ウィンドウのチャットという方針。Web など窓を開けない環境では
+  // 従来どおり本体内フローティング・コックピットにフォールバックする。
+  const openChatDirect = (tab: 'chat' | 'drive' | 'teamchat' | 'render' | 'gen3d' = 'chat') => {
+    if (tab !== 'chat') { openCockpit(tab); return; }
+    setHubOpen(false);
+    import('../../../utils/openChatWindow')
+      .then(async ({ openChatWindow }) => {
+        const ok = await openChatWindow(useAppStore.getState().activeProjectId ?? null);
+        if (!ok) openCockpit('chat'); // Web等：別ウィンドウ不可 → 本体内で開く
+      })
+      .catch(() => openCockpit('chat'));
   };
   // ハブの各項目（配列は上→下の表示順。最下＝ピル直上には別途 Chat を既定として置く）。
   const hubItems = useMemo(() => ([
@@ -173,7 +188,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
       run: () => openChatDirect('render') },
     { key: 'teamchat', label: 'DM', icon: <AlternateEmailRoundedIcon sx={{ fontSize: 17 }} />, fg: '#ed93b1', bg: '#33202b',
       run: () => openChatDirect('teamchat') },
-    { key: 'drive', label: 'AI Drive', icon: <FolderRoundedIcon sx={{ fontSize: 17 }} />, fg: '#85b7eb', bg: '#1d2a33',
+    { key: 'drive', label: 'SEKKEIYA Drive', icon: <FolderRoundedIcon sx={{ fontSize: 17 }} />, fg: '#85b7eb', bg: '#1d2a33',
       run: () => openChatDirect('drive') },
   ]), []);
 
@@ -391,7 +406,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
   const suggestions = useMemo(() => {
     const ws = getActiveWorkspace?.();
     // ws?.workspaceType はプロジェクト内ワークスペースのみ有効。
-    // グローバル子アプリビュー（例: S.Models Global）では lastActiveAppScope を使う。
+    // グローバル子アプリビュー（例: S.Model Global）では lastActiveAppScope を使う。
     const appScope = ws?.workspaceType ?? lastActiveAppScope ?? lastLaunchPayload?.appScope ?? undefined;
     return getChatSuggestions({
       scope: currentMainView === 'my-site' ? 'account' : undefined,
@@ -403,11 +418,14 @@ export const FloatingBatchGenPanel: React.FC = () => {
     });
   }, [currentMainView, getActiveWorkspace, lastActiveAppScope, lastLaunchPayload, isAIDriveOpen, isAIRenderOpen, isAI3DCreateOpen]);
 
+  // SEKKEIYA OS が別ウィンドウで開いている間は右下ピル（AIハブ）ごと非表示。窓を閉じれば復帰。
+  if (isChatPoppedOut) return null;
+
   if (!panelOpen) {
     // 枠線（リング）: アイドル時は虹色グラデーション。
     // 実行中は進捗に応じて青が pct% 分だけ一周する「光る枠」に切り替える。
     const conicBg = activeCount > 0
-      ? `conic-gradient(from -90deg at 50% 50%, #00BFFF ${pct}%, rgba(255,255,255,0.12) ${pct}%)`
+      ? `conic-gradient(from -90deg at 50% 50%, #00BFFF ${pct}%, rgb(var(--brand-fg-rgb) / 0.12) ${pct}%)`
       : 'conic-gradient(from 0deg, #ff0040, #ff8a00, #ffe600, #44d62c, #00c2ff, #4b6cff, #b14bff, #ff3ea5, #ff0040)';
 
     return (
@@ -439,12 +457,12 @@ export const FloatingBatchGenPanel: React.FC = () => {
                     sx={{
                       display: 'flex', alignItems: 'center', gap: '10px',
                       height: 40, pl: '4px', pr: '14px',
-                      bgcolor: '#1a1f2b', border: '1px solid rgba(255,255,255,0.08)',
+                      bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                       borderRadius: '22px', cursor: 'pointer', whiteSpace: 'nowrap',
-                      color: 'rgba(255,255,255,0.82)',
+                      color: 'rgb(var(--brand-fg-rgb) / 0.82)',
                       boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
                       transition: 'background 0.12s, color 0.12s',
-                      '&:hover': { bgcolor: '#222a39', color: '#fff' },
+                      '&:hover': { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' },
                     }}
                   >
                     <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: it.bg, color: it.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -467,19 +485,19 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   sx={{
                     display: 'flex', alignItems: 'center', gap: '10px',
                     height: 40, pl: '4px', pr: '14px',
-                    bgcolor: '#1a1f2b', border: '1px solid rgba(52,152,219,0.55)',
+                    bgcolor: 'var(--brand-surface2)', border: '1px solid rgba(52,152,219,0.55)',
                     borderRadius: '22px', cursor: 'pointer', whiteSpace: 'nowrap',
-                    color: '#fff',
+                    color: 'var(--brand-fg)',
                     boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
                     transition: 'background 0.12s',
-                    '&:hover': { bgcolor: '#222a39' },
+                    '&:hover': { bgcolor: 'var(--brand-surface2)' },
                   }}
                 >
-                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#3498db', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: '#3498db', color: 'var(--brand-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <ForumRoundedIcon sx={{ fontSize: 17 }} />
                   </Box>
                   <Typography sx={{ fontSize: 13, fontWeight: 500 }}>Chat</Typography>
-                  <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', ml: '2px' }}>既定</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', ml: '2px' }}>既定</Typography>
                 </Box>
               </motion.div>
             </motion.div>
@@ -513,7 +531,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
               minWidth: 16, height: 16, px: '3px',
               bgcolor: '#ff7043', borderRadius: '8px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 9, fontWeight: 700, color: '#fff',
+              fontSize: 9, fontWeight: 700, color: 'var(--brand-fg)',
               border: '1.5px solid #1a1f2b', lineHeight: 1,
             }}>
               {activeCount > 9 ? '9+' : activeCount}
@@ -523,7 +541,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
               ホバー時のみ右側にラベル分の余白（暗い地）が伸びる。 */}
           <Box className="ai-task-inner" sx={{
             display: 'flex', alignItems: 'center',
-            bgcolor: '#1a1f2b',
+            bgcolor: 'var(--brand-surface2)',
             borderRadius: '21px',
             p: 0,
             overflow: 'hidden',
@@ -532,15 +550,15 @@ export const FloatingBatchGenPanel: React.FC = () => {
             <SekkeiyaIcon size={38} radius="50%" active={activeCount > 0} />
             <Typography className="ai-task-label" sx={{
               fontSize: 12.5, fontWeight: 600,
-              color: activeCount > 0 ? '#fff' : 'rgba(255,255,255,0.65)',
+              color: activeCount > 0 ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.65)',
               userSelect: 'none', maxWidth: 0, opacity: 0, overflow: 'hidden', whiteSpace: 'nowrap',
               transition: 'max-width 0.22s ease, opacity 0.18s ease, margin-left 0.22s ease',
             }}>
-              SEKKEIYA Chat
+              SEKKEIYA OS
             </Typography>
             {active && (
               <Box className="ai-task-spinner" sx={{ maxWidth: 0, opacity: 0, overflow: 'hidden', flexShrink: 0, transition: 'max-width 0.22s ease, opacity 0.18s ease, margin-left 0.22s ease', display: 'flex', alignItems: 'center' }}>
-                <CircularProgress size={10} thickness={5} sx={{ color: '#ffb74d' }} />
+                <CircularProgress size={10} thickness={5} sx={{ color: 'light-dark(#ad6700, #ffb74d)' }} />
               </Box>
             )}
           </Box>
@@ -553,19 +571,19 @@ export const FloatingBatchGenPanel: React.FC = () => {
     <Box sx={{
       position: 'fixed', right: rightPx, bottom: bottomPx, zIndex: 2000,
       width: 340, maxHeight: '62vh', display: 'flex', flexDirection: 'column',
-      bgcolor: '#1a1f2b', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 2,
+      bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 2,
       boxShadow: '0 8px 32px rgba(0,0,0,0.6)', overflow: 'hidden',
     }}>
-      <Box sx={{ px: 1.5, pt: 1, pb: target > 0 || doneItems.length > 0 ? 0.75 : 1, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box sx={{ px: 1.5, pt: 1, pb: target > 0 || doneItems.length > 0 ? 0.75 : 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
         {/* 1行目: アイコン + タイトル + 最小化 */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SekkeiyaIcon size={18} active={active} />
-          <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: '#fff', flex: 1 }}>
+          <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'var(--brand-fg)', flex: 1 }}>
             {batches.length === 0 ? 'AI タスク' : 'AI タスク — 3D生成'}
           </Typography>
           <Tooltip title={isAIChatOpen ? 'チャットを閉じる' : 'チャットを開く'} placement="top">
             <IconButton size="small" onClick={toggleAIChat} sx={{
-              color: isAIChatOpen ? '#00BFFF' : 'rgba(255,255,255,0.4)',
+              color: isAIChatOpen ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.4)',
               bgcolor: isAIChatOpen ? 'rgba(0,191,255,0.1)' : 'transparent',
               borderRadius: '6px',
               '&:hover': { color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.12)' },
@@ -575,15 +593,15 @@ export const FloatingBatchGenPanel: React.FC = () => {
           </Tooltip>
           <Tooltip title="Schedules & Tasks を開く" placement="top">
             <IconButton size="small" onClick={openSchedulesTab} sx={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'rgb(var(--brand-fg-rgb) / 0.4)',
               borderRadius: '6px',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' },
+              '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
             }}>
               <AssignmentRoundedIcon sx={{ fontSize: '0.95rem' }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="最小化" placement="top">
-            <IconButton size="small" onClick={() => setPanelOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+            <IconButton size="small" onClick={() => setPanelOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
               <ExpandMoreRoundedIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -598,11 +616,11 @@ export const FloatingBatchGenPanel: React.FC = () => {
                 bgcolor: active ? 'rgba(255,183,77,0.12)' : 'rgba(102,187,106,0.12)',
                 border: `1px solid ${active ? 'rgba(255,183,77,0.3)' : 'rgba(102,187,106,0.3)'}`,
               }}>
-                {active && <CircularProgress size={10} thickness={5} sx={{ color: '#ffb74d' }} />}
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: active ? '#ffb74d' : '#66bb6a' }}>
+                {active && <CircularProgress size={10} thickness={5} sx={{ color: 'light-dark(#ad6700, #ffb74d)' }} />}
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: active ? 'light-dark(#ad6700, #ffb74d)' : '#66bb6a' }}>
                   {pct}%
                 </Typography>
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                   {done}/{target}
                 </Typography>
               </Box>
@@ -616,21 +634,21 @@ export const FloatingBatchGenPanel: React.FC = () => {
                 onClick={saveToSModels}
                 sx={{ fontSize: '0.62rem', textTransform: 'none', py: 0.25, px: 0.75, bgcolor: '#66bb6a', color: '#0c1f12', '&:hover': { bgcolor: '#81c784' }, '&.Mui-disabled': { bgcolor: 'rgba(102,187,106,0.5)', color: '#0c1f12' } }}
               >
-                {saving ? '開いています…' : `S.Modelsに保存${doneItems.length > 1 ? `（${doneItems.length}）` : ''}`}
+                {saving ? '開いています…' : `S.Modelに保存${doneItems.length > 1 ? `（${doneItems.length}）` : ''}`}
               </Button>
             )}
             <Tooltip title={autoSaveToModels ? '完了時に自動保存 ON' : '完了時に自動保存 OFF'} placement="top" slotProps={{ popper: { sx: { zIndex: 2100 } } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto' }}>
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', userSelect: 'none' }}>自動保存</Typography>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', userSelect: 'none' }}>自動保存</Typography>
                 <Switch
                   size="small"
                   checked={autoSaveToModels}
                   onChange={e => setAutoSaveToModels(e.target.checked)}
                   sx={{
                     width: 28, height: 16, p: 0,
-                    '& .MuiSwitch-switchBase': { p: '2px', '&.Mui-checked': { transform: 'translateX(12px)', color: '#fff', '& + .MuiSwitch-track': { bgcolor: '#66bb6a', opacity: 1 } } },
+                    '& .MuiSwitch-switchBase': { p: '2px', '&.Mui-checked': { transform: 'translateX(12px)', color: 'var(--brand-fg)', '& + .MuiSwitch-track': { bgcolor: '#66bb6a', opacity: 1 } } },
                     '& .MuiSwitch-thumb': { width: 12, height: 12 },
-                    '& .MuiSwitch-track': { borderRadius: 8, bgcolor: 'rgba(255,255,255,0.2)', opacity: 1 },
+                    '& .MuiSwitch-track': { borderRadius: 8, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)', opacity: 1 },
                   }}
                 />
               </Box>
@@ -642,7 +660,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
       {target > 0 && (
         <LinearProgress
           variant="determinate" value={pct}
-          sx={{ height: 4, bgcolor: 'rgba(255,255,255,0.08)',
+          sx={{ height: 4, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)',
             '& .MuiLinearProgress-bar': { bgcolor: active ? '#ffb74d' : '#66bb6a', transition: 'transform 0.4s ease' } }}
         />
       )}
@@ -652,7 +670,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
         {batches.length === 0 && aiTasks.length === 0 && !showAddForm && (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1 }}>
             <SekkeiyaIcon size={28} active={false} />
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
               AIタスクはありません
             </Typography>
           </Box>
@@ -662,9 +680,9 @@ export const FloatingBatchGenPanel: React.FC = () => {
           <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#00BFFF', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: '#fff', flex: 1 }}>AIタスクを追加</Typography>
+              <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>AIタスクを追加</Typography>
               <IconButton size="small" onClick={() => setShowAddForm(false)}
-                sx={{ p: '3px', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+                sx={{ p: '3px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
                 <CloseRoundedIcon sx={{ fontSize: 14 }} />
               </IconButton>
             </Box>
@@ -672,7 +690,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
             {/* プロジェクト選択（ネイティブ select） */}
             {projects.length > 0 && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 0.5 }}>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, letterSpacing: 0.5 }}>
                   プロジェクト
                 </Typography>
                 <Box
@@ -680,13 +698,13 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   value={addProjectId}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAddProjectId(e.target.value)}
                   sx={{
-                    width: '100%', fontSize: 12.5, color: '#fff',
-                    bgcolor: 'rgba(255,255,255,0.07)',
-                    border: '1px solid rgba(255,255,255,0.18)',
+                    width: '100%', fontSize: 12.5, color: 'var(--brand-fg)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)',
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
                     borderRadius: '6px', px: 1.25, py: 0.75,
                     outline: 'none', cursor: 'pointer', appearance: 'auto',
                     '&:focus': { borderColor: '#00BFFF', outline: 'none' },
-                    '& option': { bgcolor: '#1a1f2b', color: '#fff' },
+                    '& option': { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' },
                   }}
                 >
                   {projects.map(p => (
@@ -698,7 +716,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
 
             {/* タイトル入力（ネイティブ textarea） */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 0.5 }}>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, letterSpacing: 0.5 }}>
                 タイトル *
               </Typography>
               <Box
@@ -713,12 +731,12 @@ export const FloatingBatchGenPanel: React.FC = () => {
                 rows={3}
                 sx={{
                   width: '100%', boxSizing: 'border-box',
-                  fontSize: 12.5, color: '#fff', lineHeight: 1.5,
-                  bgcolor: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.18)',
+                  fontSize: 12.5, color: 'var(--brand-fg)', lineHeight: 1.5,
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
                   borderRadius: '6px', px: 1.25, py: 0.875,
                   resize: 'vertical', outline: 'none', fontFamily: 'inherit',
-                  '&::placeholder': { color: 'rgba(255,255,255,0.3)' },
+                  '&::placeholder': { color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
                   '&:focus': { borderColor: '#00BFFF', outline: 'none' },
                 }}
               />
@@ -776,7 +794,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
             {/* ボタン行 */}
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
               <Button size="small" onClick={() => setShowAddForm(false)}
-                sx={{ fontSize: 11, textTransform: 'none', color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+                sx={{ fontSize: 11, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
                 キャンセル
               </Button>
               <Button
@@ -788,7 +806,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   fontSize: 11, textTransform: 'none', fontWeight: 700,
                   bgcolor: '#00BFFF', color: '#001a26',
                   '&:hover': { bgcolor: '#33ccff' },
-                  '&.Mui-disabled': { bgcolor: 'rgba(0,191,255,0.3)', color: 'rgba(255,255,255,0.4)' },
+                  '&.Mui-disabled': { bgcolor: 'rgba(0,191,255,0.3)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' },
                 }}
               >
                 {addSaving ? <CircularProgress size={12} sx={{ color: '#001a26' }} /> : '追加'}
@@ -815,10 +833,10 @@ export const FloatingBatchGenPanel: React.FC = () => {
           })();
 
           return (
-            <Box key={b.id} sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <Box key={b.id} sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.75 }}>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', flex: 1 }}>
-                  <Box component="span" sx={{ fontWeight: 700, color: bActive ? '#ffb74d' : '#66bb6a' }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.6)', flex: 1 }}>
+                  <Box component="span" sx={{ fontWeight: 700, color: bActive ? 'light-dark(#ad6700, #ffb74d)' : '#66bb6a' }}>
                     {bPct}%
                   </Box>
                   {' '}({bDone}/{bTarget} 完了)
@@ -828,8 +846,8 @@ export const FloatingBatchGenPanel: React.FC = () => {
                 </Typography>
                 {bActive && remainingMs !== null && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
-                    <AccessTimeRoundedIcon sx={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }} />
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
+                    <AccessTimeRoundedIcon sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }} />
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.5)', whiteSpace: 'nowrap' }}>
                       {formatRemaining(remainingMs)}
                     </Typography>
                   </Box>
@@ -838,17 +856,17 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   <Button
                     size="small" startIcon={<RefreshRoundedIcon sx={{ fontSize: '0.8rem' }} />}
                     onClick={() => retryFailed(b.id)}
-                    sx={{ fontSize: 10, color: '#ffb74d', minWidth: 'auto', p: 0.25, textTransform: 'none' }}
+                    sx={{ fontSize: 10, color: 'light-dark(#ad6700, #ffb74d)', minWidth: 'auto', p: 0.25, textTransform: 'none' }}
                   >
                     失敗分を再生成
                   </Button>
                 )}
                 {bActive && !b.cancelled ? (
-                  <Button size="small" onClick={() => cancelBatch(b.id)} sx={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', minWidth: 'auto', p: 0.25 }}>
+                  <Button size="small" onClick={() => cancelBatch(b.id)} sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.6)', minWidth: 'auto', p: 0.25 }}>
                     キャンセル
                   </Button>
                 ) : (
-                  <IconButton size="small" onClick={() => dismissBatch(b.id)} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+                  <IconButton size="small" onClick={() => dismissBatch(b.id)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
                     <CloseRoundedIcon sx={{ fontSize: 14 }} />
                   </IconButton>
                 )}
@@ -857,7 +875,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
               <Box sx={{ px: 1.5, pb: 0.5 }}>
                 <LinearProgress
                   variant="determinate" value={bPct}
-                  sx={{ height: 2, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)',
+                  sx={{ height: 2, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)',
                     '& .MuiLinearProgress-bar': { bgcolor: bActive ? '#ffb74d' : '#66bb6a' } }}
                 />
               </Box>
@@ -897,7 +915,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
                           bgcolor: 'rgba(0,0,0,0.65)', textAlign: 'center', py: '2px',
                         }}>
                           {isGenerating && elapsed !== null ? (
-                            <Typography sx={{ fontSize: 7.5, color: '#ffb74d', lineHeight: 1.4, fontWeight: 700 }}>
+                            <Typography sx={{ fontSize: 7.5, color: 'light-dark(#ad6700, #ffb74d)', lineHeight: 1.4, fontWeight: 700 }}>
                               {formatDuration(elapsed)}
                             </Typography>
                           ) : completionTime !== null && it.status === 'done' ? (
@@ -923,10 +941,10 @@ export const FloatingBatchGenPanel: React.FC = () => {
         {aiTasks.length > 0 && (
           <>
             {batches.length > 0 && (
-              <Box sx={{ mx: 1.5, my: 0.25, height: '1px', bgcolor: 'rgba(255,255,255,0.07)' }} />
+              <Box sx={{ mx: 1.5, my: 0.25, height: '1px', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)' }} />
             )}
             <Box sx={{ px: 1.5, pt: 0.75, pb: 0.25 }}>
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: 0.8, mb: 0.5, textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 600, letterSpacing: 0.8, mb: 0.5, textTransform: 'uppercase' }}>
                 タスク ({aiTasks.length})
               </Typography>
               {aiTasks.map(t => {
@@ -934,7 +952,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
                 return (
                 <Box key={t.id} sx={{
                   display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.75,
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.04)',
                   '&:last-child': { borderBottom: 'none' },
                   '&:hover .ai-task-delete-btn': { opacity: 1 },
                   ...(overdue ? {
@@ -956,26 +974,26 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{
-                      fontSize: 12, color: '#fff', lineHeight: 1.4,
+                      fontSize: 12, color: 'var(--brand-fg)', lineHeight: 1.4,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {t.title}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.2, flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                      <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
                         {t.projectName}
                       </Typography>
                       <Box component="span" sx={{
                         fontSize: 10,
-                        color: overdue ? 'rgba(239,83,80,0.9)' : t.status === 'in_progress' ? 'rgba(255,183,77,0.7)' : 'rgba(0,191,255,0.6)',
+                        color: overdue ? 'rgba(239,83,80,0.9)' : t.status === 'in_progress' ? 'light-dark(rgba(173,103,0,0.7), rgba(255,183,77,0.7))' : 'rgba(0,191,255,0.6)',
                         fontWeight: overdue ? 700 : 400,
                       }}>
                         {overdue ? '開始待ち' : t.status === 'in_progress' ? '進行中' : '未着手'}
                       </Box>
                       {formatTaskDateTime(t.dueDate, t.startTime) && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                          <AccessTimeRoundedIcon sx={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }} />
-                          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                          <AccessTimeRoundedIcon sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} />
+                          <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                             {formatTaskDateTime(t.dueDate, t.startTime)}
                           </Typography>
                         </Box>
@@ -1010,7 +1028,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
                         flexShrink: 0, p: '3px',
                         opacity: 0,
                         transition: 'opacity 0.15s ease',
-                        color: 'rgba(255,255,255,0.4)',
+                        color: 'rgb(var(--brand-fg-rgb) / 0.4)',
                         borderRadius: '6px',
                         '&:hover': { color: '#ef5350', bgcolor: 'rgba(239,83,80,0.1)' },
                       }}
@@ -1042,13 +1060,13 @@ export const FloatingBatchGenPanel: React.FC = () => {
               borderRadius: '8px',
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '5px' }}>
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600, letterSpacing: 0.5 }}>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontWeight: 600, letterSpacing: 0.5 }}>
                   3D生成 今月の残り枠
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   <Box sx={{
                     fontSize: 9, px: '5px', py: '1px', borderRadius: '4px',
-                    bgcolor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.35)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'rgb(var(--brand-fg-rgb) / 0.35)',
                   }}>
                     {PLAN_LABEL[gen3dQuota.plan] ?? gen3dQuota.plan}
                   </Box>
@@ -1056,7 +1074,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
                     {isUnlimited ? '無制限' : `残り ${remaining}件`}
                   </Typography>
                   {!isUnlimited && (
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                       / {gen3dQuota.limit}件
                     </Typography>
                   )}
@@ -1068,7 +1086,7 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   value={Math.min(100, pctUsed)}
                   sx={{
                     height: 3, borderRadius: 2,
-                    bgcolor: 'rgba(255,255,255,0.08)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)',
                     '& .MuiLinearProgress-bar': { bgcolor: barColor, borderRadius: 2 },
                   }}
                 />
@@ -1084,8 +1102,8 @@ export const FloatingBatchGenPanel: React.FC = () => {
 
         {/* コンテキスト連動サジェスト */}
         {!showAddForm && suggestions.length > 0 && (
-          <Box sx={{ px: 1.5, pt: 0.75, pb: 0.25, borderTop: aiTasks.length > 0 || batches.length > 0 ? '1px solid rgba(255,255,255,0.07)' : 'none' }}>
-            <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: 0.8, mb: 0.5, textTransform: 'uppercase' }}>
+          <Box sx={{ px: 1.5, pt: 0.75, pb: 0.25, borderTop: aiTasks.length > 0 || batches.length > 0 ? '1px solid rgb(var(--brand-fg-rgb) / 0.07)' : 'none' }}>
+            <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 600, letterSpacing: 0.8, mb: 0.5, textTransform: 'uppercase' }}>
               候補
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -1104,13 +1122,13 @@ export const FloatingBatchGenPanel: React.FC = () => {
                   }}
                   sx={{
                     display: 'flex', alignItems: 'center', gap: 0.5,
-                    fontSize: '0.62rem', color: 'rgba(255,255,255,0.8)',
+                    fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)',
                     bgcolor: 'rgba(255,215,64,0.06)', border: '1px solid rgba(255,215,64,0.25)',
                     borderRadius: 5, px: 1, py: 0.4, cursor: 'pointer', transition: 'all 0.15s',
-                    '&:hover': { bgcolor: 'rgba(255,215,64,0.14)', color: '#fff', borderColor: 'rgba(255,215,64,0.5)' },
+                    '&:hover': { bgcolor: 'rgba(255,215,64,0.14)', color: 'var(--brand-fg)', borderColor: 'rgba(255,215,64,0.5)' },
                   }}
                 >
-                  <AutoAwesomeRoundedIcon sx={{ fontSize: '0.65rem', color: '#ffd740' }} />
+                  <AutoAwesomeRoundedIcon sx={{ fontSize: '0.65rem', color: 'light-dark(#ad8900, #ffd740)' }} />
                   {s.label}
                 </Box>
               ))}

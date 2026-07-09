@@ -28,9 +28,9 @@ export const DssShareDialog: React.FC<{
         fullWidth
         PaperProps={{
           sx: {
-            bgcolor: '#0f172a',
+            bgcolor: 'var(--brand-surface)',
             backgroundImage: 'none',
-            border: '1px solid rgba(255,255,255,0.1)'
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)'
           }
         }}
       >
@@ -47,9 +47,9 @@ export const DssShareDialog: React.FC<{
             p: 1, 
             display: 'flex', 
             alignItems: 'center', 
-            bgcolor: 'rgba(0,0,0,0.2)', 
+            bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', 
             borderRadius: 1,
-            border: '1px solid rgba(255,255,255,0.1)'
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)'
           }}>
             <InputBase
               value={shareUrl}

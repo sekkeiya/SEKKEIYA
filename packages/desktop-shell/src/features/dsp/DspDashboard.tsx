@@ -33,6 +33,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { dspRepository } from './api/dspRepository';
 import { useAuthStore } from '../../store/useAuthStore';
 import { buildInitialContent, type TemplateId } from './templates/initialContentBuilders';
+import { MiniSlidePreview } from './components/MiniSlidePreview';
 
 // ─── Template Definitions ──────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ export const TEMPLATES: {
     title: '空白',
     description: '何も配置されていない白紙のスライドから自由に作成します。',
     icon: <AddCircleOutlineRoundedIcon sx={{ fontSize: 26 }} />,
-    color: '#29b6f6',
+    color: 'light-dark(#0775a6, #29b6f6)',
   },
   {
     id: 'client_proposal',
@@ -88,7 +89,7 @@ export const TEMPLATES: {
     title: 'マテリアル\nボード',
     description: '素材・仕上げ材の提案ボード＋カラースキームシート（2枚）。仕上げ選定に。',
     icon: <PaletteRoundedIcon sx={{ fontSize: 26 }} />,
-    color: '#bf5af2',
+    color: 'light-dark(#6f0da1, #bf5af2)',
     badge: '2枚',
   },
   {
@@ -96,7 +97,7 @@ export const TEMPLATES: {
     title: 'ダイアグラム',
     description: 'ゾーニング図とプロセスフロー図のスターター（2枚）。計画・動線の整理に。',
     icon: <AccountTreeRoundedIcon sx={{ fontSize: 26 }} />,
-    color: '#64d2ff',
+    color: 'light-dark(#007bad, #64d2ff)',
     badge: '2枚',
   },
   {
@@ -140,7 +141,7 @@ const BADGE_COLOR = '#29b6f6';
 
 const activeTypeSx = {
   bgcolor: 'rgba(41,182,246,0.15)',
-  color: '#29b6f6',
+  color: 'light-dark(#0775a6, #29b6f6)',
   borderColor: 'rgba(41,182,246,0.4)',
   '&:hover': { bgcolor: 'rgba(41,182,246,0.22)' },
   textTransform: 'none' as const,
@@ -148,28 +149,28 @@ const activeTypeSx = {
   fontWeight: 600,
 };
 const inactiveTypeSx = {
-  color: 'rgba(255,255,255,0.4)',
-  borderColor: 'rgba(255,255,255,0.12)',
-  '&:hover': { color: '#29b6f6', bgcolor: 'rgba(41,182,246,0.06)', borderColor: 'rgba(41,182,246,0.25)' },
+  color: 'rgb(var(--brand-fg-rgb) / 0.4)',
+  borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)',
+  '&:hover': { color: 'light-dark(#0775a6, #29b6f6)', bgcolor: 'rgba(41,182,246,0.06)', borderColor: 'rgba(41,182,246,0.25)' },
   textTransform: 'none' as const,
   fontSize: 12,
   fontWeight: 500,
 };
 const activeSortSx = {
   bgcolor: 'rgba(41,182,246,0.15)',
-  color: '#29b6f6',
+  color: 'light-dark(#0775a6, #29b6f6)',
   borderColor: 'rgba(41,182,246,0.35)',
   border: '1px solid',
   borderRadius: 1,
   textTransform: 'none' as const,
 };
 const inactiveSortSx = {
-  color: 'rgba(255,255,255,0.4)',
-  borderColor: 'rgba(255,255,255,0.1)',
+  color: 'rgb(var(--brand-fg-rgb) / 0.4)',
+  borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)',
   border: '1px solid',
   borderRadius: 1,
   textTransform: 'none' as const,
-  '&:hover': { color: 'rgba(255,255,255,0.75)', bgcolor: 'rgba(255,255,255,0.05)' },
+  '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.75)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
 };
 const sectionLabelSx = {
   color: 'text.secondary',
@@ -214,123 +215,6 @@ const WindowOuter = React.forwardRef<HTMLDivElement, any>(function WindowOuter(p
   );
 });
 
-// ─── Mini Slide Preview ───────────────────────────────────────────────────────
-
-const MiniSlidePreview: React.FC<{
-  page: any;                              // PresentationPage | undefined
-  canvasSize?: { width: number; height: number } | null;
-  containerSize: number;                  // square container side (px)
-}> = React.memo(({ page, canvasSize, containerSize }) => {
-  const cw = canvasSize?.width  || 1587;
-  const ch = canvasSize?.height || 1122;
-  const scale    = Math.min(containerSize / cw, containerSize / ch);
-  const scaledW  = Math.round(cw * scale);
-  const scaledH  = Math.round(ch * scale);
-
-  const elements: any[] = React.useMemo(() => {
-    if (!page?.elements?.length) return [];
-    return [...page.elements].sort((a: any, b: any) => (a.zIndex || 0) - (b.zIndex || 0));
-  }, [page?.elements]);
-
-  if (!elements.length) return null;
-
-  return (
-    <Box sx={{
-      position: 'absolute', inset: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden',
-      pointerEvents: 'none',
-      zIndex: 1,
-    }}>
-      <Box sx={{
-        width: scaledW, height: scaledH,
-        position: 'relative',
-        bgcolor: '#ffffff',
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}>
-        {elements.map((el: any) => {
-          const left    = el.x * scale;
-          const top     = el.y * scale;
-          const elW     = el.w * scale;
-          const elH     = el.h * scale;
-          const opacity = el.opacity != null ? el.opacity / 100 : 1;
-          const rotate  = el.rotation ? `rotate(${el.rotation}deg)` : undefined;
-          return (
-            <Box key={el.id} sx={{
-              position: 'absolute',
-              left, top, width: elW, height: elH,
-              transform: rotate,
-              opacity,
-              zIndex: el.zIndex || 0,
-              overflow: 'hidden',
-            }}>
-              {el.type === 'image' && el.data?.src && (
-                <Box component="img" src={el.data.src} draggable={false}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              )}
-              {el.type === 'shape' && (
-                <Box sx={{
-                  width: '100%', height: '100%',
-                  bgcolor: el.data?.fill || 'rgba(100,100,100,0.5)',
-                  borderRadius: el.data?.shapeType === 'circle' ? '50%' : (el.data?.borderRadius || 0),
-                  border: el.data?.stroke
-                    ? `${Math.max(0.5, (el.data?.strokeWidth || 1) * scale)}px solid ${el.data.stroke}`
-                    : undefined,
-                }} />
-              )}
-              {el.type === 'text' && (
-                <Box sx={{
-                  width: '100%', height: '100%',
-                  color: el.data?.color || '#000',
-                  fontSize: el.data?.fontSize
-                    ? `${parseFloat(el.data.fontSize) * scale}px`
-                    : `${12 * scale}px`,
-                  fontWeight: el.data?.fontWeight || 'normal',
-                  textAlign: el.data?.textAlign || 'left',
-                  lineHeight: 1.25,
-                  overflow: 'hidden',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  bgcolor: el.data?.bgcolor || 'transparent',
-                  p: el.data?.padding ? `${el.data.padding * scale}px` : 0,
-                }}>
-                  {el.data?.text || ''}
-                </Box>
-              )}
-              {el.type === 'modelCard' && (
-                <Box sx={{
-                  width: '100%', height: '100%',
-                  bgcolor: '#0f172a', borderRadius: Math.max(1, 4 * scale),
-                  overflow: 'hidden',
-                }}>
-                  {el.data?.thumbnailUrl
-                    ? <Box component="img" src={el.data.thumbnailUrl}
-                        sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <SlideshowRoundedIcon sx={{ fontSize: elH * 0.35, color: 'rgba(255,255,255,0.25)' }} />
-                      </Box>
-                  }
-                </Box>
-              )}
-              {el.type === 'drawing' && el.data?.pathData && (
-                <Box component="svg" viewBox={`0 0 ${elW} ${elH}`}
-                  sx={{ width: '100%', height: '100%', overflow: 'visible' }}>
-                  <path d={el.data.pathData}
-                    stroke={el.data.stroke || '#000'}
-                    strokeWidth={(el.data.strokeWidth || 2) * scale}
-                    fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </Box>
-              )}
-            </Box>
-          );
-        })}
-      </Box>
-    </Box>
-  );
-});
-MiniSlidePreview.displayName = 'MiniSlidePreview';
-
 // ─── Presentation Card (matches DssModelCard design language) ──────────────────
 
 const PresentationCard: React.FC<{
@@ -374,7 +258,7 @@ const PresentationCard: React.FC<{
     fontSize: 11,
     fontWeight: 800,
     letterSpacing: '0.01em',
-    boxShadow: '0 1px 0 rgba(0,0,0,0.22), 0 0 0 1px rgba(15,23,42,0.6)',
+    boxShadow: '0 1px 0 rgba(0,0,0,0.22), 0 0 0 1px rgb(var(--slate-panel-rgb) / 0.6)',
     ...(isCanvas ? {
       color: '#1a0b2e',
       background: 'linear-gradient(135deg, rgba(155,89,182,0.95), rgba(186,136,215,0.92))',
@@ -390,9 +274,9 @@ const PresentationCard: React.FC<{
     height: 20,
     fontSize: 10,
     fontWeight: 600,
-    bgcolor: 'rgba(15,23,42,0.6)',
-    color: 'white',
-    border: isSelected ? `2px solid ${BADGE_COLOR}` : '1px solid rgba(255,255,255,0.05)',
+    bgcolor: 'rgb(var(--slate-panel-rgb) / 0.6)',
+    color: 'var(--brand-fg)',
+    border: isSelected ? `2px solid ${BADGE_COLOR}` : '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
     transition: 'all 0.2s',
     boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
   };
@@ -413,23 +297,23 @@ const PresentationCard: React.FC<{
             position: 'relative',
             height: '100%',
             aspectRatio: '1 / 1',
-            backgroundColor: '#020617',
-            backgroundImage: 'radial-gradient(circle at 20% 0%, rgba(51,65,85,0.4) 0%, rgba(2,6,23,1) 70%)',
+            backgroundColor: 'var(--brand-bg)',
+            backgroundImage: 'radial-gradient(circle at 20% 0%, rgb(var(--slate-mid-rgb) / 0.4) 0%, rgb(var(--slate-deep-rgb) / 1) 70%)',
             borderRadius: 3,
-            border: '1px solid rgba(31,41,55,0.9)',
+            border: '1px solid rgb(var(--slate-800-rgb) / 0.9)',
             boxShadow: isSelected
-              ? `0 18px 30px rgba(15,23,42,0.9), 0 0 18px ${BADGE_COLOR}33`
+              ? `0 18px 30px rgb(var(--slate-panel-rgb) / 0.9), 0 0 18px ${BADGE_COLOR}33`
               : '0 8px 16px rgba(0,0,0,0.4)',
-            borderColor: isSelected ? undefined : 'rgba(148,163,184,0.2)',
+            borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.2)',
             transition: 'box-shadow 0.2s, border-color 0.2s',
             overflow: 'hidden',
             userSelect: 'none',
             cursor: 'pointer',
             '&:hover': {
               boxShadow: isSelected
-                ? `0 24px 40px rgba(15,23,42,1), 0 0 24px ${BADGE_COLOR}33`
-                : '0 16px 32px rgba(0,0,0,0.6), 0 0 4px rgba(148,163,184,0.3)',
-              borderColor: isSelected ? undefined : 'rgba(148,163,184,0.4)',
+                ? `0 24px 40px rgb(var(--slate-panel-rgb) / 1), 0 0 24px ${BADGE_COLOR}33`
+                : '0 16px 32px rgba(0,0,0,0.6), 0 0 4px rgb(var(--slate-ink-rgb) / 0.3)',
+              borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.4)',
             },
             '& .DspPresentCard-icon': {
               transition: 'transform 220ms cubic-bezier(0.22,0.61,0.36,1), filter 220ms ease',
@@ -489,7 +373,7 @@ const PresentationCard: React.FC<{
             >
               {isCanvas
                 ? <DrawRoundedIcon sx={{ fontSize: 72, color: 'rgba(155,89,182,0.28)', filter: 'drop-shadow(0 8px 16px rgba(155,89,182,0.3))' }} />
-                : <SlideshowRoundedIcon sx={{ fontSize: 72, color: 'rgba(41,182,246,0.22)', filter: 'drop-shadow(0 8px 16px rgba(41,182,246,0.25))' }} />
+                : <SlideshowRoundedIcon sx={{ fontSize: 72, color: 'light-dark(rgba(7,117,166,0.22), rgba(41,182,246,0.22))', filter: 'drop-shadow(0 8px 16px rgba(41,182,246,0.25))' }} />
               }
             </Box>
           )}
@@ -508,8 +392,8 @@ const PresentationCard: React.FC<{
             {(item.tags as string[] | undefined)?.slice(0, 3).map((tag: string) => (
               <Chip key={tag} size="small" label={tag} sx={{
                 height: 18, fontSize: 10, fontWeight: 600, borderRadius: 999,
-                bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)',
-                border: '1px solid rgba(255,255,255,0.12)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.65)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
               }} />
             ))}
           </Box>
@@ -520,9 +404,9 @@ const PresentationCard: React.FC<{
               <IconButton
                 size="small"
                 onClick={e => { e.stopPropagation(); onDoubleClick(); }}
-                sx={{ backgroundColor: 'rgba(15,23,42,0.8)', '&:hover': { backgroundColor: 'rgba(15,23,42,1)' } }}
+                sx={{ backgroundColor: 'rgb(var(--slate-panel-rgb) / 0.8)', '&:hover': { backgroundColor: 'rgb(var(--slate-panel-rgb) / 1)' } }}
               >
-                <EditRoundedIcon sx={{ fontSize: 18, color: '#e5e7eb' }} />
+                <EditRoundedIcon sx={{ fontSize: 18, color: 'var(--brand-fg)' }} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -534,17 +418,17 @@ const PresentationCard: React.FC<{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               pt: 1.1, pb: 0.8, px: 1.2,
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
-              background: 'linear-gradient(to top, rgba(15,23,42,0.96), rgba(15,23,42,0.75), rgba(15,23,42,0))',
+              background: 'linear-gradient(to top, rgb(var(--slate-panel-rgb) / 0.96), rgb(var(--slate-panel-rgb) / 0.75), rgb(var(--slate-panel-rgb) / 0))',
               backdropFilter: 'blur(6px)',
               zIndex: 12,
             }}
           >
             <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-              <Typography noWrap sx={{ color: '#f9fafb', fontWeight: 600, fontSize: 13 }} title={title}>
+              <Typography noWrap sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: 13 }} title={title}>
                 {title}
               </Typography>
               {dateStr && (
-                <Typography noWrap variant="caption" sx={{ color: 'rgba(148,163,184,0.95)', fontSize: 11 }}>
+                <Typography noWrap variant="caption" sx={{ color: 'rgb(var(--slate-ink-rgb) / 0.95)', fontSize: 11 }}>
                   {dateStr}
                 </Typography>
               )}
@@ -729,24 +613,24 @@ const DspRightPanel: React.FC<{
     : allTags;
 
   const panelContent = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', bgcolor: '#0d1117' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', bgcolor: 'var(--brand-bg)' }}>
       {/* ── Panel Header ─────────────────────────────────────── */}
       <Box sx={{
         px: 2, py: 1.25,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
         flexShrink: 0,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <FilterAltRoundedIcon sx={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }} />
-          <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.3 }}>
+          <FilterAltRoundedIcon sx={{ fontSize: 15, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.6)', letterSpacing: 0.3 }}>
             Search &amp; Filter
           </Typography>
         </Box>
         <Button
           size="small"
           onClick={onReset}
-          sx={{ fontSize: 11, textTransform: 'none', color: 'rgba(255,255,255,0.35)', py: 0.25, px: 1, minWidth: 0, '&:hover': { color: '#29b6f6', bgcolor: 'transparent' } }}
+          sx={{ fontSize: 11, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.35)', py: 0.25, px: 1, minWidth: 0, '&:hover': { color: 'light-dark(#0775a6, #29b6f6)', bgcolor: 'transparent' } }}
         >
           Reset
         </Button>
@@ -763,7 +647,7 @@ const DspRightPanel: React.FC<{
           </ButtonGroup>
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
         {/* ── SORT ─────────────────────────────────────────────── */}
         <Box>
@@ -787,7 +671,7 @@ const DspRightPanel: React.FC<{
 
         {allTags.length > 0 && (
           <>
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
             {/* ── TAGS ─────────────────────────────────────────────── */}
             <Box>
@@ -801,9 +685,9 @@ const DspRightPanel: React.FC<{
                   sx={{
                     mb: 1, width: '100%',
                     '& .MuiOutlinedInput-root': {
-                      height: 26, fontSize: 11, color: '#fff',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                      height: 26, fontSize: 11, color: 'var(--brand-fg)',
+                      '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                      '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
                       '&.Mui-focused fieldset': { borderColor: 'rgba(41,182,246,0.5)' },
                       '& input': { py: 0, px: 1 },
                     },
@@ -821,7 +705,7 @@ const DspRightPanel: React.FC<{
                     deleteIcon={<CloseRoundedIcon sx={{ fontSize: '10px !important' }} />}
                     sx={{
                       height: 20, fontSize: 10,
-                      color: '#93c5fd', border: '1px solid rgba(41,182,246,0.3)',
+                      color: 'light-dark(#0352aa, #93c5fd)', border: '1px solid rgba(41,182,246,0.3)',
                       bgcolor: 'rgba(41,182,246,0.1)',
                     }}
                   />
@@ -835,13 +719,13 @@ const DspRightPanel: React.FC<{
                     onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
                     sx={tagFilter === tag ? {
                       height: 20, fontSize: 10, fontWeight: 600,
-                      bgcolor: 'rgba(41,182,246,0.18)', color: '#93c5fd',
+                      bgcolor: 'rgba(41,182,246,0.18)', color: 'light-dark(#0352aa, #93c5fd)',
                       border: '1px solid rgba(41,182,246,0.35)',
                     } : {
                       height: 20, fontSize: 10,
-                      bgcolor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)' },
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', color: 'rgb(var(--brand-fg-rgb) / 0.5)',
+                      border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+                      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.85)' },
                     }}
                   />
                 ))}
@@ -853,18 +737,18 @@ const DspRightPanel: React.FC<{
         {/* ── Item Info (when selected) ─────────────────────────── */}
         {selectedItem && (
           <>
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.09)', mt: 0.5 }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.09)', mt: 0.5 }} />
 
             {/* Preview */}
             <Box sx={{
               aspectRatio: `${(inspectorCanvasSize?.width || 1587) / (inspectorCanvasSize?.height || 1122)}`,
               borderRadius: 2,
-              border: '1px solid rgba(31,41,55,0.9)',
+              border: '1px solid rgb(var(--slate-800-rgb) / 0.9)',
               overflow: 'hidden',
               position: 'relative',
               boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-              bgcolor: selectedItem.thumbnailUrl || inspectorHasElements ? '#fff' : '#020617',
-              backgroundImage: selectedItem.thumbnailUrl || inspectorHasElements ? 'none' : 'radial-gradient(circle at 20% 0%, rgba(51,65,85,0.4) 0%, rgba(2,6,23,1) 70%)',
+              bgcolor: selectedItem.thumbnailUrl || inspectorHasElements ? '#fff' : 'var(--brand-bg)',
+              backgroundImage: selectedItem.thumbnailUrl || inspectorHasElements ? 'none' : 'radial-gradient(circle at 20% 0%, rgb(var(--slate-mid-rgb) / 0.4) 0%, rgb(var(--slate-deep-rgb) / 1) 70%)',
             }}>
               {selectedItem.thumbnailUrl ? (
                 <Box component="img" src={selectedItem.thumbnailUrl} alt=""
@@ -878,13 +762,13 @@ const DspRightPanel: React.FC<{
               ) : (
                 isCanvas
                   ? <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><DrawRoundedIcon sx={{ fontSize: 72, color: 'rgba(155,89,182,0.3)' }} /></Box>
-                  : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SlideshowRoundedIcon sx={{ fontSize: 72, color: 'rgba(41,182,246,0.25)' }} /></Box>
+                  : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SlideshowRoundedIcon sx={{ fontSize: 72, color: 'light-dark(rgba(7,117,166,0.25), rgba(41,182,246,0.25))' }} /></Box>
               )}
             </Box>
 
             {/* Title & Badge */}
             <Box>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#fff', mb: 0.75, lineHeight: 1.4 }}>
+              <Typography sx={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-fg)', mb: 0.75, lineHeight: 1.4 }}>
                 {selectedItem.name || 'Untitled'}
               </Typography>
               <Chip
@@ -905,36 +789,36 @@ const DspRightPanel: React.FC<{
               />
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)' }} />
 
             {/* Metadata */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
               {slideCount > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>スライド数</Typography>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{slideCount}</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>スライド数</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.85)', fontWeight: 600 }}>{slideCount}</Typography>
                 </Box>
               )}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>作成日</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)' }}>{fmtDate(selectedItem.createdAt)}</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>作成日</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>{fmtDate(selectedItem.createdAt)}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>更新日</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)' }}>{fmtDate(selectedItem.updatedAt)}</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>更新日</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>{fmtDate(selectedItem.updatedAt)}</Typography>
               </Box>
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)' }} />
 
             {/* Tags for selected item */}
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <LocalOfferRoundedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }} />
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', letterSpacing: 0.3 }}>タグ</Typography>
+                  <LocalOfferRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.3 }}>タグ</Typography>
                 </Box>
-                {isSavingTags && <CircularProgress size={10} sx={{ color: 'rgba(255,255,255,0.3)' }} />}
+                {isSavingTags && <CircularProgress size={10} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />}
               </Box>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6, mb: 1 }}>
                 {localTags.map(tag => (
@@ -946,9 +830,9 @@ const DspRightPanel: React.FC<{
                     deleteIcon={<CloseRoundedIcon sx={{ fontSize: '10px !important' }} />}
                     sx={{
                       height: 20, fontSize: 11, fontWeight: 500,
-                      bgcolor: 'rgba(41,182,246,0.12)', color: '#93c5fd',
+                      bgcolor: 'rgba(41,182,246,0.12)', color: 'light-dark(#0352aa, #93c5fd)',
                       border: '1px solid rgba(41,182,246,0.2)',
-                      '& .MuiChip-deleteIcon': { color: 'rgba(147,197,253,0.5)', '&:hover': { color: '#93c5fd' } },
+                      '& .MuiChip-deleteIcon': { color: 'light-dark(rgba(3,82,170,0.5), rgba(147,197,253,0.5))', '&:hover': { color: 'light-dark(#0352aa, #93c5fd)' } },
                     }}
                   />
                 ))}
@@ -963,9 +847,9 @@ const DspRightPanel: React.FC<{
                   sx={{
                     flex: 1,
                     '& .MuiOutlinedInput-root': {
-                      height: 28, fontSize: 12, color: '#fff',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                      height: 28, fontSize: 12, color: 'var(--brand-fg)',
+                      '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                      '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
                       '&.Mui-focused fieldset': { borderColor: 'rgba(41,182,246,0.5)' },
                       '& input': { py: 0, px: 1 },
                     },
@@ -978,10 +862,10 @@ const DspRightPanel: React.FC<{
                   sx={{
                     width: 28, height: 28,
                     bgcolor: 'rgba(41,182,246,0.15)',
-                    color: '#29b6f6',
+                    color: 'light-dark(#0775a6, #29b6f6)',
                     borderRadius: 1,
                     '&:hover': { bgcolor: 'rgba(41,182,246,0.25)' },
-                    '&.Mui-disabled': { color: 'rgba(255,255,255,0.15)' },
+                    '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.15)' },
                   }}
                 >
                   <AddRoundedIcon sx={{ fontSize: 16 }} />
@@ -989,16 +873,16 @@ const DspRightPanel: React.FC<{
               </Box>
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)' }} />
 
             {/* Visibility Toggle */}
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', letterSpacing: 0.3 }}>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.3 }}>
                   公開設定
                 </Typography>
                 {isTogglingVisibility && (
-                  <CircularProgress size={12} sx={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <CircularProgress size={12} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
                 )}
               </Box>
               <ButtonGroup
@@ -1012,7 +896,7 @@ const DspRightPanel: React.FC<{
                     fontSize: 12,
                     fontWeight: 600,
                     py: 0.75,
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)',
                     transition: 'all 0.18s ease',
                   },
                 }}
@@ -1022,12 +906,12 @@ const DspRightPanel: React.FC<{
                   onClick={() => handleVisibilityToggle('public')}
                   sx={isPublic ? {
                     bgcolor: 'rgba(41,182,246,0.15)',
-                    color: '#29b6f6',
+                    color: 'light-dark(#0775a6, #29b6f6)',
                     borderColor: 'rgba(41,182,246,0.4) !important',
                     '&:hover': { bgcolor: 'rgba(41,182,246,0.22)' },
                   } : {
-                    color: 'rgba(255,255,255,0.3)',
-                    '&:hover': { color: '#29b6f6', bgcolor: 'rgba(41,182,246,0.08)', borderColor: 'rgba(41,182,246,0.25) !important' },
+                    color: 'rgb(var(--brand-fg-rgb) / 0.3)',
+                    '&:hover': { color: 'light-dark(#0775a6, #29b6f6)', bgcolor: 'rgba(41,182,246,0.08)', borderColor: 'rgba(41,182,246,0.25) !important' },
                   }}
                 >
                   公開
@@ -1041,7 +925,7 @@ const DspRightPanel: React.FC<{
                     borderColor: 'rgba(249,115,22,0.35) !important',
                     '&:hover': { bgcolor: 'rgba(249,115,22,0.2)' },
                   } : {
-                    color: 'rgba(255,255,255,0.3)',
+                    color: 'rgb(var(--brand-fg-rgb) / 0.3)',
                     '&:hover': { color: '#f97316', bgcolor: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.25) !important' },
                   }}
                 >
@@ -1050,13 +934,13 @@ const DspRightPanel: React.FC<{
               </ButtonGroup>
               <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 {isPublic
-                  ? <><PublicRoundedIcon sx={{ fontSize: 12, color: '#29b6f6' }} /><Typography variant="caption" sx={{ color: '#29b6f6', fontSize: 11 }}>公開中 — Presentationsフィードに表示されます</Typography></>
-                  : <><LockRoundedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }} /><Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>非公開 — 自分だけが閲覧できます</Typography></>
+                  ? <><PublicRoundedIcon sx={{ fontSize: 12, color: 'light-dark(#0775a6, #29b6f6)' }} /><Typography variant="caption" sx={{ color: 'light-dark(#0775a6, #29b6f6)', fontSize: 11 }}>公開中 — Presentationsフィードに表示されます</Typography></>
+                  : <><LockRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} /><Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 11 }}>非公開 — 自分だけが閲覧できます</Typography></>
                 }
               </Box>
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)' }} />
 
             {/* Actions */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pb: 2 }}>
@@ -1126,9 +1010,9 @@ const NewPresentationDialog: React.FC<{
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth
-      PaperProps={{ sx: { bgcolor: '#181c28', backgroundImage: 'none', borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.1)' } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', borderRadius: 2.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}
     >
-      <DialogTitle sx={{ color: '#fff', fontWeight: 700, pb: 0.5 }}>新しいプレゼンテーションを作成</DialogTitle>
+      <DialogTitle sx={{ color: 'var(--brand-fg)', fontWeight: 700, pb: 0.5 }}>新しいプレゼンテーションを作成</DialogTitle>
       <DialogContent sx={{ pt: '12px !important' }}>
         {/* Template grid — 3 columns × 3 rows */}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.25, mb: 2 }}>
@@ -1141,14 +1025,14 @@ const NewPresentationDialog: React.FC<{
                 onClick={() => handleSelect(t.id as TemplateId)}
                 sx={{
                   borderRadius: 2,
-                  border: `1.5px solid ${active ? accentColor : 'rgba(255,255,255,0.08)'}`,
-                  bgcolor: active ? `${accentColor}18` : 'rgba(255,255,255,0.03)',
+                  border: `1.5px solid ${active ? accentColor : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
+                  bgcolor: active ? `color-mix(in srgb, ${accentColor} 9%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.03)',
                   display: 'flex', alignItems: 'center', gap: 1.5,
                   px: 1.5, py: 1.25, cursor: 'pointer', transition: 'all 0.15s',
                   position: 'relative', overflow: 'hidden',
                   '&:hover': {
-                    bgcolor: active ? `${accentColor}22` : 'rgba(255,255,255,0.07)',
-                    borderColor: active ? accentColor : 'rgba(255,255,255,0.2)',
+                    bgcolor: active ? `color-mix(in srgb, ${accentColor} 13%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.07)',
+                    borderColor: active ? accentColor : 'rgb(var(--brand-fg-rgb) / 0.2)',
                   },
                 }}
               >
@@ -1156,15 +1040,15 @@ const NewPresentationDialog: React.FC<{
                 <Box sx={{
                   width: 40, height: 40, borderRadius: 1.5, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  bgcolor: active ? `${accentColor}30` : 'rgba(255,255,255,0.06)',
-                  color: active ? accentColor : (t.color || 'rgba(255,255,255,0.45)'),
+                  bgcolor: active ? `color-mix(in srgb, ${accentColor} 19%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.06)',
+                  color: active ? accentColor : (t.color || 'rgb(var(--brand-fg-rgb) / 0.45)'),
                 }}>
                   {t.icon}
                 </Box>
                 {/* Text */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{
-                    color: active ? accentColor : 'rgba(255,255,255,0.85)',
+                    color: active ? accentColor : 'rgb(var(--brand-fg-rgb) / 0.85)',
                     fontSize: 12, fontWeight: 700, lineHeight: 1.35,
                     whiteSpace: 'pre-line',
                   }}>
@@ -1172,7 +1056,7 @@ const NewPresentationDialog: React.FC<{
                   </Typography>
                   {t.badge && (
                     <Typography sx={{
-                      color: active ? `${accentColor}cc` : 'rgba(255,255,255,0.3)',
+                      color: active ? `color-mix(in srgb, ${accentColor} 80%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.3)',
                       fontSize: 10, fontWeight: 600, mt: 0.25,
                     }}>
                       {t.badge}のスライド構成
@@ -1196,17 +1080,17 @@ const NewPresentationDialog: React.FC<{
         {/* Selected template description */}
         <Box sx={{
           mb: 2, p: 1.5, borderRadius: 1.5,
-          bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
           display: 'flex', alignItems: 'flex-start', gap: 1,
         }}>
-          <Box sx={{ color: selectedTemplate.color || '#29b6f6', mt: 0.25, flexShrink: 0 }}>
+          <Box sx={{ color: selectedTemplate.color || 'light-dark(#0775a6, #29b6f6)', mt: 0.25, flexShrink: 0 }}>
             {selectedTemplate.icon}
           </Box>
           <Box>
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600, mb: 0.25 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 12, fontWeight: 600, mb: 0.25 }}>
               {selectedTemplate.title.replace('\n', ' ')}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 1.6 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 12, lineHeight: 1.6 }}>
               {selectedTemplate.description}
             </Typography>
           </Box>
@@ -1218,14 +1102,14 @@ const NewPresentationDialog: React.FC<{
           value={name} onChange={e => setName(e.target.value)} disabled={isCreating}
           onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onSubmit(selectedId, name); }}
           sx={{
-            '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.35)' }, '&.Mui-focused fieldset': { borderColor: '#29b6f6' } },
-            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
-            '& .MuiInputLabel-root.Mui-focused': { color: '#29b6f6' },
+            '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.35)' }, '&.Mui-focused fieldset': { borderColor: '#29b6f6' } },
+            '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.45)' },
+            '& .MuiInputLabel-root.Mui-focused': { color: 'light-dark(#0775a6, #29b6f6)' },
           }}
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 3, pt: 0, gap: 1 }}>
-        <Button onClick={onClose} disabled={isCreating} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>キャンセル</Button>
+        <Button onClick={onClose} disabled={isCreating} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>キャンセル</Button>
         <Button onClick={() => onSubmit(selectedId, name)} variant="contained" disabled={isCreating || !name.trim()}
           sx={{ bgcolor: '#29b6f6', color: 'rgba(0,0,0,0.85)', fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#4fc3f7' }, px: 3 }}>
           {isCreating ? '作成中...' : '作成'}
@@ -1239,13 +1123,13 @@ const NewPresentationDialog: React.FC<{
 
 const EmptyState: React.FC<{ onNew: () => void; canCreate?: boolean }> = ({ onNew, canCreate = true }) => (
   <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, py: 10 }}>
-    <SlideshowRoundedIcon sx={{ fontSize: 56, color: 'rgba(255,255,255,0.15)' }} />
-    <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>
+    <SlideshowRoundedIcon sx={{ fontSize: 56, color: 'rgb(var(--brand-fg-rgb) / 0.15)' }} />
+    <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontWeight: 500 }}>
       {canCreate ? 'このプロジェクトにはまだプレゼンテーションがありません' : 'プレゼンテーションが見つかりません'}
     </Typography>
     {canCreate && (
       <Button variant="outlined" startIcon={<AddCircleOutlineRoundedIcon />} onClick={onNew}
-        sx={{ mt: 1, borderColor: 'rgba(41,182,246,0.5)', color: '#29b6f6', textTransform: 'none', '&:hover': { bgcolor: 'rgba(41,182,246,0.08)', borderColor: '#29b6f6' } }}>
+        sx={{ mt: 1, borderColor: 'rgba(41,182,246,0.5)', color: 'light-dark(#0775a6, #29b6f6)', textTransform: 'none', '&:hover': { bgcolor: 'rgba(41,182,246,0.08)', borderColor: '#29b6f6' } }}>
         新規スライド作成
       </Button>
     )}
@@ -1283,7 +1167,9 @@ export const DspDashboard: React.FC<{
 
   const [cardSize, setCardSize] = useState(210);
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  // 種別フィルタはストア共有（テンプレ⇄プレゼン切替でも保持）
+  const typeFilter = useAppStore(s => s.dspTypeFilter);
+  const setTypeFilter = useAppStore(s => s.setDspTypeFilter);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt_desc');
   const [showNewDialog, setShowNewDialog] = useState(false);
@@ -1447,11 +1333,11 @@ export const DspDashboard: React.FC<{
             <Box sx={styles.pageTitle}>
               {scopeLabel ? (
                 <>
-                  <Box component="span" sx={{ color: '#fff', fontWeight: 700, fontSize: 22 }}>{scopeLabel.title}&nbsp;</Box>
-                  <Box component="span" sx={{ color: '#29b6f6', fontWeight: 700, fontSize: 22 }}>{scopeLabel.scope}</Box>
+                  <Box component="span" sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 22 }}>{scopeLabel.title}&nbsp;</Box>
+                  <Box component="span" sx={{ color: 'light-dark(#0775a6, #29b6f6)', fontWeight: 700, fontSize: 22 }}>{scopeLabel.scope}</Box>
                 </>
               ) : (
-                <Box component="span" sx={{ color: '#29b6f6', fontWeight: 700, fontSize: 22 }}>S.Presentations ワークスペース</Box>
+                <Box component="span" sx={{ color: 'light-dark(#0775a6, #29b6f6)', fontWeight: 700, fontSize: 22 }}>S.Slide ワークスペース</Box>
               )}
             </Box>
           </Box>
@@ -1483,13 +1369,13 @@ export const DspDashboard: React.FC<{
 
         {/* ── Presentations フィード: フォロー中 / 全ユーザー タブ ── */}
         {dspScope === 'global_presentations' && (
-          <Box sx={{ px: 3, borderBottom: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(0,0,0,0.2)' }}>
+          <Box sx={{ px: 3, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))' }}>
             <Tabs
               value={dspGlobalFilter}
               onChange={(_, v) => setDspGlobalFilter(v)}
               textColor="inherit"
               TabIndicatorProps={{ style: { backgroundColor: '#29b6f6', height: 2 } }}
-              sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, fontSize: 13, textTransform: 'none', color: 'rgba(255,255,255,0.45)', '&.Mui-selected': { color: '#29b6f6' } } }}
+              sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, fontSize: 13, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.45)', '&.Mui-selected': { color: 'light-dark(#0775a6, #29b6f6)' } } }}
             >
               <Tab
                 value="following"
@@ -1509,7 +1395,7 @@ export const DspDashboard: React.FC<{
 
         {/* ── Filter Row ──────────────────────────────────────── */}
         <Box component="section" sx={styles.filterRow}>
-          {/* Type tabs — 3DSS style ButtonGroup */}
+          {/* Type tabs — 3DSS style ButtonGroup（＋テンプレート切替） */}
           <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { py: 0.5, px: 2, textTransform: 'none', fontSize: 13, fontWeight: 600 } }}>
             {([
               { key: 'all' as TypeFilter, label: 'すべて' },
@@ -1520,19 +1406,30 @@ export const DspDashboard: React.FC<{
                 key={opt.key}
                 onClick={() => setTypeFilter(opt.key)}
                 sx={typeFilter === opt.key ? {
-                  color: '#29b6f6',
+                  color: 'light-dark(#0775a6, #29b6f6)',
                   bgcolor: 'rgba(41,182,246,0.12)',
                   borderColor: 'rgba(41,182,246,0.35)',
                   '&:hover': { bgcolor: 'rgba(41,182,246,0.18)' },
                 } : {
-                  color: 'rgba(255,255,255,0.5)',
-                  borderColor: 'rgba(255,255,255,0.12)',
-                  '&:hover': { color: 'rgba(255,255,255,0.85)', bgcolor: 'rgba(255,255,255,0.05)' },
+                  color: 'rgb(var(--brand-fg-rgb) / 0.5)',
+                  borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)',
+                  '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.85)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
                 }}
               >
                 {opt.label}
               </Button>
             ))}
+            {/* テンプレート管理ビューへ切替 */}
+            <Button
+              onClick={() => { useAppStore.getState().setDspScope('my_templates'); useAppStore.getState().setGlobalDspHub(); }}
+              sx={{
+                color: 'rgb(var(--brand-fg-rgb) / 0.5)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)',
+                '&:hover': { color: 'light-dark(#0775a6, #29b6f6)', bgcolor: 'rgba(41,182,246,0.08)' },
+              }}
+            >
+              テンプレート
+            </Button>
           </ButtonGroup>
 
           <Box sx={{ flex: 1 }} />
@@ -1549,7 +1446,7 @@ export const DspDashboard: React.FC<{
             <Button variant="contained" size="small" startIcon={<EditRoundedIcon />}
               disabled={!selectedItem || isInitializing}
               onClick={() => handleOpenEditor()}
-              sx={{ bgcolor: 'rgba(41,182,246,0.15)', color: '#29b6f6', '&:hover': { bgcolor: 'rgba(41,182,246,0.25)' }, boxShadow: 'none', textTransform: 'none' }}>
+              sx={{ bgcolor: 'rgba(41,182,246,0.15)', color: 'light-dark(#0775a6, #29b6f6)', '&:hover': { bgcolor: 'rgba(41,182,246,0.25)' }, boxShadow: 'none', textTransform: 'none' }}>
               エディタで開く
             </Button>
           </Box>
@@ -1561,7 +1458,7 @@ export const DspDashboard: React.FC<{
         <Box sx={styles.pageBodyInner}>
           {isInitializing ? (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.3)' }}>読み込み中...</Typography>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>読み込み中...</Typography>
             </Box>
           ) : filteredItems.length === 0 ? (
             <EmptyState onNew={() => setShowNewDialog(true)} canCreate={canCreate} />
@@ -1612,20 +1509,20 @@ export const DspDashboard: React.FC<{
 
 const styles = {
   root: { height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', color: 'text.primary', overflow: 'hidden' },
-  stickyHeaderWrap: { flexShrink: 0, backgroundColor: 'rgba(10,15,25,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, zIndex: 10 },
-  topBar: { height: 72, px: 3, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)' },
+  stickyHeaderWrap: { flexShrink: 0, backgroundColor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.85))', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, zIndex: 10 },
+  topBar: { height: 72, px: 3, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.04)' },
   titleBlock: { display: 'flex', flexDirection: 'column', justifyContent: 'center', flexShrink: 0, minWidth: 180 },
   breadcrumb: { fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1.5, mb: 0.3 },
   pageTitle: { display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap' },
-  searchWrap: { flex: '0 1 560px', width: '100%', height: 36, borderRadius: 18, bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', px: 2, transition: 'all 0.2s', '&:focus-within': { bgcolor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.2)', boxShadow: '0 0 0 2px rgba(41,182,246,0.2)' } },
+  searchWrap: { flex: '0 1 560px', width: '100%', height: 36, borderRadius: 18, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', display: 'flex', alignItems: 'center', px: 2, transition: 'all 0.2s', '&:focus-within': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', boxShadow: '0 0 0 2px rgba(41,182,246,0.2)' } },
   searchIcon: { fontSize: 18, color: 'text.secondary', mr: 1 },
-  searchInput: { flex: 1, border: 'none', background: 'transparent', color: 'white', fontSize: 14, outline: 'none', fontFamily: 'inherit' },
+  searchInput: { flex: 1, border: 'none', background: 'transparent', color: 'var(--brand-fg)', fontSize: 14, outline: 'none', fontFamily: 'inherit' },
   viewBlock: { display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 },
   miniLabel: { fontSize: 11, color: 'text.secondary', textTransform: 'uppercase', fontWeight: 500 },
-  densityGroup: { '& .MuiButton-root': { borderColor: 'rgba(255,255,255,0.1)', color: 'text.secondary', fontSize: 12, px: 1.5 } },
-  densityBtn: { '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } },
-  densityBtnActive: { bgcolor: 'rgba(41,182,246,0.1)', color: '#29b6f6', borderColor: 'rgba(41,182,246,0.3)' },
+  densityGroup: { '& .MuiButton-root': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'text.secondary', fontSize: 12, px: 1.5 } },
+  densityBtn: { '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } },
+  densityBtnActive: { bgcolor: 'rgba(41,182,246,0.1)', color: 'light-dark(#0775a6, #29b6f6)', borderColor: 'rgba(41,182,246,0.3)' },
   filterRow: { height: 44, px: 3, display: 'flex', alignItems: 'center' },
   content: { flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' },
-  pageBodyInner: { p: 3, flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 1600, margin: '0 auto', width: '100%' },
+  pageBodyInner: { flex: 1, minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', padding: '0', height: '100%', width: '100%' },
 };

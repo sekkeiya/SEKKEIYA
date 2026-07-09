@@ -7,7 +7,7 @@ export type DsmtCategoryFilter = 'all' | DsmtCategory;
  * S.Material のローカル UI 状態（フィルタ・選択）。
  *
  * 素材データそのものは Adapters.tsx の各サービスフックが Firestore から取得し、
- * DsmtDashboard へ props で渡す（S.Models / S.Image と同じ構成）。スコープ
+ * DsmtDashboard へ props で渡す（S.Model / S.Image と同じ構成）。スコープ
  * （global / public / private / project）は useAppStore.dsmtScope が保持する。
  * ここではビュー側だけが必要とする一時状態を持つ。
  */

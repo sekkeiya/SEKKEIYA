@@ -20,7 +20,7 @@ export class MermaidShapeUtil extends ShapeUtil<any> {
       w: 400,
       h: 300,
       code: `graph TD;\n    A[Idea]-->B[Concept];\n    B-->C[Plan];\n    C-->D[Execution];\n    D-->A;`,
-      color: '#FFFFFF',
+      color: 'var(--brand-fg)',
     }
   }
 
@@ -96,8 +96,8 @@ export class MermaidShapeUtil extends ShapeUtil<any> {
               fontSize: '14px',
               border: 'none',
               outline: 'none',
-              backgroundColor: '#1E1E1E',
-              color: '#D4D4D4'
+              backgroundColor: 'var(--brand-surface2)',
+              color: 'var(--brand-fg)'
             }}
             defaultValue={code}
             autoFocus

@@ -130,7 +130,7 @@ export default function BottomDock({
 
       {/* Right */}
       <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
-        <Tooltip title="Library（S.Modelsモデル）">
+        <Tooltip title="Library（S.Modelモデル）">
           <IconButton onClick={() => toggleRightPanel("library")} sx={pillBtn(isLibraryOn)}>
             <FolderOpenRoundedIcon fontSize="small" />
           </IconButton>

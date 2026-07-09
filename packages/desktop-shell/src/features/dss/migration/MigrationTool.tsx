@@ -117,7 +117,7 @@ export const MigrationTool = () => {
       <Typography variant="h6" color="#ffb74d" gutterBottom>
         ⚠️ Legacy Model Migration (Admin)
       </Typography>
-      <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="rgb(var(--brand-fg-rgb) / 0.7)" sx={{ mb: 2 }}>
         Move old models from <code>users/{user?.uid}/models</code> to <code>projects/{targetProjectId}/workspaces/models/items</code>.
         This enables cross-project searching and unifies the data structure.
       </Typography>

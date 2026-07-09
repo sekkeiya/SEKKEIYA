@@ -78,7 +78,7 @@ const ACCOUNT_GENERAL: ChatSuggestion[] = [
 
 // ─── AI パネル（右サイドに重なるツール）別サジェスト ───
 const AI_DRIVE: ChatSuggestion[] = [
-  { label: '一括AI整理', text: 'AI Drive の未整理アセットを内容から判定して、タグ付け・フォルダ分けして。' },
+  { label: '一括AI整理', text: 'SEKKEIYA Drive の未整理アセットを内容から判定して、タグ付け・フォルダ分けして。' },
   { label: '推定モデル', text: '選択中の画像から、家具の推定モデル候補を出して。' },
   { label: '重複を整理', text: '似ている画像・重複アセットをまとめて整理して。' },
   { label: 'プロジェクトへ紐付け', text: '選択中のアセットを適切なプロジェクト/フォルダへ紐付けて。' },
@@ -96,7 +96,7 @@ const AI_3D_CREATE: ChatSuggestion[] = [
   { label: '家具を3D化', text: 'この家具画像から、配置用の3Dメッシュを生成して。' },
   { label: '高品質で生成', text: 'Pro/高品質モードで、ディテール重視の3Dモデルを生成して。' },
   { label: 'Workspaceに配置', text: '生成したモデルを現在のWorkspaceに配置して。' },
-  { label: 'S.Modelsに保存', text: '生成したモデルを S.Models に保存して、タグを付けて。' },
+  { label: 'S.Modelに保存', text: '生成したモデルを S.Model に保存して、タグを付けて。' },
 ];
 
 // ─── その他の子アプリ別サジェスト（開いている子アプリのコード=workspaceType で判定）───
@@ -105,12 +105,12 @@ const SUBAPP_BY_APPSCOPE: Record<string, ChatSuggestion[]> = {
     { label: '自動レイアウト', text: 'このプロジェクトのレイアウトを自動で作成して。' },
     { label: '部屋を指定して配置', text: 'リビング 5000×4000mm にルールベースで家具を自動配置して。' },
     { label: 'Optionを作る', text: '現在のPlanを複製して、水回りを東に寄せたOptionを作って。' },
-    { label: '家具を選定', text: 'S.Models の家具を探して LDK 向けの候補を提案して。' },
+    { label: '家具を選定', text: 'S.Model の家具を探して LDK 向けの候補を提案して。' },
   ],
-  '3dsp': [ // S.Presentations
+  '3dsp': [ // S.Slide
     { label: 'プレゼン構成', text: 'このプロジェクトのプレゼン構成（章立て）を提案して。' },
     { label: '表紙を作る', text: 'プロジェクト名と概要を入れた表紙スライドを作って。' },
-    { label: '画像を流し込む', text: 'AI Drive の画像をスライドに流し込んで、レイアウトを整えて。' },
+    { label: '画像を流し込む', text: 'SEKKEIYA Drive の画像をスライドに流し込んで、レイアウトを整えて。' },
   ],
   '3dsr': [ // S.Drawing
     { label: '図面を整理', text: 'アップした図面をセットごとに整理して、命名を統一して。' },
@@ -123,7 +123,7 @@ const SUBAPP_BY_APPSCOPE: Record<string, ChatSuggestion[]> = {
     { label: 'バリエーション', text: 'このパースから、時間帯違いのバリエーションを作って。' },
     { label: 'Galleryへ公開', text: '選んだ画像を Gallery に公開用として整えて。' },
   ],
-  '3dss': [ // S.Models
+  '3dss': [ // S.Model
     { label: 'モデルを探す', text: '北欧系のダイニングチェアのモデルを探して。' },
     { label: 'タグを整える', text: '未整理のモデルにカテゴリとタグを付けて。' },
     { label: 'AIで3D生成', text: '手持ちの家具画像から3Dモデルを生成して登録して。' },

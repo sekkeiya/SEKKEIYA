@@ -30,7 +30,7 @@ import AngleSettings from "./AngleSettings";
 import AutoAngleSettings from "./AutoAngleSettings";
 
 const SectionLabel = ({ children }) => (
-  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.45), letterSpacing: 0.4, mb: 0.6 }}>
+  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", letterSpacing: 0.4, mb: 0.6 }}>
     {children}
   </Typography>
 );
@@ -88,9 +88,9 @@ export default function MediaSettingsPanel() {
       textTransform: "none",
       fontWeight: 600,
       border: `1px solid ${alpha("#fff", 0.12)}`,
-      color: alpha("#fff", 0.45),
+      color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)",
       "&.Mui-selected": {
-        color: "#c4b5fd",
+        color: "light-dark(#2705a9, #c4b5fd)",
         background: alpha("#a78bfa", 0.18),
         borderColor: alpha("#a78bfa", 0.5),
       },
@@ -99,7 +99,7 @@ export default function MediaSettingsPanel() {
   };
 
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", color: alpha("#fff", 0.92) }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)" }}>
     <Box
       sx={{
         flex: 1, minHeight: 0, p: 1.5, overflowY: "auto",
@@ -109,7 +109,7 @@ export default function MediaSettingsPanel() {
     >
       {/* ── ヘッダー ── */}
       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.5 }}>
-        <MovieCreationRoundedIcon sx={{ fontSize: 15, color: "#c4b5fd" }} />
+        <MovieCreationRoundedIcon sx={{ fontSize: 15, color: "light-dark(#2705a9, #c4b5fd)" }} />
         <Typography sx={{ fontWeight: 900, fontSize: 12.5 }}>自動動画生成 設定</Typography>
       </Stack>
       <Typography sx={{ fontSize: 10, opacity: 0.42, mb: 1.5 }}>
@@ -178,7 +178,7 @@ export default function MediaSettingsPanel() {
                   sx={{
                     fontSize: 11,
                     fontWeight: active ? 800 : 600,
-                    color: active ? "#c4b5fd" : alpha("#fff", 0.8),
+                    color: active ? "light-dark(#2705a9, #c4b5fd)" : "color-mix(in srgb, var(--brand-fg) 80%, transparent)",
                     flex: 1,
                   }}
                 >
@@ -192,13 +192,13 @@ export default function MediaSettingsPanel() {
                       py: 0.1,
                       borderRadius: "6px",
                       background: alpha(needsMore ? "#f87171" : "#fff", 0.12),
-                      color: needsMore ? alpha("#f87171", 0.9) : alpha("#fff", 0.5),
+                      color: needsMore ? "light-dark(rgba(165,8,8,0.9), rgba(248,113,113,0.9))" : alpha("#fff", 0.5),
                     }}
                   >
                     {p.minShots} Shot 以上
                   </Typography>
                 )}
-                {active && <CheckRoundedIcon sx={{ fontSize: 13, color: "#c4b5fd" }} />}
+                {active && <CheckRoundedIcon sx={{ fontSize: 13, color: "light-dark(#2705a9, #c4b5fd)" }} />}
               </Stack>
               <Typography sx={{ fontSize: 9.5, opacity: 0.48, lineHeight: 1.4 }}>{p.hint}</Typography>
             </Box>
@@ -237,8 +237,8 @@ export default function MediaSettingsPanel() {
             { value: 1.6, label: "大きく" },
           ]}
           sx={{
-            color: "#a78bfa",
-            "& .MuiSlider-markLabel": { fontSize: 9, color: alpha("#fff", 0.4) },
+            color: "light-dark(#2f07a6, #a78bfa)",
+            "& .MuiSlider-markLabel": { fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" },
             "& .MuiSlider-thumb": { width: 12, height: 12 },
             "& .MuiSlider-rail": { opacity: 0.2 },
           }}
@@ -267,10 +267,10 @@ export default function MediaSettingsPanel() {
           fontWeight: 800,
           fontSize: 11.5,
           py: 0.6,
-          color: previewPlaying ? "#f87171" : "#c4b5fd",
+          color: previewPlaying ? "light-dark(#a50808, #f87171)" : "light-dark(#2705a9, #c4b5fd)",
           background: alpha(previewPlaying ? "#f87171" : "#a78bfa", 0.14),
           "&:hover": { background: alpha(previewPlaying ? "#f87171" : "#a78bfa", 0.26) },
-          "&:disabled": { color: alpha("#fff", 0.25), background: alpha("#fff", 0.05) },
+          "&:disabled": { color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)", background: alpha("#fff", 0.05) },
         }}
       >
         {previewPlaying ? "プレビューを停止" : "プレビュー"}
@@ -281,22 +281,22 @@ export default function MediaSettingsPanel() {
           : "カメラの動きをビューポートで再生して確認"}
       </Typography>
       {error && (
-        <Typography sx={{ fontSize: 10, color: "#f87171", mt: 0.75 }}>{error}</Typography>
+        <Typography sx={{ fontSize: 10, color: "light-dark(#a50808, #f87171)", mt: 0.75 }}>{error}</Typography>
       )}
     </Box>
 
       {/* 固定フッター：生成ボタン（選択中アングルで動画を生成） */}
-      <Box sx={{ flexShrink: 0, p: 1.25, borderTop: `1px solid ${alpha("#fff", 0.1)}`, background: alpha("#0b1020", 0.4) }}>
+      <Box sx={{ flexShrink: 0, p: 1.25, borderTop: `1px solid ${alpha("#fff", 0.1)}`, background: "color-mix(in srgb, var(--brand-surface) 40%, transparent)" }}>
         <Button
           fullWidth
           variant="contained"
           disabled={videoRendering}
           onClick={requestRender}
-          startIcon={videoRendering ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <MovieCreationRoundedIcon />}
+          startIcon={videoRendering ? <CircularProgress size={14} sx={{ color: "var(--brand-fg)" }} /> : <MovieCreationRoundedIcon />}
           sx={{
             textTransform: "none", fontWeight: 900, fontSize: 12.5, py: 0.9, borderRadius: 2,
             background: "#a78bfa", "&:hover": { background: "#9170f0" },
-            "&.Mui-disabled": { background: alpha("#a78bfa", 0.3), color: alpha("#fff", 0.5) },
+            "&.Mui-disabled": { background: alpha("#a78bfa", 0.3), color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" },
           }}
         >
           {videoRendering ? "生成中…" : selectedCount > 0 ? `動画を生成（${selectedCount}）` : "動画を生成"}

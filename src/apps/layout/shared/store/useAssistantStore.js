@@ -14,7 +14,7 @@ const createNewThread = () => ({
   messages: [{
     id: `welcome-${Date.now()}`,
     role: "assistant",
-    content: "S.Models アシスタントです。モデルの検索やダッシュボードの操作をサポートします。「オレンジ色の家具を探して」「30000円以下のソファ」のように指示してください。",
+    content: "S.Model アシスタントです。モデルの検索やダッシュボードの操作をサポートします。「オレンジ色の家具を探して」「30000円以下のソファ」のように指示してください。",
     timestamp: Date.now()
   }],
   context: {

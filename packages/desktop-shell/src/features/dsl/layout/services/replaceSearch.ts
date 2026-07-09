@@ -1,10 +1,10 @@
-// 商品写真（カタログ/関連リンクのサムネ）に視覚的に似た S.Models 3Dモデルを探す。
+// 商品写真（カタログ/関連リンクのサムネ）に視覚的に似た S.Model 3Dモデルを探す。
 //   - CLIP 埋め込み（visionEngine）で商品画像と候補モデルのサムネを比較し、類似度順に返す。
 //   - 候補プールは現在ロード済みの AI Drive アセット（3Dモデル）。同カテゴリで事前フィルタ。
 //   - 候補サムネの埋め込みはモジュール内でキャッシュ（再検索を高速化）。
 
 import { embedImage, cosineSim } from "../../../../shared/vision/visionEngine";
-import { useAIDriveStore } from "../../../../store/useAIDriveStore";
+import { getDriveAssets } from "../../../drive/driveAccess";
 import { collection, getDocs, query, where, and as fsAnd, or as fsOr, limit } from "firebase/firestore";
 import { db, auth } from "../../../../lib/firebase/client";
 import type { CatalogVisionItem } from "../../../dsk/catalog/catalogVisionStore";
@@ -37,7 +37,7 @@ function isModel(a: any): boolean {
 }
 
 /**
- * 商品画像に似た S.Models モデルを類似度順に返す。
+ * 商品画像に似た S.Model モデルを類似度順に返す。
  * @param productImage 商品サムネ（URL / dataURL / Blob）
  * @param opts.mainCategory / macroCategory 同カテゴリで事前フィルタ
  * @param opts.excludeId 現在の家具自身を除外
@@ -49,7 +49,9 @@ export async function findSimilarModels(
   const topN = opts.topN ?? 8;
   const maxCandidates = opts.maxCandidates ?? 40;
 
-  const all = (useAIDriveStore.getState().assets || []) as any[];
+  // スコープ非依存の集約プールから3Dモデル候補を取得（driveAccess = 単一の読み取り窓口）。
+  // 自分の 非公開＋公開（クラウド）。※他者公開モデルの広域検索は findSimilarModelsBroad が担当。
+  const all = getDriveAssets({ media: 'model', layers: ['private', 'public'] }) as any[];
   let cands = all.filter((a) => a && isModel(a) && glbUrlOf(a) && thumbOf(a) && a.id !== opts.excludeId);
 
   // 同カテゴリで絞る（メイン→マクロの順。一致が少なすぎる場合は緩める）。
@@ -138,7 +140,7 @@ async function fetchLocalModels(): Promise<any[]> {
 }
 
 /**
- * S.Models（クラウド: 公開＋自分 / ローカル）から、商品に視覚的に似たモデルを探す。
+ * S.Model（クラウド: 公開＋自分 / ローカル）から、商品に視覚的に似たモデルを探す。
  * クラウドはプールをキャッシュ、ローカルはプレビューGLBをレンダして埋め込み。埋め込みは id 別キャッシュ。
  * カテゴリ/タグ/名前のトークン重なりで事前選別 → CLIP 埋め込みで cosine 類似ランキング。
  */

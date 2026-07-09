@@ -8,7 +8,7 @@ import booksPng from "@/assets/icons/books.png";
 export const APPS_CATALOG = [
   {
     key: "3dss",
-    label: "S.Models",
+    label: "S.Model",
     sub: "クラウドストレージ",
     icon: sharePng,
     hrefPublic: "/app/share/",
@@ -35,7 +35,7 @@ export const APPS_CATALOG = [
   },
   {
     key: "3dsp",
-    label: "S.Presentations",
+    label: "S.Slide",
     sub: "プレゼン / 見積もり",
     icon: presentsPng,
     hrefPublic: "/app/presents/",

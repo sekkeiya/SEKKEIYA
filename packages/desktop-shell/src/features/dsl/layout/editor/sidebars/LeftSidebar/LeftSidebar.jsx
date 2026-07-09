@@ -31,7 +31,7 @@ const Section = React.forwardRef(({ title, children, explicitHeight, minHeight =
         sx={{
           px: 1.25,
           py: 0.75,
-          borderBottom: "1px solid rgba(255,255,255,0.05)", // Top divider removed since we put title
+          borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)", // Top divider removed since we put title
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -81,7 +81,7 @@ const Resizer = ({ onResize }) => {
         }
       }}
     >
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.05)", position: "absolute", top: 4, left: 0, right: 0, pointerEvents: 'none' }} />
+      <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.05)", position: "absolute", top: 4, left: 0, right: 0, pointerEvents: 'none' }} />
       <Box className="hover-bar" sx={{ position: "absolute", top: 3, left: 0, right: 0, height: 2, transition: "background-color 0.2s", pointerEvents: 'none' }} />
     </Box>
   );
@@ -149,12 +149,12 @@ export default function LeftSidebar({ width = "100%" }) {
         flexDirection: "column",
         minHeight: 0,
         overflow: "hidden",
-        borderRight: "1px solid rgba(255, 255, 255, 0.05)",
+        borderRight: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
         bgcolor: BRAND.panel,
       }}
     >
-      <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 1 }}>3D SHAPE LAYOUT</Typography>
+      <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)", flexShrink: 0 }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "var(--brand-fg)", letterSpacing: 1 }}>3D SHAPE LAYOUT</Typography>
       </Box>
 
       {finalVisibleSections.map((key, i) => {
@@ -192,7 +192,7 @@ export default function LeftSidebar({ width = "100%" }) {
                         size="small"
                         onClick={handleSelectFurniture}
                         sx={{
-                          color: '#c4b5fd', padding: '2px', borderRadius: 1,
+                          color: 'light-dark(#2705a9, #c4b5fd)', padding: '2px', borderRadius: 1,
                           bgcolor: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.4)',
                           '&:hover': { bgcolor: 'rgba(124,58,237,0.3)' },
                         }}
@@ -200,7 +200,7 @@ export default function LeftSidebar({ width = "100%" }) {
                         <AutoAwesomeRoundedIcon sx={{ fontSize: 14 }} />
                       </IconButton>
                     </Tooltip>
-                    <IconButton size="small" onClick={toggleLibraryDetached} sx={{ color: 'rgba(255,255,255,0.7)', padding: '2px' }}>
+                    <IconButton size="small" onClick={toggleLibraryDetached} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', padding: '2px' }}>
                       <OpenInNewIcon sx={{ fontSize: 14 }} />
                     </IconButton>
                   </Box>

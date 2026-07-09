@@ -50,20 +50,20 @@ const iconByType = (type, lightType) => {
       return <PublicRoundedIcon sx={{ fontSize: 18, opacity: 0.9 }} />;
     case "ambience":
       // Hemisphere/sky ambient light — soft radial glow icon, sky-blue tint
-      return <FlareRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "#a8d8f8" }} />;
+      return <FlareRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "light-dark(#0d65a0, #a8d8f8)" }} />;
     case "group":
       return <FolderRoundedIcon sx={{ fontSize: 18, opacity: 0.9 }} />;
     case "landscape-flat":
-      return <LandscapeRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "#9bc88a" }} />;
+      return <LandscapeRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "light-dark(#497637, #9bc88a)" }} />;
     case "landscape-sky":
-      return <CloudRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "#9fc7ee" }} />;
+      return <CloudRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "light-dark(#1a5793, #9fc7ee)" }} />;
     case "light":
       // Spot light — cone/highlight icon, cyan-blue
-      if (lightType === "spot") return <HighlightRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "#80d4ff" }} />;
+      if (lightType === "spot") return <HighlightRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "light-dark(#0073ad, #80d4ff)" }} />;
       // Rect area light — rectangular panel icon, soft purple
-      if (lightType === "rect") return <CropDinRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "#b4a0ff" }} />;
+      if (lightType === "rect") return <CropDinRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "light-dark(#2500ad, #b4a0ff)" }} />;
       // Directional / Sun — clear sun icon, warm gold
-      return <WbSunnyRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "#ffd580" }} />;
+      return <WbSunnyRoundedIcon sx={{ fontSize: 18, opacity: 0.9, color: "light-dark(#ad7400, #ffd580)" }} />;
     default:
       return <ViewInArRoundedIcon sx={{ fontSize: 18, opacity: 0.9 }} />;
   }

@@ -654,14 +654,14 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0f1117' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'var(--brand-surface)' }}>
 
       {/* ── Header ── */}
       <Box sx={{
         height: 52, px: 2, display: 'flex', alignItems: 'center', gap: 1.5,
-        borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, bgcolor: '#131720',
+        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', flexShrink: 0, bgcolor: 'var(--brand-surface)',
       }}>
-        <IconButton size="small" onClick={onBack} sx={{ color: 'rgba(255,255,255,0.55)', p: 0.75, flexShrink: 0 }}>
+        <IconButton size="small" onClick={onBack} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.55)', p: 0.75, flexShrink: 0 }}>
           <ArrowBackRoundedIcon sx={{ fontSize: 18 }} />
         </IconButton>
 
@@ -673,17 +673,17 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
           variant="standard"
           sx={{
             flex: '1 1 200px', maxWidth: 340,
-            '& .MuiInputBase-root': { color: '#fff', fontSize: 14, fontWeight: 600 },
-            '& .MuiInputBase-input': { '&::placeholder': { color: 'rgba(255,255,255,0.28)', opacity: 1 } },
-            '& .MuiInput-underline:before': { borderColor: 'rgba(255,255,255,0.1)' },
-            '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderColor: 'rgba(255,255,255,0.28)' },
+            '& .MuiInputBase-root': { color: 'var(--brand-fg)', fontSize: 14, fontWeight: 600 },
+            '& .MuiInputBase-input': { '&::placeholder': { color: 'rgb(var(--brand-fg-rgb) / 0.28)', opacity: 1 } },
+            '& .MuiInput-underline:before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+            '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.28)' },
             '& .MuiInput-underline:after': { borderColor: '#a78bfa' },
           }}
         />
 
         {/* 建物タイプ — Auto Layout マッチングに使用 */}
         <Box sx={{ display: 'flex', gap: 0.4, flexShrink: 0, alignItems: 'center' }}>
-          <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.25)', mr: 0.25, whiteSpace: 'nowrap' }}>
+          <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.25)', mr: 0.25, whiteSpace: 'nowrap' }}>
             用途
           </Typography>
           {Object.entries(BUILDING_TYPE_LABELS).map(([key, label]) => (
@@ -693,11 +693,11 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
               sx={{
                 px: 0.9, py: 0.3, borderRadius: 1, cursor: 'pointer',
                 fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap',
-                bgcolor: buildingType === key ? 'rgba(167,139,250,0.22)' : 'rgba(255,255,255,0.05)',
-                color: buildingType === key ? '#a78bfa' : 'rgba(255,255,255,0.35)',
-                border: `1px solid ${buildingType === key ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                bgcolor: buildingType === key ? 'rgba(167,139,250,0.22)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                color: buildingType === key ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.35)',
+                border: `1px solid ${buildingType === key ? 'rgba(167,139,250,0.4)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                 transition: 'all 0.15s',
-                '&:hover': { bgcolor: 'rgba(167,139,250,0.14)', color: '#c4b5fd' },
+                '&:hover': { bgcolor: 'rgba(167,139,250,0.14)', color: 'light-dark(#2705a9, #c4b5fd)' },
               }}
             >
               {label}
@@ -713,8 +713,8 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
             flexShrink: 0,
             '& .MuiToggleButton-root': {
               fontSize: 10, py: 0.35, px: 1.5, textTransform: 'none',
-              color: 'rgba(255,255,255,0.38)', borderColor: 'rgba(255,255,255,0.1)',
-              '&.Mui-selected': { bgcolor: 'rgba(167,139,250,0.14)', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' },
+              color: 'rgb(var(--brand-fg-rgb) / 0.38)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)',
+              '&.Mui-selected': { bgcolor: 'rgba(167,139,250,0.14)', color: 'light-dark(#2f07a6, #a78bfa)', borderColor: 'rgba(167,139,250,0.3)' },
             },
           }}
         >
@@ -722,7 +722,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
           <ToggleButton value="public">全体公開</ToggleButton>
         </ToggleButtonGroup>
 
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', px: 0.5, flexShrink: 0 }}>
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', px: 0.5, flexShrink: 0 }}>
           {placedItems.length} モデル
         </Typography>
 
@@ -737,7 +737,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
             textTransform: 'none', fontSize: 12, height: 32, px: 2, flexShrink: 0,
             bgcolor: '#a78bfa', color: '#000', fontWeight: 600,
             '&:hover': { bgcolor: '#9061f9' },
-            '&.Mui-disabled': { bgcolor: 'rgba(167,139,250,0.18)', color: 'rgba(0,0,0,0.3)' },
+            '&.Mui-disabled': { bgcolor: 'rgba(167,139,250,0.18)', color: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))' },
           }}
         >
           {isSaving ? '保存中...' : '保存'}
@@ -765,12 +765,12 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
         {/* Left: Model Library */}
         <Box sx={{
           width: 240, flexShrink: 0,
-          borderRight: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex', flexDirection: 'column', bgcolor: '#0d1018',
+          borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          display: 'flex', flexDirection: 'column', bgcolor: 'var(--brand-bg)',
         }}>
           {/* ── Tab bar: ALL / プロジェクト ── */}
           <Box sx={{
-            display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0,
+            display: 'flex', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', flexShrink: 0,
           }}>
             {(['all', 'projects'] as const).map(tab => (
               <Box
@@ -782,10 +782,10 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                 sx={{
                   flex: 1, py: 0.85, textAlign: 'center', cursor: 'pointer', fontSize: 11,
                   fontWeight: 600, letterSpacing: 0.3,
-                  color: libTab === tab ? '#a78bfa' : 'rgba(255,255,255,0.35)',
+                  color: libTab === tab ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.35)',
                   borderBottom: libTab === tab ? '2px solid #a78bfa' : '2px solid transparent',
                   transition: 'color 0.15s, border-color 0.15s',
-                  '&:hover': { color: libTab === tab ? '#a78bfa' : 'rgba(255,255,255,0.6)' },
+                  '&:hover': { color: libTab === tab ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.6)' },
                 }}
               >
                 {tab === 'all' ? 'ALL' : 'プロジェクト'}
@@ -796,11 +796,11 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
           {libTab === 'all' ? (
             /* ─── ALL tab ─────────────────────────────────────────────── */
             <>
-              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, borderBottom: '1px solid rgba(255,255,255,0.04)', flexShrink: 0 }}>
+              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.04)', flexShrink: 0 }}>
                 <Box sx={{ position: 'relative' }}>
                   <SearchRoundedIcon sx={{
                     position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 13, color: 'rgba(255,255,255,0.28)', pointerEvents: 'none',
+                    fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.28)', pointerEvents: 'none',
                   }} />
                   <input
                     value={libSearch}
@@ -808,8 +808,8 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                     placeholder="モデルを検索..."
                     style={{
                       width: '100%', boxSizing: 'border-box',
-                      background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 6, padding: '5px 8px 5px 25px', color: '#fff', fontSize: 11,
+                      background: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+                      borderRadius: 6, padding: '5px 8px 5px 25px', color: 'var(--brand-fg)', fontSize: 11,
                       outline: 'none', fontFamily: 'inherit',
                     }}
                   />
@@ -823,9 +823,9 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                     onClick={() => setLibCategory(cat)}
                     sx={{
                       height: 20, fontSize: 10, cursor: 'pointer',
-                      bgcolor: libCategory === cat ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.04)',
-                      color: libCategory === cat ? '#a78bfa' : 'rgba(255,255,255,0.42)',
-                      border: libCategory === cat ? '1px solid rgba(167,139,250,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                      bgcolor: libCategory === cat ? 'rgba(167,139,250,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                      color: libCategory === cat ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.42)',
+                      border: libCategory === cat ? '1px solid rgba(167,139,250,0.3)' : '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
                       '& .MuiChip-label': { px: 0.75 },
                     }}
                   />
@@ -835,10 +835,10 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
               <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
                 {globalModelsLoading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', pt: 5 }}>
-                    <CircularProgress size={20} sx={{ color: '#a78bfa' }} />
+                    <CircularProgress size={20} sx={{ color: 'light-dark(#2f07a6, #a78bfa)' }} />
                   </Box>
                 ) : filteredLibModels.length === 0 ? (
-                  <Typography sx={{ color: 'rgba(255,255,255,0.18)', fontSize: 11, textAlign: 'center', pt: 5 }}>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.18)', fontSize: 11, textAlign: 'center', pt: 5 }}>
                     モデルが見つかりません
                   </Typography>
                 ) : (
@@ -848,7 +848,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                     ))}
                   </Box>
                 )}
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', textAlign: 'center', mt: 1.5 }}>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.15)', textAlign: 'center', mt: 1.5 }}>
                   ホバーして + ボタンでキャンバスに追加
                 </Typography>
               </Box>
@@ -867,12 +867,12 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                     <IconButton
                       size="small"
                       onClick={() => { setSelectedProject(null); setProjectAssets([]); }}
-                      sx={{ color: 'rgba(255,255,255,0.5)', p: 0.5, '&:hover': { color: '#fff' } }}
+                      sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', p: 0.5, '&:hover': { color: 'var(--brand-fg)' } }}
                     >
                       <ChevronLeftRoundedIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                     <Typography sx={{
-                      fontSize: 11, fontWeight: 600, color: '#e2e8f0',
+                      fontSize: 11, fontWeight: 600, color: 'var(--brand-fg)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {selectedProject.name}
@@ -884,7 +884,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                     <Box sx={{ position: 'relative' }}>
                       <SearchRoundedIcon sx={{
                         position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)',
-                        fontSize: 13, color: 'rgba(255,255,255,0.28)', pointerEvents: 'none',
+                        fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.28)', pointerEvents: 'none',
                       }} />
                       <input
                         value={libSearch}
@@ -892,8 +892,8 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                         placeholder="モデルを検索..."
                         style={{
                           width: '100%', boxSizing: 'border-box',
-                          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: 6, padding: '5px 8px 5px 25px', color: '#fff', fontSize: 11,
+                          background: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+                          borderRadius: 6, padding: '5px 8px 5px 25px', color: 'var(--brand-fg)', fontSize: 11,
                           outline: 'none', fontFamily: 'inherit',
                         }}
                       />
@@ -903,10 +903,10 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                   <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
                     {projectAssetsLoading ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 5 }}>
-                        <CircularProgress size={20} sx={{ color: '#a78bfa' }} />
+                        <CircularProgress size={20} sx={{ color: 'light-dark(#2f07a6, #a78bfa)' }} />
                       </Box>
                     ) : filteredLibModels.length === 0 ? (
-                      <Typography sx={{ color: 'rgba(255,255,255,0.18)', fontSize: 11, textAlign: 'center', pt: 5 }}>
+                      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.18)', fontSize: 11, textAlign: 'center', pt: 5 }}>
                         モデルが見つかりません
                       </Typography>
                     ) : (
@@ -916,7 +916,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                         ))}
                       </Box>
                     )}
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', textAlign: 'center', mt: 1.5 }}>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.15)', textAlign: 'center', mt: 1.5 }}>
                       ホバーして + ボタンでキャンバスに追加
                     </Typography>
                   </Box>
@@ -926,10 +926,10 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                 <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
                   {projectsLoading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', pt: 5 }}>
-                      <CircularProgress size={20} sx={{ color: '#a78bfa' }} />
+                      <CircularProgress size={20} sx={{ color: 'light-dark(#2f07a6, #a78bfa)' }} />
                     </Box>
                   ) : !projects || projects.length === 0 ? (
-                    <Typography sx={{ color: 'rgba(255,255,255,0.18)', fontSize: 11, textAlign: 'center', pt: 5 }}>
+                    <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.18)', fontSize: 11, textAlign: 'center', pt: 5 }}>
                       プロジェクトが見つかりません
                     </Typography>
                   ) : (
@@ -945,8 +945,8 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                           sx={{
                             display: 'flex', alignItems: 'center', gap: 1,
                             px: 1, py: 0.75, borderRadius: 1, cursor: 'pointer',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            bgcolor: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
+                            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
                             '&:hover': { bgcolor: 'rgba(167,139,250,0.07)', borderColor: 'rgba(167,139,250,0.3)' },
                             transition: 'background 0.15s, border-color 0.15s',
                           }}
@@ -963,11 +963,11 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                               bgcolor: 'rgba(167,139,250,0.12)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                             }}>
-                              <FolderRoundedIcon sx={{ fontSize: 16, color: '#a78bfa' }} />
+                              <FolderRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#2f07a6, #a78bfa)' }} />
                             </Box>
                           )}
                           <Typography sx={{
-                            fontSize: 11, color: '#e2e8f0', fontWeight: 500,
+                            fontSize: 11, color: 'var(--brand-fg)', fontWeight: 500,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>
                             {proj.name ?? proj.title ?? proj.id}
@@ -986,14 +986,14 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
         <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
           {/* Left: Top-down orthographic view (interactive) */}
-          <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+          <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
             {/* View label */}
             <Box sx={{
               position: 'absolute', top: 8, left: 8, zIndex: 10,
               bgcolor: 'rgba(0,0,0,0.5)', px: 1, py: 0.25, borderRadius: 1,
               pointerEvents: 'none',
             }}>
-              <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Top</Typography>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Top</Typography>
             </Box>
 
             {/* Placement mode banner (spans top view width) */}
@@ -1020,10 +1020,10 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                 flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 pointerEvents: 'none', zIndex: 4,
               }}>
-                <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.13)', mb: 0.5 }}>
+                <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.13)', mb: 0.5 }}>
                   ライブラリのモデルをホバーして + をクリック
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.08)' }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.08)' }}>
                   3Dキャンバス上でクリックした位置に配置されます
                 </Typography>
               </Box>
@@ -1053,7 +1053,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
               bgcolor: 'rgba(0,0,0,0.5)', px: 1, py: 0.25, borderRadius: 1,
               pointerEvents: 'none',
             }}>
-              <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>3D</Typography>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>3D</Typography>
             </Box>
             <SetFurnitureCanvas3D
               placedItems={placedItems}
@@ -1070,35 +1070,35 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
         {/* Right: Properties Panel */}
         <Box sx={{
           width: 220, flexShrink: 0,
-          borderLeft: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex', flexDirection: 'column', bgcolor: '#0d1018',
+          borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          display: 'flex', flexDirection: 'column', bgcolor: 'var(--brand-bg)',
         }}>
-          <Box sx={{ px: 1.5, pt: 1.5, pb: 1, borderBottom: '1px solid rgba(255,255,255,0.04)', flexShrink: 0 }}>
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          <Box sx={{ px: 1.5, pt: 1.5, pb: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.04)', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
               プロパティ
             </Typography>
           </Box>
 
           {selectedItem ? (
             <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5, overflow: 'auto' }}>
-              <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1, overflow: 'hidden' }}>
+              <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1, overflow: 'hidden' }}>
                 {selectedItem.thumbnailUrl
                   ? <img src={selectedItem.thumbnailUrl} alt={selectedItem.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ImageIcon sx={{ color: 'rgba(255,255,255,0.12)', fontSize: 28 }} />
+                      <ImageIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.12)', fontSize: 28 }} />
                     </Box>
                 }
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', wordBreak: 'break-word', lineHeight: 1.4 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-fg)', wordBreak: 'break-word', lineHeight: 1.4 }}>
                   {selectedItem.title}
                 </Typography>
               </Box>
 
               {/* Position — XYZ axes matching 3D view (Z-up) */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.3)', letterSpacing: 0.6, textTransform: 'uppercase' }}>
                   位置 (mm)
                 </Typography>
                 <PropFieldAxis
@@ -1130,7 +1130,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
 
               {/* Auto Layout カテゴリ */}
               <Box>
-                <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: 0.6, textTransform: 'uppercase', mb: 0.5 }}>
+                <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.3)', letterSpacing: 0.6, textTransform: 'uppercase', mb: 0.5 }}>
                   Auto Layout カテゴリ
                 </Typography>
                 <select
@@ -1138,15 +1138,15 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                   onChange={e => handleUpdateCategoryKey(e.target.value)}
                   style={{
                     width: '100%', boxSizing: 'border-box',
-                    background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 4, padding: '5px 8px', color: selectedItem.categoryKey ? '#e2e8f0' : 'rgba(255,255,255,0.28)',
+                    background: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+                    borderRadius: 4, padding: '5px 8px', color: selectedItem.categoryKey ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.28)',
                     fontSize: 11, outline: 'none', fontFamily: 'inherit',
                     cursor: 'pointer',
                   }}
                 >
-                  <option value="" style={{ background: '#1a1a2e', color: 'rgba(255,255,255,0.4)' }}>未設定</option>
+                  <option value="" style={{ background: 'var(--brand-surface2)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>未設定</option>
                   {FURNITURE_CATEGORIES.map(cat => (
-                    <option key={cat.key} value={cat.key} style={{ background: '#1a1a2e', color: '#e2e8f0' }}>
+                    <option key={cat.key} value={cat.key} style={{ background: 'var(--brand-surface2)', color: 'var(--brand-fg)' }}>
                       {cat.label}
                     </option>
                   ))}
@@ -1159,7 +1159,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
                 onClick={handleDeleteSelected}
                 sx={{
                   textTransform: 'none', fontSize: 11, mt: 0.5,
-                  color: '#f87171', borderColor: 'rgba(248,113,113,0.2)',
+                  color: 'light-dark(#a50808, #f87171)', borderColor: 'rgba(248,113,113,0.2)',
                   border: '1px solid',
                   '&:hover': { bgcolor: 'rgba(248,113,113,0.07)', borderColor: 'rgba(248,113,113,0.4)' },
                 }}
@@ -1195,10 +1195,10 @@ const PropFieldAxis: React.FC<{
         width: 18, height: 18, borderRadius: 0.5, flexShrink: 0,
         bgcolor: axisColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <Typography sx={{ fontSize: 9, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{axis}</Typography>
+        <Typography sx={{ fontSize: 9, fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1 }}>{axis}</Typography>
       </Box>
       {/* Label */}
-      <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', width: 22, flexShrink: 0 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.38)', width: 22, flexShrink: 0 }}>{label}</Typography>
       {/* Input */}
       <input
         type="number"
@@ -1208,8 +1208,8 @@ const PropFieldAxis: React.FC<{
         onKeyDown={e => { if (e.key === 'Enter') commit(); }}
         style={{
           flex: 1, minWidth: 0, boxSizing: 'border-box',
-          background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 4, padding: '4px 6px', color: '#fff', fontSize: 12,
+          background: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+          borderRadius: 4, padding: '4px 6px', color: 'var(--brand-fg)', fontSize: 12,
           outline: 'none', fontFamily: 'inherit',
         }}
       />
@@ -1233,7 +1233,7 @@ const PropField: React.FC<{ label: string; value: number; onChange: (v: number) 
 
   return (
     <Box>
-      <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', mb: 0.3 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.32)', mb: 0.3 }}>{label}</Typography>
       <input
         type="number"
         value={local}
@@ -1242,8 +1242,8 @@ const PropField: React.FC<{ label: string; value: number; onChange: (v: number) 
         onKeyDown={e => { if (e.key === 'Enter') commit(); }}
         style={{
           width: '100%', boxSizing: 'border-box',
-          background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 12,
+          background: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+          borderRadius: 4, padding: '5px 8px', color: 'var(--brand-fg)', fontSize: 12,
           outline: 'none', fontFamily: 'inherit',
         }}
       />
@@ -1252,19 +1252,19 @@ const PropField: React.FC<{ label: string; value: number; onChange: (v: number) 
 };
 
 // ── SetFurnitureToolbar ────────────────────────────────────────────────────
-const LINE = 'rgba(255,255,255,0.08)';
+const LINE = 'rgb(var(--brand-fg-rgb) / 0.08)';
 const BTN_SX = {
   width: 26, height: 26, borderRadius: 1,
-  color: 'rgba(255,255,255,0.7)',
+  color: 'rgb(var(--brand-fg-rgb) / 0.7)',
   border: `1px solid ${LINE}`,
   '&:hover': { bgcolor: 'rgba(124,58,237,0.28)', borderColor: 'rgba(124,58,237,0.5)' },
-  '&.Mui-disabled': { opacity: 0.35, color: 'rgba(255,255,255,0.25)', borderColor: LINE },
+  '&.Mui-disabled': { opacity: 0.35, color: 'rgb(var(--brand-fg-rgb) / 0.25)', borderColor: LINE },
   transition: 'all 0.15s ease',
 } as const;
 const ALIGN_BTN_SX = {
   ...BTN_SX,
   border: 'none',
-  '&.Mui-disabled': { opacity: 0.3, color: 'rgba(255,255,255,0.2)' },
+  '&.Mui-disabled': { opacity: 0.3, color: 'rgb(var(--brand-fg-rgb) / 0.2)' },
 } as const;
 const ICON_SX = { fontSize: 16 };
 
@@ -1299,8 +1299,8 @@ const SetFurnitureToolbar: React.FC<SetFurnitureToolbarProps> = ({
     <Box sx={{
       height: 40, px: 2, flexShrink: 0,
       display: 'flex', alignItems: 'center', gap: 0.5,
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      bgcolor: '#131720',
+      borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
+      bgcolor: 'var(--brand-surface)',
     }}>
 
       {/* ── Snap / Position tools ── */}
@@ -1336,7 +1336,7 @@ const SetFurnitureToolbar: React.FC<SetFurnitureToolbarProps> = ({
         onClick={e => setMenuAnchor(e.currentTarget)}
         sx={{
           minWidth: 0, px: 0.75, height: 26,
-          color: 'rgba(255,255,255,0.7)', fontSize: 12,
+          color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 12,
           border: `1px solid ${LINE}`, borderRadius: 1,
           '&:hover': { bgcolor: 'rgba(124,58,237,0.18)', borderColor: 'rgba(124,58,237,0.4)' },
           transition: 'all 0.15s ease',
@@ -1363,8 +1363,8 @@ const SetFurnitureToolbar: React.FC<SetFurnitureToolbarProps> = ({
             key={step}
             selected={rotateStepDeg === step}
             onClick={() => { onRotateStepChange(step); setMenuAnchor(null); }}
-            sx={{ fontSize: 13, minHeight: 'auto', color: '#e2e8f0',
-              '&.Mui-selected': { bgcolor: 'rgba(124,58,237,0.2)', color: '#a78bfa' } }}
+            sx={{ fontSize: 13, minHeight: 'auto', color: 'var(--brand-fg)',
+              '&.Mui-selected': { bgcolor: 'rgba(124,58,237,0.2)', color: 'light-dark(#2f07a6, #a78bfa)' } }}
           >
             {step}°
           </MenuItem>
@@ -1372,7 +1372,7 @@ const SetFurnitureToolbar: React.FC<SetFurnitureToolbarProps> = ({
       </Menu>
 
       <Divider orientation="vertical" flexItem
-        sx={{ mx: 0.75, my: 0.75, borderColor: 'rgba(255,255,255,0.15)' }} />
+        sx={{ mx: 0.75, my: 0.75, borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }} />
 
       {/* ── Align tools ── */}
       {[
@@ -1393,7 +1393,7 @@ const SetFurnitureToolbar: React.FC<SetFurnitureToolbarProps> = ({
       ))}
 
       <Divider orientation="vertical" flexItem
-        sx={{ mx: 0.75, my: 0.75, borderColor: 'rgba(255,255,255,0.15)' }} />
+        sx={{ mx: 0.75, my: 0.75, borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }} />
 
       {/* ── 寸法表示トグル ── */}
       <Tooltip title={showDimensions ? '寸法を非表示' : '寸法を表示'} arrow placement="bottom">
@@ -1402,7 +1402,7 @@ const SetFurnitureToolbar: React.FC<SetFurnitureToolbarProps> = ({
           onClick={onToggleDimensions}
           sx={{
             ...BTN_SX,
-            color: showDimensions ? '#a78bfa' : 'rgba(255,255,255,0.35)',
+            color: showDimensions ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.35)',
             bgcolor: showDimensions ? 'rgba(167,139,250,0.12)' : 'transparent',
             borderColor: showDimensions ? 'rgba(167,139,250,0.4)' : LINE,
           }}
@@ -1437,7 +1437,7 @@ export const SET_ROTATION_OPTIONS: { key: SetRotationPolicy; label: string }[] =
 ];
 
 const RULE_LABEL_SX = {
-  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
+  fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.3)',
   letterSpacing: 0.6, textTransform: 'uppercase', mb: 0.5,
 } as const;
 
@@ -1453,7 +1453,7 @@ const RuleNumField: React.FC<{ label: string; value: number; onChange: (v: numbe
   };
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-      <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', flex: 1 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', flex: 1 }}>{label}</Typography>
       <input
         type="number"
         value={local}
@@ -1462,12 +1462,12 @@ const RuleNumField: React.FC<{ label: string; value: number; onChange: (v: numbe
         onKeyDown={e => { if (e.key === 'Enter') commit(); }}
         style={{
           width: 64, boxSizing: 'border-box',
-          background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 4, padding: '4px 6px', color: '#fff', fontSize: 11.5,
+          background: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+          borderRadius: 4, padding: '4px 6px', color: 'var(--brand-fg)', fontSize: 11.5,
           outline: 'none', fontFamily: 'inherit', textAlign: 'right',
         }}
       />
-      <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.28)', width: 20 }}>{suffix}</Typography>
+      <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.28)', width: 20 }}>{suffix}</Typography>
     </Box>
   );
 };
@@ -1480,10 +1480,10 @@ const SetPlacementRulePanel: React.FC<{
   return (
     <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.75, overflow: 'auto' }}>
       <Box>
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', mb: 0.25 }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'light-dark(#2f07a6, #a78bfa)', mb: 0.25 }}>
           セット配置ルール
         </Typography>
-        <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.3)', lineHeight: 1.5 }}>
+        <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.5 }}>
           Auto Layout がこのセットをゾーン内へ配置する際のルールです
         </Typography>
       </Box>
@@ -1502,9 +1502,9 @@ const SetPlacementRulePanel: React.FC<{
                     display: 'flex', alignItems: 'center', gap: 0.6,
                     px: 0.85, py: 0.55, borderRadius: 1, cursor: 'pointer',
                     fontSize: 11, fontWeight: 600, userSelect: 'none',
-                    bgcolor: active ? 'rgba(167,139,250,0.18)' : 'rgba(255,255,255,0.04)',
-                    color: active ? '#a78bfa' : 'rgba(255,255,255,0.45)',
-                    border: `1px solid ${active ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    bgcolor: active ? 'rgba(167,139,250,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                    color: active ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                    border: `1px solid ${active ? 'rgba(167,139,250,0.4)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                     transition: 'all 0.12s',
                     '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' },
                   }}
@@ -1535,7 +1535,7 @@ const SetPlacementRulePanel: React.FC<{
               return (
                 <Box key={idx} sx={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 8.5, color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.2,
+                  fontSize: 8.5, color: 'rgb(var(--brand-fg-rgb) / 0.25)', textAlign: 'center', lineHeight: 1.2,
                 }}>
                   セット<br />正面
                 </Box>
@@ -1550,9 +1550,9 @@ const SetPlacementRulePanel: React.FC<{
                 sx={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 1, cursor: 'pointer', userSelect: 'none',
-                  bgcolor: active ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.04)',
-                  color: active ? '#38bdf8' : 'rgba(255,255,255,0.4)',
-                  border: `1px solid ${active ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.08)'}`,
+                  bgcolor: active ? 'rgba(56,189,248,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                  color: active ? 'light-dark(#0676a8, #38bdf8)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
+                  border: `1px solid ${active ? 'rgba(56,189,248,0.45)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                   transition: 'all 0.12s',
                   '&:hover': { bgcolor: 'rgba(56,189,248,0.1)' },
                 }}
@@ -1563,7 +1563,7 @@ const SetPlacementRulePanel: React.FC<{
             );
           })}
         </Box>
-        <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', mt: 0.5, textAlign: 'center' }}>
+        <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.25)', mt: 0.5, textAlign: 'center' }}>
           TOPビューの水色矢印が正面を示します
         </Typography>
       </Box>
@@ -1584,7 +1584,7 @@ const SetPlacementRulePanel: React.FC<{
           />
         </Box>
         {!needsWall && (
-          <Typography sx={{ fontSize: 8.5, color: 'rgba(255,255,255,0.2)' }}>
+          <Typography sx={{ fontSize: 8.5, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>
             壁マージンは「壁付け / コーナー」選択時に使用されます
           </Typography>
         )}
@@ -1603,9 +1603,9 @@ const SetPlacementRulePanel: React.FC<{
                 sx={{
                   flex: 1, textAlign: 'center', py: 0.5, borderRadius: 1, cursor: 'pointer',
                   fontSize: 10.5, fontWeight: 600, userSelect: 'none',
-                  bgcolor: active ? 'rgba(167,139,250,0.18)' : 'rgba(255,255,255,0.04)',
-                  color: active ? '#a78bfa' : 'rgba(255,255,255,0.45)',
-                  border: `1px solid ${active ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                  bgcolor: active ? 'rgba(167,139,250,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                  color: active ? 'light-dark(#2f07a6, #a78bfa)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  border: `1px solid ${active ? 'rgba(167,139,250,0.4)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                   transition: 'all 0.12s',
                   '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' },
                 }}
@@ -1624,24 +1624,24 @@ const SetPlacementRulePanel: React.FC<{
           sx={{
             display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', userSelect: 'none',
             px: 0.85, py: 0.6, borderRadius: 1,
-            bgcolor: rule.repeatable ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${rule.repeatable ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.08)'}`,
+            bgcolor: rule.repeatable ? 'rgba(74,222,128,0.12)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+            border: `1px solid ${rule.repeatable ? 'rgba(74,222,128,0.35)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
             transition: 'all 0.12s',
           }}
         >
           <Box sx={{
             width: 12, height: 12, borderRadius: 0.5, flexShrink: 0,
             bgcolor: rule.repeatable ? '#4ade80' : 'transparent',
-            border: `1px solid ${rule.repeatable ? '#4ade80' : 'rgba(255,255,255,0.3)'}`,
+            border: `1px solid ${rule.repeatable ? '#4ade80' : 'rgb(var(--brand-fg-rgb) / 0.3)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {rule.repeatable && <Typography sx={{ fontSize: 9, color: '#000', fontWeight: 900, lineHeight: 1 }}>✓</Typography>}
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: rule.repeatable ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: rule.repeatable ? '#4ade80' : 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
               繰り返し配置
             </Typography>
-            <Typography sx={{ fontSize: 8.5, color: 'rgba(255,255,255,0.25)' }}>
+            <Typography sx={{ fontSize: 8.5, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
               同一ゾーンに複数配置可（カフェ席など）
             </Typography>
           </Box>
@@ -1654,15 +1654,15 @@ const SetPlacementRulePanel: React.FC<{
               onChange={v => onUpdate('maxCount', v > 0 ? v : undefined)}
               suffix="個"
             />
-            <Typography sx={{ fontSize: 8.5, color: 'rgba(255,255,255,0.2)', mt: 0.25 }}>
+            <Typography sx={{ fontSize: 8.5, color: 'rgb(var(--brand-fg-rgb) / 0.2)', mt: 0.25 }}>
               0 = 空きスペース次第で自動
             </Typography>
           </Box>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-      <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.2)', textAlign: 'center', lineHeight: 1.6 }}>
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
+      <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.2)', textAlign: 'center', lineHeight: 1.6 }}>
         モデルを選択すると<br />個別プロパティを編集できます
       </Typography>
     </Box>
@@ -1683,14 +1683,14 @@ const LibraryCard: React.FC<{
       onMouseLeave={() => setHovered(false)}
       sx={{
         borderRadius: 1, overflow: 'hidden', cursor: 'default',
-        border: `1px solid ${isActive ? '#a78bfa' : highlighted ? 'rgba(167,139,250,0.35)' : 'rgba(255,255,255,0.06)'}`,
-        bgcolor: isActive ? 'rgba(167,139,250,0.12)' : highlighted ? 'rgba(167,139,250,0.06)' : 'rgba(255,255,255,0.02)',
+        border: `1px solid ${isActive ? '#a78bfa' : highlighted ? 'rgba(167,139,250,0.35)' : 'rgb(var(--brand-fg-rgb) / 0.06)'}`,
+        bgcolor: isActive ? 'rgba(167,139,250,0.12)' : highlighted ? 'rgba(167,139,250,0.06)' : 'rgb(var(--brand-fg-rgb) / 0.02)',
         transition: 'border-color 0.15s, background-color 0.15s',
         position: 'relative',
         boxShadow: isActive ? '0 0 0 2px rgba(167,139,250,0.3)' : 'none',
       }}
     >
-      <Box sx={{ width: '100%', aspectRatio: '1', bgcolor: 'rgba(0,0,0,0.3)', position: 'relative' }}>
+      <Box sx={{ width: '100%', aspectRatio: '1', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', position: 'relative' }}>
         {(model.thumbnailUrl ?? model.thumbnail)
           ? <img
               src={model.thumbnailUrl ?? model.thumbnail}
@@ -1699,7 +1699,7 @@ const LibraryCard: React.FC<{
               draggable={false}
             />
           : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ImageIcon sx={{ color: 'rgba(255,255,255,0.1)', fontSize: 20 }} />
+              <ImageIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.1)', fontSize: 20 }} />
             </Box>
         }
         {hovered && (
@@ -1726,7 +1726,7 @@ const LibraryCard: React.FC<{
         )}
       </Box>
       <Box sx={{ px: 0.75, py: 0.5 }}>
-        <Typography sx={{ fontSize: 10, color: '#b0bec5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.65)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {model.title ?? model.name ?? 'Untitled'}
         </Typography>
       </Box>

@@ -13,8 +13,8 @@ import { useDscStore } from '../store/useDscStore';
 
 const ACCENT     = '#ffa726';
 const DIM_COLOR  = '#66bb6a';
-const LABEL_SX   = { color: 'rgba(255,255,255,0.38)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.3 };
-const SECTION_SX = { color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 700, mb: 0.75 };
+const LABEL_SX   = { color: 'rgb(var(--brand-fg-rgb) / 0.38)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.3 };
+const SECTION_SX = { color: 'rgb(var(--brand-fg-rgb) / 0.55)', fontSize: 10, fontWeight: 700, mb: 0.75 };
 
 // ─── Furniture type detection ─────────────────────────────────────────────────
 
@@ -194,7 +194,7 @@ function PropSlider({ label, value, min, max, step = 10, color = DIM_COLOR, unit
     <Box sx={{ mb: 1.2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.2 }}>
         <Typography sx={LABEL_SX}>{label}</Typography>
-        <Typography sx={{ color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}>
+        <Typography sx={{ color: 'var(--brand-fg)', fontSize: 11, fontWeight: 700, fontFamily: 'monospace' }}>
           {displayVal}{unit}
         </Typography>
       </Box>
@@ -204,7 +204,7 @@ function PropSlider({ label, value, min, max, step = 10, color = DIM_COLOR, unit
         onChange={(_, v) => onChange(unit === 'cm' ? (v as number) * 10 : (v as number))}
         sx={{
           color, height: 3, py: '5px',
-          '& .MuiSlider-thumb': { width: 11, height: 11, '&:hover': { boxShadow: `0 0 0 6px ${color}28` } },
+          '& .MuiSlider-thumb': { width: 11, height: 11, '&:hover': { boxShadow: `0 0 0 6px color-mix(in srgb, ${color} 16%, transparent)` } },
           '& .MuiSlider-rail': { opacity: 0.18 },
         }}
       />
@@ -274,11 +274,11 @@ function TableEditor() {
                 sx={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   py: 0.6, px: 0.3, borderRadius: 1.5, cursor: 'pointer',
-                  border: active ? `1.5px solid ${ACCENT}` : '1.5px solid rgba(255,255,255,0.1)',
-                  bgcolor: active ? 'rgba(255,167,38,0.1)' : 'rgba(255,255,255,0.03)',
-                  color: active ? ACCENT : 'rgba(255,255,255,0.45)',
+                  border: active ? `1.5px solid ${ACCENT}` : '1.5px solid rgb(var(--brand-fg-rgb) / 0.1)',
+                  bgcolor: active ? 'rgba(255,167,38,0.1)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+                  color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   transition: 'all 0.15s',
-                  '&:hover': { borderColor: active ? ACCENT : 'rgba(255,255,255,0.3)', color: active ? ACCENT : 'rgba(255,255,255,0.8)', bgcolor: active ? 'rgba(255,167,38,0.12)' : 'rgba(255,255,255,0.06)' },
+                  '&:hover': { borderColor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.3)', color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.8)', bgcolor: active ? 'rgba(255,167,38,0.12)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
                 }}
               >
                 {LEG_ICONS[key]}
@@ -289,14 +289,14 @@ function TableEditor() {
         })}
       </Box>
 
-      <Divider sx={{ mb: 1.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ mb: 1.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
       {/* 天板サイズ */}
       <Typography sx={SECTION_SX}>■ 天板のサイズを選ぶ</Typography>
       <PropSlider label="幅  W" value={tableW} min={500} max={4000} onChange={(v: number) => applyDimensions(v, tableD, legH)} />
       <PropSlider label="奥行 D" value={tableD} min={300} max={2000} onChange={(v: number) => applyDimensions(tableW, v, legH)} />
 
-      <Divider sx={{ mb: 1.25, mt: 0.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ mb: 1.25, mt: 0.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
       {/* 高さ */}
       <Typography sx={SECTION_SX}>■ 高さ</Typography>
@@ -373,10 +373,10 @@ function ChairEditor() {
       const arms = [
         { id: `comp_${ctr++}_arm`, type: 'panel' as const, rotation: [0,0,0],
           name: '左肘掛け', dimensions: { width: 20, height: 60, depth: seatD - 40 },
-          position: [-w, seatH + 80, 0] as [number,number,number], color: seat?.color ?? '#c8a882' },
+          position: [-w, seatH + 80, 0] as [number,number,number], color: seat?.color ?? 'light-dark(#785a35, #c8a882)' },
         { id: `comp_${ctr++}_arm`, type: 'panel' as const, rotation: [0,0,0],
           name: '右肘掛け', dimensions: { width: 20, height: 60, depth: seatD - 40 },
-          position: [ w, seatH + 80, 0] as [number,number,number], color: seat?.color ?? '#c8a882' },
+          position: [ w, seatH + 80, 0] as [number,number,number], color: seat?.color ?? 'light-dark(#785a35, #c8a882)' },
       ];
       setComponents([...components, ...arms]);
     }
@@ -387,23 +387,23 @@ function ChairEditor() {
       <Typography sx={SECTION_SX}>■ 座面の高さ</Typography>
       <PropSlider label="座面高さ H" value={seatH} min={350} max={800} onChange={updateSeatHeight} />
 
-      <Divider sx={{ mb: 1.25, mt: 0.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ mb: 1.25, mt: 0.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
       <Typography sx={SECTION_SX}>■ サイズ</Typography>
       <PropSlider label="幅  W" value={seatW} min={300} max={800} onChange={updateSeatWidth} />
       <PropSlider label="奥行 D" value={seatD} min={300} max={700} onChange={updateSeatDepth} />
 
-      <Divider sx={{ mb: 1.25, mt: 0.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ mb: 1.25, mt: 0.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
       <Typography sx={SECTION_SX}>■ 肘掛け</Typography>
       <Box sx={{ display: 'flex', gap: 0.75 }}>
         {[{ v: true, label: 'あり' }, { v: false, label: 'なし' }].map(({ v, label }) => (
           <Box key={label} onClick={() => { if (v !== hasArm) toggleArmrest(); }}
             sx={{
               flex: 1, py: 0.6, textAlign: 'center', borderRadius: 1.5, cursor: 'pointer', fontSize: 10, fontWeight: 700,
-              border: (v === hasArm) ? `1.5px solid ${ACCENT}` : '1.5px solid rgba(255,255,255,0.1)',
-              color:  (v === hasArm) ? ACCENT : 'rgba(255,255,255,0.4)',
+              border: (v === hasArm) ? `1.5px solid ${ACCENT}` : '1.5px solid rgb(var(--brand-fg-rgb) / 0.1)',
+              color:  (v === hasArm) ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.4)',
               bgcolor:(v === hasArm) ? 'rgba(255,167,38,0.08)' : 'transparent',
               transition: 'all 0.15s',
-              '&:hover': { borderColor: (v === hasArm) ? ACCENT : 'rgba(255,255,255,0.25)' },
+              '&:hover': { borderColor: (v === hasArm) ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.25)' },
             }}>{label}</Box>
         ))}
       </Box>
@@ -510,8 +510,8 @@ function BedEditor() {
               sx={{
                 flex: 1, py: 0.75, textAlign: 'center', borderRadius: 1.5, cursor: 'pointer',
                 fontSize: 10, fontWeight: 700,
-                border: activePreset === key ? `1.5px solid ${ACCENT}` : '1.5px solid rgba(255,255,255,0.12)',
-                color:  activePreset === key ? ACCENT : 'rgba(255,255,255,0.45)',
+                border: activePreset === key ? `1.5px solid ${ACCENT}` : '1.5px solid rgb(var(--brand-fg-rgb) / 0.12)',
+                color:  activePreset === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
                 bgcolor:activePreset === key ? 'rgba(255,167,38,0.09)' : 'transparent',
                 transition: 'all 0.15s',
                 '&:hover': { borderColor: ACCENT, color: ACCENT },
@@ -588,7 +588,7 @@ function CabinetEditor() {
 function GenericEditor() {
   return (
     <Box sx={{ py: 2, textAlign: 'center' }}>
-      <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>
+      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 10 }}>
         家具タイプを判別できませんでした。<br/>家具名にテーブル・チェア・ソファ・ベッド・棚などを含めると詳細エディタが表示されます。
       </Typography>
     </Box>

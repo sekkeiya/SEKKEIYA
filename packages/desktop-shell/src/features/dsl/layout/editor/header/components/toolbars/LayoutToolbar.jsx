@@ -133,7 +133,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
           onClick={() => setLayoutMode(isSplit ? "single" : "split")}
           sx={{
             width: 28, height: 28, borderRadius: 1,
-            color: isSplit ? "#6ea8ff" : alpha("#fff", 0.7),
+            color: isSplit ? "light-dark(#0045ad, #6ea8ff)" : "color-mix(in srgb, var(--brand-fg) 70%, transparent)",
             background: isSplit ? alpha("#6ea8ff", 0.14) : "transparent",
             border: `1px solid ${isSplit ? alpha("#6ea8ff", 0.45) : alpha("#fff", 0.15)}`,
             "&:hover": {
@@ -161,7 +161,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
             height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
             background: alpha("#ffa726", 0.15),
             border: `1px solid ${alpha("#ffa726", 0.4)}`,
-            color: alpha("#ffa726", 0.95),
+            color: "light-dark(rgba(173,103,0,0.95), rgba(255,167,38,0.95))",
             "&:hover": { background: alpha("#ffa726", 0.28) },
             transition: "all 0.15s ease",
           }}
@@ -183,7 +183,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
             onClick={openSwapDialog}
             sx={{
               width: 28, height: 28, borderRadius: 1,
-              color: hasPlacedItems ? "#a78bfa" : alpha("#fff", 0.3),
+              color: hasPlacedItems ? "light-dark(#2f07a6, #a78bfa)" : "color-mix(in srgb, var(--brand-fg) 30%, transparent)",
               background: "transparent",
               border: `1px solid ${hasPlacedItems ? alpha("#7c3aed", 0.4) : alpha("#fff", 0.1)}`,
               "&:hover": { background: alpha("#7c3aed", 0.28) },
@@ -208,7 +208,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
             height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
             background: showFurnitureDimensions ? alpha("#f59e0b", 0.28) : alpha("#f59e0b", 0.14),
             border: `1px solid ${alpha("#f59e0b", showFurnitureDimensions ? 0.6 : 0.38)}`,
-            color: alpha("#fde2b0", 0.95),
+            color: "light-dark(rgba(169,111,4,0.95), rgba(253,226,176,0.95))",
             "&:hover": { background: alpha("#f59e0b", 0.34) },
             transition: "all 0.15s ease",
           }}
@@ -227,7 +227,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
             height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
             background: showFurnitureGapDimensions ? alpha("#fbbf24", 0.28) : alpha("#fbbf24", 0.14),
             border: `1px solid ${alpha("#fbbf24", showFurnitureGapDimensions ? 0.6 : 0.38)}`,
-            color: alpha("#fef3c7", 0.95),
+            color: "color-mix(in srgb, var(--brand-fg) 95%, transparent)",
             "&:hover": { background: alpha("#fbbf24", 0.34) },
             transition: "all 0.15s ease",
           }}
@@ -246,7 +246,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
             height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
             background: showItemDimensions ? alpha("#4fc3f7", 0.28) : alpha("#4fc3f7", 0.14),
             border: `1px solid ${alpha("#4fc3f7", showItemDimensions ? 0.6 : 0.38)}`,
-            color: alpha("#cbeafe", 0.95),
+            color: "color-mix(in srgb, var(--brand-fg) 95%, transparent)",
             "&:hover": { background: alpha("#4fc3f7", 0.34) },
             transition: "all 0.15s ease",
           }}
@@ -260,7 +260,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
         <IconButton
           size="small"
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown', bubbles: true }))}
-          sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), border: `1px solid ${line}`, borderRadius: 1 }}
+          sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", border: `1px solid ${line}`, borderRadius: 1 }}
         >
           <VerticalAlignBottomRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
@@ -269,7 +269,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
         <IconButton
           size="small"
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', bubbles: true }))}
-          sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), border: `1px solid ${line}`, borderRadius: 1 }}
+          sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", border: `1px solid ${line}`, borderRadius: 1 }}
         >
           <VerticalAlignTopRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
@@ -278,7 +278,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
         <IconButton
           size="small"
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }))}
-          sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), border: `1px solid ${line}`, borderRadius: 1 }}
+          sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", border: `1px solid ${line}`, borderRadius: 1 }}
         >
           <LayersRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
@@ -288,7 +288,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
         <IconButton
           size="small"
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }))}
-          sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), border: `1px solid ${line}`, borderRadius: 1, ml: 0.5 }}
+          sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", border: `1px solid ${line}`, borderRadius: 1, ml: 0.5 }}
         >
           <RotateRightRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
@@ -297,7 +297,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
       <Button
         size="small"
         onClick={(e) => setRotateMenuAnchor(e.currentTarget)}
-        sx={{ minWidth: 0, px: 0.5, height: 26, color: alpha("#fff", 0.7), fontSize: 12, border: `1px solid ${line}`, borderRadius: 1 }}
+        sx={{ minWidth: 0, px: 0.5, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: 12, border: `1px solid ${line}`, borderRadius: 1 }}
       >
         {rotateStepDeg}° <ArrowDropDownRoundedIcon sx={{ fontSize: 14, ml: -0.2 }} />
       </Button>
@@ -306,7 +306,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
         open={Boolean(rotateMenuAnchor)}
         onClose={() => setRotateMenuAnchor(null)}
         MenuListProps={{ dense: true }}
-        sx={{ '& .MuiPaper-root': { bgcolor: alpha('#1a1a1a', 0.95), backgroundImage: 'none', border: `1px solid ${line}` } }}
+        sx={{ '& .MuiPaper-root': { bgcolor: "color-mix(in srgb, var(--brand-surface) 95%, transparent)", backgroundImage: 'none', border: `1px solid ${line}` } }}
       >
         {[15, 30, 45, 90].map((step) => (
           <MenuItem 
@@ -327,32 +327,32 @@ export default function LayoutToolbar({ layoutItems = [] }) {
 
       {/* Alignment Tools */}
       <Tooltip title="Align Top (AT)">
-        <IconButton size="small" onClick={() => requestAlign("AT")} sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), borderRadius: 1 }}>
+        <IconButton size="small" onClick={() => requestAlign("AT")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <VerticalAlignTopRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Align Bottom (AB)">
-        <IconButton size="small" onClick={() => requestAlign("AB")} sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), borderRadius: 1 }}>
+        <IconButton size="small" onClick={() => requestAlign("AB")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <VerticalAlignBottomRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Align Left (AL)">
-        <IconButton size="small" onClick={() => requestAlign("AL")} sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), borderRadius: 1 }}>
+        <IconButton size="small" onClick={() => requestAlign("AL")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <AlignHorizontalLeftRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Align Right (AR)">
-        <IconButton size="small" onClick={() => requestAlign("AR")} sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), borderRadius: 1 }}>
+        <IconButton size="small" onClick={() => requestAlign("AR")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <AlignHorizontalRightRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Align Horizontal Center (AH)">
-        <IconButton size="small" onClick={() => requestAlign("AH")} sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), borderRadius: 1 }}>
+        <IconButton size="small" onClick={() => requestAlign("AH")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <AlignHorizontalCenterRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Align Vertical Center (AV)">
-        <IconButton size="small" onClick={() => requestAlign("AV")} sx={{ width: 26, height: 26, color: alpha("#fff", 0.7), borderRadius: 1 }}>
+        <IconButton size="small" onClick={() => requestAlign("AV")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <AlignVerticalCenterRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>

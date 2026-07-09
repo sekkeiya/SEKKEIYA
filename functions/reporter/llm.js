@@ -28,7 +28,17 @@ async function callGemini(apiKey, prompt, { model = "gemini-2.5-flash", maxToken
   });
   if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const um = data.usageMetadata || {};
+  return {
+    text,
+    usage: {
+      inputTokens: um.promptTokenCount || 0,
+      outputTokens: um.candidatesTokenCount || 0,
+      cacheReadTokens: um.cachedContentTokenCount || 0,
+      cacheCreationTokens: 0,
+    },
+  };
 }
 
 async function callClaude(apiKey, prompt, { model = "claude-sonnet-4-6", maxTokens = 8192, temperature = 0.7 } = {}) {
@@ -40,7 +50,16 @@ async function callClaude(apiKey, prompt, { model = "claude-sonnet-4-6", maxToke
     system: "あなたはSEKKEIYAの編集アシスタントです。プロンプトがJSON形式の出力を求める場合は、前後に一切の説明やコードブロックを付けず、有効なJSONのみを返してください。",
     messages: [{ role: "user", content: prompt }],
   });
-  return (resp.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+  const text = (resp.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+  return {
+    text,
+    usage: {
+      inputTokens: resp.usage?.input_tokens || 0,
+      outputTokens: resp.usage?.output_tokens || 0,
+      cacheReadTokens: resp.usage?.cache_read_input_tokens || 0,
+      cacheCreationTokens: resp.usage?.cache_creation_input_tokens || 0,
+    },
+  };
 }
 
 /** config/aiModels からテキストモデル設定を解決（未設定なら Gemini 2.5 Flash） */
@@ -56,16 +75,27 @@ async function getTextModelConfig(db) {
   }
 }
 
-/** プロバイダに応じてテキスト生成。text（多くはJSON文字列）を返す。 */
-async function callLLM(prompt, { provider = "gemini", model, maxTokens, temperature } = {}) {
+/**
+ * プロバイダに応じてテキスト生成し、text と usage を返す（使用量トラッキング用）。
+ * @returns {Promise<{text:string, usage:object, provider:string, model:string}>}
+ */
+async function callLLMDetailed(prompt, { provider = "gemini", model, maxTokens, temperature } = {}) {
   if (provider === "claude") {
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key) throw new Error("ANTHROPIC_API_KEY is not set");
-    return await callClaude(key, prompt, { model, maxTokens, temperature });
+    const r = await callClaude(key, prompt, { model, maxTokens, temperature });
+    return { ...r, provider: "claude", model: model || "claude-sonnet-4-6" };
   }
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
-  return await callGemini(key, prompt, { model, maxTokens, temperature });
+  const r = await callGemini(key, prompt, { model, maxTokens, temperature });
+  return { ...r, provider: "gemini", model: model || "gemini-2.5-flash" };
 }
 
-module.exports = { callLLM, getTextModelConfig };
+/** プロバイダに応じてテキスト生成。text（多くはJSON文字列）を返す。既存呼び出し互換。 */
+async function callLLM(prompt, opts = {}) {
+  const { text } = await callLLMDetailed(prompt, opts);
+  return text;
+}
+
+module.exports = { callLLM, callLLMDetailed, getTextModelConfig };

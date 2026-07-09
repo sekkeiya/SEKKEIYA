@@ -118,7 +118,7 @@ const FeedModelViewer: React.FC<FeedModelViewerProps> = ({
   return (
     <Box
       ref={containerRef}
-      sx={{ width: '100%', height, bgcolor: '#060c14', position: 'relative', overflow: 'hidden' }}
+      sx={{ width: '100%', height, bgcolor: 'var(--brand-bg)', position: 'relative', overflow: 'hidden' }}
     >
       {/* Static thumbnail underlay — visible until/unless a live canvas mounts. */}
       {thumbnailUrl ? (
@@ -129,7 +129,7 @@ const FeedModelViewer: React.FC<FeedModelViewerProps> = ({
         />
       ) : (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>3D</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>3D</Typography>
         </Box>
       )}
 
@@ -139,7 +139,7 @@ const FeedModelViewer: React.FC<FeedModelViewerProps> = ({
           <Suspense
             fallback={
               <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CircularProgress size={24} sx={{ color: 'rgba(144,202,249,0.6)' }} />
+                <CircularProgress size={24} sx={{ color: 'light-dark(rgba(9,95,165,0.6), rgba(144,202,249,0.6))' }} />
               </Box>
             }
           >

@@ -24,13 +24,13 @@ import TemplateSelectionModal from "../components/TemplateSelectionModal";
 const GROUP_LABELS = {
   rhino:   "3Dモデル（RHINO）",
   blender: "3Dモデル（Blender）",
-  "3dsp":  "プレゼンテーション（S.Presentations）",
+  "3dsp":  "プレゼンテーション（S.Slide）",
   "3dsl":  "レイアウト（S.Layout）",
   "3dsc":  "S.Create",
   other:   "その他",
 };
 const GROUP_NOTES = {
-  "3dsp": "S.Presentationsで作業したファイルが自動的に登録されます",
+  "3dsp": "S.Slideで作業したファイルが自動的に登録されます",
   "3dsl": "S.Layoutで作業したファイルが自動的に登録されます",
 };
 
@@ -122,7 +122,7 @@ export default function WorkFilesContent({ project, projectId }) {
             プロジェクトファイル
           </Typography>
           <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.55)", maxWidth: 520 }}>
-            Rhino・S.Layout・S.Presentations など、すべてのアプリの作業ファイルをまとめて管理します。
+            Rhino・S.Layout・S.Slide など、すべてのアプリの作業ファイルをまとめて管理します。
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexShrink: 0, ml: 2 }}>

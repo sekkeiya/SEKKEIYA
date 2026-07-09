@@ -164,12 +164,12 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
         sx={{ 
           display: 'flex', 
           flexDirection: 'column',
-          bgcolor: selectedJobId === job.id ? 'rgba(144, 202, 249, 0.1)' : 'rgba(255,255,255,0.03)',
-          border: `1px solid ${selectedJobId === job.id ? BRAND.primary : 'rgba(255,255,255,0.1)'}`,
+          bgcolor: selectedJobId === job.id ? 'rgba(144, 202, 249, 0.1)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+          border: `1px solid ${selectedJobId === job.id ? BRAND.primary : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
           borderRadius: 2,
           cursor: 'pointer',
           transition: 'all 0.2s',
-          '&:hover': { borderColor: selectedJobId === job.id ? BRAND.primary : 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.05)' }
+          '&:hover': { borderColor: selectedJobId === job.id ? BRAND.primary : 'rgb(var(--brand-fg-rgb) / 0.3)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
         }}
         onClick={() => onSelectJob(job)}
       >
@@ -182,7 +182,7 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
           />
           <Box sx={{ display: 'flex', flexDirection: 'column', p: 1, flexGrow: 1, justifyContent: 'center' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{formatDate(job.createdAt)}</Typography>
+              <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{formatDate(job.createdAt)}</Typography>
               <Chip 
                 label={getStatusLabel(job.status)} 
                 color={getStatusColor(job.status) as any} 
@@ -190,33 +190,33 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
                 sx={{ height: 20, fontSize: '0.65rem' }} 
               />
             </Box>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5, fontWeight: 500 }}>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', mt: 0.5, fontWeight: 500 }}>
               {job.provider}
             </Typography>
           </Box>
         </Box>
         
         {/* Actions Toolbar */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5, borderTop: '1px solid rgba(255,255,255,0.05)', bgcolor: 'rgba(0,0,0,0.2)' }} onClick={(e) => e.stopPropagation()}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 0.5, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))' }} onClick={(e) => e.stopPropagation()}>
           {job.status === 'completed' && (
             <>
               <Tooltip title="表示">
-                <IconButton size="small" onClick={() => onSelectJob(job)} sx={{ color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } }}>
+                <IconButton size="small" onClick={() => onSelectJob(job)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', '&:hover': { color: 'var(--brand-fg)' } }}>
                   <VisibilityRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="S.Modelsに保存">
-                <IconButton size="small" onClick={() => onSaveTo3DSS(job)} sx={{ color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } }}>
+              <Tooltip title="S.Modelに保存">
+                <IconButton size="small" onClick={() => onSaveTo3DSS(job)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', '&:hover': { color: 'var(--brand-fg)' } }}>
                   <CloudUploadRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               <Tooltip title="ダウンロード">
-                <IconButton size="small" onClick={() => onDownload(job)} sx={{ color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } }}>
+                <IconButton size="small" onClick={() => onDownload(job)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', '&:hover': { color: 'var(--brand-fg)' } }}>
                   <DownloadRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               <Tooltip title="削除">
-                <IconButton size="small" onClick={() => handleDeleteJob(job)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#e74c3c', bgcolor: 'rgba(231,76,60,0.1)' } }}>
+                <IconButton size="small" onClick={() => handleDeleteJob(job)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#e74c3c', bgcolor: 'rgba(231,76,60,0.1)' } }}>
                   <DeleteOutlineRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -230,7 +230,7 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
                 </IconButton>
               </Tooltip>
               <Tooltip title="削除">
-                <IconButton size="small" onClick={() => handleDeleteJob(job)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#e74c3c', bgcolor: 'rgba(231,76,60,0.1)' } }}>
+                <IconButton size="small" onClick={() => handleDeleteJob(job)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#e74c3c', bgcolor: 'rgba(231,76,60,0.1)' } }}>
                   <DeleteOutlineRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -238,7 +238,7 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
           )}
           {(job.status === 'processing' || job.status === 'pending') && (
             <Tooltip title="キャンセル">
-              <IconButton size="small" onClick={() => handleDeleteJob(job)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#e74c3c', bgcolor: 'rgba(231,76,60,0.1)' } }}>
+              <IconButton size="small" onClick={() => handleDeleteJob(job)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#e74c3c', bgcolor: 'rgba(231,76,60,0.1)' } }}>
                 <DeleteOutlineRoundedIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -252,7 +252,7 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
     <Box sx={{ width: { xs: 240, md: 340 }, display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel, borderLeft: `1px solid ${BRAND.line}`, flexShrink: 0, zIndex: 5, transition: 'width 0.2s' }}>
       {/* Header */}
       <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${BRAND.line}`, minHeight: 64 }}>
-        <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 'bold' }}>生成済み Assets</Typography>
+        <Typography variant="h6" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 'bold' }}>生成済み Assets</Typography>
       </Box>
 
       {/* List */}
@@ -261,7 +261,7 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
         {/* Processing / Failed Section */}
         {activeJobs.length > 0 && (
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block', fontWeight: 'bold' }}>生成中</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block', fontWeight: 'bold' }}>生成中</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {activeJobs.map(renderCard)}
             </Box>
@@ -270,12 +270,12 @@ const AI3DHistorySidebar: React.FC<AI3DHistorySidebarProps> = ({
 
         {/* Completed Assets Section */}
         <Box>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block', fontWeight: 'bold' }}>生成済み</Typography>
+          <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block', fontWeight: 'bold' }}>生成済み</Typography>
           {(loadingJobs || loadingAssets) && completedAssets.length === 0 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress size={24} /></Box>
           )}
           {!(loadingJobs || loadingAssets) && completedAssets.length === 0 && (
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', mt: 4 }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', textAlign: 'center', mt: 4 }}>
               履歴がありません
             </Typography>
           )}

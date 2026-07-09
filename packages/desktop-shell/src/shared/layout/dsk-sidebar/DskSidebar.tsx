@@ -3,12 +3,14 @@ import { Box, Typography, CardActionArea, Divider } from '@mui/material';
 import LibraryBooksRoundedIcon from '@mui/icons-material/LibraryBooksRounded';
 import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
 import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
+import CollectionsBookmarkRoundedIcon from '@mui/icons-material/CollectionsBookmarkRounded';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 import { countItems } from '../../../features/dsk/catalog/catalogVisionStore';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import StickyNote2RoundedIcon from '@mui/icons-material/StickyNote2Rounded';
+import GavelRoundedIcon from '@mui/icons-material/GavelRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import LabelRoundedIcon from '@mui/icons-material/LabelRounded';
 import { BRAND } from '../../../styles/theme';
@@ -37,25 +39,25 @@ function NavItem({ icon, label, active, onClick, color, count }: NavItemProps) {
         onClick={onClick}
         sx={{
           display: 'flex', alignItems: 'center', px: 1.25, py: 0.75, borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <Box sx={{
           width: 20, height: 20, borderRadius: 1.5, mr: 1, flexShrink: 0,
-          bgcolor: color || 'rgba(255,255,255,0.1)',
+          bgcolor: color || 'rgb(var(--brand-fg-rgb) / 0.1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? '#fff' : 'rgba(255,255,255,0.7)' } })}
+          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' } })}
         </Box>
         <Typography sx={{
-          color: active ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: active ? 600 : 500,
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 12, fontWeight: active ? 600 : 500,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
           {label}
         </Typography>
         {count != null && count > 0 && (
-          <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600, ml: 1 }}>{count}</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11, fontWeight: 600, ml: 1 }}>{count}</Typography>
         )}
       </CardActionArea>
     </Box>
@@ -64,7 +66,7 @@ function NavItem({ icon, label, active, onClick, color, count }: NavItemProps) {
 
 function SectionHeader({ label }: { label: string }) {
   return (
-    <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', px: 2.5, py: 0.5, mt: 1 }}>
+    <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase', px: 2.5, py: 0.5, mt: 1 }}>
       {label}
     </Typography>
   );
@@ -77,6 +79,7 @@ export const DskSidebar: React.FC = () => {
   const {
     entries,
     view, setView,
+    registryFocus, setRegistryFocus,
     kindFilter, setKindFilter,
     categoryFilter, setCategoryFilter,
     projectFilter, setProjectFilter,
@@ -98,7 +101,7 @@ export const DskSidebar: React.FC = () => {
 
   // kind 別の件数
   const kindCounts = useMemo(() => {
-    const c = { all: entries.length, book: 0, pdf: 0, url: 0, note: 0 } as Record<KindFilter, number>;
+    const c = { all: entries.length, book: 0, pdf: 0, url: 0, note: 0, law: 0 } as Record<KindFilter, number>;
     for (const e of entries) c[e.kind] = (c[e.kind] || 0) + 1;
     return c;
   }, [entries]);
@@ -113,6 +116,16 @@ export const DskSidebar: React.FC = () => {
   // 表示するカテゴリ（シード＋データに出現した新カテゴリを自動合流）。
   const categories = useMemo(() => listKnownCategories(entries), [entries]);
 
+  // サイドバーは常に1項目だけ選択表示にする。
+  // 優先順位: ビュー > プロジェクト > カテゴリ > 種類（既定は「すべて」）。
+  const activeKey = useMemo(() => {
+    if (view === 'registry') return `view:registry:${registryFocus}`;
+    if (view !== 'library') return `view:${view}`;
+    if (projectFilter !== null) return `project:${projectFilter}`;
+    if (categoryFilter !== 'all') return `category:${categoryFilter}`;
+    return `kind:${kindFilter}`;
+  }, [view, registryFocus, projectFilter, categoryFilter, kindFilter]);
+
   // 紐付きエントリを持つプロジェクトのみ表示
   const linkedProjects = useMemo(() => {
     const ids = new Set<string>();
@@ -123,9 +136,10 @@ export const DskSidebar: React.FC = () => {
   const KINDS: { key: KindFilter; label: string; icon: React.ReactNode; color: string }[] = [
     { key: 'all', label: 'すべて', icon: <LibraryBooksRoundedIcon />, color: ACCENT },
     { key: 'book', label: '書籍', icon: <MenuBookRoundedIcon />, color: '#26a69a' },
-    { key: 'pdf', label: 'PDF', icon: <PictureAsPdfRoundedIcon />, color: '#ef5350' },
-    { key: 'url', label: 'Web', icon: <LanguageRoundedIcon />, color: '#42a5f5' },
+    { key: 'pdf', label: '書類', icon: <DescriptionRoundedIcon />, color: '#ef5350' },
+    { key: 'url', label: 'Web', icon: <LanguageRoundedIcon />, color: 'light-dark(#095fa5, #42a5f5)' },
     { key: 'note', label: 'メモ', icon: <StickyNote2RoundedIcon />, color: '#ffb300' },
+    { key: 'law', label: '法令', icon: <GavelRoundedIcon />, color: '#8d6e63' },
   ];
 
   return (
@@ -142,7 +156,7 @@ export const DskSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 2.5, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
           知識ライブラリ / S.Library
         </Typography>
       </Box>
@@ -156,13 +170,13 @@ export const DskSidebar: React.FC = () => {
             label={k.label}
             color={k.color}
             count={kindCounts[k.key]}
-            active={view === 'library' && kindFilter === k.key}
+            active={activeKey === `kind:${k.key}`}
             onClick={() => setKindFilter(k.key)}
           />
         ))}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
       {/* AIが使う2つの棚：外付け脳(RAG, 文章の根拠) と 索引商品(家具・素材を探す) */}
       <SectionHeader label="AIが使う棚" />
@@ -173,7 +187,7 @@ export const DskSidebar: React.FC = () => {
         label="外付け脳（RAG）"
         color="#a855f7"
         count={brainCount}
-        active={view === 'brain'}
+        active={activeKey === 'view:brain'}
         onClick={() => setView('brain')}
       />
 
@@ -183,7 +197,7 @@ export const DskSidebar: React.FC = () => {
         label="索引商品"
         color="#7dd3fc"
         count={productCount}
-        active={view === 'products'}
+        active={activeKey === 'view:products'}
         onClick={() => setView('products')}
       />
 
@@ -192,18 +206,27 @@ export const DskSidebar: React.FC = () => {
         icon={<ExploreRoundedIcon />}
         label="おすすめソース"
         color="#38bdf8"
-        active={view === 'registry'}
-        onClick={() => setView('registry')}
+        active={activeKey === 'view:registry:all'}
+        onClick={() => { setView('registry'); setRegistryFocus('all'); }}
       />
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+      {/* カタログ（サンゲツ等メーカー電子カタログだけを絞って表示） */}
+      <NavItem
+        icon={<CollectionsBookmarkRoundedIcon />}
+        label="カタログ"
+        color="#86efac"
+        active={activeKey === 'view:registry:catalog'}
+        onClick={() => { setView('registry'); setRegistryFocus('catalog'); }}
+      />
+
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
       {/* Category navigation */}
       <SectionHeader label="カテゴリ" />
       <NavItem
         icon={<LabelRoundedIcon />}
         label="全カテゴリ"
-        active={categoryFilter === 'all'}
+        active={false}
         onClick={() => setCategoryFilter('all')}
       />
       {categories.map(c => (
@@ -212,7 +235,7 @@ export const DskSidebar: React.FC = () => {
           icon={<LabelRoundedIcon />}
           label={c}
           count={categoryCounts[c]}
-          active={categoryFilter === c}
+          active={activeKey === `category:${c}`}
           onClick={() => setCategoryFilter(c)}
         />
       ))}
@@ -222,7 +245,7 @@ export const DskSidebar: React.FC = () => {
           label="ローカルファイル"
           color={ACCENT}
           count={categoryCounts['ローカルファイル']}
-          active={categoryFilter === 'ローカルファイル'}
+          active={activeKey === 'category:ローカルファイル'}
           onClick={() => setCategoryFilter('ローカルファイル')}
         />
       )}
@@ -230,12 +253,12 @@ export const DskSidebar: React.FC = () => {
       {/* Project filter */}
       {linkedProjects.length > 0 && (
         <>
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
           <SectionHeader label="プロジェクトで絞り込み" />
           <NavItem
             icon={<FolderRoundedIcon />}
             label="すべてのプロジェクト"
-            active={projectFilter === null}
+            active={false}
             onClick={() => setProjectFilter(null)}
           />
           {linkedProjects.map((p: any) => (
@@ -244,7 +267,7 @@ export const DskSidebar: React.FC = () => {
               icon={<FolderRoundedIcon />}
               label={p.name || 'プロジェクト'}
               color="#3498db"
-              active={projectFilter === p.id}
+              active={activeKey === `project:${p.id}`}
               onClick={() => setProjectFilter(p.id)}
             />
           ))}

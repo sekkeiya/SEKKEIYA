@@ -61,8 +61,8 @@ export const SpeakerNotesPanel: React.FC = () => {
         height: panelHeight,
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: 'rgba(10, 14, 24, 0.92)',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
+        bgcolor: 'light-dark(rgba(255, 255, 255, 0.95), rgba(10, 14, 24, 0.92))',
+        borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -80,18 +80,18 @@ export const SpeakerNotesPanel: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'ns-resize',
-          bgcolor: 'rgba(255,255,255,0.03)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+          borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
           userSelect: 'none',
           gap: 1,
           '&:hover': { bgcolor: 'rgba(41,182,246,0.06)' },
           transition: 'background 0.15s',
         }}
       >
-        <DragHandleRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.2)' }} />
+        <DragHandleRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <NotesRoundedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }} />
-          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', userSelect: 'none' }}>
+          <NotesRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
+          <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', userSelect: 'none' }}>
             {pageLabel}
           </Typography>
         </Box>
@@ -110,7 +110,7 @@ export const SpeakerNotesPanel: React.FC = () => {
             border: 'none',
             outline: 'none',
             resize: 'none',
-            color: 'rgba(255,255,255,0.75)',
+            color: 'rgb(var(--brand-fg-rgb) / 0.75)',
             fontSize: 13,
             lineHeight: 1.7,
             fontFamily: 'inherit',

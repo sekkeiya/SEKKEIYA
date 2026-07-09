@@ -160,7 +160,7 @@ function LightCard({ light }) {
         sx={{ px: 1.25, py: 0.75, cursor: "pointer" }}
         onClick={() => setExpanded((v) => !v)}
       >
-        <Box sx={{ color: alpha("#fff", 0.55), display: "flex" }}>{TYPE_ICON[light.type]}</Box>
+        <Box sx={{ color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", display: "flex" }}>{TYPE_ICON[light.type]}</Box>
         <Typography sx={{ fontSize: 12, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {light.name}
         </Typography>
@@ -173,7 +173,7 @@ function LightCard({ light }) {
             checked={light.visible}
             onChange={(e) => update({ visible: e.target.checked })}
             sx={{
-              "& .MuiSwitch-switchBase.Mui-checked": { color: "#6c87ff" },
+              "& .MuiSwitch-switchBase.Mui-checked": { color: "light-dark(#0020ad, #6c87ff)" },
               "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: alpha("#6c87ff", 0.4) },
             }}
           />
@@ -185,7 +185,7 @@ function LightCard({ light }) {
               <IconButton
                 size="small"
                 onClick={() => removeLight(light.id)}
-                sx={{ p: 0.3, color: alpha("#fff", 0.4), "&:hover": { color: "#ff7070" } }}
+                sx={{ p: 0.3, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", "&:hover": { color: "light-dark(#ad0000, #ff7070)" } }}
               >
                 <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
               </IconButton>
@@ -266,7 +266,7 @@ function IntensitySlider({ value, onChange, max = 3 }) {
         onChange={(_, v) => onChange(v)}
         sx={{
           flex: 1,
-          color: "#6c87ff",
+          color: "light-dark(#0020ad, #6c87ff)",
           "& .MuiSlider-thumb": { width: 10, height: 10 },
           "& .MuiSlider-rail": { opacity: 0.3 },
         }}
@@ -290,7 +290,7 @@ function AngleDegSlider({ label, value, min = 0, max = 360, step = 1, onChange }
         onChange={(_, v) => onChange(v)}
         sx={{
           flex: 1,
-          color: "#6c87ff",
+          color: "light-dark(#0020ad, #6c87ff)",
           "& .MuiSlider-thumb": { width: 10, height: 10 },
           "& .MuiSlider-rail": { opacity: 0.3 },
         }}
@@ -323,7 +323,7 @@ function XYZInput({ label, value, onChange, step = 0.1 }) {
               background: alpha("#fff", 0.06),
               border: `1px solid ${alpha("#fff", 0.1)}`,
               borderRadius: "6px",
-              color: "#fff",
+              color: "var(--brand-fg)",
               fontSize: 11,
               px: 0.75,
               py: 0.3,
@@ -386,7 +386,7 @@ function DirectionalProps({ light, update }) {
           min={1} max={100} step={1}
           value={light.distance ?? 13}
           onChange={(_, v) => update({ distance: v })}
-          sx={{ flex: 1, color: "#6c87ff", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
+          sx={{ flex: 1, color: "light-dark(#0020ad, #6c87ff)", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
         />
         <Typography sx={{ fontSize: 11, opacity: 0.6, minWidth: 28, textAlign: "right" }}>
           {light.distance ?? 13}
@@ -398,7 +398,7 @@ function DirectionalProps({ light, update }) {
           checked={light.castShadow ?? false}
           onChange={(e) => update({ castShadow: e.target.checked })}
           sx={{
-            "& .MuiSwitch-switchBase.Mui-checked": { color: "#6c87ff" },
+            "& .MuiSwitch-switchBase.Mui-checked": { color: "light-dark(#0020ad, #6c87ff)" },
             "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: alpha("#6c87ff", 0.4) },
           }}
         />
@@ -440,7 +440,7 @@ function SpotProps({ light, update }) {
           size="small" min={0} max={1} step={0.01}
           value={light.penumbra ?? 0.2}
           onChange={(_, v) => update({ penumbra: v })}
-          sx={{ flex: 1, color: "#6c87ff", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
+          sx={{ flex: 1, color: "light-dark(#0020ad, #6c87ff)", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
         />
         <Typography sx={{ fontSize: 11, opacity: 0.6, minWidth: 28, textAlign: "right" }}>
           {(light.penumbra ?? 0.2).toFixed(2)}
@@ -451,7 +451,7 @@ function SpotProps({ light, update }) {
           size="small" min={0.5} max={50} step={0.5}
           value={light.spotDistance ?? 20}
           onChange={(_, v) => update({ spotDistance: v })}
-          sx={{ flex: 1, color: "#6c87ff", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
+          sx={{ flex: 1, color: "light-dark(#0020ad, #6c87ff)", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
         />
         <Typography sx={{ fontSize: 11, opacity: 0.6, minWidth: 28, textAlign: "right" }}>
           {light.spotDistance ?? 20}
@@ -463,7 +463,7 @@ function SpotProps({ light, update }) {
           checked={light.castShadow ?? false}
           onChange={(e) => update({ castShadow: e.target.checked })}
           sx={{
-            "& .MuiSwitch-switchBase.Mui-checked": { color: "#6c87ff" },
+            "& .MuiSwitch-switchBase.Mui-checked": { color: "light-dark(#0020ad, #6c87ff)" },
             "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: alpha("#6c87ff", 0.4) },
           }}
         />
@@ -497,7 +497,7 @@ function RectProps({ light, update }) {
           size="small" min={0.1} max={20} step={0.1}
           value={light.width ?? 4}
           onChange={(_, v) => update({ width: v })}
-          sx={{ flex: 1, color: "#6c87ff", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
+          sx={{ flex: 1, color: "light-dark(#0020ad, #6c87ff)", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
         />
         <Typography sx={{ fontSize: 11, opacity: 0.6, minWidth: 28, textAlign: "right" }}>
           {(light.width ?? 4).toFixed(1)}
@@ -508,7 +508,7 @@ function RectProps({ light, update }) {
           size="small" min={0.1} max={20} step={0.1}
           value={light.height ?? 4}
           onChange={(_, v) => update({ height: v })}
-          sx={{ flex: 1, color: "#6c87ff", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
+          sx={{ flex: 1, color: "light-dark(#0020ad, #6c87ff)", "& .MuiSlider-thumb": { width: 10, height: 10 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
         />
         <Typography sx={{ fontSize: 11, opacity: 0.6, minWidth: 28, textAlign: "right" }}>
           {(light.height ?? 4).toFixed(1)}

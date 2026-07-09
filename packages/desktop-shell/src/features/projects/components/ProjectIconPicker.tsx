@@ -70,9 +70,9 @@ export const ProjectIconPicker: React.FC<Props> = ({ anchorEl, projectId, hasCus
       onClose={onClose}
       anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
       transformOrigin={{ vertical: 'center', horizontal: 'left' }}
-      slotProps={{ paper: { sx: { bgcolor: '#1a2233', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, width: 300, p: 1.5, color: '#fff', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' } } }}
+      slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2, width: 300, p: 1.5, color: 'var(--brand-fg)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' } } }}
     >
-      <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', mb: 1, px: 0.5 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, px: 0.5 }}>
         絵文字を選ぶ
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 0.25, maxHeight: 168, overflowY: 'auto' }}>
@@ -80,21 +80,21 @@ export const ProjectIconPicker: React.FC<Props> = ({ anchorEl, projectId, hasCus
           <Box
             key={em}
             onClick={() => applyEmoji(em)}
-            sx={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' } }}
+            sx={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)' } }}
           >
             {em}
           </Box>
         ))}
       </Box>
 
-      <Divider sx={{ my: 1.25, borderColor: 'rgba(255,255,255,0.08)' }} />
+      <Divider sx={{ my: 1.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
 
       <Box sx={{ display: 'flex', gap: 1 }}>
         <Button
           fullWidth size="small" variant="outlined" disabled={uploading}
           startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : <UploadRoundedIcon sx={{ fontSize: 16 }} />}
           onClick={() => fileRef.current?.click()}
-          sx={{ textTransform: 'none', fontSize: 12, color: '#fff', borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: '#00BFFF', bgcolor: 'rgba(0,191,255,0.08)' } }}
+          sx={{ textTransform: 'none', fontSize: 12, color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: '#00BFFF', bgcolor: 'rgba(0,191,255,0.08)' } }}
         >
           {uploading ? 'アップロード中…' : '画像をアップロード'}
         </Button>
@@ -102,7 +102,7 @@ export const ProjectIconPicker: React.FC<Props> = ({ anchorEl, projectId, hasCus
           <Tooltip title="デフォルト（頭文字）に戻す">
             <Button
               size="small" variant="text" onClick={reset}
-              sx={{ minWidth: 40, color: 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' } }}
+              sx={{ minWidth: 40, color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}
             >
               <RestartAltRoundedIcon sx={{ fontSize: 18 }} />
             </Button>

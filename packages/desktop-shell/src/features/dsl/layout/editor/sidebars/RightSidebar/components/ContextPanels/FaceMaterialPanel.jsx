@@ -19,13 +19,13 @@ const SURFACE_COLOR = { floor: "#4fc3f7", ceiling: "#facc15", wall: "#ec407a" };
 function FinishRow({ finish, onRemove }) {
   const c = finish.material?.params?.baseColor || "#888";
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 0.75, borderRadius: 1, bgcolor: "rgba(255,255,255,0.04)", mb: 0.5 }}>
-      <Box sx={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: finish.material?.maps?.albedo ? `center/cover url(${finish.material.maps.albedo})` : `radial-gradient(circle at 33% 30%, #fff, ${c} 65%, #111)`, border: "1px solid rgba(255,255,255,0.15)" }} />
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 0.75, borderRadius: 1, bgcolor: "rgb(var(--brand-fg-rgb) / 0.04)", mb: 0.5 }}>
+      <Box sx={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, background: finish.material?.maps?.albedo ? `center/cover url(${finish.material.maps.albedo})` : `radial-gradient(circle at 33% 30%, #fff, ${c} 65%, #111)`, border: "1px solid rgb(var(--brand-fg-rgb) / 0.15)" }} />
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ fontSize: 11.5, color: "#fff" }} noWrap>{finish.material?.title || "素材"}</Typography>
-        <Typography sx={{ fontSize: 9.5, color: "rgba(255,255,255,0.45)" }}>{finishRects(finish).length ? (finishRects(finish).length > 1 ? `部分領域 ×${finishRects(finish).length}` : "部分領域") : "面全体"}</Typography>
+        <Typography sx={{ fontSize: 11.5, color: "var(--brand-fg)" }} noWrap>{finish.material?.title || "素材"}</Typography>
+        <Typography sx={{ fontSize: 9.5, color: "rgb(var(--brand-fg-rgb) / 0.45)" }}>{finishRects(finish).length ? (finishRects(finish).length > 1 ? `部分領域 ×${finishRects(finish).length}` : "部分領域") : "面全体"}</Typography>
       </Box>
-      <IconButton size="small" onClick={onRemove} sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#ff6b6b" } }}>
+      <IconButton size="small" onClick={onRemove} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", "&:hover": { color: "light-dark(#ad0000, #ff6b6b)" } }}>
         <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
       </IconButton>
     </Box>
@@ -67,8 +67,8 @@ export default function FaceMaterialPanel() {
   if (!face) {
     return (
       <Box sx={{ p: 1 }}>
-        <Typography sx={{ fontWeight: 900, fontSize: 12.5, color: "#fff" }}>マテリアルモード</Typography>
-        <Typography sx={{ opacity: 0.7, fontSize: 12, mt: 0.5, color: "#fff" }}>
+        <Typography sx={{ fontWeight: 900, fontSize: 12.5, color: "var(--brand-fg)" }}>マテリアルモード</Typography>
+        <Typography sx={{ opacity: 0.7, fontSize: 12, mt: 0.5, color: "var(--brand-fg)" }}>
           床・壁・天井をクリックして面を選択してください。下部の Materials から素材を選ぶと面全体に貼れます。
         </Typography>
       </Box>
@@ -134,34 +134,34 @@ export default function FaceMaterialPanel() {
   };
 
   return (
-    <Box sx={{ p: 1, color: "#fff" }}>
+    <Box sx={{ p: 1, color: "var(--brand-fg)" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <Chip label={label} size="small" sx={{ bgcolor: `${color}33`, color, fontWeight: 700, border: `1px solid ${color}66` }} />
-        <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>マテリアル設定</Typography>
+        <Chip label={label} size="small" sx={{ bgcolor: `color-mix(in srgb, ${color} 20%, transparent)`, color, fontWeight: 700, border: `1px solid color-mix(in srgb, ${color} 40%, transparent)` }} />
+        <Typography sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.55)" }}>マテリアル設定</Typography>
         {busy && <CircularProgress size={13} sx={{ color }} />}
       </Box>
 
       {s ? (
         <Box sx={{ display: "flex", gap: 2, mb: 1.5 }}>
           <Box>
-            <Typography sx={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>幅</Typography>
+            <Typography sx={{ fontSize: 10, color: "rgb(var(--brand-fg-rgb) / 0.45)" }}>幅</Typography>
             <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{wM.toFixed(2)} m</Typography>
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>高さ</Typography>
+            <Typography sx={{ fontSize: 10, color: "rgb(var(--brand-fg-rgb) / 0.45)" }}>高さ</Typography>
             <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{hM.toFixed(2)} m</Typography>
           </Box>
         </Box>
       ) : (
-        <Typography sx={{ fontSize: 11, color: "#ffb74d", mb: 1 }}>この面は矩形抽出に失敗しました（複雑形状）。面全体適用のみ可能です。</Typography>
+        <Typography sx={{ fontSize: 11, color: "light-dark(#ad6700, #ffb74d)", mb: 1 }}>この面は矩形抽出に失敗しました（複雑形状）。面全体適用のみ可能です。</Typography>
       )}
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mb: 1 }} />
+      <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.08)", mb: 1 }} />
 
       {/* 現在の仕上げ */}
-      <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.55)", mb: 0.5 }}>現在の仕上げ（{myFinishes.length}）</Typography>
+      <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.55)", mb: 0.5 }}>現在の仕上げ（{myFinishes.length}）</Typography>
       {myFinishes.length === 0 ? (
-        <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>下部 Materials で面全体に、右の展開図で部分的に貼れます。</Typography>
+        <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.4)" }}>下部 Materials で面全体に、右の展開図で部分的に貼れます。</Typography>
       ) : (
         myFinishes.map((f) => <FinishRow key={f.key} finish={f} onRemove={() => removeFinish(f.key)} />)
       )}
@@ -176,15 +176,15 @@ export default function FaceMaterialPanel() {
       >
         この壁をパターンとして保存
       </Button>
-      <Typography sx={{ fontSize: 10, color: "rgba(255,255,255,0.4)", mt: 0.5 }}>
+      <Typography sx={{ fontSize: 10, color: "rgb(var(--brand-fg-rgb) / 0.4)", mt: 0.5 }}>
         現在の貼り付けを「パターン{myPatterns.length + 1}」として保存し、そのまま適用します。
       </Typography>
 
       {/* 保存済みパターン */}
       {myPatterns.length > 0 && (
         <>
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", my: 1.25 }} />
-          <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.55)", mb: 0.5 }}>保存済みパターン（{myPatterns.length}）</Typography>
+          <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.08)", my: 1.25 }} />
+          <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.55)", mb: 0.5 }}>保存済みパターン（{myPatterns.length}）</Typography>
           {myPatterns.map((p) => {
             const isActive = activeId === p.id;
             return (
@@ -193,23 +193,23 @@ export default function FaceMaterialPanel() {
                 onClick={() => !busy && togglePattern(p)}
                 sx={{
                   display: "flex", alignItems: "center", gap: 1, p: 0.75, borderRadius: 1.5, mb: 0.5, cursor: "pointer",
-                  bgcolor: isActive ? `${color}22` : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${isActive ? `${color}aa` : "rgba(255,255,255,0.06)"}`,
-                  transition: "all 0.12s", "&:hover": { bgcolor: isActive ? `${color}33` : "rgba(255,255,255,0.08)" },
+                  bgcolor: isActive ? `color-mix(in srgb, ${color} 13%, transparent)` : "rgb(var(--brand-fg-rgb) / 0.04)",
+                  border: `1px solid ${isActive ? `color-mix(in srgb, ${color} 67%, transparent)` : "rgb(var(--brand-fg-rgb) / 0.06)"}`,
+                  transition: "all 0.12s", "&:hover": { bgcolor: isActive ? `color-mix(in srgb, ${color} 20%, transparent)` : "rgb(var(--brand-fg-rgb) / 0.08)" },
                 }}
               >
                 {isActive
                   ? <CheckCircleRoundedIcon sx={{ fontSize: 18, color }} />
-                  : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 18, color: "rgba(255,255,255,0.35)" }} />}
+                  : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 18, color: "rgb(var(--brand-fg-rgb) / 0.35)" }} />}
                 <Box sx={{ display: "flex" }}>
                   {(p.thumbColors || []).map((c, i) => (
                     <Box key={i} sx={{ width: 18, height: 18, borderRadius: "50%", ml: i ? -0.75 : 0, background: `radial-gradient(circle at 33% 30%, #fff, ${c} 65%, #111)`, border: "1px solid rgba(0,0,0,0.4)" }} />
                   ))}
                 </Box>
-                <Typography sx={{ fontSize: 12, fontWeight: isActive ? 700 : 600, flex: 1, color: isActive ? "#fff" : "rgba(255,255,255,0.85)" }} noWrap>
+                <Typography sx={{ fontSize: 12, fontWeight: isActive ? 700 : 600, flex: 1, color: isActive ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.85)" }} noWrap>
                   {p.name}{isActive ? "（適用中）" : ""}
                 </Typography>
-                <IconButton size="small" onClick={(e) => { e.stopPropagation(); deletePattern(p.id); }} sx={{ color: "rgba(255,255,255,0.5)", "&:hover": { color: "#ff6b6b" } }}>
+                <IconButton size="small" onClick={(e) => { e.stopPropagation(); deletePattern(p.id); }} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", "&:hover": { color: "light-dark(#ad0000, #ff6b6b)" } }}>
                   <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
                 </IconButton>
               </Box>

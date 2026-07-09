@@ -68,37 +68,37 @@ export const DeliverablesSidebar: React.FC<Props> = ({ open, onClose, projectId 
     <Box
       sx={{
         position: 'absolute', top: 0, right: 0, bottom: 0, width: 300, maxWidth: '85%',
-        bgcolor: '#141821', borderLeft: '1px solid rgba(255,255,255,0.08)',
+        bgcolor: 'var(--brand-surface)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
         display: 'flex', flexDirection: 'column', zIndex: 30,
         boxShadow: '-8px 0 24px rgba(0,0,0,0.35)',
       }}
     >
       {/* ヘッダー */}
-      <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <Typography sx={{ flex: 1, fontSize: '0.82rem', fontWeight: 700, color: '#fff' }}>成果物</Typography>
-        <IconButton size="small" onClick={refresh} title="更新" sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+      <Box sx={{ px: 1.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 0.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+        <Typography sx={{ flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--brand-fg)' }}>成果物</Typography>
+        <IconButton size="small" onClick={refresh} title="更新" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <RefreshRoundedIcon sx={{ fontSize: '1rem' }} />
         </IconButton>
-        <IconButton size="small" onClick={onClose} title="閉じる" sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+        <IconButton size="small" onClick={onClose} title="閉じる" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon sx={{ fontSize: '1rem' }} />
         </IconButton>
       </Box>
 
       {/* フィルタ */}
       {presentGroups.length > 0 && (
-        <Box sx={{ px: 1.25, py: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <Box sx={{ px: 1.25, py: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
           <Chip
             size="small" label="すべて" onClick={() => setFilter('all')}
             sx={{ height: 22, fontSize: 11, fontWeight: 700,
-              color: filter === 'all' ? '#1a1f2b' : 'rgba(255,255,255,0.7)',
-              bgcolor: filter === 'all' ? '#ffd740' : 'rgba(255,255,255,0.06)' }}
+              color: filter === 'all' ? '#1a1f2b' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+              bgcolor: filter === 'all' ? '#ffd740' : 'rgb(var(--brand-fg-rgb) / 0.06)' }}
           />
           {presentGroups.map(g => (
             <Chip
               key={g.key} size="small" label={g.label} onClick={() => setFilter(g.key)}
               sx={{ height: 22, fontSize: 11, fontWeight: 700,
-                color: filter === g.key ? '#1a1f2b' : 'rgba(255,255,255,0.7)',
-                bgcolor: filter === g.key ? '#ffd740' : 'rgba(255,255,255,0.06)' }}
+                color: filter === g.key ? '#1a1f2b' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                bgcolor: filter === g.key ? '#ffd740' : 'rgb(var(--brand-fg-rgb) / 0.06)' }}
             />
           ))}
         </Box>
@@ -107,9 +107,9 @@ export const DeliverablesSidebar: React.FC<Props> = ({ open, onClose, projectId 
       {/* グリッド */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 4 }}><CircularProgress size={22} sx={{ color: 'rgba(255,255,255,0.5)' }} /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 4 }}><CircularProgress size={22} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} /></Box>
         ) : filtered.length === 0 ? (
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'center', pt: 4, px: 2 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textAlign: 'center', pt: 4, px: 2 }}>
             {projectId ? 'まだ成果物がありません。チャットでレンダーやスライドを作ると、ここに集まります。' : 'プロジェクトを選択してください。'}
           </Typography>
         ) : (
@@ -123,13 +123,13 @@ export const DeliverablesSidebar: React.FC<Props> = ({ open, onClose, projectId 
                   onClick={() => openLightbox(i)}
                   sx={{
                     width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: 1.5,
-                    border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', bgcolor: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', cursor: 'pointer', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
                     transition: 'transform 0.12s, border-color 0.12s',
                     '&:hover': { transform: 'scale(1.03)', borderColor: 'rgba(125,211,252,0.6)' },
                   }}
                 />
                 {it.ref.kind === 'video' && (
-                  <PlayCircleRoundedIcon sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: 'rgba(255,255,255,0.9)', fontSize: 28, pointerEvents: 'none' }} />
+                  <PlayCircleRoundedIcon sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontSize: 28, pointerEvents: 'none' }} />
                 )}
               </Box>
             ))}

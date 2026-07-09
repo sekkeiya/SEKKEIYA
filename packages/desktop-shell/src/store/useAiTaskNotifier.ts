@@ -71,7 +71,7 @@ export function notifyChoices(
 }
 
 /**
- * バッチ生成完了通知。「S.Modelsに保存」ボタン付き。
+ * バッチ生成完了通知。「S.Modelに保存」ボタン付き。
  * doneCount = 完了件数（本文に使用）。
  */
 export function notifyBatchComplete(
@@ -86,7 +86,7 @@ export function notifyBatchComplete(
     title: '✅ 3D生成が完了しました',
     body: `${doneItems.length}件のモデルが完成しました`,
     buttons: [
-      ['S.Modelsに保存', 'save'],
+      ['S.Modelに保存', 'save'],
       ['閉じる', 'dismiss'],
     ],
     key,

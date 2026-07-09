@@ -51,14 +51,14 @@ export interface LightConfig {
 
 // ─── 型ごとのデフォルト値 ───────────────────────────────────────────
 const TYPE_DEFAULTS: Record<LightType, Partial<LightConfig>> = {
-  hemisphere: { groundColor: '#7a6a58', intensity: 0.6, color: '#ffffff' },
+  hemisphere: { groundColor: '#7a6a58', intensity: 0.6, color: 'var(--brand-fg)' },
   directional: {
-    color: '#ffffff', intensity: 1.2,
+    color: 'var(--brand-fg)', intensity: 1.2,
     azimuth: 45, elevation: 50, distance: 13,
     castShadow: true,
   },
   spot: {
-    color: '#ffffff', intensity: 2.0,
+    color: 'var(--brand-fg)', intensity: 2.0,
     // 重要: シーン単位はミリメートル (mm)。SceneGrid / gridHeightMm / gridCellSizeMm 参照。
     // 位置とレンジ (spotDistance) もすべて mm で扱う。
     // 位置: 床上 3m, 中心から x/z 各 2m オフセット（ガイズモが見えやすく、室内を照らす想定）
@@ -71,7 +71,7 @@ const TYPE_DEFAULTS: Record<LightType, Partial<LightConfig>> = {
     castShadow: true,   // シャドウを有効にして床への照射サークルを可視化
   },
   rect: {
-    color: '#ffffff', intensity: 5.0,
+    color: 'var(--brand-fg)', intensity: 5.0,
     // rectPosition: シーン単位 = mm。天井近く 3.2m = 3200mm。
     // width / height: ユーザー側の単位は **メートル** (Properties パネル step=0.25, min=0.1)。
     // RectAreaLightRenderer 側で × 1000 して Three.js (mm シーン) に渡す。
@@ -79,7 +79,7 @@ const TYPE_DEFAULTS: Record<LightType, Partial<LightConfig>> = {
     width: 3, height: 3,
   },
   neon: {
-    color: '#ffffff', intensity: 8.0,  // 細長い → 単位面積あたり強めにしてバランスを取る
+    color: 'var(--brand-fg)', intensity: 8.0,  // 細長い → 単位面積あたり強めにしてバランスを取る
     // 天井から少し下げた位置 (LED ストリップ想定) — 床上 3m
     neonPosition: [0, 3000, 0],
     neonRotationX: -90,  // 下向き
@@ -119,7 +119,7 @@ export function createLight(type: LightType, overrides: Partial<LightConfig> = {
     type,
     name: TYPE_NAME[type],
     visible: true,
-    color: '#ffffff',
+    color: 'var(--brand-fg)',
     intensity: 1.0,
     pinned: false,
     ...TYPE_DEFAULTS[type],

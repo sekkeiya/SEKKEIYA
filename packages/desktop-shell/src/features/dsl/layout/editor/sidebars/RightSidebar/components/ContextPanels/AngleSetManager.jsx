@@ -23,7 +23,7 @@ import AngleOrganizerDialog from "./AngleOrganizerDialog";
 import { useAutoActionStore } from "../../../../../store/useAutoActionStore";
 
 const SectionLabel = ({ children }) => (
-  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.45), letterSpacing: 0.4 }}>
+  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", letterSpacing: 0.4 }}>
     {children}
   </Typography>
 );
@@ -86,7 +86,7 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
     <Box sx={{ mb: 1.5 }}>
       {/* ヘッダー（開閉トグル＋新規作成） */}
       <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: open ? 0.6 : 0 }}>
-        <IconButton size="small" onClick={() => setOpen((v) => !v)} sx={{ p: 0.2, color: alpha("#fff", 0.6) }}>
+        <IconButton size="small" onClick={() => setOpen((v) => !v)} sx={{ p: 0.2, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>
           <ExpandMoreRoundedIcon sx={{ fontSize: 16, transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.18s" }} />
         </IconButton>
         <CollectionsRoundedIcon sx={{ fontSize: 13, color: alpha(accent, 0.9) }} />
@@ -94,7 +94,7 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
         <Box sx={{ flex: 1 }} />
         <Tooltip title="アングル整理（カテゴリ・タグで一覧管理）">
           <IconButton size="small" onClick={() => setOrganizerOpen(true)}
-            sx={{ p: 0.3, color: alpha("#fff", 0.65), "&:hover": { color: accent, background: alpha(accent, 0.12) } }}>
+            sx={{ p: 0.3, color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)", "&:hover": { color: accent, background: alpha(accent, 0.12) } }}>
             <TuneRoundedIcon sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
@@ -137,10 +137,10 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") commitEdit(); }}
                     onBlur={commitEdit}
-                    sx={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: "inherit", borderBottom: `1px solid ${alpha(accent, 0.7)}` }}
+                    sx={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: "var(--brand-fg)", fontSize: 11.5, fontWeight: 700, fontFamily: "inherit", borderBottom: `1px solid ${alpha(accent, 0.7)}` }}
                   />
                 ) : (
-                  <Typography sx={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: isActive ? 800 : 600, color: isActive ? "#fff" : alpha("#fff", 0.85), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <Typography sx={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: isActive ? 800 : 600, color: isActive ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 85%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {g.name}
                   </Typography>
                 )}
@@ -150,7 +150,7 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
                   <>
                     <Tooltip title="アングルを登録">
                       <IconButton size="small" onClick={(e) => { e.stopPropagation(); setPickerSetId(pickerSetId === g.id ? null : g.id); }}
-                        sx={{ p: 0.2, color: pickerSetId === g.id ? accent : alpha("#fff", 0.5), "&:hover": { color: accent } }}>
+                        sx={{ p: 0.2, color: pickerSetId === g.id ? accent : "color-mix(in srgb, var(--brand-fg) 50%, transparent)", "&:hover": { color: accent } }}>
                         <PlaylistAddRoundedIcon sx={{ fontSize: 13 }} />
                       </IconButton>
                     </Tooltip>
@@ -160,7 +160,7 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="セットを削除（アングルは残ります）">
-                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); removeSet(g.id); if (pickerSetId === g.id) setPickerSetId(null); }} sx={{ p: 0.2, opacity: 0.5, "&:hover": { opacity: 1, color: "#ff7070" } }}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); removeSet(g.id); if (pickerSetId === g.id) setPickerSetId(null); }} sx={{ p: 0.2, opacity: 0.5, "&:hover": { opacity: 1, color: "light-dark(#ad0000, #ff7070)" } }}>
                         <DeleteOutlineRoundedIcon sx={{ fontSize: 12 }} />
                       </IconButton>
                     </Tooltip>
@@ -177,7 +177,7 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
             <Stack direction="row" alignItems="center" sx={{ mb: 0.75 }}>
               <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: accent }}>「{pickerSet.name}」に登録するアングル</Typography>
               <Box sx={{ flex: 1 }} />
-              <Typography onClick={() => setPickerSetId(null)} sx={{ cursor: "pointer", fontSize: 10, fontWeight: 700, color: alpha("#fff", 0.6), "&:hover": { color: "#fff" } }}>完了</Typography>
+              <Typography onClick={() => setPickerSetId(null)} sx={{ cursor: "pointer", fontSize: 10, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", "&:hover": { color: "var(--brand-fg)" } }}>完了</Typography>
             </Stack>
             {kindShots.length === 0 ? (
               <Typography sx={{ fontSize: 10, opacity: 0.5, py: 0.5 }}>
@@ -193,12 +193,12 @@ export default function AngleSetManager({ kind, accent = "#6c87ff" }) {
                         background: inSet ? alpha(accent, 0.16) : "transparent", "&:hover": { background: alpha("#fff", 0.05) } }}>
                       <Box sx={{ width: 16, height: 16, borderRadius: 0.5, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
                         background: inSet ? accent : "transparent", border: `1px solid ${inSet ? accent : alpha("#fff", 0.4)}` }}>
-                        {inSet && <CheckRoundedIcon sx={{ fontSize: 12, color: "#fff" }} />}
+                        {inSet && <CheckRoundedIcon sx={{ fontSize: 12, color: "var(--brand-fg)" }} />}
                       </Box>
                       <Box sx={{ width: 34, height: 22, borderRadius: 0.5, overflow: "hidden", flexShrink: 0, background: alpha("#fff", 0.06), display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {sh.thumbnail ? <img src={sh.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <ImageRoundedIcon sx={{ fontSize: 12, opacity: 0.4 }} />}
                       </Box>
-                      <Typography sx={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: inSet ? 800 : 600, color: inSet ? "#fff" : alpha("#fff", 0.8), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <Typography sx={{ flex: 1, minWidth: 0, fontSize: 11, fontWeight: inSet ? 800 : 600, color: inSet ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 80%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {sh.name}
                       </Typography>
                     </Box>

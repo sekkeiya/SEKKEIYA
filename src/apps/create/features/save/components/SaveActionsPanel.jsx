@@ -122,11 +122,11 @@ export default function SaveActionsPanel() {
                   rel="noopener noreferrer"
                   sx={{ borderColor: tokens.border.subtle, color: 'text.primary', display: 'flex' }}
                 >
-                  S.Modelsで開く
+                  S.Modelで開く
                 </Button>
                 <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, color: 'success.main', mt: 1, fontWeight: 'bold' }}>
                   <CheckCircleOutlineIcon fontSize="inherit" />
-                  S.Modelsに保存されました
+                  S.Modelに保存されました
                 </Typography>
               </Box>
             ) : (
@@ -140,10 +140,10 @@ export default function SaveActionsPanel() {
                   disabled={!isDone || isSaving}
                   sx={{ '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' } }}
                 >
-                  S.Modelsへ保存（アセット化）
+                  S.Modelへ保存（アセット化）
                 </Button>
                 <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: isDone ? 'text.secondary' : 'text.disabled', mt: 0.5 }}>
-                  S.Modelsに保存するとアセットとして管理されます。
+                  S.Modelに保存するとアセットとして管理されます。
                 </Typography>
               </Box>
             )}

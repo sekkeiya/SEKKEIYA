@@ -22,7 +22,7 @@ export const AIDriveDeleteConfirmDialog: React.FC<{
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#0f172a',
+          bgcolor: 'var(--brand-surface)',
           backgroundImage: 'none',
           border: '1px solid rgba(249,115,22,0.3)',
         }

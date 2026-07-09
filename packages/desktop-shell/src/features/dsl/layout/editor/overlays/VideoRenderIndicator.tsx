@@ -76,17 +76,17 @@ export default function VideoRenderIndicator({ onOpenMedia }: { onOpenMedia: () 
           width: 320,
           p: 1.75,
           borderRadius: 2,
-          background: '#171728',
+          background: 'var(--brand-surface2)',
           border: `1px solid ${alpha('#fff', 0.1)}`,
           boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
-          color: '#e8ebf5',
+          color: 'var(--brand-fg)',
           backdropFilter: 'blur(8px)',
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-          {rendering && <MovieCreationRoundedIcon sx={{ fontSize: 18, color: '#6c87ff' }} />}
+          {rendering && <MovieCreationRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#0020ad, #6c87ff)' }} />}
           {done && <CheckCircleRoundedIcon sx={{ fontSize: 18, color: '#4ade80' }} />}
-          {failed && <ErrorOutlineRoundedIcon sx={{ fontSize: 18, color: '#f87171' }} />}
+          {failed && <ErrorOutlineRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#a50808, #f87171)' }} />}
           <Typography sx={{ fontSize: 12.5, fontWeight: 700, flex: 1 }} noWrap>
             {rendering && '動画をレンダリング中'}
             {done && '動画レンダリング完了'}
@@ -97,7 +97,7 @@ export default function VideoRenderIndicator({ onOpenMedia }: { onOpenMedia: () 
               size="small"
               onClick={cancelVideoRender}
               title="レンダリングを中止"
-              sx={{ color: alpha('#f87171', 0.7), p: 0.25, '&:hover': { color: '#f87171' } }}
+              sx={{ color: 'light-dark(rgba(165,8,8,0.7), rgba(248,113,113,0.7))', p: 0.25, '&:hover': { color: 'light-dark(#a50808, #f87171)' } }}
             >
               <StopCircleRoundedIcon sx={{ fontSize: 16 }} />
             </IconButton>
@@ -106,7 +106,7 @@ export default function VideoRenderIndicator({ onOpenMedia }: { onOpenMedia: () 
             <IconButton
               size="small"
               onClick={failed ? dismissError : () => setHiddenDone(true)}
-              sx={{ color: alpha('#fff', 0.5), p: 0.25 }}
+              sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", p: 0.25 }}
             >
               <CloseRoundedIcon sx={{ fontSize: 16 }} />
             </IconButton>
@@ -159,7 +159,7 @@ export default function VideoRenderIndicator({ onOpenMedia }: { onOpenMedia: () 
               textTransform: 'none',
               fontSize: 12,
               fontWeight: 700,
-              color: '#fff',
+              color: 'var(--brand-fg)',
               background: '#6c87ff',
               '&:hover': { background: '#5a73e8' },
             }}

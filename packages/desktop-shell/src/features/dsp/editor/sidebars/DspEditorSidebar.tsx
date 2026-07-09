@@ -8,7 +8,8 @@ import ViewInArIcon from '@mui/icons-material/ViewInAr';
 import AddPhotoAlternateRoundedIcon from '@mui/icons-material/AddPhotoAlternateRounded';
 
 import { useDspStore } from '../../store/useDspStore';
-import { useAIDriveStore, resolveAssetPreviewUrl } from '../../../../store/useAIDriveStore';
+import { resolveAssetPreviewUrl } from '../../../../store/useAIDriveStore';
+import { useDriveAssets, PICKER_LAYERS } from '../../../drive/driveAccess';
 import { BRAND } from '../../../../styles/theme';
 import type { PresentationElement, PresentationPage } from '../../types/dsp.types';
 
@@ -78,7 +79,7 @@ const SlidesTab: React.FC<{ canvasW: number; canvasH: number }> = ({ canvasW, ca
             {selectedPageId === page.id && (
               <Box sx={{ display: 'flex', gap: 0.5 }}>
                 <Tooltip title="複製">
-                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicatePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'white' } }}>
+                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicatePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'var(--brand-fg)' } }}>
                     <ContentCopyRoundedIcon sx={{ fontSize: '1rem' }} />
                   </IconButton>
                 </Tooltip>
@@ -94,7 +95,7 @@ const SlidesTab: React.FC<{ canvasW: number; canvasH: number }> = ({ canvasW, ca
       ))}
       <Box
         onClick={() => addPage()}
-        sx={{ borderRadius: 1.5, border: `1px dashed rgba(255,255,255,0.15)`, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 1, color: 'text.secondary', '&:hover': { borderColor: ACCENT, color: ACCENT }, transition: 'all 0.15s' }}
+        sx={{ borderRadius: 1.5, border: `1px dashed rgb(var(--brand-fg-rgb) / 0.15)`, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 1, color: 'text.secondary', '&:hover': { borderColor: ACCENT, color: ACCENT }, transition: 'all 0.15s' }}
       >
         <AddRoundedIcon sx={{ fontSize: 18 }} />
         <Typography sx={{ fontSize: 12, fontWeight: 500 }}>スライドを追加</Typography>
@@ -112,19 +113,19 @@ const AssetCard: React.FC<{ asset: any; onAdd: () => void; isModel?: boolean }> 
     <Box
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      sx={{ position: 'relative', borderRadius: 1.5, overflow: 'hidden', border: `1px solid ${BRAND.line}`, bgcolor: '#1a1a1a', cursor: 'pointer', '&:hover': { borderColor: ACCENT } }}
+      sx={{ position: 'relative', borderRadius: 1.5, overflow: 'hidden', border: `1px solid ${BRAND.line}`, bgcolor: 'var(--brand-surface)', cursor: 'pointer', '&:hover': { borderColor: ACCENT } }}
     >
-      <Box sx={{ height: 72, bgcolor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <Box sx={{ height: 72, bgcolor: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         {url
           ? <Box component="img" src={url} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <Box sx={{ color: 'rgba(255,255,255,0.2)', fontSize: 28 }}>{isModel ? '🧊' : '🖼'}</Box>
+          : <Box sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 28 }}>{isModel ? '🧊' : '🖼'}</Box>
         }
       </Box>
       <Box sx={{ p: 0.75 }}>
-        <Typography sx={{ color: '#fff', fontSize: 11, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Typography sx={{ color: 'var(--brand-fg)', fontSize: 11, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {asset.name || asset.title || 'Untitled'}
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10 }}>
           {isModel ? (asset.toolType || 'model') : 'image'}
         </Typography>
       </Box>
@@ -144,7 +145,8 @@ const AssetCard: React.FC<{ asset: any; onAdd: () => void; isModel?: boolean }> 
 
 const AssetsTab: React.FC = () => {
   const { projectId, selectedPageId, addElement, presentation } = useDspStore();
-  const allAssets = useAIDriveStore(s => s.assets);
+  // SEKKEIYA Drive の資産（driveAccess = 決定的プール・単一の読み取り窓口）。
+  const { assets: allAssets } = useDriveAssets({ layers: PICKER_LAYERS });
   const [search, setSearch] = useState('');
 
   const cW = presentation?.canvasSize?.width || 1587;
@@ -191,22 +193,22 @@ const AssetsTab: React.FC = () => {
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <Box sx={{ px: 1.5, py: 1, flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 1.5, px: 1.5, height: 32, border: '1px solid rgba(255,255,255,0.08)', '&:focus-within': { borderColor: ACCENT } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', borderRadius: 1.5, px: 1.5, height: 32, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', '&:focus-within': { borderColor: ACCENT } }}>
           <input
             type="text"
             placeholder="素材を検索..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 12, fontFamily: 'inherit' }}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--brand-fg)', fontSize: 12, fontFamily: 'inherit' }}
           />
         </Box>
       </Box>
       <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, pb: 2 }}>
         {isEmpty && (
           <Box sx={{ textAlign: 'center', py: 6 }}>
-            <AddPhotoAlternateRoundedIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.15)', mb: 1 }} />
+            <AddPhotoAlternateRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.15)', mb: 1 }} />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.6 }}>
-              AI Drive に画像や3Dモデルを<br />追加するとここに表示されます
+              SEKKEIYA Drive に画像や3Dモデルを<br />追加するとここに表示されます
             </Typography>
           </Box>
         )}
@@ -263,31 +265,31 @@ const OutlineTab: React.FC = () => {
             onClick={() => setSelectedPageId(page.id)}
             sx={{
               p: 1.5, borderRadius: 1.5, cursor: 'pointer',
-              bgcolor: isActive ? 'rgba(41,182,246,0.1)' : 'rgba(255,255,255,0.03)',
+              bgcolor: isActive ? 'rgba(41,182,246,0.1)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
               border: `1px solid ${isActive ? ACCENT : 'transparent'}`,
-              '&:hover': { bgcolor: isActive ? 'rgba(41,182,246,0.15)' : 'rgba(255,255,255,0.06)' },
+              '&:hover': { bgcolor: isActive ? 'rgba(41,182,246,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
               transition: 'all 0.15s',
             }}
           >
-            <Typography sx={{ color: isActive ? ACCENT : 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, mb: 0.5 }}>
+            <Typography sx={{ color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, mb: 0.5 }}>
               SLIDE {idx + 1}
             </Typography>
             {titleEl ? (
-              <Typography sx={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4, mb: 0.5 }}>
+              <Typography sx={{ color: isActive ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.85)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4, mb: 0.5 }}>
                 {(titleEl.data as any).text?.split('\n')[0] || '（タイトルなし）'}
               </Typography>
             ) : (
-              <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, fontStyle: 'italic' }}>テキストなし</Typography>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 12, fontStyle: 'italic' }}>テキストなし</Typography>
             )}
             {bodyEls.map((el, i) => (
-              <Typography key={i} sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+              <Typography key={i} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
                 {(el.data as any).text?.split('\n')[0]}
               </Typography>
             ))}
             <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
               {page.elements.length > 0 && (
-                <Box sx={{ px: 1, py: 0.25, bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{page.elements.length}要素</Typography>
+                <Box sx={{ px: 1, py: 0.25, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', borderRadius: 4 }}>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10 }}>{page.elements.length}要素</Typography>
                 </Box>
               )}
             </Box>
@@ -322,7 +324,7 @@ export const DspEditorSidebar: React.FC = () => {
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel, overflow: 'hidden' }}>
       {/* ── ヘッダー ──────────────────────────────────────────────────── */}
       <Box sx={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', px: 2, borderBottom: `1px solid ${BRAND.line}` }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>
           {TAB_LABELS[leftPanelActiveTab]}
         </Typography>
       </Box>

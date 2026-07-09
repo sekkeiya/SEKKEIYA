@@ -20,12 +20,12 @@ export default function LibrarySearchBar({ q, setQ, tab, setTab }) {
     justifyContent: "center",
     borderRadius: "50%",
     background: active ? alpha(theme.palette.primary.main, 0.8) : "transparent",
-    color: active ? "#fff" : alpha("#fff", 0.4),
+    color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
     cursor: "pointer",
     transition: "all 0.15s ease",
     "&:hover": {
       background: active ? alpha(theme.palette.primary.main, 1) : alpha("#fff", 0.1),
-      color: "#fff",
+      color: "var(--brand-fg)",
     },
   });
 
@@ -40,7 +40,7 @@ export default function LibrarySearchBar({ q, setQ, tab, setTab }) {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchRoundedIcon sx={{ fontSize: 18, color: alpha("#fff", 0.5) }} />
+              <SearchRoundedIcon sx={{ fontSize: 18, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }} />
             </InputAdornment>
           ),
         }}
@@ -48,15 +48,15 @@ export default function LibrarySearchBar({ q, setQ, tab, setTab }) {
           "& .MuiOutlinedInput-root": {
             height: 36,
             fontSize: 13,
-            color: "#fff",
-            background: alpha("#000", 0.4),
+            color: "var(--brand-fg)",
+            background: "color-mix(in srgb, var(--brand-bg) 40%, transparent)",
             borderRadius: 3,
             "& fieldset": { border: "none" },
             "&:hover fieldset": { border: "none" },
             "&.Mui-focused fieldset": { border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}` },
           },
           "& .MuiInputBase-input::placeholder": {
-            color: alpha("#fff", 0.3),
+            color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)",
             opacity: 1,
           },
         }}
@@ -67,7 +67,7 @@ export default function LibrarySearchBar({ q, setQ, tab, setTab }) {
         spacing={0.25}
         sx={{
           p: 0.25,
-          background: alpha("#000", 0.4),
+          background: "color-mix(in srgb, var(--brand-bg) 40%, transparent)",
           borderRadius: 999,
         }}
       >

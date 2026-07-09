@@ -95,7 +95,7 @@ const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                   width: 40,
                   height: 4,
                   borderRadius: 2,
-                  bgcolor: 'rgba(255,255,255,0.22)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.22)',
                 }}
               />
             </Box>

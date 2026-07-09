@@ -34,12 +34,12 @@ function LabelVisibilityControls() {
 
   return (
     <Box sx={{ p: 1.5 }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.55)", letterSpacing: 0.5, textTransform: "uppercase", mb: 1 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--brand-fg-rgb) / 0.55)", letterSpacing: 0.5, textTransform: "uppercase", mb: 1 }}>
         面ラベルの表示
       </Typography>
 
       {total === 0 ? (
-        <Typography sx={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.7 }}>
+        <Typography sx={{ fontSize: 11.5, color: "rgb(var(--brand-fg-rgb) / 0.5)", lineHeight: 1.7 }}>
           まだラベルがありません。上部の「自動ラベル」で自動判定するか、面をクリックして床/内壁/外壁/天井/屋根を設定してください。
         </Typography>
       ) : (
@@ -50,7 +50,7 @@ function LabelVisibilityControls() {
               onClick={() => setAllLabelVisible(true)}
               sx={{
                 flex: 1, textAlign: "center", px: 1, py: 0.45, borderRadius: 1, cursor: "pointer",
-                fontSize: 11, fontWeight: 800, color: "#fff",
+                fontSize: 11, fontWeight: 800, color: "var(--brand-fg)",
                 background: alpha("#38bdf8", 0.16), border: `1px solid ${alpha("#38bdf8", 0.5)}`,
                 userSelect: "none", "&:hover": { background: alpha("#38bdf8", 0.3) },
               }}
@@ -61,7 +61,7 @@ function LabelVisibilityControls() {
               onClick={() => setAllLabelVisible(false)}
               sx={{
                 flex: 1, textAlign: "center", px: 1, py: 0.45, borderRadius: 1, cursor: "pointer",
-                fontSize: 11, fontWeight: 800, color: "#fff",
+                fontSize: 11, fontWeight: 800, color: "var(--brand-fg)",
                 background: alpha("#9aa0a6", 0.16), border: `1px solid ${alpha("#9aa0a6", 0.5)}`,
                 userSelect: "none", "&:hover": { background: alpha("#9aa0a6", 0.3) },
               }}
@@ -82,17 +82,17 @@ function LabelVisibilityControls() {
                   opacity: visible ? 1 : 0.45,
                   background: alpha(color, visible ? 0.12 : 0.04),
                   border: `1px solid ${alpha(color, visible ? 0.5 : 0.2)}`,
-                  "&:hover": { background: alpha(color, 0.2) },
+                  "&:hover": { background: `color-mix(in srgb, ${color} 20%, transparent)` },
                 }}
               >
                 <Box sx={{ width: 12, height: 12, borderRadius: "3px", background: color, flexShrink: 0 }} />
-                <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: "#fff", flex: 1 }}>
+                <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: "var(--brand-fg)", flex: 1 }}>
                   {STRUCTURE_LABEL_JP[sem]}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>{counts[sem]}</Typography>
+                <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.55)" }}>{counts[sem]}</Typography>
                 {visible
-                  ? <VisibilityRoundedIcon sx={{ fontSize: 17, color: "rgba(255,255,255,0.8)" }} />
-                  : <VisibilityOffRoundedIcon sx={{ fontSize: 17, color: "rgba(255,255,255,0.4)" }} />}
+                  ? <VisibilityRoundedIcon sx={{ fontSize: 17, color: "rgb(var(--brand-fg-rgb) / 0.8)" }} />
+                  : <VisibilityOffRoundedIcon sx={{ fontSize: 17, color: "rgb(var(--brand-fg-rgb) / 0.4)" }} />}
               </Box>
             );
           })}
@@ -106,7 +106,7 @@ function LabelVisibilityControls() {
           }}
           sx={{
             mt: 1.25, textAlign: "center", px: 1, py: 0.6, borderRadius: 1, cursor: "pointer",
-            fontSize: 12, fontWeight: 800, color: "#fff",
+            fontSize: 12, fontWeight: 800, color: "var(--brand-fg)",
             background: alpha("#ef5350", 0.16), border: `1px solid ${alpha("#ef5350", 0.5)}`,
             userSelect: "none", "&:hover": { background: alpha("#ef5350", 0.3) },
           }}
@@ -115,7 +115,7 @@ function LabelVisibilityControls() {
         </Box>
       )}
 
-      <Typography sx={{ mt: 1.5, fontSize: 10.5, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
+      <Typography sx={{ mt: 1.5, fontSize: 10.5, color: "rgb(var(--brand-fg-rgb) / 0.4)", lineHeight: 1.6 }}>
         躯体の面（床・壁・天井）をクリックすると、ラベルとコリジョンを設定できます。Ctrl+A で全選択。
       </Typography>
     </Box>
@@ -140,7 +140,7 @@ export default function BaseRoomPanel({ roomSpec, hasBaseGlb = false, onUpdateRo
   if (!roomSpec) {
     return (
       <Box sx={{ p: 2 }}>
-        <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.7, mb: 2 }}>
+        <Typography sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.7)", lineHeight: 1.7, mb: 2 }}>
           この躯体（Base）はまだ未設定です。編集可能なデフォルトルームを作成すると、床幅・奥行・壁高さをスライダーで調整できます。
         </Typography>
         <Button
@@ -188,7 +188,7 @@ function BaseRoomSliders({ roomSpec, onUpdateRoomSpec }) {
 
   return (
     <Box sx={{ p: 1.5 }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.55)", letterSpacing: 0.5, textTransform: "uppercase", mb: 1.5 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: "rgb(var(--brand-fg-rgb) / 0.55)", letterSpacing: 0.5, textTransform: "uppercase", mb: 1.5 }}>
         部屋の寸法
       </Typography>
 
@@ -196,7 +196,7 @@ function BaseRoomSliders({ roomSpec, onUpdateRoomSpec }) {
         {FIELDS.map((f) => (
           <Box key={f.key}>
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
-              <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>{f.label}</Typography>
+              <Typography sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.75)", fontWeight: 500 }}>{f.label}</Typography>
               <TextField
                 value={local[f.key]}
                 onChange={(e) => setValue(f.key, e.target.value)}
@@ -205,9 +205,9 @@ function BaseRoomSliders({ roomSpec, onUpdateRoomSpec }) {
                 inputProps={{ min: f.min, max: f.max, step: f.step, style: { textAlign: "right", padding: "2px 6px", width: 64 } }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    color: "#fff", fontSize: 12,
-                    "& fieldset": { borderColor: "rgba(255,255,255,0.15)" },
-                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.3)" },
+                    color: "var(--brand-fg)", fontSize: 12,
+                    "& fieldset": { borderColor: "rgb(var(--brand-fg-rgb) / 0.15)" },
+                    "&:hover fieldset": { borderColor: "rgb(var(--brand-fg-rgb) / 0.3)" },
                     "&.Mui-focused fieldset": { borderColor: "#00BFFF" },
                   },
                 }}
@@ -224,17 +224,17 @@ function BaseRoomSliders({ roomSpec, onUpdateRoomSpec }) {
               sx={{
                 color: "#00BFFF",
                 "& .MuiSlider-thumb": { width: 14, height: 14 },
-                "& .MuiSlider-rail": { color: "rgba(255,255,255,0.15)" },
+                "& .MuiSlider-rail": { color: "rgb(var(--brand-fg-rgb) / 0.15)" },
               }}
             />
-            <Typography sx={{ fontSize: 10, color: "rgba(255,255,255,0.35)", textAlign: "right" }}>
+            <Typography sx={{ fontSize: 10, color: "rgb(var(--brand-fg-rgb) / 0.35)", textAlign: "right" }}>
               {(local[f.key] / 1000).toFixed(f.key === "wallThicknessMm" ? 2 : 1)} m
             </Typography>
           </Box>
         ))}
       </Stack>
 
-      <Typography sx={{ mt: 2, fontSize: 10.5, color: "rgba(255,255,255,0.3)", lineHeight: 1.6 }}>
+      <Typography sx={{ mt: 2, fontSize: 10.5, color: "rgb(var(--brand-fg-rgb) / 0.3)", lineHeight: 1.6 }}>
         この躯体（Base）の寸法は、この Base 配下のすべてのプランで共有されます。
       </Typography>
     </Box>

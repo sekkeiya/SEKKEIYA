@@ -14,7 +14,7 @@ const AssetGrid: React.FC<{ thumbs: (string | null)[] }> = ({ thumbs }) => {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%' }}>
       {cells.map((url, i) => (
-        <Box key={i} sx={{ overflow: 'hidden', position: 'relative', bgcolor: 'rgba(255,255,255,0.03)' }}>
+        <Box key={i} sx={{ overflow: 'hidden', position: 'relative', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' }}>
           {url ? (
             <Box
               component="img"
@@ -23,10 +23,10 @@ const AssetGrid: React.FC<{ thumbs: (string | null)[] }> = ({ thumbs }) => {
             />
           ) : (
             <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShapeLineRoundedIcon sx={{ fontSize: 22, color: 'rgba(255,255,255,0.04)' }} />
+              <ShapeLineRoundedIcon sx={{ fontSize: 22, color: 'rgb(var(--brand-fg-rgb) / 0.04)' }} />
             </Box>
           )}
-          <Box sx={{ position: 'absolute', inset: 0, border: '0.5px solid rgba(0,0,0,0.35)', pointerEvents: 'none' }} />
+          <Box sx={{ position: 'absolute', inset: 0, border: '0.5px solid light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', pointerEvents: 'none' }} />
         </Box>
       ))}
     </Box>
@@ -71,7 +71,7 @@ export const DssProjectCard: React.FC<{
     e.stopPropagation();
     if (!ownerId) return;
     if (onOwnerClick) {
-      // S.Models 内では UserProfileDialog を開く（モデル一覧と同じ UX）
+      // S.Model 内では UserProfileDialog を開く（モデル一覧と同じ UX）
       onOwnerClick();
       return;
     }
@@ -92,7 +92,7 @@ export const DssProjectCard: React.FC<{
   const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ['-6deg', '6deg']);
   const glareX = useTransform(mouseXSpring, [-0.5, 0.5], ['100%', '0%']);
   const glareY = useTransform(mouseYSpring, [-0.5, 0.5], ['100%', '0%']);
-  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 65%)`;
+  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgb(var(--brand-fg-rgb) / 0.15) 0%, rgb(var(--brand-fg-rgb) / 0) 65%)`;
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -129,21 +129,21 @@ export const DssProjectCard: React.FC<{
             position: 'relative',
             height: '100%',
             aspectRatio: '1 / 1',
-            backgroundColor: '#0f172a',
+            backgroundColor: 'var(--brand-surface)',
             borderRadius: 3,
-            border: '1px solid rgba(51,65,85,0.9)',
+            border: '1px solid rgb(var(--slate-mid-rgb) / 0.9)',
             boxShadow: isSelected
-              ? `0 18px 30px rgba(15,23,42,0.9), 0 0 18px ${badgeColor ?? '#3b82f6'}33`
-              : '0 8px 16px rgba(0,0,0,0.4)',
-            borderColor: isSelected ? undefined : 'rgba(148,163,184,0.2)',
+              ? `0 18px 30px rgb(var(--slate-panel-rgb) / 0.9), 0 0 18px color-mix(in srgb, ${badgeColor ?? '#3b82f6'} 20%, transparent)`
+              : '0 8px 16px light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.4))',
+            borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.2)',
             transition: 'box-shadow 0.2s, border-color 0.2s',
             overflow: 'hidden',
             userSelect: 'none',
             '&:hover': {
               boxShadow: isSelected
-                ? `0 24px 40px rgba(15,23,42,1), 0 0 24px ${badgeColor ?? '#3b82f6'}33`
-                : '0 16px 32px rgba(0,0,0,0.6), 0 0 4px rgba(148,163,184,0.3)',
-              borderColor: isSelected ? undefined : 'rgba(148,163,184,0.4)',
+                ? `0 24px 40px rgb(var(--slate-panel-rgb) / 1), 0 0 24px color-mix(in srgb, ${badgeColor ?? '#3b82f6'} 20%, transparent)`
+                : '0 16px 32px light-dark(rgba(15,23,42,0.18), rgba(0,0,0,0.6)), 0 0 4px rgb(var(--slate-ink-rgb) / 0.3)',
+              borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.4)',
             },
             '&::after': isSelected ? {
               content: '""',
@@ -176,7 +176,7 @@ export const DssProjectCard: React.FC<{
               )}
               {!showGrid && !showBanner && assetThumbs !== null && (
                 <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ShapeLineRoundedIcon sx={{ fontSize: 64, color: 'rgba(255,255,255,0.05)' }} />
+                  <ShapeLineRoundedIcon sx={{ fontSize: 64, color: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
                 </Box>
               )}
             </Box>
@@ -186,14 +186,14 @@ export const DssProjectCard: React.FC<{
               <Box sx={{
                 position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
                 background: showGrid
-                  ? 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.08) 35%, rgba(0,0,0,0.08) 60%, rgba(0,0,0,0.65) 100%)'
-                  : 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 40%, transparent 55%, rgba(0,0,0,0.6) 100%)',
+                  ? 'linear-gradient(to bottom, light-dark(rgba(255,255,255,0.7), rgba(0,0,0,0.55)) 0%, light-dark(rgba(255,255,255,0.06), rgba(0,0,0,0.08)) 35%, light-dark(rgba(255,255,255,0.06), rgba(0,0,0,0.08)) 60%, light-dark(rgba(255,255,255,0.75), rgba(0,0,0,0.65)) 100%)'
+                  : 'linear-gradient(to bottom, light-dark(rgba(255,255,255,0.6), rgba(0,0,0,0.45)) 0%, transparent 40%, transparent 55%, light-dark(rgba(255,255,255,0.7), rgba(0,0,0,0.6)) 100%)',
               }} />
             )}
 
             {/* ── Text ── */}
             <Box sx={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 2 }}>
-              <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 600, fontSize: 16, textShadow: '0 2px 6px rgba(0,0,0,0.8)' }}>
+              <Typography variant="subtitle1" sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: 16, textShadow: '0 2px 6px light-dark(rgba(255,255,255,0.9), rgba(0,0,0,0.8))' }}>
                 {title}
               </Typography>
             </Box>
@@ -207,7 +207,7 @@ export const DssProjectCard: React.FC<{
                   sx={{
                     p: 0,
                     transition: 'transform 0.15s, box-shadow 0.15s',
-                    '&:hover': { transform: 'scale(1.12)', boxShadow: '0 0 10px rgba(255,255,255,0.25)' },
+                    '&:hover': { transform: 'scale(1.12)', boxShadow: '0 0 10px rgb(var(--brand-fg-rgb) / 0.25)' },
                   }}
                 >
                   <Avatar
@@ -216,8 +216,8 @@ export const DssProjectCard: React.FC<{
                       width: 24,
                       height: 24,
                       fontSize: 11,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      border: '1.5px solid rgba(255,255,255,0.35)',
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)',
+                      border: '1.5px solid rgb(var(--brand-fg-rgb) / 0.35)',
                       backdropFilter: 'blur(4px)',
                     }}
                   >
@@ -228,17 +228,17 @@ export const DssProjectCard: React.FC<{
               {project?.isTeam && (
                 <Chip
                   size="small"
-                  icon={<GroupRoundedIcon sx={{ fontSize: '14px !important', color: 'rgba(255,255,255,0.7)' }} />}
+                  icon={<GroupRoundedIcon sx={{ fontSize: '14px !important', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />}
                   label="Team"
-                  sx={{ bgcolor: 'rgba(59, 130, 246, 0.2)', color: '#fff', fontSize: 10, height: 20, border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                  sx={{ bgcolor: 'rgba(59, 130, 246, 0.2)', color: 'var(--brand-fg)', fontSize: 10, height: 20, border: '1px solid rgba(59, 130, 246, 0.3)' }}
                 />
               )}
-              <Chip size="small" label="Project" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: '#ccc', fontSize: 10, height: 20 }} />
+              <Chip size="small" label="Project" sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontSize: 10, height: 20 }} />
               {assetCountLabel && (
                 <Chip
                   size="small"
                   label={assetCountLabel}
-                  sx={{ ml: 'auto', bgcolor: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.75)', fontSize: 10, height: 20, backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.12)' }}
+                  sx={{ ml: 'auto', bgcolor: 'light-dark(rgba(255,255,255,0.65), rgba(0,0,0,0.45))', color: 'rgb(var(--brand-fg-rgb) / 0.75)', fontSize: 10, height: 20, backdropFilter: 'blur(4px)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)' }}
                 />
               )}
             </Box>

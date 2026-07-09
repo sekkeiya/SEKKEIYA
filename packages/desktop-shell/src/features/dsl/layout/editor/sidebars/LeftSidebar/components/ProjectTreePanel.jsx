@@ -23,8 +23,8 @@ function TreeItem({
   onRenameChange,
   onRenameSubmit,
   onRenameCancel,
-  color = "rgba(255,255,255,0.7)", 
-  activeBg = "rgba(255,255,255,0.1)",
+  color = "rgb(var(--brand-fg-rgb) / 0.7)", 
+  activeBg = "rgb(var(--brand-fg-rgb) / 0.1)",
 }) {
   const [hovered, setHovered] = React.useState(false);
 
@@ -43,7 +43,7 @@ function TreeItem({
           cursor: isRenaming ? "default" : "pointer",
           bgcolor: selected ? activeBg : "transparent",
           "&:hover": {
-            bgcolor: selected ? activeBg : "rgba(255,255,255,0.05)",
+            bgcolor: selected ? activeBg : "rgb(var(--brand-fg-rgb) / 0.05)",
           },
         }}
       >
@@ -68,7 +68,7 @@ function TreeItem({
                 borderRadius: "4px",
                 border: "1px solid #00BFFF",
                 backgroundColor: "rgba(0,0,0,0.4)",
-                color: "#fff",
+                color: "var(--brand-fg)",
                 fontSize: "12px",
                 outline: "none",
               }}
@@ -79,7 +79,7 @@ function TreeItem({
             sx={{
               flex: 1,
               fontSize: 12,
-              color: selected ? "#fff" : "rgba(255,255,255,0.7)",
+              color: selected ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)",
               fontWeight: selected ? 600 : 400,
               whiteSpace: "nowrap",
               overflow: "hidden",
@@ -94,11 +94,11 @@ function TreeItem({
         {!isRenaming && (hovered || selected) && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
             {/* Rename Icon */}
-            <Box onClick={onRenameClick} sx={{ cursor: 'pointer', '&:hover': { color: '#fff' }, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center' }}>
+            <Box onClick={onRenameClick} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' }, color: 'rgb(var(--brand-fg-rgb) / 0.3)', display: 'flex', alignItems: 'center' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             </Box>
             {/* Delete Icon */}
-            <Box onClick={onDeleteClick} sx={{ cursor: 'pointer', '&:hover': { color: '#ff4d4f' }, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center' }}>
+            <Box onClick={onDeleteClick} sx={{ cursor: 'pointer', '&:hover': { color: '#ff4d4f' }, color: 'rgb(var(--brand-fg-rgb) / 0.3)', display: 'flex', alignItems: 'center' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </Box>
           </Box>
@@ -179,7 +179,7 @@ export default function ProjectTreePanel() {
   };
 
   if (loading) {
-    return <Box sx={{ p: 2, color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Loading...</Box>;
+    return <Box sx={{ p: 2, color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 12 }}>Loading...</Box>;
   }
 
   return (
@@ -198,13 +198,13 @@ export default function ProjectTreePanel() {
           sx={{
             flex: 1,
             fontSize: 13,
-            color: "rgba(255,255,255,0.9)",
+            color: "rgb(var(--brand-fg-rgb) / 0.9)",
             fontWeight: 500,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
             cursor: "pointer",
-            "&:hover": { color: "#fff", textDecoration: "underline" },
+            "&:hover": { color: "var(--brand-fg)", textDecoration: "underline" },
           }}
         >
           {activeProject?.name || "Project"}
@@ -220,10 +220,10 @@ export default function ProjectTreePanel() {
             width: 20,
             height: 20,
             borderRadius: "50%",
-            color: "rgba(255,255,255,0.5)",
+            color: "rgb(var(--brand-fg-rgb) / 0.5)",
             "&:hover": {
-              bgcolor: "rgba(255,255,255,0.1)",
-              color: "#fff",
+              bgcolor: "rgb(var(--brand-fg-rgb) / 0.1)",
+              color: "var(--brand-fg)",
             },
           }}
         >
@@ -274,13 +274,13 @@ export default function ProjectTreePanel() {
             sx={{
               display: "flex", alignItems: "center", px: 1.5, py: 0.75, pl: 3,
               cursor: "pointer",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
+              "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.05)" },
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", width: 14, height: 14, mr: 1, color: "rgba(255,255,255,0.4)" }}>
+            <Box sx={{ display: "flex", alignItems: "center", width: 14, height: 14, mr: 1, color: "rgb(var(--brand-fg-rgb) / 0.4)" }}>
               <AddRoundedIcon sx={{ fontSize: 14 }} />
             </Box>
-            <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
+            <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.4)", fontWeight: 500 }}>
               新規レイアウト追加
             </Typography>
           </Box>
@@ -306,13 +306,13 @@ export default function ProjectTreePanel() {
       {/* Delete Dialog */}
       {deletePlanId && (
         <Box sx={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", bgcolor: "rgba(0,0,0,0.5)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Box sx={{ width: 400, bgcolor: "#1a1e27", p: 4, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
-            <Typography variant="h6" sx={{ color: "#fff", mb: 2, fontWeight: 700 }}>削除の確認</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: 3, fontSize: 14 }}>
+          <Box sx={{ width: 400, bgcolor: "var(--brand-surface2)", p: 4, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }}>
+            <Typography variant="h6" sx={{ color: "var(--brand-fg)", mb: 2, fontWeight: 700 }}>削除の確認</Typography>
+            <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", mb: 3, fontSize: 14 }}>
               「{deletePlanName}」を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-              <Typography onClick={() => setDeletePlanId(null)} sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: "pointer", py: 1, '&:hover': { color: "#fff" } }}>キャンセル</Typography>
+              <Typography onClick={() => setDeletePlanId(null)} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 13, cursor: "pointer", py: 1, '&:hover': { color: "var(--brand-fg)" } }}>キャンセル</Typography>
               <Typography onClick={handleDeletePlanSubmit} sx={{ color: "#ff4d4f", fontSize: 13, cursor: isProcessing ? "not-allowed" : "pointer", py: 1, fontWeight: 600, opacity: isProcessing ? 0.5 : 1 }}>削除</Typography>
             </Box>
           </Box>

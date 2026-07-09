@@ -175,24 +175,27 @@ export async function saveRenderToLayout(
 
   // 5. S.Image（3DSI）へ参照インデックスを登録（ベストエフォート・参照のみ・実体は複製しない）。
   //    既定 visibility は private のため、S.Image 側で公開操作するまでギャラリーには出ない。
-  try {
-    const { dsiUploadService } = await import('../../../dsi/upload/dsiUploadService');
-    const category = (meta.category ?? (mediaType === 'video' ? '動画' : 'パース')) as any;
-    await dsiUploadService.linkExternalImage(projectId, docRef.id, {
-      title: meta.shotName || (mediaType === 'video' ? 'S.Layout 動画' : 'S.Layout パース'),
-      category,
-      downloadUrl: url,
-      thumbnailUrl: posterUrl,
-      mediaType,
-      format: ext,
-      width: meta.width ?? 1920,
-      height: meta.height ?? 1080,
-      tags: meta.tags ?? [],
-      sourceType: 'layout-render',
-      sourceRef: { projectId, workspaceId, planId, renderId: docRef.id },
-    });
-  } catch (e) {
-    console.warn('[layoutRendersApi] S.Image link skipped (non-fatal):', e);
+  //    動画は S.Movie 側で管理する方針のため、S.Image には静止画（パース）のみリンクする。
+  if (mediaType !== 'video') {
+    try {
+      const { dsiUploadService } = await import('../../../dsi/upload/dsiUploadService');
+      const category = (meta.category ?? 'パース') as any;
+      await dsiUploadService.linkExternalImage(projectId, docRef.id, {
+        title: meta.shotName || 'S.Layout パース',
+        category,
+        downloadUrl: url,
+        thumbnailUrl: posterUrl,
+        mediaType,
+        format: ext,
+        width: meta.width ?? 1920,
+        height: meta.height ?? 1080,
+        tags: meta.tags ?? [],
+        sourceType: 'layout-render',
+        sourceRef: { projectId, workspaceId, planId, renderId: docRef.id },
+      });
+    } catch (e) {
+      console.warn('[layoutRendersApi] S.Image link skipped (non-fatal):', e);
+    }
   }
 
   // 6. 動画は S.Movie がローカル管理する（docs/14 §0.5）。生成 mp4 を

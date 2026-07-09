@@ -91,7 +91,7 @@ const ColorSelector = React.memo(function ColorSelector({ colors = [], setColors
             key={`${option.id}-${index}`}
             label={option.label}
             {...getTagProps({ index })}
-            sx={{ ...furnitureFormStyles.chip, backgroundColor: 'rgba(255,255,255,0.1)' }}
+            sx={{ ...furnitureFormStyles.chip, backgroundColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }}
           />
         ))
       }
@@ -153,9 +153,9 @@ const SimilarProductsEditor = React.memo(function SimilarProductsEditor({
       sx={{
         mt: 1.5,
         p: 1.25,
-        border: "1px solid rgba(255,255,255,0.12)",
+        border: "1px solid rgb(var(--brand-fg-rgb) / 0.12)",
         borderRadius: 1.5,
-        background: "rgba(255,255,255,0.04)",
+        background: "rgb(var(--brand-fg-rgb) / 0.04)",
         position: 'relative',
       }}
     >
@@ -203,8 +203,8 @@ const SimilarProductsEditor = React.memo(function SimilarProductsEditor({
               sx={{
                 p: 1,
                 borderRadius: 1.25,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
+                background: "rgb(var(--brand-fg-rgb) / 0.02)",
               }}
             >
               {/* 1行目：アバター / 商品名 / ブランド / 削除 */}

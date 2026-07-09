@@ -169,9 +169,9 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
                   onClick={() => useDscStore.getState().setDscViewScope('global_following_furniture')}
                   sx={{
                     fontSize: 24, fontWeight: 700, cursor: 'pointer',
-                    color: dscViewScope === 'global_following_furniture' ? '#ffa726' : 'rgba(255,255,255,0.4)',
+                    color: dscViewScope === 'global_following_furniture' ? 'light-dark(#ad6700, #ffa726)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                     transition: 'color 0.2s',
-                    '&:hover': { color: '#ffa726' },
+                    '&:hover': { color: 'light-dark(#ad6700, #ffa726)' },
                   }}
                 >
                   Following
@@ -180,9 +180,9 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
                   onClick={() => useDscStore.getState().setDscViewScope('global_furniture')}
                   sx={{
                     fontSize: 24, fontWeight: 700, cursor: 'pointer',
-                    color: dscViewScope === 'global_furniture' ? '#ffa726' : 'rgba(255,255,255,0.4)',
+                    color: dscViewScope === 'global_furniture' ? 'light-dark(#ad6700, #ffa726)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                     transition: 'color 0.2s',
-                    '&:hover': { color: '#ffa726' },
+                    '&:hover': { color: 'light-dark(#ad6700, #ffa726)' },
                   }}
                 >
                   All
@@ -209,9 +209,9 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
           <Box sx={{ flex: 1, minWidth: 12 }} />
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {loading && <CircularProgress size={18} sx={{ color: '#ffa726' }} />}
+            {loading && <CircularProgress size={18} sx={{ color: 'light-dark(#ad6700, #ffa726)' }} />}
             {furnitureItems.length > 0 && (
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)' }}>
+              <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
                 {furnitureItems.length} 件
               </Typography>
             )}
@@ -252,7 +252,7 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
       <Box sx={{ flex: 1, p: 3, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading && furnitureItems.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40%' }}>
-            <CircularProgress sx={{ color: '#ffa726' }} />
+            <CircularProgress sx={{ color: 'light-dark(#ad6700, #ffa726)' }} />
           </Box>
         ) : furnitureItems.length === 0 ? (
           <Box sx={{
@@ -260,7 +260,7 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
             alignItems: 'center', justifyContent: 'center',
             height: '60%', gap: 2,
           }}>
-            <ViewInArIcon sx={{ fontSize: 56, color: 'rgba(255,167,38,0.18)', mb: 0.5 }} />
+            <ViewInArIcon sx={{ fontSize: 56, color: 'light-dark(rgba(173,103,0,0.18), rgba(255,167,38,0.18))', mb: 0.5 }} />
             <Typography variant="h6" color="text.secondary">
               {dscViewScope === 'global_projects' ? 'まだ公開プロジェクトはありません' :
                dscViewScope === 'my_public_furniture' ? 'まだ公開した造作家具はありません' :
@@ -278,7 +278,7 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
                 variant="outlined"
                 startIcon={<AddIcon />}
                 onClick={handleNewFurniture}
-                sx={{ borderColor: '#ffa726', color: '#ffa726', mt: 1 }}
+                sx={{ borderColor: '#ffa726', color: 'light-dark(#ad6700, #ffa726)', mt: 1 }}
               >
                 最初の造作家具を作る
               </Button>
@@ -312,19 +312,19 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <Box sx={{
-            width: 380, bgcolor: '#1a1e27', p: 4,
-            borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)',
+            width: 380, bgcolor: 'var(--brand-surface2)', p: 4,
+            borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           }}>
-            <Typography variant="h6" sx={{ color: '#fff', mb: 1.5, fontWeight: 700, fontSize: 15 }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 1.5, fontWeight: 700, fontSize: 15 }}>
               造作家具を削除
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3, fontSize: 13 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 3, fontSize: 13 }}>
               「{deletingItem.name}」を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <Typography
                 onClick={() => !isDeleting && setDeletingItem(null)}
-                sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}
               >
                 キャンセル
               </Typography>
@@ -351,9 +351,9 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 20,
-    background: 'rgba(2,6,23,0.92)',
+    background: 'rgb(var(--slate-deep-rgb) / 0.92)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(148,163,184,0.18)',
+    borderBottom: '1px solid rgb(var(--slate-ink-rgb) / 0.18)',
     minWidth: 0,
     flexShrink: 0,
   },
@@ -373,7 +373,7 @@ const styles = {
   },
   breadcrumb: {
     fontSize: 11,
-    color: 'rgba(148,163,184,0.85)',
+    color: 'rgb(var(--slate-ink-rgb) / 0.85)',
     lineHeight: 1.2,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -384,7 +384,7 @@ const styles = {
     fontWeight: 760,
     letterSpacing: 0.2,
     lineHeight: 1.2,
-    color: '#ffa726',
+    color: 'light-dark(#ad6700, #ffa726)',
   },
   searchWrap: {
     display: 'flex',
@@ -392,19 +392,19 @@ const styles = {
     gap: 1,
     padding: '7px 10px',
     borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.30)',
-    background: 'rgba(15,23,42,0.62)',
+    border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.62)',
     width: 'min(560px, 100%)',
     minWidth: 220,
   },
-  searchIcon: { fontSize: 18, color: 'rgba(148,163,184,0.9)' },
+  searchIcon: { fontSize: 18, color: 'rgb(var(--slate-ink-rgb) / 0.9)' },
   searchInput: {
     width: '100%',
     minWidth: 0,
     border: 'none',
     outline: 'none',
     background: 'transparent',
-    color: '#e5e7eb',
+    color: 'var(--brand-fg)',
     fontSize: 12,
   },
   viewBlock: {
@@ -413,17 +413,17 @@ const styles = {
     alignItems: 'flex-end',
     gap: '4px',
   },
-  miniLabel: { fontSize: 11, color: 'rgba(148,163,184,0.85)' },
+  miniLabel: { fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)' },
   densityGroup: {
     '& .MuiButton-root': {
       textTransform: 'none',
-      borderColor: 'rgba(148,163,184,0.22)',
+      borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)',
     },
   },
   densityBtn: {
-    color: 'rgba(229,231,235,0.9)',
-    background: 'rgba(15,23,42,0.32)',
-    borderColor: 'rgba(148,163,184,0.22)',
+    color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))',
+    background: 'rgb(var(--slate-panel-rgb) / 0.32)',
+    borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)',
     padding: '3px 10px',
     fontSize: 11,
   },

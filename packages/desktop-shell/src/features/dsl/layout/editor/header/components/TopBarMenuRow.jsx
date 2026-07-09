@@ -41,7 +41,7 @@ export default function TopBarMenuRow({
         "&:hover ._act": { opacity: 1, pointerEvents: "auto" },
       }}
     >
-      <ListItemIcon sx={{ minWidth: 28, color: "#fff" }}>
+      <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
         {selected ? <CheckRoundedIcon fontSize="small" /> : null}
       </ListItemIcon>
 
@@ -49,7 +49,7 @@ export default function TopBarMenuRow({
         primary={primary}
         secondary={secondary || ""}
         primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }}
-        secondaryTypographyProps={{ fontSize: 11, color: alpha("#fff", 0.65) }}
+        secondaryTypographyProps={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)" }}
       />
 
       {/* Duplicate */}
@@ -70,7 +70,7 @@ export default function TopBarMenuRow({
                 width: 30,
                 height: 30,
                 borderRadius: 1.8,
-                color: alpha("#fff", 0.9),
+                color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
                 background: alpha("#fff", 0.04),
                 border: `1px solid ${alpha("#fff", 0.10)}`,
                 "&:hover": { background: alpha("#fff", 0.08), borderColor: alpha("#fff", 0.18) },
@@ -99,7 +99,7 @@ export default function TopBarMenuRow({
               width: 30,
               height: 30,
               borderRadius: 1.8,
-              color: dangerDelete ? danger : alpha("#fff", 0.9),
+              color: dangerDelete ? danger : "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
               background: alpha("#fff", 0.04),
               border: `1px solid ${alpha("#fff", 0.10)}`,
               "&:hover": { background: alpha("#fff", 0.08), borderColor: alpha("#fff", 0.18) },

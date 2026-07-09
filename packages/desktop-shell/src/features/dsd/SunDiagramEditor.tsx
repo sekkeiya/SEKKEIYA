@@ -255,8 +255,8 @@ export const SunDiagramEditor: React.FC = () => {
               onClick={handleSave}
               disabled={isSaving}
               sx={{
-                color: saveStatus === 'saved' ? '#aed581' : saveStatus === 'error' ? '#ef5350' : BRAND.sub,
-                '&:hover': { color: '#aed581' },
+                color: saveStatus === 'saved' ? 'light-dark(#5a822b, #aed581)' : saveStatus === 'error' ? '#ef5350' : BRAND.sub,
+                '&:hover': { color: 'light-dark(#5a822b, #aed581)' },
                 transition: 'color 0.2s',
               }}
             >
@@ -298,7 +298,7 @@ export const SunDiagramEditor: React.FC = () => {
           {exportMenuOpen && (
             <Box sx={{
               position: 'absolute', top: '110%', right: 0, zIndex: 100,
-              bgcolor: '#1a1c22', border: `1px solid ${BRAND.line}`,
+              bgcolor: 'var(--brand-surface2)', border: `1px solid ${BRAND.line}`,
               borderRadius: 1.5, overflow: 'hidden', minWidth: 200,
               boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             }}>
@@ -314,7 +314,7 @@ export const SunDiagramEditor: React.FC = () => {
                   onClick={() => handleExportPng(fmt.w, fmt.h)}
                   sx={{
                     px: 2, py: 1, cursor: 'pointer', fontSize: '0.8rem', color: BRAND.text,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem' }}>{fmt.label}  ({fmt.w}×{fmt.h})</Typography>
@@ -344,10 +344,10 @@ export const SunDiagramEditor: React.FC = () => {
                         px: 1.25, py: 0.3, borderRadius: 1, cursor: 'pointer',
                         fontSize: '0.72rem', fontWeight: gifDurationSec === d ? 700 : 400,
                         bgcolor: gifDurationSec === d ? 'rgba(174,213,129,0.13)' : 'transparent',
-                        border: `1px solid ${gifDurationSec === d ? '#aed581' : 'rgba(255,255,255,0.15)'}`,
-                        color: gifDurationSec === d ? '#aed581' : BRAND.sub,
+                        border: `1px solid ${gifDurationSec === d ? '#aed581' : 'rgb(var(--brand-fg-rgb) / 0.15)'}`,
+                        color: gifDurationSec === d ? 'light-dark(#5a822b, #aed581)' : BRAND.sub,
                         transition: 'all 0.12s',
-                        '&:hover': { borderColor: '#aed581', color: '#aed581' },
+                        '&:hover': { borderColor: '#aed581', color: 'light-dark(#5a822b, #aed581)' },
                       }}
                     >
                       {d}秒
@@ -366,7 +366,7 @@ export const SunDiagramEditor: React.FC = () => {
                   onClick={() => handleExportGif(fmt.w, fmt.h)}
                   sx={{
                     px: 2, py: 0.9, cursor: 'pointer', color: BRAND.text,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem' }}>{fmt.label}  ({fmt.w}×{fmt.h})</Typography>
@@ -380,7 +380,7 @@ export const SunDiagramEditor: React.FC = () => {
       {/* ── Canvas + floating dock ── */}
       <Box
         ref={containerRef}
-        sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', bgcolor: style === 'dark' ? '#0b0f16' : '#e8e8e8', position: 'relative' }}
+        sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', bgcolor: style === 'dark' ? 'var(--brand-bg)' : '#e8e8e8', position: 'relative' }}
         onClick={() => { if (exportMenuOpen) setExportMenuOpen(false); }}
       >
         <SunDiagramCanvas
@@ -397,7 +397,7 @@ export const SunDiagramEditor: React.FC = () => {
           bgcolor: 'rgba(18,20,26,0.82)',
           backdropFilter: 'blur(12px)',
           borderRadius: 2.5,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
           zIndex: 10,
         }}>
@@ -408,8 +408,8 @@ export const SunDiagramEditor: React.FC = () => {
               sx={{
                 width: 32, height: 32,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 1.5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', color: '#fff' },
+                borderRadius: 1.5, cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.4)',
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'var(--brand-fg)' },
                 transition: 'all 0.15s',
               }}
             >
@@ -417,7 +417,7 @@ export const SunDiagramEditor: React.FC = () => {
             </Box>
           </Tooltip>
 
-          <Divider sx={{ width: '70%', borderColor: 'rgba(255,255,255,0.1)', my: 0.25 }} />
+          <Divider sx={{ width: '70%', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', my: 0.25 }} />
 
           {/* Tab icons */}
           {DOCK_TABS.map(t => (
@@ -429,10 +429,10 @@ export const SunDiagramEditor: React.FC = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 1.5, cursor: 'pointer',
                   bgcolor: editorTab === t.key ? 'rgba(174,213,129,0.2)' : 'transparent',
-                  color: editorTab === t.key ? '#aed581' : 'rgba(255,255,255,0.45)',
+                  color: editorTab === t.key ? 'light-dark(#5a822b, #aed581)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   border: editorTab === t.key ? '1px solid rgba(174,213,129,0.4)' : '1px solid transparent',
                   transition: 'all 0.15s',
-                  '&:hover': { bgcolor: 'rgba(174,213,129,0.12)', color: '#aed581' },
+                  '&:hover': { bgcolor: 'rgba(174,213,129,0.12)', color: 'light-dark(#5a822b, #aed581)' },
                 }}
               >
                 {t.icon}
@@ -444,9 +444,9 @@ export const SunDiagramEditor: React.FC = () => {
         {isDrawingPolygon && (
           <Box sx={{
             position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-            bgcolor: 'rgba(0,0,0,0.75)', color: '#fff', px: 2, py: 0.75,
+            bgcolor: 'rgba(0,0,0,0.75)', color: 'var(--brand-fg)', px: 2, py: 0.75,
             borderRadius: 2, fontSize: '0.8rem', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           }}>
             クリック: 頂点追加　ダブルクリック or 最初の点: 完了
           </Box>

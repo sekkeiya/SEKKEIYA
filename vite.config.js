@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
         "@tauri-apps/api/event": tauriShim("api-event"),
         "@tauri-apps/api/window": tauriShim("api-window"),
         "@tauri-apps/api/webviewWindow": tauriShim("api-webviewWindow"),
+        "@tauri-apps/api/webview": tauriShim("api-webview"),
         "@tauri-apps/api/path": tauriShim("api-path"),
         "@tauri-apps/plugin-fs": tauriShim("plugin-fs"),
         "@tauri-apps/plugin-dialog": tauriShim("plugin-dialog"),

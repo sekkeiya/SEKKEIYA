@@ -71,7 +71,7 @@ export const AI_MODEL_METADATA: Record<string, AiModelMeta> = {
       ],
       notCalledCases: [
         'ユーザーによる手動スナップ配置時',
-        'S.Modelsでの個別アセット登録・編集時'
+        'S.Modelでの個別アセット登録・編集時'
       ],
       dataFlow: 'Client -> functions.httpsCallable("recommendFurniture") -> Gemini API -> Client'
     }
@@ -125,7 +125,7 @@ export const AI_MODEL_METADATA: Record<string, AiModelMeta> = {
         { icon: '📏', text: 'W/D/Hから推測すると「コンパクト椅子」か「ラウンジチェア」か？' }
       ],
       outputFormat: '{\n  "categoryId": "seating",\n  "subCategory": "chair",\n  "confidence": 0.85\n}',
-      flow: 'S.Modelsでのモデルアップロード時や、カテゴリ一括再計算時にローカル/ハイブリッドで実行されます。'
+      flow: 'S.Modelでのモデルアップロード時や、カテゴリ一括再計算時にローカル/ハイブリッドで実行されます。'
     },
     engine: {
       baseModel: 'hybrid-rule-engine',

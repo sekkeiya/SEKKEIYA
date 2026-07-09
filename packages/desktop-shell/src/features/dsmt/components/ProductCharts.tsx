@@ -29,7 +29,7 @@ export const ProductRadarChart: React.FC<{ products: DsmtProduct[] }> = ({ produ
             key={t}
             points={axes.map((_, i) => { const p = point(i, R * t); return `${p.x},${p.y}`; }).join(' ')}
             fill="none"
-            stroke="rgba(255,255,255,0.10)"
+            stroke="rgb(var(--brand-fg-rgb) / 0.10)"
             strokeWidth={1}
           />
         ))}
@@ -39,8 +39,8 @@ export const ProductRadarChart: React.FC<{ products: DsmtProduct[] }> = ({ produ
           const lbl = point(i, R + 22);
           return (
             <g key={a.key}>
-              <line x1={cx} y1={cy} x2={outer.x} y2={outer.y} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
-              <text x={lbl.x} y={lbl.y} fill="rgba(255,255,255,0.7)" fontSize={11} textAnchor="middle" dominantBaseline="middle">{a.label}</text>
+              <line x1={cx} y1={cy} x2={outer.x} y2={outer.y} stroke="rgb(var(--brand-fg-rgb) / 0.12)" strokeWidth={1} />
+              <text x={lbl.x} y={lbl.y} fill="rgb(var(--brand-fg-rgb) / 0.7)" fontSize={11} textAnchor="middle" dominantBaseline="middle">{a.label}</text>
             </g>
           );
         })}
@@ -53,7 +53,7 @@ export const ProductRadarChart: React.FC<{ products: DsmtProduct[] }> = ({ produ
           });
           return (
             <g key={p.id}>
-              <polygon points={pts.map((q) => `${q.x},${q.y}`).join(' ')} fill={`${color}26`} stroke={color} strokeWidth={1.75} />
+              <polygon points={pts.map((q) => `${q.x},${q.y}`).join(' ')} fill={`color-mix(in srgb, ${color} 15%, transparent)`} stroke={color} strokeWidth={1.75} />
               {pts.map((q, i) => <circle key={i} cx={q.x} cy={q.y} r={2.5} fill={color} />)}
             </g>
           );
@@ -64,7 +64,7 @@ export const ProductRadarChart: React.FC<{ products: DsmtProduct[] }> = ({ produ
         {products.map((p, idx) => (
           <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: SERIES_COLORS[idx % SERIES_COLORS.length] }} />
-            <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.75)' }}>{labelOf(p)}</Typography>
+            <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.75)' }}>{labelOf(p)}</Typography>
           </Box>
         ))}
       </Box>
@@ -100,7 +100,7 @@ export const ProductBarChart: React.FC<{ products: DsmtProduct[] }> = ({ product
       <ToggleButtonGroup
         exclusive size="small" value={metric}
         onChange={(_, v) => { if (v) setMetric(v); }}
-        sx={{ mb: 1.5, '& .MuiToggleButton-root': { color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)', fontSize: 11, textTransform: 'none', py: 0.25, px: 1.25 }, '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgba(236,64,122,0.6) !important' } }}
+        sx={{ mb: 1.5, '& .MuiToggleButton-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', fontSize: 11, textTransform: 'none', py: 0.25, px: 1.25 }, '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgba(236,64,122,0.6) !important' } }}
       >
         {BAR_METRICS.map((m) => <ToggleButton key={m.key} value={m.key}>{m.label}</ToggleButton>)}
       </ToggleButtonGroup>
@@ -113,10 +113,10 @@ export const ProductBarChart: React.FC<{ products: DsmtProduct[] }> = ({ product
           return (
             <Box key={p.id}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.75)', maxWidth: 200 }}>{labelOf(p)}</Typography>
-                <Typography sx={{ fontSize: 10.5, color: '#fff', fontWeight: 600 }}>{v ? fmt(v) : '—'}</Typography>
+                <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.75)', maxWidth: 200 }}>{labelOf(p)}</Typography>
+                <Typography sx={{ fontSize: 10.5, color: 'var(--brand-fg)', fontWeight: 600 }}>{v ? fmt(v) : '—'}</Typography>
               </Box>
-              <Box sx={{ height: 8, borderRadius: 4, bgcolor: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+              <Box sx={{ height: 8, borderRadius: 4, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', overflow: 'hidden' }}>
                 <Box sx={{ width: `${pct}%`, height: '100%', borderRadius: 4, bgcolor: color, transition: 'width 0.2s' }} />
               </Box>
             </Box>
@@ -124,7 +124,7 @@ export const ProductBarChart: React.FC<{ products: DsmtProduct[] }> = ({ product
         })}
       </Box>
       {isPrice && (
-        <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.4)', mt: 1 }}>
+        <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>
           ※ 棒は実価格。レーダーの「価格」軸は安いほど高スコアに正規化しています。
         </Typography>
       )}

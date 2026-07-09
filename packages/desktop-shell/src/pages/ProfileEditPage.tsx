@@ -59,12 +59,12 @@ const SOCIAL_FIELDS: { key: keyof EditableProfile['socials']; label: string; pla
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
-    bgcolor: 'rgba(255,255,255,0.04)',
+    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
     color: BRAND.text,
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+    '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
+    '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
   },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
+  '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' },
 };
 
 const ProfileEditPage: React.FC = () => {
@@ -196,7 +196,7 @@ const ProfileEditPage: React.FC = () => {
           variant="contained" size="small" onClick={handleSave} disabled={saving || loading}
           sx={{ borderRadius: '20px', fontWeight: 700, px: 3 }}
         >
-          {saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : '保存'}
+          {saving ? <CircularProgress size={18} sx={{ color: 'var(--brand-fg)' }} /> : '保存'}
         </Button>
       </Box>
 
@@ -212,15 +212,15 @@ const ProfileEditPage: React.FC = () => {
             sx={{
               mt: 2, position: 'relative', width: '100%', height: isMobile ? 120 : 180,
               borderRadius: '12px', overflow: 'hidden', cursor: 'pointer',
-              bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
               backgroundImage: form.bannerURL ? `url(${form.bannerURL})` : 'none',
               backgroundSize: 'cover', backgroundPosition: 'center',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.35)' }} />
-            <Box sx={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
-              {uploadingBanner ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : (
+            <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))' }} />
+            <Box sx={{ position: 'relative', textAlign: 'center', color: 'var(--brand-fg)' }}>
+              {uploadingBanner ? <CircularProgress size={24} sx={{ color: 'var(--brand-fg)' }} /> : (
                 <>
                   <PhotoCameraRoundedIcon />
                   <Typography variant="caption" sx={{ display: 'block' }}>バナー画像を変更</Typography>
@@ -243,11 +243,11 @@ const ProfileEditPage: React.FC = () => {
                 onClick={() => avatarInputRef.current?.click()}
                 sx={{
                   position: 'absolute', bottom: -4, right: -4, width: 32, height: 32,
-                  bgcolor: 'primary.main', color: '#fff', border: `2px solid ${BRAND.bg}`,
+                  bgcolor: 'primary.main', color: 'var(--brand-fg)', border: `2px solid ${BRAND.bg}`,
                   '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
-                {uploadingAvatar ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : <PhotoCameraRoundedIcon sx={{ fontSize: 16 }} />}
+                {uploadingAvatar ? <CircularProgress size={16} sx={{ color: 'var(--brand-fg)' }} /> : <PhotoCameraRoundedIcon sx={{ fontSize: 16 }} />}
               </IconButton>
             </Box>
           </Box>
@@ -265,8 +265,8 @@ const ProfileEditPage: React.FC = () => {
             </TextField>
             <TextField label="連絡先メール" value={form.contactEmail} onChange={handleField('contactEmail')} fullWidth size="small" type="email" sx={inputSx} />
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 1 }} />
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 1 }} />
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
               SNS・リンク
             </Typography>
             {SOCIAL_FIELDS.map(f => (

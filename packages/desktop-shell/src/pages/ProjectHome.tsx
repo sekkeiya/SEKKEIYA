@@ -14,7 +14,7 @@ import { WorkFilesList } from '../components/Projects/WorkFilesList';
 import { AllProjectsFilesList } from '../components/Projects/AllProjectsFilesList';
 import { QuickStartWorkFiles } from '../components/Projects/QuickStartWorkFiles';
 import { SchedulesTasksList } from '../components/Projects/SchedulesTasksList';
-import { ProjectActivityFeed } from '../components/Projects/ProjectActivityFeed';
+import { ResearchMemoTab } from '../components/Projects/ResearchMemoTab';
 import { ProjectSiteCanvas } from '../features/sites/ProjectSiteCanvas';
 import { useProjectSiteStore } from '../store/useProjectSiteStore';
 
@@ -180,17 +180,17 @@ const ProjectHome: React.FC = () => {
     { id: 'schedule', label: 'Schedules & Tasks' },
     { id: 'cadfiles', label: 'CAD Files' },
     { id: 'workfiles', label: 'Work Files' },
-    { id: 'memo', label: 'Memo' },
+    { id: 'memo', label: 'Research & Memo' },
   ];
 
   // schedule/memo タブは allMode で動作するためプロジェクト未選択でも表示する
   if (!activeProject && activeProjectTab !== 'schedule' && activeProjectTab !== 'memo') {
     return (
       <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, boxSizing: 'border-box' }}>
-        <Box sx={{ width: '100%', maxWidth: 640, textAlign: 'center', p: 5, border: `1px dashed rgba(255,255,255,0.15)`, borderRadius: 4, bgcolor: 'rgba(0,0,0,0.2)' }}>
-          <LayoutTemplate size={48} color="rgba(255,255,255,0.2)" style={{ marginBottom: 16 }} />
-          <Typography variant="h6" color="#fff" sx={{ fontWeight: 600, mb: 1 }}>No Project Selected</Typography>
-          <Typography color="rgba(255,255,255,0.5)" variant="body2">
+        <Box sx={{ width: '100%', maxWidth: 640, textAlign: 'center', p: 5, border: `1px dashed rgb(var(--brand-fg-rgb) / 0.15)`, borderRadius: 4, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))' }}>
+          <LayoutTemplate size={48} style={{ marginBottom: 16, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
+          <Typography variant="h6" color="var(--brand-fg)" sx={{ fontWeight: 600, mb: 1 }}>No Project Selected</Typography>
+          <Typography color="rgb(var(--brand-fg-rgb) / 0.5)" variant="body2">
             左側のサイドバーからプロジェクトを選択して、含まれるワークスペースやリソースを表示してください。
           </Typography>
         </Box>
@@ -227,9 +227,9 @@ const ProjectHome: React.FC = () => {
             textTransform: "none",
             fontWeight: activeProjectTab === s.id ? 700 : 500,
             fontSize: 13,
-            color: activeProjectTab === s.id ? "#fff" : "rgba(255,255,255,0.6)",
+            color: activeProjectTab === s.id ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.6)",
             transition: "color 0.2s",
-            "&:hover": { color: "#fff" },
+            "&:hover": { color: "var(--brand-fg)" },
           }}
         />
       ))}
@@ -237,14 +237,14 @@ const ProjectHome: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", minWidth: 0, bgcolor: "rgba(10, 15, 25, 0.4)", overflow: activeProjectTab === 'schedule' ? 'hidden' : 'auto', boxSizing: "border-box", scrollBehavior: "smooth" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", minWidth: 0, bgcolor: "light-dark(rgba(255, 255, 255, 0.5), rgba(10, 15, 25, 0.4))", overflow: (activeProjectTab === 'schedule' || activeProjectTab === 'memo') ? 'hidden' : 'auto', boxSizing: "border-box", scrollBehavior: "smooth" }}>
 
       {/* タブ行（サイトツールバーに統合していないときのみ独立表示） */}
       {!mergeTabsIntoToolbar && (
         <Box sx={{
           px: { xs: 2, md: 3, lg: 4 },
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
-          bgcolor: "rgba(10, 15, 25, 0.8)",
+          borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
+          bgcolor: "light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.8))",
           backdropFilter: "blur(10px)",
           display: "flex",
           alignItems: "center",
@@ -277,8 +277,8 @@ const ProjectHome: React.FC = () => {
           <SchedulesTasksList project={activeProject ?? null} />
         </Box>
       ) : activeProjectTab === 'memo' ? (
-        <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <ProjectActivityFeed />
+        <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <ResearchMemoTab />
         </Box>
       ) : null}
 

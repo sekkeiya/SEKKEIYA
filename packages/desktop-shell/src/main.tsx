@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 // エディトリアル(誌面)テーマ用の Web フォント（オフライン同梱）
 import '@fontsource/shippori-mincho/400.css'
@@ -26,11 +25,14 @@ const isCapture = params.get('capture') === 'true';
 const isSearchWindow = params.get('searchWindow') === 'true';
 const isReaderWindow = params.get('readerWindow') === 'true';
 
+// ★ StrictMode は意図的に外している。StrictMode は dev で全 effect を二重実行するため、
+// アプリ全体で 100 本超の Firestore onSnapshot が subscribe→unsubscribe→subscribe と
+// ミリ秒単位で張り替わり、firebase-js-sdk の既知バグ（WatchChangeAggregator の
+// INTERNAL ASSERTION FAILED ca9/b815, firebase-js-sdk#9267・未修正）を高確率で誘発する。
+// 一度発生すると Firestore クライアントが汚染され、以降の全読み書きが失敗する。
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {isCapture ? <CaptureOverlay />
-      : isSearchWindow ? <SearchWindow />
-      : isReaderWindow ? <ReaderWindow />
-      : <App />}
-  </StrictMode>,
+  isCapture ? <CaptureOverlay />
+    : isSearchWindow ? <SearchWindow />
+    : isReaderWindow ? <ReaderWindow />
+    : <App />,
 )

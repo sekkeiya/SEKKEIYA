@@ -214,7 +214,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
             const x = d.data();
             journals.push({
               id: d.id,
-              icon: <ArticleRoundedIcon sx={{ fontSize: 14, color: '#ffd740' }} />,
+              icon: <ArticleRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#ad8900, #ffd740)' }} />,
               title: x.title || (x.content ?? '').slice(0, 40) || '無題のメモ',
               subtitle: item.project.name,
               onOpen: () => openProject(item.project.id, 'memo'),
@@ -251,7 +251,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           .slice(0, 10)
           .forEach(p => push({
             id: `proj-${p.id}`, section: 'プロジェクト',
-            icon: <FolderRoundedIcon sx={{ fontSize: 16, color: '#8ab4f8' }} />,
+            icon: <FolderRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#0a45a4, #8ab4f8)' }} />,
             title: p.name,
             subtitle: p.description || 'プロジェクトを開く',
             onOpen: () => openProject(p.id),
@@ -274,7 +274,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
             const x = d.data() as any;
             push({
               id: `rag-${d.id}`, section: 'ナレッジ (RAG)',
-              icon: <MenuBookRoundedIcon sx={{ fontSize: 16, color: '#e2a6ff' }} />,
+              icon: <MenuBookRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#7500ad, #e2a6ff)' }} />,
               title: x.title || '無題のナレッジ',
               subtitle: x.summary?.slice(0, 60) || x.sourceFile || 'AI Studio のナレッジ',
               onOpen: () => { useAppStore.getState().setCurrentMainView('ai-studio'); },
@@ -287,10 +287,10 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           .forEach(d => {
             const x = d.data() as any;
             push({
-              id: `drive-${d.id}`, section: 'AI Drive',
-              icon: <CloudRoundedIcon sx={{ fontSize: 16, color: '#4fc3f7' }} />,
+              id: `drive-${d.id}`, section: 'SEKKEIYA Drive',
+              icon: <CloudRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#0875a6, #4fc3f7)' }} />,
               title: x.name || '無題のファイル',
-              subtitle: [x.type, x.memo].filter(Boolean).join(' ・ ') || 'AI Drive の資産',
+              subtitle: [x.type, x.memo].filter(Boolean).join(' ・ ') || 'SEKKEIYA Drive の資産',
               onOpen: () => { useAppStore.getState().setAIDriveOpen(true); },
             });
           });
@@ -303,7 +303,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
               const x = d.data() as any;
               push({
                 id: `journal-${item!.project.id}-${d.id}`, section: 'ジャーナル・メモ',
-                icon: <ArticleRoundedIcon sx={{ fontSize: 16, color: '#ffd740' }} />,
+                icon: <ArticleRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#ad8900, #ffd740)' }} />,
                 title: x.title || (x.content ?? '').slice(0, 30) || '無題のメモ',
                 subtitle: `${item!.project.name} の Memo`,
                 onOpen: () => openProject(item!.project.id, 'memo'),
@@ -373,7 +373,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
             const x = d.data() as any;
             push({
               id: `asset-${d.id}`, section: '公開アセット',
-              icon: <CollectionsRoundedIcon sx={{ fontSize: 16, color: '#fa709a' }} />,
+              icon: <CollectionsRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#a80637, #fa709a)' }} />,
               title: x.name || '無題のアセット',
               subtitle: x.type || 'Gallery で表示',
               onOpen: () => { useAppStore.getState().setCurrentMainView('gallery'); },
@@ -487,7 +487,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
       sx={embedded ? {
         position: 'fixed', inset: 0,
         width: '100%', height: '100%',
-        bgcolor: 'rgba(10,13,22,1)',
+        bgcolor: 'light-dark(rgba(252,253,254,1), rgba(10,13,22,1))',
         display: 'flex', flexDirection: 'column',
         userSelect: 'none',
       } : {
@@ -497,11 +497,11 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
         width: PANEL_W,
         maxWidth: 'calc(100vw - 32px)',
         zIndex: 1400,
-        bgcolor: 'rgba(10,13,22,0.97)',
+        bgcolor: 'light-dark(rgba(252,253,254,0.97), rgba(10,13,22,0.97))',
         backdropFilter: 'blur(28px)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
         borderRadius: 3,
-        boxShadow: '0 28px 72px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)',
+        boxShadow: '0 28px 72px rgba(0,0,0,0.8), 0 0 0 1px rgb(var(--brand-fg-rgb) / 0.04)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -520,16 +520,16 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           display: 'flex', alignItems: 'center', gap: 1,
           flexShrink: 0,
           cursor: embedded ? 'default' : 'grab',
-          bgcolor: 'rgba(255,255,255,0.02)',
-          borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.06)',
+          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
+          borderBottom: collapsed ? 'none' : '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
           '&:active': embedded ? undefined : { cursor: 'grabbing' },
         }}
       >
         {/* ドラッグハンドル */}
-        {!embedded && <DragIndicatorRoundedIcon sx={{ fontSize: 15, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />}
+        {!embedded && <DragIndicatorRoundedIcon sx={{ fontSize: 15, color: 'rgb(var(--brand-fg-rgb) / 0.2)', flexShrink: 0 }} />}
 
         {/* タイトル */}
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.8px', flex: 1, lineHeight: 1 }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.5)', letterSpacing: '0.8px', flex: 1, lineHeight: 1 }}>
           SEKKEIYA SEARCH
         </Typography>
 
@@ -546,14 +546,14 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
               sx={{
                 px: 1, py: 0.25, borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
                 border: '1px solid',
-                borderColor: scope === s ? `${accent}73` : 'rgba(255,255,255,0.1)',
+                borderColor: scope === s ? `${accent}73` : 'rgb(var(--brand-fg-rgb) / 0.1)',
                 bgcolor: scope === s ? `${accent}24` : 'transparent',
-                '&:hover': { bgcolor: scope === s ? undefined : 'rgba(255,255,255,0.06)' },
+                '&:hover': { bgcolor: scope === s ? undefined : 'rgb(var(--brand-fg-rgb) / 0.06)' },
               }}
             >
               <Typography sx={{
                 fontSize: 10, fontWeight: 700, lineHeight: 1,
-                color: scope === s ? accent : 'rgba(255,255,255,0.4)',
+                color: scope === s ? accent : 'rgb(var(--brand-fg-rgb) / 0.4)',
               }}>
                 {label}
               </Typography>
@@ -568,7 +568,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           {!embedded && isTauri() && (
             <Tooltip title="別ウィンドウで開く（外に出す）">
               <IconButton size="small" onClick={() => { try { openSearchWindow(); onClose(); } catch (e) { console.error(e); } }}
-                sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#8ab4f8' }, p: 0.4 }}>
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'light-dark(#0a45a4, #8ab4f8)' }, p: 0.4 }}>
                 <OpenInFullRoundedIcon sx={{ fontSize: 13 }} />
               </IconButton>
             </Tooltip>
@@ -576,7 +576,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           {!embedded && (
             <Tooltip title={pinned ? 'ピン留め解除（マウスが外れると折りたたむ）' : 'ピン留め（常に開いたまま）'}>
               <IconButton size="small" onClick={() => { setPinned(v => { const next = !v; if (next) setCollapsed(false); return next; }); }}
-                sx={{ color: pinned ? '#ffd740' : 'rgba(255,255,255,0.3)', '&:hover': { color: pinned ? '#ffd740' : '#fff' }, p: 0.4 }}>
+                sx={{ color: pinned ? 'light-dark(#ad8900, #ffd740)' : 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: pinned ? 'light-dark(#ad8900, #ffd740)' : 'var(--brand-fg)' }, p: 0.4 }}>
                 {pinned ? <PushPinRoundedIcon sx={{ fontSize: 13 }} /> : <PushPinOutlinedIcon sx={{ fontSize: 13 }} />}
               </IconButton>
             </Tooltip>
@@ -584,7 +584,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           {!embedded && (
             <Tooltip title={collapsed ? '展開' : '最小化'}>
               <IconButton size="small" onClick={() => setCollapsed(v => !v)}
-                sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff' }, p: 0.4 }}>
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'var(--brand-fg)' }, p: 0.4 }}>
                 {collapsed
                   ? <UnfoldMoreRoundedIcon sx={{ fontSize: 14 }} />
                   : <RemoveRoundedIcon sx={{ fontSize: 14 }} />}
@@ -593,7 +593,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           )}
           <Tooltip title="閉じる (Esc)">
             <IconButton size="small" onClick={onClose}
-              sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#f87171' }, p: 0.4 }}>
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'light-dark(#a50808, #f87171)' }, p: 0.4 }}>
               <CloseRoundedIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
@@ -606,11 +606,11 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
           {/* 検索バー */}
           <Box sx={{
             px: 2, py: 1.1, display: 'flex', alignItems: 'center', gap: 1.25,
-            flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)',
+            flexShrink: 0, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
           }}>
             {loading
-              ? <CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
-              : <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.38)', flexShrink: 0 }} />
+              ? <CircularProgress size={16} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }} />
+              : <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.38)', flexShrink: 0 }} />
             }
             <TextField
               inputRef={inputRef}
@@ -624,21 +624,21 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
               InputProps={{ disableUnderline: true }}
               sx={{
                 '& .MuiInputBase-input': {
-                  color: '#fff', fontSize: 14, fontWeight: 400, py: 0,
-                  '&::placeholder': { color: 'rgba(255,255,255,0.26)', opacity: 1 },
+                  color: 'var(--brand-fg)', fontSize: 14, fontWeight: 400, py: 0,
+                  '&::placeholder': { color: 'rgb(var(--brand-fg-rgb) / 0.26)', opacity: 1 },
                 },
               }}
             />
             {queryText && (
               <IconButton size="small" onClick={() => setQueryText('')}
-                sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff' }, p: 0.4, flexShrink: 0 }}>
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'var(--brand-fg)' }, p: 0.4, flexShrink: 0 }}>
                 <CloseRoundedIcon sx={{ fontSize: 14 }} />
               </IconButton>
             )}
           </Box>
 
           {/* モード切替（縦軸）: すべて ＋ S.Library の種類（家具/テクスチャ・素材/イメージ・パース/建材・仕上げ）。docs/16 */}
-          <Box sx={{ px: 2, py: 0.85, display: 'flex', alignItems: 'center', gap: 0.75, rowGap: 0.75, flexWrap: 'wrap', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Box sx={{ px: 2, py: 0.85, display: 'flex', alignItems: 'center', gap: 0.75, rowGap: 0.75, flexWrap: 'wrap', flexShrink: 0, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
             {[
               ...(embedded ? [] : [{ id: 'all' as SearchMode, label: 'すべて', icon: <SearchRoundedIcon sx={{ fontSize: 13 }} /> }]),
               ...PRODUCT_SEARCH_MODES.map(m => ({ id: m.kind as SearchMode, label: m.label, icon: MODE_ICON[m.kind] })),
@@ -650,10 +650,10 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                   display: 'flex', alignItems: 'center', gap: 0.5,
                   px: 1, py: 0.4, borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
                   border: '1px solid',
-                  borderColor: mode === m.id ? 'rgba(138,180,248,0.45)' : 'rgba(255,255,255,0.1)',
+                  borderColor: mode === m.id ? 'rgba(138,180,248,0.45)' : 'rgb(var(--brand-fg-rgb) / 0.1)',
                   bgcolor: mode === m.id ? 'rgba(138,180,248,0.14)' : 'transparent',
-                  color: mode === m.id ? '#8ab4f8' : 'rgba(255,255,255,0.45)',
-                  '&:hover': { bgcolor: mode === m.id ? undefined : 'rgba(255,255,255,0.06)' },
+                  color: mode === m.id ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  '&:hover': { bgcolor: mode === m.id ? undefined : 'rgb(var(--brand-fg-rgb) / 0.06)' },
                 }}
               >
                 {m.icon}
@@ -667,7 +667,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                     onClick={() => fileInputRef.current?.click()}
                     sx={{
                       display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.4, borderRadius: 10,
-                      cursor: 'pointer', border: '1px solid rgba(226,166,255,0.4)', color: '#e2a6ff',
+                      cursor: 'pointer', border: '1px solid rgba(226,166,255,0.4)', color: 'light-dark(#7500ad, #e2a6ff)',
                       '&:hover': { bgcolor: 'rgba(226,166,255,0.12)' },
                     }}
                   >
@@ -676,13 +676,13 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                   </Box>
                 </Tooltip>
                 {indexCount != null && (
-                  <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.32)' }}>
+                  <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.32)' }}>
                     索引済み {indexCount.toLocaleString()} 件
                   </Typography>
                 )}
                 {!embedded && (
                   <Tooltip title="S.Library で索引を増やす">
-                    <Box onClick={goToLibrary} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#7dd3fc' } }}>
+                    <Box onClick={goToLibrary} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'light-dark(#0474a9, #7dd3fc)' } }}>
                       <OpenInNewRoundedIcon sx={{ fontSize: 13 }} />
                     </Box>
                   </Tooltip>
@@ -709,30 +709,30 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                 {queryImage && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5, p: 1, borderRadius: 1.5, bgcolor: 'rgba(226,166,255,0.08)', border: '1px solid rgba(226,166,255,0.25)' }}>
                     <img src={queryImage} alt="クエリ画像" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6 }} />
-                    <Typography sx={{ flex: 1, fontSize: 11.5, color: '#e2a6ff', fontWeight: 600 }}>この画像に近い順</Typography>
-                    <IconButton size="small" onClick={() => setQueryImage(null)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+                    <Typography sx={{ flex: 1, fontSize: 11.5, color: 'light-dark(#7500ad, #e2a6ff)', fontWeight: 600 }}>この画像に近い順</Typography>
+                    <IconButton size="small" onClick={() => setQueryImage(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
                       <CloseRoundedIcon sx={{ fontSize: 14 }} />
                     </IconButton>
                   </Box>
                 )}
                 {productLoading && (
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 3 }}>
-                    <CircularProgress size={18} sx={{ color: 'rgba(255,255,255,0.25)' }} />
+                    <CircularProgress size={18} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} />
                     {queryImage && (
-                      <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.32)' }}>画像を解析中…（初回はモデル読込に時間がかかります）</Typography>
+                      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.32)' }}>画像を解析中…（初回はモデル読込に時間がかかります）</Typography>
                     )}
                   </Box>
                 )}
                 {!productLoading && indexCount === 0 && (
                   <Box sx={{ textAlign: 'center', py: 5 }}>
-                    <WeekendRoundedIcon sx={{ fontSize: 30, color: 'rgba(255,255,255,0.3)', mb: 0.75 }} />
+                    <WeekendRoundedIcon sx={{ fontSize: 30, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mb: 0.75 }} />
                     <Typography sx={{ fontSize: 12.5, color: BRAND.sub }}>まだ商品が索引されていません</Typography>
                     <Typography sx={{ fontSize: 11, color: BRAND.sub2, mt: 0.5, mb: 1.5 }}>
                       S.Library で「おすすめソースを追加」すると、ここで商品を検索できます
                     </Typography>
                     {!embedded && (
                       <Button size="small" variant="outlined" startIcon={<WeekendRoundedIcon sx={{ fontSize: 16 }} />} onClick={goToLibrary}
-                        sx={{ color: '#7dd3fc', borderColor: 'rgba(56,189,248,0.5)', '&:hover': { borderColor: '#38bdf8', bgcolor: 'rgba(56,189,248,0.08)' } }}>
+                        sx={{ color: 'light-dark(#0474a9, #7dd3fc)', borderColor: 'rgba(56,189,248,0.5)', '&:hover': { borderColor: '#38bdf8', bgcolor: 'rgba(56,189,248,0.08)' } }}>
                         S.Library で索引を増やす
                       </Button>
                     )}
@@ -758,7 +758,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
             {/* ローディング */}
             {(loading || recentLoading) && (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                <CircularProgress size={18} sx={{ color: 'rgba(255,255,255,0.25)' }} />
+                <CircularProgress size={18} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} />
               </Box>
             )}
 
@@ -769,8 +769,8 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                 {recentProjects.length > 0 && (
                   <Box sx={{ px: 2, pt: 1.75 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.1 }}>
-                      <AccessTimeRoundedIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }} />
-                      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', fontWeight: 700 }}>
+                      <AccessTimeRoundedIcon sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.28)' }} />
+                      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.28)', fontWeight: 700 }}>
                         最近のプロジェクト
                       </Typography>
                     </Box>
@@ -781,8 +781,8 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                           onClick={() => openProject(p.id)}
                           sx={{
                             p: 1.5, borderRadius: 2, cursor: 'pointer',
-                            bgcolor: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.07)',
+                            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+                            border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
                             transition: 'all 0.15s',
                             '&:hover': {
                               bgcolor: 'rgba(138,180,248,0.07)',
@@ -803,12 +803,12 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                               ? <Avatar src={p.iconUrl} sx={{ width: 34, height: 34, borderRadius: 1.5 }} />
                               : p.iconEmoji
                                 ? <Typography sx={{ fontSize: 19, lineHeight: 1 }}>{p.iconEmoji}</Typography>
-                                : <FolderRoundedIcon sx={{ fontSize: 18, color: '#8ab4f8' }} />}
+                                : <FolderRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#0a45a4, #8ab4f8)' }} />}
                           </Box>
-                          <Typography noWrap sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.88)', lineHeight: 1.3 }}>
+                          <Typography noWrap sx={{ fontSize: 12, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.88)', lineHeight: 1.3 }}>
                             {p.name}
                           </Typography>
-                          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', lineHeight: 1 }}>
+                          <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.32)', lineHeight: 1 }}>
                             {p.isTeam ? 'チーム' : `${(p.memberIds as string[] | undefined)?.length ?? 1}人 + AI`}
                           </Typography>
                         </Box>
@@ -821,8 +821,8 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                 {recentSites.length > 0 && (
                   <Box sx={{ px: 2, pt: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.85 }}>
-                      <LanguageRoundedIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }} />
-                      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', fontWeight: 700 }}>
+                      <LanguageRoundedIcon sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.28)' }} />
+                      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.28)', fontWeight: 700 }}>
                         公開サイト
                       </Typography>
                     </Box>
@@ -834,7 +834,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                           display: 'flex', alignItems: 'center', gap: 1.5,
                           py: 0.85, px: 1, borderRadius: 1.5, cursor: 'pointer', mx: -1,
                           transition: 'background 0.12s',
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+                          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' },
                         }}
                       >
                         <Box sx={{
@@ -845,11 +845,11 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                           {item.icon}
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+                          <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
                             {item.title}
                           </Typography>
                           {item.subtitle && (
-                            <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.32)' }}>
+                            <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.32)' }}>
                               {item.subtitle}
                             </Typography>
                           )}
@@ -857,7 +857,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                         {item.tag && (
                           <Chip label={item.tag} size="small" sx={{ height: 16, fontSize: 9, fontWeight: 700, color: '#43e97b', bgcolor: 'rgba(67,233,123,0.1)', border: '1px solid rgba(67,233,123,0.2)' }} />
                         )}
-                        <OpenInNewRoundedIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                        <OpenInNewRoundedIcon sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.2)', flexShrink: 0 }} />
                       </Box>
                     ))}
                   </Box>
@@ -867,8 +867,8 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                 {recentJournals.length > 0 && (
                   <Box sx={{ px: 2, pt: 1.75 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.85 }}>
-                      <ArticleRoundedIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }} />
-                      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', fontWeight: 700 }}>
+                      <ArticleRoundedIcon sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.28)' }} />
+                      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.28)', fontWeight: 700 }}>
                         最近のメモ
                       </Typography>
                     </Box>
@@ -880,7 +880,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                           display: 'flex', alignItems: 'center', gap: 1.5,
                           py: 0.85, px: 1, borderRadius: 1.5, cursor: 'pointer', mx: -1,
                           transition: 'background 0.12s',
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+                          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' },
                         }}
                       >
                         <Box sx={{
@@ -891,11 +891,11 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                           {item.icon}
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>
+                          <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 500, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
                             {item.title}
                           </Typography>
                           {item.subtitle && (
-                            <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.32)' }}>
+                            <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.32)' }}>
                               {item.subtitle}
                             </Typography>
                           )}
@@ -908,7 +908,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                 {/* 完全に空の場合 */}
                 {recentProjects.length === 0 && recentSites.length === 0 && recentJournals.length === 0 && (
                   <Box sx={{ textAlign: 'center', py: 5, opacity: 0.4 }}>
-                    <SearchRoundedIcon sx={{ fontSize: 30, color: 'rgba(255,255,255,0.3)', mb: 0.75 }} />
+                    <SearchRoundedIcon sx={{ fontSize: 30, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mb: 0.75 }} />
                     <Typography sx={{ fontSize: 12.5, color: BRAND.sub }}>
                       「あのファイルどこだっけ？」をここで解決
                     </Typography>
@@ -932,10 +932,10 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
             {isSearching && !loading && sections.map(sec => (
               <Box key={sec.name}>
                 <Box sx={{ px: 2, pt: 1.5, pb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', fontWeight: 700 }}>
+                  <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.28)', fontWeight: 700 }}>
                     {sec.name}
                   </Typography>
-                  <Chip label={sec.items.length} size="small" sx={{ height: 14, fontSize: 9, color: 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.06)' }} />
+                  <Chip label={sec.items.length} size="small" sx={{ height: 14, fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.3)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
                 </Box>
                 {sec.items.map(h => (
                   <Box
@@ -945,12 +945,12 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                       px: 2, py: 1,
                       display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
                       transition: 'background 0.12s',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+                      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' },
                     }}
                   >
                     <Box sx={{
                       width: 28, height: 28, borderRadius: 1.5, flexShrink: 0,
-                      bgcolor: 'rgba(255,255,255,0.05)',
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       {h.icon}
@@ -966,7 +966,7 @@ export const GlobalSearchDialog: React.FC<{ open: boolean; onClose: () => void; 
                       )}
                     </Box>
                     {h.external && (
-                      <OpenInNewRoundedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', flexShrink: 0 }} />
+                      <OpenInNewRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.22)', flexShrink: 0 }} />
                     )}
                   </Box>
                 ))}

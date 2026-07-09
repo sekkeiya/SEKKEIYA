@@ -1,5 +1,5 @@
-// S.Models 家具ピッカー（Chat 家具選定フロー § 手動選択パス）
-// open_furniture_picker ツールで起動し、ユーザーが S.Models で選択 → confirm() で
+// S.Model 家具ピッカー（Chat 家具選定フロー § 手動選択パス）
+// open_furniture_picker ツールで起動し、ユーザーが S.Model で選択 → confirm() で
 // useCoreOrchestrator.resumeWithToolResult を呼んでループを再開する。
 
 import { create } from 'zustand';
@@ -7,7 +7,7 @@ import { create } from 'zustand';
 interface FurniturePickerState {
   isOpen: boolean;
   toolUseId: string | null;
-  /** furniture_catalog_search が返した候補 ID（S.Models でハイライト用）。 */
+  /** furniture_catalog_search が返した候補 ID（S.Model でハイライト用）。 */
   candidateIds: string[];
   /** ユーザーが選択した ID 集合。 */
   selectedIds: string[];
@@ -51,7 +51,7 @@ export const useFurniturePickerStore = create<FurniturePickerState>((set, get) =
     );
     if (!ok) {
       const { sendMessageToOrchestrator } = useCoreOrchestrator.getState();
-      sendMessageToOrchestrator(`S.Modelsで${selectedIds.length}件の家具を選択しました（ID: ${selectedIds.join(', ')}）。プロジェクトに追加してください。`, { source: 'sidebar_chat' });
+      sendMessageToOrchestrator(`S.Modelで${selectedIds.length}件の家具を選択しました（ID: ${selectedIds.join(', ')}）。プロジェクトに追加してください。`, { source: 'sidebar_chat' });
     }
   },
 

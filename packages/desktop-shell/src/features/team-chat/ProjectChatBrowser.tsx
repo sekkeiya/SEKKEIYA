@@ -46,7 +46,7 @@ const StatusIndicator: React.FC<{ status: ChatStatus }> = ({ status }) => {
     ? { bgcolor: '#ffb74d' }
     : status === 'ready'
       ? { bgcolor: '#8ab4f8' }
-      : { bgcolor: 'transparent', border: '1.5px solid rgba(255,255,255,0.28)' };
+      : { bgcolor: 'transparent', border: '1.5px solid rgb(var(--brand-fg-rgb) / 0.28)' };
   return <Box sx={{ width: 8, height: 8, borderRadius: '50%', ...dotSx }} />;
 };
 
@@ -55,9 +55,9 @@ const ChatRow: React.FC<{ label: string; active: boolean; onClick: () => void; i
     onClick={onClick}
     sx={{
       display: 'flex', alignItems: 'center', gap: 0.75, pl: indent, pr: 0.5, py: 0.45, mx: 0.5, borderRadius: 1, cursor: 'pointer',
-      color: active ? '#fff' : 'rgba(255,255,255,0.7)',
+      color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
       bgcolor: active ? 'rgba(138,180,248,0.16)' : 'transparent',
-      '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.2)' : 'rgba(255,255,255,0.06)' },
+      '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
       '&:hover .chat-del': { opacity: 1 },
     }}
   >
@@ -71,7 +71,7 @@ const ChatRow: React.FC<{ label: string; active: boolean; onClick: () => void; i
           className="chat-del"
           size="small"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          sx={{ p: 0.25, opacity: 0, flexShrink: 0, color: 'rgba(255,255,255,0.4)', transition: 'opacity 0.12s', '&:hover': { color: '#e57373', bgcolor: 'rgba(229,115,115,0.1)' } }}
+          sx={{ p: 0.25, opacity: 0, flexShrink: 0, color: 'rgb(var(--brand-fg-rgb) / 0.4)', transition: 'opacity 0.12s', '&:hover': { color: 'light-dark(#921b1b, #e57373)', bgcolor: 'rgba(229,115,115,0.1)' } }}
         >
           <DeleteOutlineRoundedIcon sx={{ fontSize: '0.95rem' }} />
         </IconButton>
@@ -164,15 +164,15 @@ const ProjectChats: React.FC<{
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) createChat(); }}
             onBlur={() => { if (!newName.trim()) setAdding(false); }}
             placeholder="チャット名"
-            sx={{ flex: 1, '& .MuiInputBase-root': { color: '#fff', fontSize: 11.5, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' } }}
+            sx={{ flex: 1, '& .MuiInputBase-root': { color: 'var(--brand-fg)', fontSize: 11.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
           />
-          <IconButton size="small" onClick={createChat} disabled={creating} sx={{ color: '#8ab4f8' }}>
+          <IconButton size="small" onClick={createChat} disabled={creating} sx={{ color: 'light-dark(#0a45a4, #8ab4f8)' }}>
             {creating ? <CircularProgress size={13} sx={{ color: 'inherit' }} /> : <AddRoundedIcon sx={{ fontSize: '1rem' }} />}
           </IconButton>
         </Box>
       ) : (
         // マイP＝即作成（仮名→内容で自動命名）。チームP＝名前入力を開く。
-        <Box onClick={() => { if (isTeam) setAdding(true); else createMyChatInstant(); }} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 3.25, pr: 1, py: 0.4, mx: 0.5, borderRadius: 1, cursor: 'pointer', color: 'rgba(255,255,255,0.45)', '&:hover': { color: '#8ab4f8', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+        <Box onClick={() => { if (isTeam) setAdding(true); else createMyChatInstant(); }} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 3.25, pr: 1, py: 0.4, mx: 0.5, borderRadius: 1, cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.45)', '&:hover': { color: 'light-dark(#0a45a4, #8ab4f8)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
           <AddRoundedIcon sx={{ fontSize: '0.85rem' }} />
           <Typography sx={{ fontSize: 11.5 }}>新規チャット</Typography>
         </Box>
@@ -246,17 +246,17 @@ const ProjectChatBrowser: React.FC<{
           onClick={() => toggleExpand(p.id)}
           sx={{
             display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.6, mx: 0.5, borderRadius: 1, cursor: 'pointer',
-            color: active ? '#fff' : 'rgba(255,255,255,0.8)',
-            bgcolor: active ? 'rgba(255,255,255,0.05)' : 'transparent',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+            color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.8)',
+            bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.05)' : 'transparent',
+            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
           }}
         >
           {expanded
-            ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
-            : <KeyboardArrowRightRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />}
+            ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', flexShrink: 0 }} />
+            : <KeyboardArrowRightRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', flexShrink: 0 }} />}
           {p.isTeam
-            ? <GroupsRoundedIcon sx={{ fontSize: '0.9rem', color: active ? '#8ab4f8' : 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
-            : <FolderRoundedIcon sx={{ fontSize: '0.9rem', color: active ? '#8ab4f8' : 'rgba(255,255,255,0.4)', flexShrink: 0 }} />}
+            ? <GroupsRoundedIcon sx={{ fontSize: '0.9rem', color: active ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }} />
+            : <FolderRoundedIcon sx={{ fontSize: '0.9rem', color: active ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }} />}
           <Typography noWrap sx={{ fontSize: 12.5, fontWeight: active ? 600 : 400, flex: 1 }}>{p.name}</Typography>
         </Box>
         {expanded && (
@@ -274,12 +274,12 @@ const ProjectChatBrowser: React.FC<{
   const groupHeader = (label: string, expanded: boolean, onToggle: () => void) => (
     <Box
       onClick={onToggle}
-      sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5, mx: 0.5, mt: 0.5, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' } }}
+      sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.5, mx: 0.5, mt: 0.5, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}
     >
       {expanded
-        ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
-        : <KeyboardArrowRightRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />}
-      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{label}</Typography>
+        ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', flexShrink: 0 }} />
+        : <KeyboardArrowRightRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', flexShrink: 0 }} />}
+      <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600 }}>{label}</Typography>
     </Box>
   );
 
@@ -291,21 +291,21 @@ const ProjectChatBrowser: React.FC<{
           onClick={onNewGlobalChat}
           sx={{
             flex: 1, display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.6, borderRadius: 1, cursor: 'pointer',
-            color: '#fff', bgcolor: 'rgba(138,180,248,0.12)', border: '1px solid rgba(138,180,248,0.3)',
+            color: 'var(--brand-fg)', bgcolor: 'rgba(138,180,248,0.12)', border: '1px solid rgba(138,180,248,0.3)',
             '&:hover': { bgcolor: 'rgba(138,180,248,0.2)' },
           }}
         >
-          <AddRoundedIcon sx={{ fontSize: '1rem', color: '#8ab4f8' }} />
+          <AddRoundedIcon sx={{ fontSize: '1rem', color: 'light-dark(#0a45a4, #8ab4f8)' }} />
           <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>新規チャット</Typography>
         </Box>
         <Tooltip title="絞り込み・並び替え">
           <IconButton
             onClick={(e) => setFilterAnchor(e.currentTarget)}
             sx={{
-              flexShrink: 0, borderRadius: 1, border: '1px solid rgba(255,255,255,0.12)',
-              color: filtersActive ? '#8ab4f8' : 'rgba(255,255,255,0.5)',
+              flexShrink: 0, borderRadius: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+              color: filtersActive ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.5)',
               bgcolor: filtersActive ? 'rgba(138,180,248,0.12)' : 'transparent',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' },
+              '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
             }}
           >
             <TuneRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -321,27 +321,27 @@ const ProjectChatBrowser: React.FC<{
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         MenuListProps={{ dense: true }}
-        PaperProps={{ sx: { bgcolor: '#222a36', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 220 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 220 } }}
       >
-        <Typography sx={{ px: 2, pt: 1, pb: 0.5, fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>表示するグループ</Typography>
+        <Typography sx={{ px: 2, pt: 1, pb: 0.5, fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600 }}>表示するグループ</Typography>
         {([['global', 'アカウントサイト'], ['my', 'マイプロジェクト'], ['team', 'チームプロジェクト']] as const).map(([k, label]) => (
           <MenuItem key={k} onClick={() => toggleGroup(k)} sx={{ fontSize: 13 }}>
-            <Checkbox checked={visibleGroups[k]} size="small" sx={{ p: 0.5, mr: 0.5, color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: '#8ab4f8' } }} />
+            <Checkbox checked={visibleGroups[k]} size="small" sx={{ p: 0.5, mr: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: 'light-dark(#0a45a4, #8ab4f8)' } }} />
             {label}
           </MenuItem>
         ))}
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }} />
-        <Typography sx={{ px: 2, pt: 0.5, pb: 0.5, fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>並び順</Typography>
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 0.5 }} />
+        <Typography sx={{ px: 2, pt: 0.5, pb: 0.5, fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600 }}>並び順</Typography>
         {([['recent', '更新が新しい順'], ['name', '名前順']] as const).map(([k, label]) => (
           <MenuItem key={k} onClick={() => setSortMode(k)} sx={{ fontSize: 13 }}>
             <Box sx={{ width: 22, display: 'flex', justifyContent: 'center', mr: 0.5 }}>
-              {sortMode === k && <CheckRoundedIcon sx={{ fontSize: '1rem', color: '#8ab4f8' }} />}
+              {sortMode === k && <CheckRoundedIcon sx={{ fontSize: '1rem', color: 'light-dark(#0a45a4, #8ab4f8)' }} />}
             </Box>
             {label}
           </MenuItem>
         ))}
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }} />
-        <MenuItem onClick={() => { clearFilters(); setFilterAnchor(null); }} sx={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 0.5 }} />
+        <MenuItem onClick={() => { clearFilters(); setFilterAnchor(null); }} sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
           <Box sx={{ width: 22, mr: 0.5 }} />絞り込みをクリア
         </MenuItem>
       </Menu>
@@ -355,14 +355,14 @@ const ProjectChatBrowser: React.FC<{
               onClick={() => setGlobalExpanded(v => !v)}
               sx={{
                 display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.6, mx: 0.5, mt: 0.5, borderRadius: 1, cursor: 'pointer',
-                color: 'rgba(255,255,255,0.85)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+                color: 'rgb(var(--brand-fg-rgb) / 0.85)',
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
               }}
             >
               {globalExpanded
-                ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
-                : <KeyboardArrowRightRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />}
-              <LanguageRoundedIcon sx={{ fontSize: '0.95rem', color: '#8ab4f8', flexShrink: 0 }} />
+                ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', flexShrink: 0 }} />
+                : <KeyboardArrowRightRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', flexShrink: 0 }} />}
+              <LanguageRoundedIcon sx={{ fontSize: '0.95rem', color: 'light-dark(#0a45a4, #8ab4f8)', flexShrink: 0 }} />
               <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, flex: 1 }}>アカウントサイト</Typography>
             </Box>
             {globalExpanded && (
@@ -381,7 +381,7 @@ const ProjectChatBrowser: React.FC<{
                     />
                   );
                 })}
-                <Box onClick={createAccountChat} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 3.25, pr: 1, py: 0.4, mx: 0.5, borderRadius: 1, cursor: 'pointer', color: 'rgba(255,255,255,0.45)', '&:hover': { color: '#8ab4f8', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                <Box onClick={createAccountChat} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 3.25, pr: 1, py: 0.4, mx: 0.5, borderRadius: 1, cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.45)', '&:hover': { color: 'light-dark(#0a45a4, #8ab4f8)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                   <AddRoundedIcon sx={{ fontSize: '0.85rem' }} />
                   <Typography sx={{ fontSize: 11.5 }}>新規チャット</Typography>
                 </Box>
@@ -395,7 +395,7 @@ const ProjectChatBrowser: React.FC<{
         {visibleGroups.team && teamProjects.length > 0 && groupHeader('チームプロジェクト', teamExpanded, () => setTeamExpanded(v => !v))}
         {visibleGroups.team && teamExpanded && teamProjects.map(renderProject)}
         {projects.length === 0 && globalSessions.length === 0 && (
-          <Typography sx={{ px: 1.5, pt: 2, fontSize: 11.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+          <Typography sx={{ px: 1.5, pt: 2, fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.6 }}>
             まだチャットがありません。「新規チャット」から始められます。
           </Typography>
         )}

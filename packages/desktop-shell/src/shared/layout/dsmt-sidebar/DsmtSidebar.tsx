@@ -21,19 +21,19 @@ function ScopeItem({ icon, label, active, onClick, color }: {
         onClick={onClick}
         sx={{
           display: 'flex', alignItems: 'center', px: 1.25, py: 0.75, borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <Box sx={{
           width: 20, height: 20, borderRadius: 1.5,
-          bgcolor: color || 'rgba(255,255,255,0.1)',
+          bgcolor: color || 'rgb(var(--brand-fg-rgb) / 0.1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0,
         }}>
-          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? '#fff' : 'rgba(255,255,255,0.7)' } })}
+          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' } })}
         </Box>
         <Typography sx={{
-          color: active ? '#ffffff' : 'rgba(255,255,255,0.7)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
           fontSize: 12, fontWeight: active ? 600 : 500,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
@@ -95,22 +95,22 @@ export const DsmtSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <TextureRoundedIcon sx={{ fontSize: 14, color: ACCENT }} /> マテリアル管理 / S.Material
         </Typography>
 
         <Box sx={{
           display: 'flex', alignItems: 'center',
-          bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, px: 1.5, py: 0.5,
-          border: '1px solid rgba(255,255,255,0.05)',
-          '&:focus-within': { borderColor: 'rgba(255,255,255,0.15)' },
+          bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.5, py: 0.5,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase
             placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 12, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }}
           />
         </Box>
       </Box>
@@ -134,7 +134,7 @@ export const DsmtSidebar: React.FC = () => {
           />
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
         {/* 個人スコープ */}
         <Box sx={{ mb: 2 }}>
@@ -157,7 +157,7 @@ export const DsmtSidebar: React.FC = () => {
         {/* My Projects */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
               My Projects
             </Typography>
           </Box>
@@ -175,7 +175,7 @@ export const DsmtSidebar: React.FC = () => {
         {/* Team Projects */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
               Team Projects
             </Typography>
           </Box>

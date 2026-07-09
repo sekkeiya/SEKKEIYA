@@ -46,15 +46,15 @@ const SCOPE_BY_AUTO = {
 // すべて下部ギャラリー＋右サイドバー専用パネルで完結する。
 const ITEMS = [
   { key: "autoZone",     label: "自動ゾーニング",      color: "#2dd4bf", icon: <DashboardRoundedIcon /> },
-  { key: "autoSelect",   label: "自動家具選定",        color: "#38bdf8", icon: <ChecklistRoundedIcon /> },
-  { key: "autoLayout",   label: "自動レイアウト",      color: "#c084fc", icon: <AutoFixHighRoundedIcon /> },
-  { key: "autoReplace",  label: "自動家具差し替え",    color: "#fb923c", icon: <SwapHorizRoundedIcon /> },
+  { key: "autoSelect",   label: "自動家具選定",        color: "light-dark(#0676a8, #38bdf8)", icon: <ChecklistRoundedIcon /> },
+  { key: "autoLayout",   label: "自動レイアウト",      color: "light-dark(#5704a9, #c084fc)", icon: <AutoFixHighRoundedIcon /> },
+  { key: "autoReplace",  label: "自動家具差し替え",    color: "light-dark(#aa4e03, #fb923c)", icon: <SwapHorizRoundedIcon /> },
   { key: "autoMaterial", label: "自動マテリアル",      color: "#34d399", icon: <AutoFixHighRoundedIcon /> },
-  { key: "autoFurMat",   label: "自動家具マテリアル",  color: "#a78bfa", icon: <StyleRoundedIcon /> },
-  { key: "autoLabel",    label: "自動ラベル",          color: "#22d3ee", icon: <CategoryRoundedIcon /> },
-  { key: "autoLighting", label: "自動ライティング",    color: "#fbbf24", icon: <LightbulbRoundedIcon /> },
-  { key: "autoRender",   label: "自動パース生成",      color: "#60a5fa", icon: <PhotoCameraRoundedIcon /> },
-  { key: "autoMovie",    label: "自動動画生成",        color: "#f472b6", icon: <MovieCreationRoundedIcon /> },
+  { key: "autoFurMat",   label: "自動家具マテリアル",  color: "light-dark(#2f07a6, #a78bfa)", icon: <StyleRoundedIcon /> },
+  { key: "autoLabel",    label: "自動ラベル",          color: "light-dark(#0c8da1, #22d3ee)", icon: <CategoryRoundedIcon /> },
+  { key: "autoLighting", label: "自動ライティング",    color: "light-dark(#aa7c03, #fbbf24)", icon: <LightbulbRoundedIcon /> },
+  { key: "autoRender",   label: "自動パース生成",      color: "light-dark(#054ea8, #60a5fa)", icon: <PhotoCameraRoundedIcon /> },
+  { key: "autoMovie",    label: "自動動画生成",        color: "light-dark(#a10d5a, #f472b6)", icon: <MovieCreationRoundedIcon /> },
 ];
 
 // 右サイドバーで AutoActionSidePanel（汎用の種別パネル）を使う種別。
@@ -165,7 +165,7 @@ export default function AutoActionStarMenu() {
           sx={{
             width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
             display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-            color: "#fff",
+            color: "var(--brand-fg)",
             background: open
               ? `linear-gradient(180deg, ${alpha("#33405f", 0.95)} 0%, ${alpha("#1a2540", 0.92)} 100%)`
               : `linear-gradient(180deg, ${alpha("#4f8cff", 0.95)} 0%, ${alpha("#2c5fff", 0.92)} 100%)`,
@@ -187,7 +187,7 @@ export default function AutoActionStarMenu() {
             title="AI実行：全自動アクションを組み合わせて内装〜パースまで一気に生成"
             sx={{
               display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0,
-              pl: 0.6, pr: 1.4, py: 0.6, borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", color: "#fff",
+              pl: 0.6, pr: 1.4, py: 0.6, borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap", color: "var(--brand-fg)",
               background: aiSelected
                 ? `linear-gradient(180deg, ${alpha("#c084fc", 0.5)} 0%, ${alpha("#7c3aed", 0.5)} 100%)`
                 : `linear-gradient(180deg, ${alpha("#a855f7", 0.92)} 0%, ${alpha("#6d28d9", 0.92)} 100%)`,
@@ -221,11 +221,11 @@ export default function AutoActionStarMenu() {
                   pointerEvents: "auto",
                   display: "flex", alignItems: "center", gap: 1,
                   pl: 0.6, pr: 1.4, py: 0.6, borderRadius: 999, cursor: "pointer",
-                  color: "#fff",
-                  background: isSelected ? alpha(a.color, 0.28) : alpha("#0b1020", 0.9),
+                  color: "var(--brand-fg)",
+                  background: isSelected ? `color-mix(in srgb, ${a.color} 28%, transparent)` : alpha("#0b1020", 0.9),
                   border: `1px solid ${alpha(a.color, isSelected ? 0.95 : 0.5)}`,
                   boxShadow: isSelected
-                    ? `0 0 0 2px ${alpha(a.color, 0.5)}, 0 8px 22px ${alpha(a.color, 0.4)}`
+                    ? `0 0 0 2px ${`color-mix(in srgb, ${a.color} 50%, transparent)`}, 0 8px 22px ${`color-mix(in srgb, ${a.color} 40%, transparent)`}`
                     : `0 6px 20px ${alpha("#000", 0.45)}`,
                   backdropFilter: "blur(8px)",
                   whiteSpace: "nowrap",

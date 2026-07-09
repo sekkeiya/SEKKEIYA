@@ -202,7 +202,7 @@ const SEED_AI_PROFILES: AiProfile[] = [
   },
   {
     id: 'ai-3dss-classifier:latest',
-    name: 'S.Models アセット自動分類 AI',
+    name: 'S.Model アセット自動分類 AI',
     category: 'Specialized',
     role: 'specialized',
     usageScopes: ['evaluation'],
@@ -217,7 +217,7 @@ const SEED_AI_PROFILES: AiProfile[] = [
   },
   {
     id: 'ai-3dss-recommender:gemini',
-    name: 'S.Models 家具レコメンド AI (Gemini)',
+    name: 'S.Model 家具レコメンド AI (Gemini)',
     category: 'Assistant',
     role: 'assistant',
     usageScopes: ['presentation', 'layout'],

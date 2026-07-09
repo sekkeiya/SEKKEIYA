@@ -170,7 +170,7 @@ export const TeamDetailPage: React.FC = () => {
               label={team.visibility === 'public' ? '公開' : '非公開'}
               size="small"
               sx={{
-                fontSize: 11, bgcolor: 'rgba(255,255,255,0.08)', color: BRAND.sub,
+                fontSize: 11, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: BRAND.sub,
                 '& .MuiChip-icon': { color: BRAND.sub },
               }}
             />
@@ -221,7 +221,7 @@ export const TeamDetailPage: React.FC = () => {
                 </Button>
               )}
             </Box>
-            <Box sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, border: `1px solid ${BRAND.line}`, px: 2 }}>
+            <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 2, border: `1px solid ${BRAND.line}`, px: 2 }}>
               {team.memberIds.map(uid => (
                 <MemberRow
                   key={uid}
@@ -282,7 +282,7 @@ export const TeamDetailPage: React.FC = () => {
                   onClick={handleSave}
                   disabled={saving || !editName.trim()}
                   sx={{
-                    mt: 2, bgcolor: '#3498db', color: '#fff', fontWeight: 700,
+                    mt: 2, bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700,
                     textTransform: 'none', borderRadius: 2,
                     '&:hover': { bgcolor: '#2980b9' },
                   }}

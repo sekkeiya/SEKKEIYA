@@ -41,7 +41,7 @@ interface Props {
 }
 
 const kindIcon = (e: LibraryEntry) => {
-  if (e.kind === 'url') return <LanguageRoundedIcon sx={{ fontSize: 20, color: '#42a5f5' }} />;
+  if (e.kind === 'url') return <LanguageRoundedIcon sx={{ fontSize: 20, color: 'light-dark(#095fa5, #42a5f5)' }} />;
   if (e.kind === 'book') return <MenuBookRoundedIcon sx={{ fontSize: 20, color: '#26a69a' }} />;
   return <PictureAsPdfRoundedIcon sx={{ fontSize: 20, color: '#ef5350' }} />;
 };
@@ -81,18 +81,18 @@ export const SLibraryCatalogPicker: React.FC<Props> = ({ open, onClose, onPick }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}>
       <DialogTitle sx={{ pb: 1 }}>S.Library からカタログを選択</DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.5, mb: 1.5, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.05)' }}>
-          <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.4)' }} />
-          <InputBase value={search} onChange={(e) => setSearch(e.target.value)} placeholder="タイトル・カテゴリ・タグで検索" sx={{ color: '#fff', fontSize: 13, flex: 1 }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.5, mb: 1.5, borderRadius: 1.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}>
+          <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+          <InputBase value={search} onChange={(e) => setSearch(e.target.value)} placeholder="タイトル・カテゴリ・タグで検索" sx={{ color: 'var(--brand-fg)', fontSize: 13, flex: 1 }} />
         </Box>
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} sx={{ color: ACCENT }} /></Box>
         ) : filtered.length === 0 ? (
-          <Typography sx={{ fontSize: 12.5, color: 'rgba(255,255,255,0.5)', py: 3, textAlign: 'center' }}>
+          <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)', py: 3, textAlign: 'center' }}>
             S.Library に PDF / Web のカタログがありません。先に S.Library へ電子カタログを登録するか、保存先ローカルフォルダに PDF を置いてください。
           </Typography>
         ) : (
@@ -102,15 +102,15 @@ export const SLibraryCatalogPicker: React.FC<Props> = ({ open, onClose, onPick }
               return (
                 <Box key={e.localId} onClick={() => pick(e)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, borderRadius: 1.25, cursor: 'pointer',
-                    bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                     '&:hover': { borderColor: ACCENT, bgcolor: 'rgba(236,64,122,0.06)' } }}>
                   {kindIcon(e)}
                   <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography noWrap sx={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{e.title}</Typography>
-                    <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)' }}>{e.sourceUrl || e.relPath || e.category}</Typography>
+                    <Typography noWrap sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 600 }}>{e.title}</Typography>
+                    <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{e.sourceUrl || e.relPath || e.category}</Typography>
                   </Box>
                   {e.isConfidential && <FolderRoundedIcon sx={{ fontSize: 14, color: '#26a69a' }} />}
-                  {maker && <Chip size="small" label={maker} sx={{ height: 20, fontSize: 10, color: '#fff', bgcolor: `${ACCENT}22`, border: `1px solid ${ACCENT}55` }} />}
+                  {maker && <Chip size="small" label={maker} sx={{ height: 20, fontSize: 10, color: 'var(--brand-fg)', bgcolor: `${ACCENT}22`, border: `1px solid ${ACCENT}55` }} />}
                 </Box>
               );
             })}
@@ -118,7 +118,7 @@ export const SLibraryCatalogPicker: React.FC<Props> = ({ open, onClose, onPick }
         )}
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>閉じる</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>閉じる</Button>
       </DialogActions>
     </Dialog>
   );

@@ -25,7 +25,7 @@ export interface CrawlableEntry {
   localId: string;
   title: string;
   sourceUrl?: string | null;
-  /** S.Models 同様の分類。索引アイテムに付与し Search/Chat 連携で活用。 */
+  /** S.Model 同様の分類。索引アイテムに付与し Search/Chat 連携で活用。 */
   category?: string | null;
   tags?: string[] | null;
 }

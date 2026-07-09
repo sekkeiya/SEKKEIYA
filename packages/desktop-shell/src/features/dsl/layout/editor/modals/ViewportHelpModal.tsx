@@ -17,8 +17,8 @@ const KeyChip = ({ label }: { label: string }) => (
   <Box
     sx={{
       display: "inline-block",
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
-      border: "1px solid rgba(255, 255, 255, 0.2)",
+      backgroundColor: "rgb(var(--brand-fg-rgb) / 0.1)",
+      border: "1px solid rgb(var(--brand-fg-rgb) / 0.2)",
       borderRadius: "4px",
       padding: "2px 6px",
       fontSize: "0.75rem",
@@ -50,10 +50,10 @@ export default function ViewportHelpModal() {
       slotProps={{
         paper: {
           sx: {
-            backgroundColor: "#1e1e1e",
+            backgroundColor: "var(--brand-surface2)",
             backgroundImage: "none",
             borderRadius: "12px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)",
           },
         },
       }}
@@ -78,15 +78,15 @@ export default function ViewportHelpModal() {
               elevation={0}
               sx={{
                 p: 2,
-                backgroundColor: "rgba(255, 255, 255, 0.03)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                backgroundColor: "rgb(var(--brand-fg-rgb) / 0.03)",
+                border: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
                 borderRadius: "8px",
               }}
             >
               <Typography variant="subtitle1" fontWeight={600} color="primary.main" gutterBottom>
                 {category.title}
               </Typography>
-              <Divider sx={{ mb: 2, borderColor: "rgba(255,255,255,0.05)" }} />
+              <Divider sx={{ mb: 2, borderColor: "rgb(var(--brand-fg-rgb) / 0.05)" }} />
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {category.items.map((item, itemIdx) => (

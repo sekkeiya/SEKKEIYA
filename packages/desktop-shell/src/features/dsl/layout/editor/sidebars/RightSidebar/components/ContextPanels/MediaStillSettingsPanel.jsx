@@ -41,13 +41,13 @@ export default function MediaStillSettingsPanel() {
     width: "100%",
     "& .MuiToggleButton-root": {
       flex: 1, py: 0.4, fontSize: 10.5, textTransform: "none", fontWeight: 600,
-      border: `1px solid ${alpha("#fff", 0.12)}`, color: alpha("#fff", 0.45),
-      "&.Mui-selected": { color: "#fff", background: alpha(ACCENT, 0.25), borderColor: alpha(ACCENT, 0.5) },
+      border: `1px solid ${alpha("#fff", 0.12)}`, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)",
+      "&.Mui-selected": { color: "var(--brand-fg)", background: alpha(ACCENT, 0.25), borderColor: alpha(ACCENT, 0.5) },
     },
   };
 
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", color: alpha("#fff", 0.92) }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)" }}>
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 1.5 }}>
       {/* ヘッダー（コンパクト・1行ヒント） */}
       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.4 }}>
@@ -69,7 +69,7 @@ export default function MediaStillSettingsPanel() {
 
       {/* 出力設定（品質・解像度をまとめて） */}
       <SidePanelSection icon={<TuneRoundedIcon />} title="出力設定" accent={ACCENT} defaultOpen={false}>
-        <Typography sx={{ fontSize: 9.5, fontWeight: 700, color: alpha("#fff", 0.45), mb: 0.5 }}>品質</Typography>
+        <Typography sx={{ fontSize: 9.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", mb: 0.5 }}>品質</Typography>
         <ToggleButtonGroup value={stillQuality} exclusive size="small" onChange={(_, v) => v && setStillQuality(v)} sx={toggleSx}>
           <ToggleButton value="standard">標準</ToggleButton>
           <ToggleButton value="cycles">Cycles</ToggleButton>
@@ -78,7 +78,7 @@ export default function MediaStillSettingsPanel() {
           {STILL_QUALITY_DESC[stillQuality]}
         </Typography>
 
-        <Typography sx={{ fontSize: 9.5, fontWeight: 700, color: alpha("#fff", 0.45), mb: 0.5 }}>解像度</Typography>
+        <Typography sx={{ fontSize: 9.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", mb: 0.5 }}>解像度</Typography>
         <Box sx={{ px: 1, py: 0.5, borderRadius: 1.5, border: `1px solid ${alpha("#fff", 0.1)}`, background: alpha("#fff", 0.03) }}>
           <Typography sx={{ fontSize: 11.5, fontWeight: 700 }}>1920 × 1080（Full HD）</Typography>
           <Typography sx={{ fontSize: 9.5, opacity: 0.45 }}>16:9 横向き</Typography>
@@ -87,17 +87,17 @@ export default function MediaStillSettingsPanel() {
       </Box>
 
       {/* 固定フッター：生成ボタン（選択中アングルを一括レンダリング） */}
-      <Box sx={{ flexShrink: 0, p: 1.25, borderTop: `1px solid ${alpha("#fff", 0.1)}`, background: alpha("#0b1020", 0.4) }}>
+      <Box sx={{ flexShrink: 0, p: 1.25, borderTop: `1px solid ${alpha("#fff", 0.1)}`, background: "color-mix(in srgb, var(--brand-surface) 40%, transparent)" }}>
         <Button
           fullWidth
           variant="contained"
           disabled={rendering}
           onClick={requestRender}
-          startIcon={rendering ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : <PhotoCameraRoundedIcon />}
+          startIcon={rendering ? <CircularProgress size={14} sx={{ color: "var(--brand-fg)" }} /> : <PhotoCameraRoundedIcon />}
           sx={{
             textTransform: "none", fontWeight: 900, fontSize: 12.5, py: 0.9, borderRadius: 2,
             background: ACCENT, "&:hover": { background: "#5a78f0" },
-            "&.Mui-disabled": { background: alpha(ACCENT, 0.3), color: alpha("#fff", 0.5) },
+            "&.Mui-disabled": { background: alpha(ACCENT, 0.3), color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" },
           }}
         >
           {rendering ? "生成中…" : selectedCount > 0 ? `生成（${selectedCount}）` : "生成"}

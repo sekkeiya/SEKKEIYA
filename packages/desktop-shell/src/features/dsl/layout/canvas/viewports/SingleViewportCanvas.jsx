@@ -64,6 +64,8 @@ import MeetingRoomRoundedIcon from "@mui/icons-material/MeetingRoomRounded";
 import FullscreenRoundedIcon from "@mui/icons-material/FullscreenRounded";
 import FullscreenExitRoundedIcon from "@mui/icons-material/FullscreenExitRounded";
 import CameraRoundedIcon from "@mui/icons-material/CameraRounded";
+import DirectionsWalkRoundedIcon from "@mui/icons-material/DirectionsWalkRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
@@ -465,7 +467,7 @@ export default function SingleViewportCanvas({
 
   // ウォークスルーはパース viewport のみ。OrbitControls/Gizmo を無効化する。
   const isWalkthrough = editorMode === "walkthrough" && effectiveType === VIEW_TYPES.PERSPECTIVE;
-  const { exit: exitWalkthrough } = useWalkthroughToggle();
+  const { enter: enterWalkthroughMode, exit: exitWalkthrough } = useWalkthroughToggle();
 
   // Material モード：躯体（床/壁/天井）の面をクリック選択。家具は FurnitureItem 側でゴースト表示。
   const isMaterialMode = editorMode === "material";
@@ -2315,31 +2317,53 @@ return (
       />
     )}
 
-    {/* Layout / Perspective：カメラのレンズ長（焦点距離 mm）スライダー（右上） */}
+    {/* Layout / Perspective：ウォークスルー入口 ＋ カメラのレンズ長スライダー（右上） */}
     {active && effectiveType === VIEW_TYPES.PERSPECTIVE && !isWalkthrough && !isMaterialMode && (
       <Box
-        title="カメラのレンズ長（焦点距離）"
         onPointerDown={(e) => e.stopPropagation()}
         sx={{
           position: "absolute", top: 12, right: 12, zIndex: 30,
-          display: "flex", alignItems: "center", gap: 0.9, px: 1.1, py: 0.5, borderRadius: 1.5,
-          background: alpha("#050815", 0.72), backdropFilter: "blur(8px)",
-          border: `1px solid ${alpha("#fff", 0.1)}`,
+          display: "flex", alignItems: "center", gap: 0.75,
         }}
       >
-        <CameraRoundedIcon sx={{ color: alpha("#fff", 0.7), fontSize: 15 }} />
-        <Slider
-          size="small"
-          value={envFocalLength}
-          min={15}
-          max={135}
-          step={1}
-          onChange={(_, v) => setEnvFocalLength(Array.isArray(v) ? v[0] : v)}
-          sx={{ width: 96, color: "#4f8cff", "& .MuiSlider-thumb": { width: 12, height: 12 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
-        />
-        <Typography sx={{ color: "#fff", fontSize: "0.7rem", fontWeight: 700, whiteSpace: "nowrap", minWidth: 34, textAlign: "right" }}>
-          {envFocalLength}mm
-        </Typography>
+        {/* 編集中のクイック確認用ウォークスルー（客先向けはトップバーの「プレビュー」） */}
+        <Box
+          onClick={enterWalkthroughMode}
+          title="ウォークスルー（編集中のクイック確認）"
+          sx={{
+            display: "flex", alignItems: "center", gap: 0.5, px: 1.1, py: 0.55, borderRadius: 1.5,
+            cursor: "pointer", color: alpha("#fff", 0.85), fontSize: "0.72rem", fontWeight: 700,
+            userSelect: "none",
+            background: alpha("#050815", 0.72), backdropFilter: "blur(8px)",
+            border: `1px solid ${alpha("#fff", 0.1)}`,
+            "&:hover": { background: alpha("#1a2540", 0.85), color: "#fff" },
+          }}
+        >
+          <DirectionsWalkRoundedIcon sx={{ fontSize: 15 }} />
+          ウォークスルー
+        </Box>
+        <Box
+          title="カメラのレンズ長（焦点距離）"
+          sx={{
+            display: "flex", alignItems: "center", gap: 0.9, px: 1.1, py: 0.5, borderRadius: 1.5,
+            background: alpha("#050815", 0.72), backdropFilter: "blur(8px)",
+            border: `1px solid ${alpha("#fff", 0.1)}`,
+          }}
+        >
+          <CameraRoundedIcon sx={{ color: alpha("#fff", 0.7), fontSize: 15 }} />
+          <Slider
+            size="small"
+            value={envFocalLength}
+            min={15}
+            max={135}
+            step={1}
+            onChange={(_, v) => setEnvFocalLength(Array.isArray(v) ? v[0] : v)}
+            sx={{ width: 96, color: "#4f8cff", "& .MuiSlider-thumb": { width: 12, height: 12 }, "& .MuiSlider-rail": { opacity: 0.3 } }}
+          />
+          <Typography sx={{ color: "#fff", fontSize: "0.7rem", fontWeight: 700, whiteSpace: "nowrap", minWidth: 34, textAlign: "right" }}>
+            {envFocalLength}mm
+          </Typography>
+        </Box>
       </Box>
     )}
 
@@ -2348,7 +2372,8 @@ return (
       <Box
         onClick={() => addMaterialPinAtRoom()}
         sx={{
-          position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 30,
+          // 上部中央は EditorAngleBar（全体/内観タブ）が占有するため右上に置く
+          position: "absolute", top: 12, right: 12, zIndex: 30,
           display: "flex", alignItems: "center", gap: 0.75, px: 1.5, py: 0.75, borderRadius: 999,
           cursor: "pointer", color: "#fff", fontSize: 12.5, fontWeight: 700, userSelect: "none",
           background: "rgba(236,64,122,0.9)", border: "1px solid rgba(255,255,255,0.35)",
@@ -2879,6 +2904,32 @@ return (
             {isFullscreen
               ? <FullscreenExitRoundedIcon sx={{ color: "#fff", fontSize: 18 }} />
               : <FullscreenRoundedIcon sx={{ color: "#fff", fontSize: 18 }} />}
+          </Box>
+
+          {/* ウォークスルー終了（元の俯瞰カメラへ復帰） */}
+          <Box
+            onClick={exitWalkthrough}
+            title="ウォークスルー終了"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              px: 1.2,
+              py: 0.6,
+              borderRadius: 1.5,
+              cursor: "pointer",
+              color: "#fff",
+              fontSize: "0.72rem",
+              fontWeight: 700,
+              userSelect: "none",
+              background: alpha("#4f8cff", 0.55),
+              backdropFilter: "blur(8px)",
+              border: `1px solid ${alpha("#7eaaff", 0.5)}`,
+              "&:hover": { background: alpha("#4f8cff", 0.75) },
+            }}
+          >
+            <CloseRoundedIcon sx={{ fontSize: 15 }} />
+            終了
           </Box>
 
         </Box>

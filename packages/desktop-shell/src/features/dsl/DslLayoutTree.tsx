@@ -57,7 +57,7 @@ export const DslLayoutTree: React.FC<DslLayoutTreeProps> = ({
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, height: '100%', gap: 1.5, py: 6 }}>
         <ShapeLineRoundedIcon sx={{ fontSize: 48, color: 'rgba(0,191,255,0.2)', mb: 0.5 }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontWeight: 600 }}>
           {emptyMessage}
         </Typography>
       </Box>
@@ -76,7 +76,7 @@ export const DslLayoutTree: React.FC<DslLayoutTreeProps> = ({
         transition: 'opacity 0.2s ease',
         '&::-webkit-scrollbar': { width: 4 },
         '&::-webkit-scrollbar-track': { background: 'transparent' },
-        '&::-webkit-scrollbar-thumb': { background: 'rgba(148,163,184,0.18)', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { background: 'rgb(var(--slate-ink-rgb) / 0.18)', borderRadius: 2 },
       }}
     >
       {groups.map((group) => {
@@ -91,19 +91,19 @@ export const DslLayoutTree: React.FC<DslLayoutTreeProps> = ({
                 gap: 1,
                 pb: 0.75,
                 mb: 1.25,
-                borderBottom: '1px solid rgba(148,163,184,0.18)',
+                borderBottom: '1px solid rgb(var(--slate-ink-rgb) / 0.18)',
                 position: 'sticky',
                 top: 0,
                 zIndex: 2,
-                background: 'rgba(2,6,23,0.9)',
+                background: 'rgb(var(--slate-deep-rgb) / 0.9)',
                 backdropFilter: 'blur(8px)',
               }}
             >
-              <CorporateFareRoundedIcon sx={{ fontSize: 17, color: '#fa709a' }} />
-              <Typography sx={{ fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: 0.2 }}>
+              <CorporateFareRoundedIcon sx={{ fontSize: 17, color: 'light-dark(#a80637, #fa709a)' }} />
+              <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'var(--brand-fg)', letterSpacing: 0.2 }}>
                 {group.projectName}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.5)', fontWeight: 600 }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.5)', fontWeight: 600 }}>
                 {projectCount}
               </Typography>
             </Box>
@@ -116,7 +116,7 @@ export const DslLayoutTree: React.FC<DslLayoutTreeProps> = ({
                     {section.breadcrumb.map((crumb, i) => (
                       <React.Fragment key={i}>
                         {i > 0 && (
-                          <ChevronRightRoundedIcon sx={{ fontSize: 13, color: 'rgba(148,163,184,0.4)' }} />
+                          <ChevronRightRoundedIcon sx={{ fontSize: 13, color: 'rgb(var(--slate-ink-rgb) / 0.4)' }} />
                         )}
                         <Typography
                           sx={{
@@ -134,7 +134,7 @@ export const DslLayoutTree: React.FC<DslLayoutTreeProps> = ({
 
                 {section.items.length === 0 ? (
                   section.emptyHint ? (
-                    <Typography sx={{ pl: 1.5, py: 0.5, fontSize: 11, color: 'rgba(148,163,184,0.4)' }}>
+                    <Typography sx={{ pl: 1.5, py: 0.5, fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.4)' }}>
                       {section.emptyHint}
                     </Typography>
                   ) : null

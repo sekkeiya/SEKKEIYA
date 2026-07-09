@@ -89,11 +89,11 @@ export const SlideThumbnailPane: React.FC = () => {
       zIndex: 10
     }}>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${BRAND.line}` }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>
           スライド一覧
         </Typography>
         <Tooltip title="スライドを追加 (16:9)">
-          <IconButton size="small" onClick={handleAddSlide} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
+          <IconButton size="small" onClick={handleAddSlide} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
             <AddRoundedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -102,7 +102,7 @@ export const SlideThumbnailPane: React.FC = () => {
       <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5 }}>
         {frames.length === 0 ? (
           <Box sx={{ textAlign: 'center', mt: 4, px: 2 }}>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', mb: 2 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 2 }}>
               まだスライドがありません。<br/>「+」ボタンから作成してください。
             </Typography>
           </Box>
@@ -111,7 +111,7 @@ export const SlideThumbnailPane: React.FC = () => {
             const isActive = activeFrameId === frame.id;
             return (
               <Box key={frame.id} sx={{ mb: 1.5 }}>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 0.5, ml: 0.5 }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.5, ml: 0.5 }}>
                   {(frame.props as any).name || `Slide ${index + 1}`}
                 </Typography>
                 <CardActionArea 
@@ -119,11 +119,11 @@ export const SlideThumbnailPane: React.FC = () => {
                   sx={{ 
                     borderRadius: 1.5, 
                     border: isActive ? '2px solid #90caf9' : '2px solid transparent',
-                    bgcolor: 'rgba(255,255,255,0.05)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
                     aspectRatio: '16/9',
                     position: 'relative',
                     transition: 'all 0.2s',
-                    '&:hover': { border: isActive ? '2px solid #90caf9' : '2px solid rgba(255,255,255,0.2)' }
+                    '&:hover': { border: isActive ? '2px solid #90caf9' : '2px solid rgb(var(--brand-fg-rgb) / 0.2)' }
                   }}
                 >
                   <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
@@ -131,7 +131,7 @@ export const SlideThumbnailPane: React.FC = () => {
                       size="small"
                       onClick={(e) => { e.stopPropagation(); deleteSlide(frame.id); }}
                       sx={{ 
-                        p: 0.5, bgcolor: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.6)',
+                        p: 0.5, bgcolor: 'rgba(0,0,0,0.5)', color: 'rgb(var(--brand-fg-rgb) / 0.6)',
                         '&:hover': { color: '#f44336', bgcolor: 'rgba(244, 67, 54, 0.2)' }
                       }}
                     >

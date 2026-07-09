@@ -138,7 +138,7 @@ export default function SaveActionsPanel() {
                   startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                   onClick={handleSaveToShare}
                   disabled={!isDone || isSaving}
-                  sx={{ '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' } }}
+                  sx={{ '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}
                 >
                   3DSSへ保存（アセット化）
                 </Button>
@@ -158,7 +158,7 @@ export default function SaveActionsPanel() {
             startIcon={<DownloadIcon />}
             disabled={!isDone}
             onClick={handleDownload}
-            sx={{ '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' } }}
+            sx={{ '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}
           >
             GLBダウンロード
           </Button>
@@ -176,9 +176,9 @@ export default function SaveActionsPanel() {
               disabled={!isDone}
               onClick={resetGenerationJob}
               sx={{ 
-                bgcolor: 'rgba(255,255,255,0.1)', 
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
-                '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.05)' } 
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', 
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } 
               }}
             >
               続けて生成する
@@ -190,7 +190,7 @@ export default function SaveActionsPanel() {
               fullWidth
               startIcon={<ReplayIcon />}
               disabled={!isDone}
-              sx={{ '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.05)' }, border: 'none', '&:hover': { border: 'none', bgcolor: 'rgba(255,255,255,0.05)' } }}
+              sx={{ '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }, border: 'none', '&:hover': { border: 'none', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             >
               バリエーション生成
             </Button>

@@ -139,7 +139,7 @@ export default function LibraryPanelShell({ projectId, workspaceId, planId }) {
     [modelTitleMap]
   );
 
-  // 正典カテゴリマップ（S.Models Settings と同一）からリーフ→{macro,main}逆引き表を作る。
+  // 正典カテゴリマップ（S.Model Settings と同一）からリーフ→{macro,main}逆引き表を作る。
   // モデルの macroCategory 誤保存（AI生成ドア・窓が家具(造作)等）を mainCategory/subCategory から補正する。
   const systemCategories = useUserSettingsStore((s) => s.systemCategories);
   const getMergedCategoryMap = useUserSettingsStore((s) => s.getMergedCategoryMap);
@@ -320,7 +320,7 @@ export default function LibraryPanelShell({ projectId, workspaceId, planId }) {
       <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden", pb: 4 }}>
         {loadingAny ? (
            <Box display="flex" justifyContent="center" py={4}>
-             <CircularProgress size={24} sx={{ color: alpha("#fff", 0.3) }} />
+             <CircularProgress size={24} sx={{ color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }} />
            </Box>
         ) : (
            <>

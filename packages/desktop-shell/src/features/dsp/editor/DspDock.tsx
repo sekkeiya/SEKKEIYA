@@ -45,8 +45,8 @@ export const DspDock: React.FC = () => {
       sx={{
         width: 48,
         flexShrink: 0,
-        bgcolor: 'rgba(8, 10, 18, 0.97)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        bgcolor: 'light-dark(rgba(255, 255, 255, 0.95), rgba(8, 10, 18, 0.97))',
+        borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -62,7 +62,7 @@ export const DspDock: React.FC = () => {
             {/* アウトラインの前にセパレーター */}
             {idx === 2 && (
               <Divider
-                sx={{ width: 24, borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }}
+                sx={{ width: 24, borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 0.5 }}
               />
             )}
             <Tooltip title={t.label} placement="right" arrow>
@@ -73,15 +73,15 @@ export const DspDock: React.FC = () => {
                   width: 36,
                   height: 36,
                   borderRadius: 1.5,
-                  color: isActive ? ACCENT : 'rgba(255,255,255,0.38)',
+                  color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.38)',
                   bgcolor: isActive ? 'rgba(41,182,246,0.13)' : 'transparent',
                   position: 'relative',
                   transition: 'color 0.15s, background-color 0.15s',
                   '&:hover': {
-                    color: isActive ? ACCENT : 'rgba(255,255,255,0.85)',
+                    color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
                     bgcolor: isActive
                       ? 'rgba(41,182,246,0.18)'
-                      : 'rgba(255,255,255,0.07)',
+                      : 'rgb(var(--brand-fg-rgb) / 0.07)',
                   },
                   // アクティブインジケーター（左端の縦バー）
                   '&::before': isActive

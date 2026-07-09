@@ -116,7 +116,7 @@ export const DssUploadDialog: React.FC<Props> = ({ open, onClose, projectId, wor
             textAlign: 'center',
             cursor: 'pointer',
             bgcolor: file ? 'rgba(41, 182, 246, 0.1)' : 'transparent',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
+            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
           }}
         >
           <CloudUploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />

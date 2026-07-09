@@ -769,7 +769,7 @@ export const SiteSectionView: React.FC<Props> = ({
           </Box>
           {units.length === 0 && isEdit && (
             <Box sx={{ p: 4, textAlign: 'center', border: `1px dashed ${theme.border}`, color: theme.subtext }}>
-              <Typography sx={{ fontFamily: theme.bodyFamily, fontSize: '0.85rem' }}>SEKKEIYA Chat で「部屋を追加して」と伝えると住戸データを入力できます</Typography>
+              <Typography sx={{ fontFamily: theme.bodyFamily, fontSize: '0.85rem' }}>SEKKEIYA OS で「部屋を追加して」と伝えると住戸データを入力できます</Typography>
             </Box>
           )}
         </Box>

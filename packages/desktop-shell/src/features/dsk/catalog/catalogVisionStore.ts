@@ -18,7 +18,7 @@ export interface CatalogVisionItem {
   price?: string;         // 価格テキスト（例 "¥120,000"）
   brand?: string;         // ブランド/メーカー
   siteUrl?: string;       // 登録元サイト URL
-  // ── 分類（S.Models と同様にカテゴリ/タグを付与し、Search/Chat 連携で活用）──
+  // ── 分類（S.Model と同様にカテゴリ/タグを付与し、Search/Chat 連携で活用）──
   category?: string;      // 例 "家具・什器"
   tags?: string[];        // 例 ["ソファ","家具"]（出典カテゴリ由来）
 }

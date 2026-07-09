@@ -143,11 +143,11 @@ export default function Bottombar({
       display: "flex",
       flexDirection: "column",
       borderRadius: "18px 18px 0 0", // 上端のみ丸める（下端は画面端にフラット）
-      background: alpha("#070b18", 0.82),
+      background: "color-mix(in srgb, var(--brand-bg) 82%, transparent)",
       borderTop: `1px solid ${alpha("#ffffff", 0.14)}`,
       borderLeft: `1px solid ${alpha("#ffffff", 0.08)}`,
       borderRight: `1px solid ${alpha("#ffffff", 0.08)}`,
-      boxShadow: "0 0 0 1px rgba(255,255,255,0.04) inset, 0 -8px 40px rgba(0,0,0,0.5)",
+      boxShadow: "0 0 0 1px rgb(var(--brand-fg-rgb) / 0.04) inset, 0 -8px 40px rgba(0,0,0,0.5)",
       overflow: "hidden",
       pointerEvents: "auto",
       backdropFilter: "blur(14px)",
@@ -214,12 +214,12 @@ export default function Bottombar({
                     borderRadius: 2,
                     cursor: "pointer",
                     flexShrink: 0,
-                    color: active ? "#fff" : alpha("#fff", 0.62),
+                    color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 62%, transparent)",
                     background: active ? alpha(theme.palette.primary.main, 0.9) : alpha("#fff", 0.05),
                     border: `1px solid ${active ? theme.palette.primary.main : alpha("#fff", 0.08)}`,
                     boxShadow: active ? `0 0 12px ${alpha(theme.palette.primary.main, 0.45)}` : "none",
                     transition: "all 0.15s",
-                    "&:hover": { background: active ? theme.palette.primary.main : alpha("#fff", 0.1), color: "#fff" },
+                    "&:hover": { background: active ? theme.palette.primary.main : alpha("#fff", 0.1), color: "var(--brand-fg)" },
                   }}
                 >
                   {m.icon}
@@ -232,7 +232,7 @@ export default function Bottombar({
           })}
           <Box sx={{ flex: 1 }} />
           <Tooltip title="パネルを閉じる" placement="top">
-            <IconButton size="small" onClick={handleClose} sx={{ color: alpha("#fff", 0.6), "&:hover": { color: "#fff" } }}>
+            <IconButton size="small" onClick={handleClose} sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", "&:hover": { color: "var(--brand-fg)" } }}>
               <ExpandMoreRoundedIcon />
             </IconButton>
           </Tooltip>

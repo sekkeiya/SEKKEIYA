@@ -70,15 +70,15 @@ export default function WalkthroughShareDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      PaperProps={{ sx: { borderRadius: 2, background: "#0b1020", border: `1px solid ${alpha("#4f8cff", 0.3)}` } }}>
-      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "#fff", fontWeight: 800, fontSize: "1rem" }}>
-        <LinkRoundedIcon sx={{ color: "#4f8cff" }} />
+      PaperProps={{ sx: { borderRadius: 2, background: "var(--brand-surface)", border: `1px solid ${alpha("#4f8cff", 0.3)}` } }}>
+      <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "var(--brand-fg)", fontWeight: 800, fontSize: "1rem" }}>
+        <LinkRoundedIcon sx={{ color: "light-dark(#003cad, #4f8cff)" }} />
         本番プレビューを共有
-        <IconButton onClick={onClose} sx={{ ml: "auto", color: alpha("#fff", 0.6) }} size="small"><CloseRoundedIcon fontSize="small" /></IconButton>
+        <IconButton onClick={onClose} sx={{ ml: "auto", color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }} size="small"><CloseRoundedIcon fontSize="small" /></IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 0 }}>
-        <Typography sx={{ color: alpha("#fff", 0.6), fontSize: "0.8rem", mb: 1.5 }}>
+        <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", fontSize: "0.8rem", mb: 1.5 }}>
           公開範囲を選んでリンクを作成します。リンクを知っている人はブラウザですぐに本番プレビューを閲覧できます。
         </Typography>
 
@@ -87,7 +87,7 @@ export default function WalkthroughShareDialog({
             <FormControlLabel
               key={o.value}
               value={o.value}
-              control={<Radio size="small" sx={{ color: alpha("#fff", 0.4), "&.Mui-checked": { color: "#4f8cff" } }} />}
+              control={<Radio size="small" sx={{ color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", "&.Mui-checked": { color: "light-dark(#003cad, #4f8cff)" } }} />}
               sx={{
                 alignItems: "flex-start", m: 0, mb: 1, p: 1, borderRadius: 1.5,
                 border: `1px solid ${visibility === o.value ? alpha("#4f8cff", 0.5) : alpha("#fff", 0.08)}`,
@@ -96,34 +96,34 @@ export default function WalkthroughShareDialog({
               }}
               label={
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "#fff", fontWeight: 700, fontSize: "0.85rem" }}>
-                    <Box sx={{ color: "#7eaaff", display: "flex" }}>{o.icon}</Box>{o.label}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "var(--brand-fg)", fontWeight: 700, fontSize: "0.85rem" }}>
+                    <Box sx={{ color: "light-dark(#003bad, #7eaaff)", display: "flex" }}>{o.icon}</Box>{o.label}
                   </Box>
-                  <Typography sx={{ color: alpha("#fff", 0.55), fontSize: "0.72rem", mt: 0.25 }}>{o.desc}</Typography>
+                  <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", fontSize: "0.72rem", mt: 0.25 }}>{o.desc}</Typography>
                 </Box>
               }
             />
           ))}
         </RadioGroup>
 
-        {err && <Typography sx={{ color: "#ff8a80", fontSize: "0.78rem", mt: 0.5 }}>{err}</Typography>}
+        {err && <Typography sx={{ color: "light-dark(#ad0e00, #ff8a80)", fontSize: "0.78rem", mt: 0.5 }}>{err}</Typography>}
 
         {url && (
           <Box sx={{ mt: 1.5 }}>
-            <Typography sx={{ color: alpha("#fff", 0.5), fontSize: "0.7rem", mb: 0.5, fontWeight: 700 }}>共有リンク</Typography>
+            <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", fontSize: "0.7rem", mb: 0.5, fontWeight: 700 }}>共有リンク</Typography>
             <Box sx={{ display: "flex", gap: 0.75, alignItems: "center" }}>
               <TextField
                 value={url} fullWidth size="small" InputProps={{ readOnly: true }}
                 onFocus={(e) => e.target.select()}
-                sx={{ "& .MuiInputBase-input": { color: "#fff", fontSize: "0.78rem" }, "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#4f8cff", 0.4) } }}
+                sx={{ "& .MuiInputBase-input": { color: "var(--brand-fg)", fontSize: "0.78rem" }, "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#4f8cff", 0.4) } }}
               />
               <Tooltip title={copied ? "コピーしました" : "コピー"}>
-                <IconButton onClick={copy} sx={{ color: copied ? "#4caf50" : "#7eaaff", border: `1px solid ${alpha("#fff", 0.15)}` }}>
+                <IconButton onClick={copy} sx={{ color: copied ? "#4caf50" : "light-dark(#003bad, #7eaaff)", border: `1px solid ${alpha("#fff", 0.15)}` }}>
                   {copied ? <CheckRoundedIcon fontSize="small" /> : <ContentCopyRoundedIcon fontSize="small" />}
                 </IconButton>
               </Tooltip>
               <Tooltip title="ブラウザで開く">
-                <IconButton onClick={openUrl} sx={{ color: "#7eaaff", border: `1px solid ${alpha("#fff", 0.15)}` }}>
+                <IconButton onClick={openUrl} sx={{ color: "light-dark(#003bad, #7eaaff)", border: `1px solid ${alpha("#fff", 0.15)}` }}>
                   <OpenInNewRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -133,7 +133,7 @@ export default function WalkthroughShareDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ color: alpha("#fff", 0.6), textTransform: "none" }}>閉じる</Button>
+        <Button onClick={onClose} sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", textTransform: "none" }}>閉じる</Button>
         <Button
           onClick={create}
           disabled={busy}

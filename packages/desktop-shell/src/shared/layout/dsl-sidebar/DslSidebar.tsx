@@ -80,9 +80,9 @@ function ScopeItem({
           py: 0.75,
           borderRadius: 2,
           cursor: isRenaming ? "default" : "pointer",
-          bgcolor: active ? (color ? `${color}26` : "rgba(255,255,255,0.12)") : "transparent",
-          border: active ? `1px solid ${color ? `${color}40` : "rgba(255,255,255,0.2)"}` : "1px solid transparent",
-          "&:hover": { bgcolor: active ? (color ? `${color}33` : "rgba(255,255,255,0.18)") : "rgba(255,255,255,0.06)" },
+          bgcolor: active ? (color ? `color-mix(in srgb, ${color} 15%, transparent)` : "rgb(var(--brand-fg-rgb) / 0.12)") : "transparent",
+          border: active ? `1px solid ${color ? `color-mix(in srgb, ${color} 25%, transparent)` : "rgb(var(--brand-fg-rgb) / 0.2)"}` : "1px solid transparent",
+          "&:hover": { bgcolor: active ? (color ? `color-mix(in srgb, ${color} 20%, transparent)` : "rgb(var(--brand-fg-rgb) / 0.18)") : "rgb(var(--brand-fg-rgb) / 0.06)" },
         }}
       >
         {/* Toggle Button */}
@@ -91,7 +91,7 @@ function ScopeItem({
             <IconButton
               size="small"
               onClick={(e) => { e.stopPropagation(); onToggle?.(e); }}
-              sx={{ color: "rgba(255,255,255,0.5)", p: 0.25, mr: 0.5, "&:hover": { color: "#fff" } }}
+              sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", p: 0.25, mr: 0.5, "&:hover": { color: "var(--brand-fg)" } }}
             >
               <KeyboardArrowRightRoundedIcon sx={{ fontSize: 16, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
             </IconButton>
@@ -102,11 +102,11 @@ function ScopeItem({
 
         <Box sx={{ 
           width: 20, height: 20, borderRadius: 1.5, 
-          bgcolor: color || "rgba(255,255,255,0.1)",
+          bgcolor: color || "rgb(var(--brand-fg-rgb) / 0.1)",
           display: "flex", alignItems: "center", justifyContent: "center", mr: 1,
           flexShrink: 0
         }}>
-          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? "#fff" : "rgba(255,255,255,0.7)" } })}
+          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)" } })}
         </Box>
         
         {isRenaming ? (
@@ -126,7 +126,7 @@ function ScopeItem({
                 borderRadius: "4px",
                 border: "1px solid #00BFFF",
                 backgroundColor: "rgba(0,0,0,0.4)",
-                color: "#fff",
+                color: "var(--brand-fg)",
                 fontSize: "12px",
                 outline: "none",
               }}
@@ -134,7 +134,7 @@ function ScopeItem({
           </Box>
         ) : (
           <Typography sx={{ 
-            color: active ? "#ffffff" : "rgba(255,255,255,0.7)", 
+            color: active ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", 
             fontSize: 12, fontWeight: active ? 600 : 500,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1
           }}>
@@ -153,7 +153,7 @@ function ScopeItem({
               position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
               opacity: 0, transition: "opacity 0.2s",
               ".MuiCardActionArea-root:hover ~ &, &:hover, &[aria-expanded='true']": { opacity: 1 },
-              color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" }
+              color: "rgb(var(--brand-fg-rgb) / 0.5)", "&:hover": { color: "var(--brand-fg)" }
             }}
           >
             <MoreVertIcon fontSize="small" />
@@ -162,10 +162,10 @@ function ScopeItem({
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={(e: any) => { e?.stopPropagation(); setAnchorEl(null); }}
-            PaperProps={{ sx: { bgcolor: "#1a1e27", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 2 } }}
+            PaperProps={{ sx: { bgcolor: "var(--brand-surface2)", color: "var(--brand-fg)", border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)", borderRadius: 2 } }}
           >
             {onRenameClick && (
-              <MenuItem onClick={(e) => { e.stopPropagation(); setAnchorEl(null); onRenameClick(); }} sx={{ color: "#fff", fontSize: 13 }}>
+              <MenuItem onClick={(e) => { e.stopPropagation(); setAnchorEl(null); onRenameClick(); }} sx={{ color: "var(--brand-fg)", fontSize: 13 }}>
                 名前を変更
               </MenuItem>
             )}
@@ -198,10 +198,10 @@ function ScopeItem({
 
 type HierKind = 'project' | 'base' | 'plan' | 'option';
 const HIER_META: Record<HierKind, { color: string; Icon: typeof ShapeLineRoundedIcon }> = {
-  project: { color: '#cbd5e1', Icon: ShapeLineRoundedIcon },
+  project: { color: 'var(--brand-fg)', Icon: ShapeLineRoundedIcon },
   base: { color: '#34d399', Icon: ViewInArRoundedIcon },
-  plan: { color: '#38bdf8', Icon: GridViewRoundedIcon },
-  option: { color: '#f472b6', Icon: TuneRoundedIcon },
+  plan: { color: 'light-dark(#0676a8, #38bdf8)', Icon: GridViewRoundedIcon },
+  option: { color: 'light-dark(#a10d5a, #f472b6)', Icon: TuneRoundedIcon },
 };
 
 // Compact, left-packed row for the unified Project→Base→Plan→Option tree.
@@ -236,8 +236,8 @@ function HierRow({
           display: 'flex', alignItems: 'center', gap: 0.5,
           pl: `${10 + depth * 11}px`, pr: 0.5, py: '3px', borderRadius: 1.5,
           cursor: isRenaming ? 'default' : 'pointer',
-          bgcolor: active ? `${meta.color}26` : 'transparent',
-          '&:hover': { bgcolor: active ? `${meta.color}33` : 'rgba(255,255,255,0.05)' },
+          bgcolor: active ? `color-mix(in srgb, ${meta.color} 15%, transparent)` : 'transparent',
+          '&:hover': { bgcolor: active ? `color-mix(in srgb, ${meta.color} 20%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.05)' },
         }}
       >
         {/* chevron / leaf spacer */}
@@ -245,7 +245,7 @@ function HierRow({
           <IconButton
             size="small"
             onClick={(e) => { e.stopPropagation(); onToggle?.(e); }}
-            sx={{ p: 0, width: 14, height: 14, flexShrink: 0, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+            sx={{ p: 0, width: 14, height: 14, flexShrink: 0, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
           >
             <KeyboardArrowRightRoundedIcon sx={{ fontSize: 14, transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
           </IconButton>
@@ -255,7 +255,7 @@ function HierRow({
 
         {/* type icon */}
         <Box sx={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon sx={{ fontSize: 14, color: active ? meta.color : `${meta.color}cc` }} />
+          <Icon sx={{ fontSize: 14, color: active ? meta.color : `color-mix(in srgb, ${meta.color} 80%, transparent)` }} />
         </Box>
 
         {/* label / rename input */}
@@ -270,7 +270,7 @@ function HierRow({
                 if (e.key === 'Escape') onRenameCancel?.();
               }}
               onBlur={() => onRenameSubmit?.()}
-              style={{ width: '100%', padding: '1px 5px', borderRadius: '4px', border: '1px solid #00BFFF', backgroundColor: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: '12px', outline: 'none' }}
+              style={{ width: '100%', padding: '1px 5px', borderRadius: '4px', border: '1px solid #00BFFF', backgroundColor: 'rgba(0,0,0,0.4)', color: 'var(--brand-fg)', fontSize: '12px', outline: 'none' }}
             />
           </Box>
         ) : (
@@ -278,7 +278,7 @@ function HierRow({
             sx={{
               flex: 1, minWidth: 0,
               fontSize: 12, fontWeight: active ? 700 : 500,
-              color: active ? '#fff' : 'rgba(255,255,255,0.82)',
+              color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.82)',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}
           >
@@ -547,14 +547,14 @@ function ProjectLayoutAccordion({
             <IconButton
               size="small"
               onClick={(e) => { e.stopPropagation(); onRenameClick(); }}
-              sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+              sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
             >
               <EditRoundedIcon sx={{ fontSize: 13 }} />
             </IconButton>
             <IconButton
               size="small"
               onClick={(e) => { e.stopPropagation(); onDeleteClick(); }}
-              sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#ff4d4f' } }}
+              sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#ff4d4f' } }}
             >
               <DeleteRoundedIcon sx={{ fontSize: 13 }} />
             </IconButton>
@@ -568,8 +568,8 @@ function ProjectLayoutAccordion({
                {[1, 2].map(i => (
                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, py: '3px' }}>
                    <Box sx={{ width: 14, height: 14 }} />
-                   <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)' }} />
-                   <Box sx={{ height: 11, width: '55%', bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1 }} />
+                   <Box sx={{ width: 16, height: 16, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
+                   <Box sx={{ height: 11, width: '55%', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 1 }} />
                  </Box>
                ))}
              </Box>
@@ -603,7 +603,7 @@ function ProjectLayoutAccordion({
                             <IconButton
                               size="small"
                               onClick={(e) => { e.stopPropagation(); handleCreatePlan(layout.id); }}
-                              sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#38bdf8' } }}
+                              sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'light-dark(#0676a8, #38bdf8)' } }}
                             >
                               <AddRoundedIcon sx={{ fontSize: 14 }} />
                             </IconButton>
@@ -611,14 +611,14 @@ function ProjectLayoutAccordion({
                           <IconButton
                             size="small"
                             onClick={(e) => { e.stopPropagation(); setRenamePlanValue(layout.name || ''); setRenamePlanId(layout.id); }}
-                            sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+                            sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
                           >
                             <EditRoundedIcon sx={{ fontSize: 13 }} />
                           </IconButton>
                           <IconButton
                             size="small"
                             onClick={(e) => { e.stopPropagation(); requestDelete(layout.id, layout.name, 'base'); }}
-                            sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#ff4d4f' } }}
+                            sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#ff4d4f' } }}
                           >
                             <DeleteRoundedIcon sx={{ fontSize: 13 }} />
                           </IconButton>
@@ -631,7 +631,7 @@ function ProjectLayoutAccordion({
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: '40px', mt: 0.25 }}>
                         <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#38bdf8', flexShrink: 0 }} />
                         <Typography
-                          sx={{ fontSize: 10, color: 'rgba(56,189,248,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          sx={{ fontSize: 10, color: 'light-dark(rgba(6,118,168,0.85), rgba(56,189,248,0.85))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                         >
                           作業中: {workCtx?.planName || 'Plan'}{workCtx?.optionName ? ` ▸ ${workCtx.optionName}` : ''}
                         </Typography>
@@ -663,7 +663,7 @@ function ProjectLayoutAccordion({
                                       <IconButton
                                         size="small"
                                         onClick={(e) => { e.stopPropagation(); handleCreateOption(layout.id, plan.id); }}
-                                        sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#f472b6' } }}
+                                        sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'light-dark(#a10d5a, #f472b6)' } }}
                                       >
                                         <AddRoundedIcon sx={{ fontSize: 14 }} />
                                       </IconButton>
@@ -671,7 +671,7 @@ function ProjectLayoutAccordion({
                                     <IconButton
                                       size="small"
                                       onClick={(e) => { e.stopPropagation(); requestDelete(plan.id, plan.name, 'plan'); }}
-                                      sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#ff4d4f' } }}
+                                      sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#ff4d4f' } }}
                                     >
                                       <DeleteRoundedIcon sx={{ fontSize: 13 }} />
                                     </IconButton>
@@ -694,7 +694,7 @@ function ProjectLayoutAccordion({
                                           <IconButton
                                             size="small"
                                             onClick={(e) => { e.stopPropagation(); requestDelete(opt.id, opt.name, 'option'); }}
-                                            sx={{ p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#ff4d4f' } }}
+                                            sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#ff4d4f' } }}
                                           >
                                             <DeleteRoundedIcon sx={{ fontSize: 13 }} />
                                           </IconButton>
@@ -717,14 +717,14 @@ function ProjectLayoutAccordion({
                 disabled={isProcessing}
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 0.5, py: 0.5, pl: '21px', pr: 1, mt: 0.25, borderRadius: 1.5,
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }, opacity: isProcessing ? 0.5 : 1
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }, opacity: isProcessing ? 0.5 : 1
                 }}
               >
                 <Box sx={{ width: 14, height: 14, flexShrink: 0 }} />
                 <Box sx={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AddRoundedIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }} />
+                  <AddRoundedIcon sx={{ fontSize: 14, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
                 </Box>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 500 }}>
                   新規レイアウト追加
                 </Typography>
               </CardActionArea>
@@ -758,16 +758,16 @@ function ProjectLayoutAccordion({
       {/* Delete Dialog */}
       {deleteTarget && (
         <Box sx={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", bgcolor: "rgba(0,0,0,0.5)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => !isProcessing && setDeleteTarget(null)}>
-          <Box onClick={(e) => e.stopPropagation()} sx={{ width: 420, bgcolor: "#1a1e27", p: 4, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
-            <Typography variant="h6" sx={{ color: "#fff", mb: 2, fontWeight: 700 }}>
+          <Box onClick={(e) => e.stopPropagation()} sx={{ width: 420, bgcolor: "var(--brand-surface2)", p: 4, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }}>
+            <Typography variant="h6" sx={{ color: "var(--brand-fg)", mb: 2, fontWeight: 700 }}>
               {deleteTarget.kind === 'base' ? 'Base を削除' : deleteTarget.kind === 'plan' ? 'Plan を削除' : 'Option を削除'}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: deleteTarget.planCount + deleteTarget.optionCount > 0 ? 1.5 : 3, fontSize: 14 }}>
+            <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", mb: deleteTarget.planCount + deleteTarget.optionCount > 0 ? 1.5 : 3, fontSize: 14 }}>
               「{deleteTarget.name}」を削除しますか？この操作は元に戻せません。
             </Typography>
             {(deleteTarget.planCount > 0 || deleteTarget.optionCount > 0) && (
               <Box sx={{ mb: 3, p: 1.5, borderRadius: 2, bgcolor: "rgba(255,77,79,0.08)", border: "1px solid rgba(255,77,79,0.25)" }}>
-                <Typography sx={{ color: "#ff8a8c", fontSize: 13 }}>
+                <Typography sx={{ color: "light-dark(#ad0003, #ff8a8c)", fontSize: 13 }}>
                   紐づく
                   {deleteTarget.planCount > 0 ? ` ${deleteTarget.planCount} 件の Plan` : ''}
                   {deleteTarget.planCount > 0 && deleteTarget.optionCount > 0 ? ' と' : ''}
@@ -777,7 +777,7 @@ function ProjectLayoutAccordion({
               </Box>
             )}
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-              <Typography onClick={() => !isProcessing && setDeleteTarget(null)} sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: "pointer", py: 1, '&:hover': { color: "#fff" } }}>キャンセル</Typography>
+              <Typography onClick={() => !isProcessing && setDeleteTarget(null)} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 13, cursor: "pointer", py: 1, '&:hover': { color: "var(--brand-fg)" } }}>キャンセル</Typography>
               <Typography onClick={handleDeleteSubmit} sx={{ color: "#ff4d4f", fontSize: 13, cursor: isProcessing ? "not-allowed" : "pointer", py: 1, fontWeight: 600, opacity: isProcessing ? 0.5 : 1 }}>
                 {isProcessing ? '削除中…' : '削除'}
               </Typography>
@@ -951,7 +951,7 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
         width: "100%",
         height: "100%",
         bgcolor: BRAND.panel,
-        borderRight: isProjectSidebarOpen ? `1px solid rgba(255,255,255,0.05)` : 'none',
+        borderRight: isProjectSidebarOpen ? `1px solid rgb(var(--brand-fg-rgb) / 0.05)` : 'none',
         display: "flex",
         flexDirection: "column",
         py: isProjectSidebarOpen ? 2 : 0,
@@ -963,7 +963,7 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
     >
       <Box sx={{ px: 2, mb: 1 }}>
         {!hideHeader && (
-          <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", mb: 1.5 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgb(var(--brand-fg-rgb) / 0.45)", textTransform: "uppercase", mb: 1.5 }}>
             3D SHAPE LAYOUT
           </Typography>
         )}
@@ -971,16 +971,16 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
         {/* Search Input */}
         <Box sx={{
           display: 'flex', alignItems: 'center',
-          bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, px: 1.5, py: 0.5,
-          border: '1px solid rgba(255,255,255,0.05)',
-          '&:focus-within': { borderColor: 'rgba(255,255,255,0.15)' },
+          bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.5, py: 0.5,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase 
             placeholder="Search projects..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 12, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }}
           />
         </Box>
       </Box>
@@ -1004,7 +1004,7 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
           />
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
         {/* Personal Scopes */}
         <Box sx={{ mb: 2 }}>
@@ -1027,7 +1027,7 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
         {/* My Projects */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgb(var(--brand-fg-rgb) / 0.35)", textTransform: "uppercase" }}>
               My Projects
             </Typography>
           </Box>
@@ -1049,7 +1049,7 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
         {/* Team Projects */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgb(var(--brand-fg-rgb) / 0.35)", textTransform: "uppercase" }}>
               Team Projects
             </Typography>
           </Box>
@@ -1074,7 +1074,7 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
       <Dialog 
         open={isCreateDialogOpen} 
         onClose={() => !isCreating && setIsCreateDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: `1px solid rgba(255,255,255,0.1)`, minWidth: 400 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`, minWidth: 400 } }}
       >
         <DialogTitle sx={{ pb: 1 }}>
           {createProjectType === 'my' ? '新規マイプロジェクト作成' : '新規チームプロジェクト作成'}
@@ -1095,20 +1095,20 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
             disabled={isCreating}
-            InputProps={{ style: { color: '#fff' } }}
-            InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
+            InputProps={{ style: { color: 'var(--brand-fg)' } }}
+            InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
             sx={{
               mt: 1,
               '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
                 '&.Mui-focused fieldset': { borderColor: '#00BFFF' },
               }
             }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          <Button onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
             キャンセル
           </Button>
           <Button onClick={handleCreateProject} disabled={isCreating || !newProjectName.trim()} variant="contained" sx={{ bgcolor: '#00BFFF', color: '#000', '&:hover': { bgcolor: '#4facfe' } }}>
@@ -1120,13 +1120,13 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
       {/* Delete Dialog */}
       {activeDeleteProject && (
         <Box sx={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", bgcolor: "rgba(0,0,0,0.5)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Box sx={{ width: 400, bgcolor: "#1a1e27", p: 4, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
-            <Typography variant="h6" sx={{ color: "#fff", mb: 2, fontWeight: 700 }}>プロジェクトを削除</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: 3, fontSize: 14 }}>
+          <Box sx={{ width: 400, bgcolor: "var(--brand-surface2)", p: 4, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }}>
+            <Typography variant="h6" sx={{ color: "var(--brand-fg)", mb: 2, fontWeight: 700 }}>プロジェクトを削除</Typography>
+            <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", mb: 3, fontSize: 14 }}>
               「{activeDeleteProject.name}」を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-              <Typography onClick={() => setActiveDeleteProject(null)} sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: "pointer", py: 1, '&:hover': { color: "#fff" } }}>キャンセル</Typography>
+              <Typography onClick={() => setActiveDeleteProject(null)} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 13, cursor: "pointer", py: 1, '&:hover': { color: "var(--brand-fg)" } }}>キャンセル</Typography>
               <Typography onClick={handleDeleteSubmit} sx={{ color: "#ff4d4f", fontSize: 13, cursor: isProcessing ? "not-allowed" : "pointer", py: 1, fontWeight: 600, opacity: isProcessing ? 0.5 : 1 }}>削除</Typography>
             </Box>
           </Box>

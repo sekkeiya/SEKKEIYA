@@ -31,12 +31,12 @@ const AIDriveScopeSidebar: React.FC = () => {
         sx={{
           display: 'flex', alignItems: 'center', gap: 1,
           px: 1.25, py: 0.75, mx: 0.5, borderRadius: 1, cursor: 'pointer',
-          color: active ? '#fff' : 'rgba(255,255,255,0.7)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
           bgcolor: active ? 'rgba(52,152,219,0.18)' : 'transparent',
-          '&:hover': { bgcolor: active ? 'rgba(52,152,219,0.24)' : 'rgba(255,255,255,0.06)' },
+          '&:hover': { bgcolor: active ? 'rgba(52,152,219,0.24)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
-        <Box sx={{ color: active ? '#3498db' : 'rgba(255,255,255,0.45)', display: 'flex', flexShrink: 0 }}>{icon}</Box>
+        <Box sx={{ color: active ? '#3498db' : 'rgb(var(--brand-fg-rgb) / 0.45)', display: 'flex', flexShrink: 0 }}>{icon}</Box>
         <Typography sx={{ fontSize: 12.5, fontWeight: active ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</Typography>
       </Box>
     );
@@ -44,13 +44,13 @@ const AIDriveScopeSidebar: React.FC = () => {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Typography sx={{ px: 1.5, pt: 1.25, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, flexShrink: 0 }}>
+      <Typography sx={{ px: 1.5, pt: 1.25, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, flexShrink: 0 }}>
         保存先
       </Typography>
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 1 }}>
         {fixed.map(f => renderItem(f.key, f.label, f.icon))}
         {projects.length > 0 && (
-          <Typography sx={{ px: 1.5, pt: 1.5, pb: 0.5, fontSize: '0.55rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+          <Typography sx={{ px: 1.5, pt: 1.5, pb: 0.5, fontSize: '0.55rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 600 }}>
             プロジェクト
           </Typography>
         )}

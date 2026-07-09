@@ -7,6 +7,7 @@ import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import FolderSpecialRoundedIcon from '@mui/icons-material/FolderSpecialRounded';
@@ -22,6 +23,8 @@ import LayersRoundedIcon from '@mui/icons-material/LayersRounded';
 import { useImagePickerStore } from '../../store/useImagePickerStore';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import { useAppStore } from '../../store/useAppStore';
+import { useDsiEditorStore } from './store/useDsiEditorStore';
+import { useAiSettingsStore, isEditCapableProvider, DEFAULT_EDIT_PROVIDER } from '../../store/useAiSettingsStore';
 
 const ACCENT = '#ec407a';
 const ACCENT_HOVER = '#f48fb1';
@@ -45,7 +48,8 @@ interface DsiDashboardProps {
 
 const FILTER_TABS: { key: DsiCategoryFilter; label: string }[] = [
   { key: 'all', label: 'すべて' },
-  ...DSI_CATEGORIES.map(c => ({ key: c as DsiCategoryFilter, label: c })),
+  // 動画は S.Movie 側で管理するため S.Image のカテゴリからは除外する。
+  ...DSI_CATEGORIES.filter(c => c !== '動画').map(c => ({ key: c as DsiCategoryFilter, label: c })),
 ];
 
 export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, sets, projects = null, isInitializing, isGlobal, isLocal, localError, onOpenProject }) => {
@@ -89,6 +93,25 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
   const projectId = payload?.projectId || '';
   const canWrite = !!projectId && !isGlobal;
+
+  const setDsiShellMode = useAppStore(s => s.setDsiShellMode);
+  // S.Image エディター（生成 / 編集）を開く。baseUrl 指定時はその画像を編集の起点にする。
+  // targetProjectId は保存先。横断ビュー（Private/Public Image）では編集元画像の
+  // projectId を渡し、その画像が属するプロジェクトへ保存する。
+  const openImageEditor = useCallback((baseUrl?: string, targetProjectId?: string, title?: string) => {
+    const target = targetProjectId || projectId;
+    if (!target) return; // 保存先プロジェクトが無ければ開かない
+    const configured = useAiSettingsStore.getState().imageProvider || 'nanobanana';
+    // 編集（ベース画像あり）は画像編集対応モデルが必須。未対応なら編集対応の既定へ。
+    const provider = baseUrl ? (isEditCapableProvider(configured) ? configured : DEFAULT_EDIT_PROVIDER) : configured;
+    useDsiEditorStore.getState().initSession({
+      originImageUrl: baseUrl || null,
+      originTitle: title || '',
+      targetProjectId: target,
+      provider,
+    });
+    setDsiShellMode('editor');
+  }, [projectId, setDsiShellMode]);
 
   const isProjectsMode = projects !== null;
   const setAiTaskInnerRight = useAppStore(s => s.setAiTaskInnerRight);
@@ -408,7 +431,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             bgcolor: 'rgba(236,64,122,0.12)', borderBottom: `1px solid ${ACCENT}`,
           }}>
             <ViewInArRoundedIcon sx={{ color: ACCENT, flexShrink: 0 }} />
-            <Typography sx={{ color: '#fff', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0 }}>
+            <Typography sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', minWidth: 0 }}>
               選択中 {selectedIds.size} / 最大 {pickMax} 枚
             </Typography>
 
@@ -422,11 +445,11 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                     <Box key={f} onClick={() => setGeneratedFilter(f)}
                       sx={{
                         px: 1.25, py: 0.375, borderRadius: 1.5, cursor: 'pointer', fontSize: 12, fontWeight: active ? 700 : 500,
-                        color: active ? '#fff' : 'rgba(255,255,255,0.6)',
-                        bgcolor: active ? (f === 'generated' ? 'rgba(76,175,80,0.7)' : f === 'ungenerated' ? ACCENT : 'rgba(255,255,255,0.15)') : 'rgba(255,255,255,0.07)',
-                        border: `1px solid ${active ? 'transparent' : 'rgba(255,255,255,0.12)'}`,
+                        color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                        bgcolor: active ? (f === 'generated' ? 'rgba(76,175,80,0.7)' : f === 'ungenerated' ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.15)') : 'rgb(var(--brand-fg-rgb) / 0.07)',
+                        border: `1px solid ${active ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
                         transition: 'background-color 0.12s',
-                        '&:hover': { bgcolor: active ? undefined : 'rgba(255,255,255,0.12)' },
+                        '&:hover': { bgcolor: active ? undefined : 'rgb(var(--brand-fg-rgb) / 0.12)' },
                       }}>
                       {label}
                     </Box>
@@ -436,20 +459,20 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             )}
 
             <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, ml: 'auto', alignItems: 'center' }}>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', mr: 0.5 }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)', whiteSpace: 'nowrap', mr: 0.5 }}>
                 Ctrl+A で全選択
               </Typography>
               <Button onClick={clearPicks} size="small" disabled={selectedIds.size === 0}
-                sx={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', '&.Mui-disabled': { color: 'rgba(255,255,255,0.25)' } }}>
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', whiteSpace: 'nowrap', '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.25)' } }}>
                 選択解除
               </Button>
-              <Button onClick={handleCancelPick} size="small" sx={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+              <Button onClick={handleCancelPick} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', whiteSpace: 'nowrap' }}>
                 キャンセル
               </Button>
               <Button
                 onClick={handleConfirmPick} size="small" variant="contained" disabled={selectedIds.size === 0}
                 startIcon={<ViewInArRoundedIcon />}
-                sx={{ bgcolor: ACCENT, color: '#fff', whiteSpace: 'nowrap', '&:hover': { bgcolor: ACCENT_HOVER }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', whiteSpace: 'nowrap', '&:hover': { bgcolor: ACCENT_HOVER }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
               >
                 {pickerPurpose === 'material' ? `この画像でマテリアル生成（${selectedIds.size}）` : `この画像で3D生成（${selectedIds.size}）`}
               </Button>
@@ -462,18 +485,18 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, px: 2, py: 1,
             bgcolor: 'rgba(66,165,245,0.12)', borderBottom: '1px solid #42a5f5',
           }}>
-            <LayersRoundedIcon sx={{ color: '#42a5f5', flexShrink: 0 }} />
-            <Typography sx={{ color: '#fff', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+            <LayersRoundedIcon sx={{ color: 'light-dark(#095fa5, #42a5f5)', flexShrink: 0 }} />
+            <Typography sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
               1セットにするテクスチャを選択　選択中 {textureSetSelection.size} 枚
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, ml: 'auto', alignItems: 'center' }}>
-              <Button onClick={() => setTextureSetMode(false)} size="small" sx={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+              <Button onClick={() => setTextureSetMode(false)} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', whiteSpace: 'nowrap' }}>
                 キャンセル
               </Button>
               <Button
                 onClick={handleCreateTextureSet} size="small" variant="contained" disabled={textureSetSelection.size < 2}
                 startIcon={<LayersRoundedIcon />}
-                sx={{ bgcolor: '#42a5f5', color: '#fff', whiteSpace: 'nowrap', '&:hover': { bgcolor: '#64b5f6' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                sx={{ bgcolor: '#42a5f5', color: 'var(--brand-fg)', whiteSpace: 'nowrap', '&:hover': { bgcolor: '#64b5f6' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
               >
                 セットにする（{textureSetSelection.size}）
               </Button>
@@ -481,26 +504,26 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
           </Box>
         )}
         {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
                 {isLocal ? 'Local Assets' : 'Image Library'}
               </Typography>
               {isLocal ? (
-                <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>ローカル素材</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>ローカル素材</Typography>
               ) : isProjectsMode ? (
-                <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>公開プロジェクト</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>公開プロジェクト</Typography>
               ) : openSet ? (
-                <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.3)' }} />} sx={{ mt: 0.25 }}>
+                <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />} sx={{ mt: 0.25 }}>
                   <Link component="button" underline="hover" onClick={() => setOpenSetId(null)}
-                    sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20, fontWeight: 700, '&:hover': { color: '#fff' } }}>
-                    画像・動画
+                    sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 20, fontWeight: 700, '&:hover': { color: 'var(--brand-fg)' } }}>
+                    画像
                   </Link>
-                  <Typography sx={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>{openSet.title || 'セット'}</Typography>
+                  <Typography sx={{ color: 'var(--brand-fg)', fontSize: 20, fontWeight: 700 }}>{openSet.title || 'セット'}</Typography>
                 </Breadcrumbs>
               ) : (
-                <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>画像・動画</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>画像</Typography>
               )}
             </Box>
 
@@ -513,7 +536,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                       size="small" variant="contained" startIcon={<LayersRoundedIcon />}
                       disabled={ungroupedTextureCount === 0}
                       onClick={handleAutoTextureSets}
-                      sx={{ bgcolor: '#42a5f5', color: '#fff', '&:hover': { bgcolor: '#64b5f6' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                      sx={{ bgcolor: '#42a5f5', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#64b5f6' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
                     >
                       テクスチャをセット化
                     </Button>
@@ -523,7 +546,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                   <Button
                     size="small" variant="text"
                     onClick={() => setTextureSetMode(true)}
-                    sx={{ color: 'rgba(255,255,255,0.6)', minWidth: 0, '&:hover': { color: '#42a5f5' } }}
+                    sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', minWidth: 0, '&:hover': { color: 'light-dark(#095fa5, #42a5f5)' } }}
                   >
                     手動で選択
                   </Button>
@@ -532,8 +555,8 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             )}
             {isLocal ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                  %USERPROFILE%\SEKKEIYA\LocalAssets（読み取り専用）
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
+                  %USERPROFILE%\SEKKEIYA\LocalAssets\Images（読み取り専用・サブフォルダ対応）
                 </Typography>
                 {textureGroups.length > 0 && (
                   <Tooltip title="画像の見た目を解析して人の目で見分けがつかないテクスチャを自動検出・削除" placement="bottom">
@@ -541,7 +564,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                       size="small" variant="outlined" startIcon={<DeleteSweepRoundedIcon />}
                       disabled={!!simTexProgress}
                       onClick={() => setSimTexThresholdDialog(true)}
-                      sx={{ color: '#f48fb1', borderColor: 'rgba(244,143,177,0.4)', '&:hover': { borderColor: '#f48fb1', bgcolor: 'rgba(244,143,177,0.06)' }, '&.Mui-disabled': { color: 'rgba(244,143,177,0.4)', borderColor: 'rgba(244,143,177,0.2)' } }}
+                      sx={{ color: 'light-dark(#9e103f, #f48fb1)', borderColor: 'rgba(244,143,177,0.4)', '&:hover': { borderColor: '#f48fb1', bgcolor: 'rgba(244,143,177,0.06)' }, '&.Mui-disabled': { color: 'light-dark(rgba(158,16,63,0.4), rgba(244,143,177,0.4))', borderColor: 'rgba(244,143,177,0.2)' } }}
                     >
                       {simTexProgress
                         ? `解析中 ${simTexProgress.done}/${simTexProgress.total}…`
@@ -554,7 +577,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                     <Button
                       size="small" variant="outlined" startIcon={<DeleteSweepRoundedIcon />}
                       onClick={() => setLightmapDeleteOpen(true)}
-                      sx={{ color: '#f48fb1', borderColor: 'rgba(244,143,177,0.4)', '&:hover': { borderColor: '#f48fb1', bgcolor: 'rgba(244,143,177,0.06)' } }}
+                      sx={{ color: 'light-dark(#9e103f, #f48fb1)', borderColor: 'rgba(244,143,177,0.4)', '&:hover': { borderColor: '#f48fb1', bgcolor: 'rgba(244,143,177,0.06)' } }}
                     >
                       ライトマップ削除 ({lightmapImages.length})
                     </Button>
@@ -569,19 +592,31 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                     variant="outlined" size="small" startIcon={<CreateNewFolderRoundedIcon />}
                     disabled={!canWrite}
                     onClick={() => { setNewSetName(''); setSetDialogOpen(true); }}
-                    sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)', borderColor: 'rgba(255,255,255,0.1)' } }}
+                    sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
                   >
                     新規セット
                   </Button>
                 </span>
               </Tooltip>
-              <Tooltip title={isGlobal ? '公開画像の閲覧' : !projectId ? 'プロジェクトを選択してください' : '画像 / 動画をアップロード'} placement="left">
+              <Tooltip title={canWrite ? 'AIで画像を生成 / 編集' : 'プロジェクトを選択してください'} placement="bottom">
+                <span>
+                  <Button
+                    variant="outlined" size="small" startIcon={<AutoAwesomeRoundedIcon />}
+                    disabled={!canWrite}
+                    onClick={() => openImageEditor()}
+                    sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
+                  >
+                    新規Image
+                  </Button>
+                </span>
+              </Tooltip>
+              <Tooltip title={isGlobal ? '公開画像の閲覧' : !projectId ? 'プロジェクトを選択してください' : '画像をアップロード'} placement="left">
                 <span>
                   <Button
                     variant="contained" size="small" startIcon={<CloudUploadRoundedIcon />}
                     disabled={!canWrite}
                     onClick={() => setUploadOpen(true)}
-                    sx={{ bgcolor: ACCENT, color: '#fff', '&:hover': { bgcolor: ACCENT_HOVER }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                    sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: ACCENT_HOVER }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
                   >
                     アップロード
                   </Button>
@@ -603,10 +638,10 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                   onClick={() => setCategoryFilter(tab.key)}
                   sx={{
                     px: 1.5, py: 0.5, borderRadius: 1.5, cursor: 'pointer', fontSize: 12, fontWeight: active ? 600 : 500,
-                    color: active ? '#fff' : 'rgba(255,255,255,0.7)',
-                    bgcolor: active ? ACCENT : 'rgba(255,255,255,0.05)',
+                    color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                    bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
                     transition: 'background-color 0.15s',
-                    '&:hover': { bgcolor: active ? ACCENT : 'rgba(255,255,255,0.1)' },
+                    '&:hover': { bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                   }}
                 >
                   {tab.label}
@@ -624,18 +659,18 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
               {(projects || []).map((p: any) => (
                 <Box key={p.id} onClick={() => onOpenProject?.(p)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderRadius: 2, cursor: 'pointer',
-                    bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                     transition: 'border-color 0.15s, transform 0.15s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' } }}>
+                    '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', transform: 'translateY(-2px)' } }}>
                   <FolderSpecialRoundedIcon sx={{ fontSize: 28, color: ACCENT }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography noWrap sx={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
-                    <Typography noWrap sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
+                    <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
+                    <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
                   </Box>
                 </Box>
               ))}
               {(projects || []).length === 0 && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
                   公開プロジェクトがありません
                 </Typography>
               )}
@@ -659,7 +694,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* Right info panel */}
       {!isProjectsMode && (
-        <Box sx={{ width: 280, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(0,0,0,0.15)', overflowY: 'auto' }}>
+        <Box sx={{ width: 280, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))', overflowY: 'auto' }}>
           <DsiRightPanel
             item={selectedItem}
             textureGroup={selectedGroup}
@@ -671,6 +706,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             onMove={canWrite ? handleMove : undefined}
             onSetVisibility={(canWrite || isGlobal) ? handleSetVisibility : undefined}
             onUpdateMeta={(canWrite || isGlobal) ? handleUpdateMeta : undefined}
+            onAiEdit={(item) => openImageEditor(item.downloadUrl, item.projectId, item.title || item.name)}
           />
         </Box>
       )}
@@ -680,20 +716,20 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
         <Box sx={{
           position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
           zIndex: 200, display: 'flex', alignItems: 'center', gap: 1.5,
-          bgcolor: '#1a1d24', border: '1px solid rgba(255,255,255,0.18)',
+          bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
           borderRadius: 3, px: 2.5, py: 1.25,
           boxShadow: '0 6px 32px rgba(0,0,0,0.6)',
           pointerEvents: 'auto',
         }}>
-          <CheckCircleOutlineRoundedIcon sx={{ color: '#42a5f5', fontSize: 18 }} />
-          <Typography sx={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>
+          <CheckCircleOutlineRoundedIcon sx={{ color: 'light-dark(#095fa5, #42a5f5)', fontSize: 18 }} />
+          <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 700 }}>
             {dsiMultiDeleteIds.size} 件選択中
           </Typography>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             Shift+クリックで追加／解除
           </Typography>
           <Button size="small" onClick={() => setDsiMultiDeleteIds(new Set())}
-            sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>
             解除
           </Button>
           <Button size="small" variant="contained" color="error"
@@ -718,7 +754,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* Create set dialog */}
       <Dialog open={setDialogOpen} onClose={() => !creatingSet && setSetDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 400 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 400 } }}>
         <DialogTitle sx={{ pb: 1 }}>新規セット作成</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -728,14 +764,14 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             autoFocus margin="dense" label="セット名" fullWidth variant="outlined"
             value={newSetName} onChange={(e) => setNewSetName(e.target.value)} disabled={creatingSet}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateSet(); }}
-            InputProps={{ style: { color: '#fff' } }} InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
-            sx={{ mt: 1, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
+            InputProps={{ style: { color: 'var(--brand-fg)' } }} InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
+            sx={{ mt: 1, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setSetDialogOpen(false)} disabled={creatingSet} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setSetDialogOpen(false)} disabled={creatingSet} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleCreateSet} disabled={creatingSet || !newSetName.trim()} variant="contained"
-            sx={{ bgcolor: ACCENT, color: '#fff', '&:hover': { bgcolor: ACCENT_HOVER } }}>
+            sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: ACCENT_HOVER } }}>
             {creatingSet ? '作成中...' : '作成'}
           </Button>
         </DialogActions>
@@ -743,10 +779,10 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* 類似検出しきい値ダイアログ（S.Image） */}
       <Dialog open={simTexThresholdDialog} onClose={() => setSimTexThresholdDialog(false)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 420 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 420 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>類似検出の設定</DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', mb: 2.5, lineHeight: 1.6 }}>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.65)', mb: 2.5, lineHeight: 1.6 }}>
             テクスチャ画像の 64 ビットハッシュを比較して、何ビット以内の差異なら「類似」とみなすか設定します。
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 1 }}>
@@ -754,8 +790,8 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
               <Typography sx={{ fontSize: 28, fontWeight: 700, color: ACCENT, lineHeight: 1 }}>
                 {simTexThresholdBits}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ビット</Typography>
-              <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', mt: 0.25 }}>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>ビット</Typography>
+              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mt: 0.25 }}>
                 ({(simTexThresholdBits / 64 * 100).toFixed(1)}%)
               </Typography>
             </Box>
@@ -771,25 +807,25 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                 ]}
                 sx={{
                   color: ACCENT,
-                  '& .MuiSlider-markLabel': { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
-                  '& .MuiSlider-mark': { bgcolor: 'rgba(255,255,255,0.2)' },
+                  '& .MuiSlider-markLabel': { color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 10 },
+                  '& .MuiSlider-mark': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
                 }}
               />
             </Box>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>厳格（ほぼ完全一致のみ）</Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>緩い（多少の差も類似と判定）</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>厳格（ほぼ完全一致のみ）</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>緩い（多少の差も類似と判定）</Typography>
           </Box>
-          <Box sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1.5, px: 2, py: 1.25 }}>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-              推奨: <strong style={{ color: 'rgba(255,255,255,0.8)' }}>8 ビット（12.5%）</strong> — 人の目では区別しにくいもの<br />
+          <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1.5, px: 2, py: 1.25 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.7 }}>
+              推奨: <strong style={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>8 ビット（12.5%）</strong> — 人の目では区別しにくいもの<br />
               3 ビット以下: ほぼ同一画像のみ / 16 ビット以上: 色調が似ているものも含む
             </Typography>
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setSimTexThresholdDialog(false)} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setSimTexThresholdDialog(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" color="warning"
             startIcon={simTexProgress ? undefined : <DeleteSweepRoundedIcon />}
             disabled={!!simTexProgress}
@@ -802,19 +838,19 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* Shift+クリック一括削除確認ダイアログ（S.Image） */}
       <Dialog open={!!dsiMultiDeleteConfirm} onClose={() => !deletingDsiMulti && setDsiMultiDeleteConfirm(null)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 380 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 380 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>
           {dsiMultiDeleteConfirm?.length ?? 0} 件を削除
         </DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', mb: 1.5 }}>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.65)', mb: 1.5 }}>
             選択したアイテムを削除します。{isLocal ? 'ローカルファイルが削除されます。' : ''}この操作は元に戻せません。
           </Typography>
-          <Box sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <Box sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {(dsiMultiDeleteConfirm || []).map((d, i) => (
               <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef5350', flexShrink: 0 }} />
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }} noWrap>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }} noWrap>
                   {d._type === 'texture-group'
                     ? `${d.title || 'テクスチャグループ'} (${(d.items || []).length} マップ)`
                     : (d.title || d.name || 'アイテム')}
@@ -824,7 +860,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setDsiMultiDeleteConfirm(null)} disabled={deletingDsiMulti} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setDsiMultiDeleteConfirm(null)} disabled={deletingDsiMulti} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" color="error" disabled={deletingDsiMulti} onClick={handleDsiMultiDeleteConfirm}
             sx={{ textTransform: 'none' }}>
             {deletingDsiMulti ? '削除中...' : `${dsiMultiDeleteConfirm?.length ?? 0} 件を削除する`}
@@ -834,20 +870,20 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* 類似テクスチャグループ削除ダイアログ */}
       <Dialog open={!!simTexDialog} onClose={() => !deletingSimTex && setSimTexDialog(null)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { bgcolor: '#1a1e27', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>
           視覚的に類似するテクスチャを検出 — {simTexDialog?.totalGroups ?? 0} グループ削除 / {simTexDialog?.totalFiles ?? 0} ファイル
         </DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 0.5 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.5 }}>
             画像の模様・明暗の変化を 64 ビットで比較し、差異が 12.5% 以内（人の目では区別困難）のグループを検出しました。
           </Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 1.5 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1.5 }}>
             各グループからマップ数が多いものを 1 件残し、残りをローカルから削除します。この操作は元に戻せません。
           </Typography>
           <Box sx={{ maxHeight: 340, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
             {simTexDialog?.groups.map((g, i) => (
-              <Box key={i} sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1.5, px: 1.5, py: 1, border: '1px solid rgba(255,255,255,0.07)' }}>
+              <Box key={i} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1.5, px: 1.5, py: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
                 {/* サムネイル比較行 */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 0.75 }}>
                   {[g.keep, ...g.remove].slice(0, 4).map((grp, j) => (
@@ -860,17 +896,17 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                           opacity: j === 0 ? 1 : 0.75 }}
                       />
                       <Box sx={{ position: 'absolute', bottom: 1, left: 1, right: 1, fontSize: 8, fontWeight: 700,
-                        color: '#fff', bgcolor: j === 0 ? 'rgba(76,175,80,0.85)' : 'rgba(239,83,80,0.85)',
+                        color: 'var(--brand-fg)', bgcolor: j === 0 ? 'rgba(76,175,80,0.85)' : 'rgba(239,83,80,0.85)',
                         textAlign: 'center', borderRadius: 0.5 }}>
                         {j === 0 ? '残す' : '削除'}
                       </Box>
                     </Box>
                   ))}
                   <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', ml: 0.5 }}>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                       類似度スコア: {64 - g.minDist}/64 ビット一致
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                       ({Math.round((1 - g.minDist / 64) * 100)}% 同一)
                     </Typography>
                   </Box>
@@ -878,12 +914,12 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                 {/* 詳細テキスト */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
                   <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4caf50', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 11, color: '#fff', fontWeight: 600 }}>{g.keep.title} ({g.keep.items.length} マップ)</Typography>
+                  <Typography sx={{ fontSize: 11, color: 'var(--brand-fg)', fontWeight: 600 }}>{g.keep.title} ({g.keep.items.length} マップ)</Typography>
                 </Box>
                 {g.remove.map((r, j) => (
                   <Box key={j} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, pl: 1 }}>
                     <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#ef5350', flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{r.title} ({r.items.length} マップ)</Typography>
+                    <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{r.title} ({r.items.length} マップ)</Typography>
                   </Box>
                 ))}
               </Box>
@@ -891,7 +927,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setSimTexDialog(null)} disabled={deletingSimTex} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setSimTexDialog(null)} disabled={deletingSimTex} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" color="error" disabled={deletingSimTex} onClick={handleSimTexDeleteConfirm}
             sx={{ textTransform: 'none' }}>
             {deletingSimTex ? '削除中...' : `削除する (${simTexDialog?.totalFiles ?? 0} ファイル)`}
@@ -901,22 +937,22 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* ライトマップ一括削除ダイアログ */}
       <Dialog open={lightmapDeleteOpen} onClose={() => !deletingLightmaps && setLightmapDeleteOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#1a1e27', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 440 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 440 } }}>
         <DialogTitle sx={{ pb: 1 }}>ライトマップを削除</DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, mb: 1.5 }}>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14, mb: 1.5 }}>
             以下の {lightmapImages.length} 件のライトマップファイルをローカルから削除します。この操作は元に戻せません。
           </Typography>
-          <Box sx={{ maxHeight: 200, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ maxHeight: 200, overflowY: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {lightmapImages.map((img) => (
-              <Typography key={img.id} sx={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', wordBreak: 'break-all' }}>
+              <Typography key={img.id} sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.55)', wordBreak: 'break-all' }}>
                 {img.name || img.title}
               </Typography>
             ))}
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
-          <Button onClick={() => setLightmapDeleteOpen(false)} disabled={deletingLightmaps} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setLightmapDeleteOpen(false)} disabled={deletingLightmaps} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleDeleteLightmaps} disabled={deletingLightmaps} variant="contained" color="error">
             {deletingLightmaps ? '削除中...' : `${lightmapImages.length} 件を削除`}
           </Button>
@@ -925,16 +961,16 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
 
       {/* Delete confirm dialog */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#1a1e27', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 420 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 420 } }}>
         <DialogTitle sx={{ pb: 1 }}>削除の確認</DialogTitle>
         <DialogContent>
           {deleteTarget?.type === 'image-set' ? (
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
               セット「{deleteTarget?.title || 'セット'}」を削除します。中の画像/動画も一緒に削除しますか？<br />
               「セットのみ削除」を選ぶと、中のアイテムはトップ階層に残ります。
             </Typography>
           ) : (
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
               「{deleteTarget?.title || deleteTarget?.name || 'このアイテム'}」を削除しますか？
               {(deleteTarget?.sourceType === 'layout-render' || deleteTarget?.sourceType === 'ai-render')
                 ? ' これは元データへの参照です。S.Image の一覧から外れますが、元の S.Layout / AI Render のデータは残ります。'
@@ -943,9 +979,9 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           {deleteTarget?.type === 'image-set' && (
-            <Button onClick={() => handleConfirmDelete(false)} disabled={deleting} sx={{ color: '#fff' }}>
+            <Button onClick={() => handleConfirmDelete(false)} disabled={deleting} sx={{ color: 'var(--brand-fg)' }}>
               セットのみ削除
             </Button>
           )}

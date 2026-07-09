@@ -70,11 +70,11 @@ const CATEGORY_RELATIONS: { value: CategoryRelationType; label: string }[] = [
 const LAYOUT_CATEGORY_OPTIONS: LayoutCategoryMeta[] = LAYOUT_CATEGORIES;
 
 const sx = {
-  cell: { py: 0.5, px: 0.75, fontSize: 11, color: 'rgba(255,255,255,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-  head: { py: 0.75, px: 0.75, fontSize: 10.5, color: 'rgba(255,255,255,0.45)', fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,0.1)' },
+  cell: { py: 0.5, px: 0.75, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.85)', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' },
+  head: { py: 0.75, px: 0.75, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontWeight: 700, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' },
 };
 
-const line = 'rgba(255,255,255,0.1)';
+const line = 'rgb(var(--brand-fg-rgb) / 0.1)';
 const accent = '#a78bfa';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -104,9 +104,9 @@ interface CategorySelectProps {
 function CategorySelect({ value, onChange, sx: extraSx }: CategorySelectProps) {
   const selectSx = {
     '& .MuiOutlinedInput-root': {
-      fontSize: 11, color: '#fff',
-      '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+      fontSize: 11, color: 'var(--brand-fg)',
+      '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
+      '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
       '&.Mui-focused fieldset': { borderColor: accent },
     },
     '& .MuiSelect-select': { py: '3px', fontSize: 11 },
@@ -134,14 +134,14 @@ function CategorySelect({ value, onChange, sx: extraSx }: CategorySelectProps) {
         renderValue={() => (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <span style={{ fontSize: 13 }}>{current?.icon ?? '📦'}</span>
-            <span style={{ fontSize: 11, color: '#fff' }}>{current?.label ?? value}</span>
+            <span style={{ fontSize: 11, color: 'var(--brand-fg)' }}>{current?.label ?? value}</span>
           </Box>
         )}
         MenuProps={{
           PaperProps: {
             sx: {
-              bgcolor: '#1e1e2e',
-              border: '1px solid rgba(255,255,255,0.12)',
+              bgcolor: 'var(--brand-surface2)',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
               maxHeight: 420,
             },
           },
@@ -157,7 +157,7 @@ function CategorySelect({ value, onChange, sx: extraSx }: CategorySelectProps) {
               fontWeight: 800, letterSpacing: '0.06em',
               textTransform: 'uppercase',
               py: 0.4, minHeight: 0,
-              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
               mt: 0.25,
             }}
           >
@@ -168,7 +168,7 @@ function CategorySelect({ value, onChange, sx: extraSx }: CategorySelectProps) {
               key={lc.key}
               value={lc.key}
               sx={{
-                fontSize: 11.5, color: 'rgba(255,255,255,0.85)',
+                fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.85)',
                 py: 0.6, minHeight: 0,
                 gap: 0.75,
                 '&:hover': { bgcolor: alpha(accent, 0.1) },
@@ -181,7 +181,7 @@ function CategorySelect({ value, onChange, sx: extraSx }: CategorySelectProps) {
                 <Typography sx={{ fontSize: 11.5, color: 'inherit', lineHeight: 1.3 }}>
                   {lc.label}
                 </Typography>
-                <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.35)', lineHeight: 1.2 }}>
+                <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)', lineHeight: 1.2 }}>
                   {lc.description}
                 </Typography>
               </Box>
@@ -298,9 +298,9 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
 
   const inputSx = {
     '& .MuiOutlinedInput-root': {
-      fontSize: 11, color: '#fff',
-      '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
-      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+      fontSize: 11, color: 'var(--brand-fg)',
+      '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
+      '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
       '&.Mui-focused fieldset': { borderColor: accent },
     },
     '& .MuiSelect-select': { py: '3px', fontSize: 11 },
@@ -319,16 +319,16 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
         </FormControl>
         <Box sx={{ flex: 1 }} />
         {dirty && (
-          <Chip label="未保存" size="small" sx={{ height: 18, fontSize: 10, bgcolor: alpha('#f59e0b', 0.2), color: '#fbbf24', border: `1px solid ${alpha('#f59e0b', 0.4)}` }} />
+          <Chip label="未保存" size="small" sx={{ height: 18, fontSize: 10, bgcolor: alpha('#f59e0b', 0.2), color: 'light-dark(#aa7c03, #fbbf24)', border: `1px solid ${alpha('#f59e0b', 0.4)}` }} />
         )}
         <Tooltip title="デフォルトに戻す">
-          <IconButton size="small" onClick={handleReset} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+          <IconButton size="small" onClick={handleReset} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
             <RestartAltRoundedIcon sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="保存">
           <span>
-            <IconButton size="small" onClick={handleSave} disabled={!dirty || saving} sx={{ color: dirty ? accent : 'rgba(255,255,255,0.3)', '&:hover': { color: accent } }}>
+            <IconButton size="small" onClick={handleSave} disabled={!dirty || saving} sx={{ color: dirty ? accent : 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: accent } }}>
               {saving ? <CircularProgress size={13} sx={{ color: 'inherit' }} /> : <SaveRoundedIcon sx={{ fontSize: 15 }} />}
             </IconButton>
           </span>
@@ -342,7 +342,7 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
         sx={{
           minHeight: 32, flexShrink: 0,
           borderBottom: `1px solid ${line}`,
-          '& .MuiTab-root': { minHeight: 32, fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'none', px: 1.5, py: 0 },
+          '& .MuiTab-root': { minHeight: 32, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none', px: 1.5, py: 0 },
           '& .Mui-selected': { color: accent },
           '& .MuiTabs-indicator': { backgroundColor: accent, height: 2 },
         }}
@@ -368,7 +368,7 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
             <Box>
               {/* 説明バナー */}
               <Box sx={{ px: 1.5, py: 0.85, bgcolor: alpha('#7c3aed', 0.07), borderBottom: `1px solid ${line}` }}>
-                <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.5), lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", lineHeight: 1.5 }}>
                   各カテゴリが Auto Layout 時にゾーン内のどこへ配置されるかを定義します。優先度が高いほど先に配置されます。
                 </Typography>
               </Box>
@@ -383,7 +383,7 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
                 </TableHead>
                 <TableBody>
                   {rules.map((rule, idx) => (
-                    <TableRow key={rule.id} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+                    <TableRow key={rule.id} hover sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' } }}>
                       <TableCell sx={sx.cell}>
                         <CategorySelect
                           value={rule.furnitureCategory}
@@ -395,14 +395,14 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
                           <Select
                             value={rule.placement.relation}
                             onChange={e => updateRulePlacement(idx, { relation: e.target.value as PlacementRelation })}
-                            MenuProps={{ PaperProps: { sx: { bgcolor: '#1e1e2e', border: '1px solid rgba(255,255,255,0.12)' } } }}
+                            MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)' } } }}
                           >
                             {PLACEMENT_RELATIONS.map(r => (
                               <MenuItem key={r.value} value={r.value}
-                                sx={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', py: 0.6, minHeight: 0, flexDirection: 'column', alignItems: 'flex-start',
+                                sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.85)', py: 0.6, minHeight: 0, flexDirection: 'column', alignItems: 'flex-start',
                                   '&:hover': { bgcolor: alpha(accent, 0.1) }, '&.Mui-selected': { bgcolor: alpha(accent, 0.18) } }}>
                                 <span>{r.label}</span>
-                                <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.35)' }}>{r.desc}</span>
+                                <span style={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>{r.desc}</span>
                               </MenuItem>
                             ))}
                           </Select>
@@ -419,7 +419,7 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
                       </TableCell>
                       <TableCell sx={{ ...sx.cell, p: 0 }}>
                         <IconButton size="small" onClick={() => removeRule(idx)}
-                          sx={{ color: 'rgba(255,255,255,0.25)', '&:hover': { color: '#f87171' } }}>
+                          sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { color: 'light-dark(#a50808, #f87171)' } }}>
                           <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </TableCell>
@@ -440,9 +440,9 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
           {tab === 1 && (
             <Box>
               <Box sx={{ px: 1.25, py: 0.85, bgcolor: alpha('#7c3aed', 0.08), borderBottom: `1px solid ${line}` }}>
-                <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.5), lineHeight: 1.5 }}>
-                  <strong style={{ color: 'rgba(167,139,250,0.9)' }}>アンカー</strong>家具を配置した後、
-                  <strong style={{ color: 'rgba(167,139,250,0.9)' }}>コンパニオン</strong>家具が指定の関係・距離で自動追加されます
+                <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", lineHeight: 1.5 }}>
+                  <strong style={{ color: 'light-dark(rgba(47,7,166,0.9), rgba(167,139,250,0.9))' }}>アンカー</strong>家具を配置した後、
+                  <strong style={{ color: 'light-dark(rgba(47,7,166,0.9), rgba(167,139,250,0.9))' }}>コンパニオン</strong>家具が指定の関係・距離で自動追加されます
                 </Typography>
               </Box>
               <Table size="small" stickyHeader>
@@ -459,7 +459,7 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
                 </TableHead>
                 <TableBody>
                   {relations.map((rel, idx) => (
-                    <TableRow key={rel.id} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' }, opacity: rel.isActive ? 1 : 0.4 }}>
+                    <TableRow key={rel.id} hover sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' }, opacity: rel.isActive ? 1 : 0.4 }}>
                       <TableCell sx={sx.cell}>
                         <CategorySelect
                           value={rel.anchorCategory}
@@ -475,10 +475,10 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
                       <TableCell sx={sx.cell}>
                         <FormControl size="small" fullWidth sx={inputSx}>
                           <Select value={rel.relation} onChange={e => updateRel(idx, { relation: e.target.value as CategoryRelationType })}
-                            MenuProps={{ PaperProps: { sx: { bgcolor: '#1e1e2e', border: '1px solid rgba(255,255,255,0.12)' } } }}>
+                            MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)' } } }}>
                             {CATEGORY_RELATIONS.map(r => (
                               <MenuItem key={r.value} value={r.value}
-                                sx={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', py: 0.5, minHeight: 0,
+                                sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.85)', py: 0.5, minHeight: 0,
                                   '&:hover': { bgcolor: alpha(accent, 0.1) }, '&.Mui-selected': { bgcolor: alpha(accent, 0.18) } }}>
                                 {r.label}
                               </MenuItem>
@@ -510,7 +510,7 @@ export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRules
                         />
                       </TableCell>
                       <TableCell sx={{ ...sx.cell, p: 0 }}>
-                        <IconButton size="small" onClick={() => removeRelation(idx)} sx={{ color: 'rgba(255,255,255,0.25)', '&:hover': { color: '#f87171' } }}>
+                        <IconButton size="small" onClick={() => removeRelation(idx)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { color: 'light-dark(#a50808, #f87171)' } }}>
                           <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                       </TableCell>

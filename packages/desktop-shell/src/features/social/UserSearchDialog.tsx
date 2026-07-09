@@ -197,7 +197,7 @@ export const UserSearchDialog: React.FC<{ open: boolean; onClose: () => void }> 
           px: 2.5, py: 1.5,
           display: 'flex', alignItems: 'center', gap: 1.5,
           borderBottom: `1px solid ${BRAND.line}`,
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' },
         }}
       >
         <Avatar
@@ -222,7 +222,7 @@ export const UserSearchDialog: React.FC<{ open: boolean; onClose: () => void }> 
             size="small"
             onClick={() => void startDm(u)}
             sx={{
-              color: '#8ab4f8', border: '1px solid rgba(138,180,248,0.3)', borderRadius: 2, p: 0.6,
+              color: 'light-dark(#0a45a4, #8ab4f8)', border: '1px solid rgba(138,180,248,0.3)', borderRadius: 2, p: 0.6,
               '&:hover': { bgcolor: 'rgba(138,180,248,0.1)' },
             }}
           >
@@ -240,8 +240,8 @@ export const UserSearchDialog: React.FC<{ open: boolean; onClose: () => void }> 
             textTransform: 'none', fontSize: 11.5, fontWeight: 700, borderRadius: 5, px: 1.5, py: 0.4,
             flexShrink: 0, minWidth: 96,
             ...(isFollowing
-              ? { color: BRAND.sub, border: '1px solid rgba(255,255,255,0.15)', '&:hover': { color: '#f87171', borderColor: 'rgba(248,113,113,0.4)', bgcolor: 'rgba(248,113,113,0.06)' } }
-              : { color: '#fff', bgcolor: '#3498db', '&:hover': { bgcolor: '#2980b9' } }),
+              ? { color: BRAND.sub, border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', '&:hover': { color: 'light-dark(#a50808, #f87171)', borderColor: 'rgba(248,113,113,0.4)', bgcolor: 'rgba(248,113,113,0.06)' } }
+              : { color: 'var(--brand-fg)', bgcolor: '#3498db', '&:hover': { bgcolor: '#2980b9' } }),
           }}
         >
           {isFollowing ? 'フォロー中' : 'フォロー'}
@@ -291,15 +291,15 @@ export const UserSearchDialog: React.FC<{ open: boolean; onClose: () => void }> 
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }} />
+                  <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }} />
                 </InputAdornment>
               ),
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2.5, fontSize: 13, color: '#fff',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 2.5, fontSize: 13, color: 'var(--brand-fg)',
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
                 '&.Mui-focused fieldset': { borderColor: 'rgba(138,180,248,0.5)' },
               },
             }}
@@ -310,14 +310,14 @@ export const UserSearchDialog: React.FC<{ open: boolean; onClose: () => void }> 
         <Box sx={{ flex: 1, overflowY: 'auto' }}>
           {(loading || candidatesLoading) && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={20} sx={{ color: 'rgba(255,255,255,0.3)' }} />
+              <CircularProgress size={20} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
             </Box>
           )}
 
           {/* 初期候補（フォロー中） */}
           {!loading && !candidatesLoading && !searched && candidates.length > 0 && (
             <>
-              <Typography sx={{ px: 2.5, pt: 1.5, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>
+              <Typography sx={{ px: 2.5, pt: 1.5, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontWeight: 600 }}>
                 フォロー中
               </Typography>
               {candidates.map(u => renderUserRow(u))}
@@ -327,7 +327,7 @@ export const UserSearchDialog: React.FC<{ open: boolean; onClose: () => void }> 
           {/* 候補もなく未検索の空状態 */}
           {!loading && !candidatesLoading && !searched && candidates.length === 0 && (
             <Box sx={{ textAlign: 'center', py: 6, opacity: 0.45 }}>
-              <SearchRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.3)', mb: 1 }} />
+              <SearchRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mb: 1 }} />
               <Typography sx={{ fontSize: 12.5, color: BRAND.sub }}>
                 SEKKEIYA のユーザーを名前で検索できます
               </Typography>

@@ -314,7 +314,7 @@ function OrthoAnnotLayer({ view, annotations, annotMode, pendingStart, onClickPo
             <Html position={mid} center>
               <div style={{
                 background: 'rgba(8,12,22,0.88)',
-                color: '#ffa726',
+                color: 'light-dark(#ad6700, #ffa726)',
                 fontSize: 10,
                 fontWeight: 700,
                 padding: '1px 7px',
@@ -579,18 +579,18 @@ function OrthoViewport({ view, components, focusRef, gridCellMm, gridLineColor =
   const sectionSize = cellMm * SCALE * 5;
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
-      <Typography variant="caption" sx={{ position: 'absolute', top: 6, left: 8, zIndex: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 600, fontSize: 11, pointerEvents: 'none' }}>
+    <Box sx={{ position: 'relative', width: '100%', height: '100%', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1, overflow: 'hidden' }}>
+      <Typography variant="caption" sx={{ position: 'absolute', top: 6, left: 8, zIndex: 10, color: 'rgb(var(--brand-fg-rgb) / 0.55)', fontWeight: 600, fontSize: 11, pointerEvents: 'none' }}>
         {labels[view]}
       </Typography>
-      <Typography sx={{ position: 'absolute', bottom: 6, left: 8, zIndex: 10, fontSize: 8.5, color: 'rgba(255,255,255,0.18)', pointerEvents: 'none' }}>
+      <Typography sx={{ position: 'absolute', bottom: 6, left: 8, zIndex: 10, fontSize: 8.5, color: 'rgb(var(--brand-fg-rgb) / 0.18)', pointerEvents: 'none' }}>
         右ドラッグ: パン　ホイール: ズーム
       </Typography>
       <Canvas
         orthographic
         camera={{ position: camPos[view], zoom: 80, up: upVecs[view] }}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: '#080c14' }}
+        style={{ background: 'var(--brand-bg)' }}
       >
         <ambientLight intensity={1.8} />
         <directionalLight position={[5, 5, 5]} intensity={0.5} />
@@ -629,9 +629,9 @@ function CutControl({ label, value, min, max, enabled, color, onChange, onToggle
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
       <Box
         onClick={() => onToggle(!enabled)}
-        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: enabled ? color : 'rgba(255,255,255,0.2)', cursor: 'pointer', flexShrink: 0, transition: 'background-color 0.15s' }}
+        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: enabled ? color : 'rgb(var(--brand-fg-rgb) / 0.2)', cursor: 'pointer', flexShrink: 0, transition: 'background-color 0.15s' }}
       />
-      <Typography sx={{ color: enabled ? color : 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 700, minWidth: 44, flexShrink: 0 }}>{label}</Typography>
+      <Typography sx={{ color: enabled ? color : 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 9, fontWeight: 700, minWidth: 44, flexShrink: 0 }}>{label}</Typography>
       <Slider
         size="small"
         min={min} max={max} step={10}
@@ -640,14 +640,14 @@ function CutControl({ label, value, min, max, enabled, color, onChange, onToggle
         onChange={(_, v) => onChange(v as number)}
         sx={{
           flex: 1,
-          color: enabled ? color : 'rgba(255,255,255,0.2)',
+          color: enabled ? color : 'rgb(var(--brand-fg-rgb) / 0.2)',
           height: 2,
           py: '4px',
           '& .MuiSlider-thumb': { width: 10, height: 10 },
           '& .MuiSlider-rail': { opacity: 0.2 },
         }}
       />
-      <Typography sx={{ color: enabled ? color : 'rgba(255,255,255,0.25)', fontSize: 9, minWidth: 52, textAlign: 'right', fontFamily: 'monospace', flexShrink: 0 }}>
+      <Typography sx={{ color: enabled ? color : 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 9, minWidth: 52, textAlign: 'right', fontFamily: 'monospace', flexShrink: 0 }}>
         {value >= 0 ? '+' : ''}{value}mm
       </Typography>
     </Box>
@@ -745,20 +745,20 @@ function SectionViewport({ type, components, focusRef, gridCellMm, gridLineColor
   const focusView = isPlansec ? 'top' : 'front';
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '100%', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
+    <Box sx={{ position: 'relative', width: '100%', height: '100%', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1, overflow: 'hidden' }}>
 
       {/* View label */}
-      <Typography variant="caption" sx={{ position: 'absolute', top: 6, left: 8, zIndex: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 600, fontSize: 11, pointerEvents: 'none' }}>
+      <Typography variant="caption" sx={{ position: 'absolute', top: 6, left: 8, zIndex: 10, color: 'rgb(var(--brand-fg-rgb) / 0.55)', fontWeight: 600, fontSize: 11, pointerEvents: 'none' }}>
         {isPlansec ? '平断面' : '立断面'}
       </Typography>
 
       {/* Nav hint */}
-      <Typography sx={{ position: 'absolute', top: 6, right: 8, zIndex: 10, fontSize: 8.5, color: 'rgba(255,255,255,0.18)', pointerEvents: 'none' }}>
+      <Typography sx={{ position: 'absolute', top: 6, right: 8, zIndex: 10, fontSize: 8.5, color: 'rgb(var(--brand-fg-rgb) / 0.18)', pointerEvents: 'none' }}>
         右ドラッグ: パン　ホイール: ズーム
       </Typography>
 
       {/* Cut plane controls — overlaid at bottom, all 3 axes always visible */}
-      <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, bgcolor: 'rgba(8,12,22,0.85)', px: 1.25, py: 0.75, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, bgcolor: 'rgba(8,12,22,0.85)', px: 1.25, py: 0.75, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
         <CutControl label="X 断面" value={xCut} min={range.xMin} max={range.xMax} enabled={xEnabled} color="#ef9a9a" onChange={setXCut} onToggle={setXEnabled} />
         <CutControl label="Y 断面" value={yCut} min={range.yMin} max={range.yMax} enabled={yEnabled} color="#90caf9" onChange={setYCut} onToggle={setYEnabled} />
         <CutControl label="Z (高さ)" value={zCut} min={0} max={range.zMax} enabled={zEnabled} color="#a5d6a7" onChange={setZCut} onToggle={setZEnabled} />
@@ -769,7 +769,7 @@ function SectionViewport({ type, components, focusRef, gridCellMm, gridLineColor
         orthographic
         camera={{ position: camPos, zoom: 80, up: upVec }}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: '#080c14' }}
+        style={{ background: 'var(--brand-bg)' }}
         onCreated={({ gl }) => { gl.localClippingEnabled = true; }}
       >
         <ambientLight intensity={1.8} />
@@ -807,8 +807,8 @@ function RightPanel() {
   if (!selected) {
     return (
       <Box sx={{
-        width: 240, height: '100%', bgcolor: 'rgba(10,15,25,0.95)',
-        borderLeft: '1px solid rgba(255,255,255,0.08)',
+        width: 240, height: '100%', bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.95))',
+        borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
         display: 'flex', flexDirection: 'column', overflowY: 'auto',
       }}>
         {/* 家具レベルエディタ */}
@@ -816,8 +816,8 @@ function RightPanel() {
 
         {/* ショートカットヒント */}
         <Box sx={{ px: 1.75, pb: 1.5, mt: 'auto' }}>
-          <Divider sx={{ mb: 1.25, borderColor: 'rgba(255,255,255,0.06)' }} />
-          <Box sx={{ px: 1.25, py: 1, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Divider sx={{ mb: 1.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
+          <Box sx={{ px: 1.25, py: 1, borderRadius: 1.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
             {[
               ['Delete',  '選択パーツを削除'],
               ['F',       '選択パーツにフォーカス'],
@@ -825,8 +825,8 @@ function RightPanel() {
               ['Z → A',   '全ビューにフォーカス'],
             ].map(([key, desc]) => (
               <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4 }}>
-                <Box component="kbd" sx={{ px: 0.75, py: 0.1, borderRadius: 0.5, bgcolor: 'rgba(255,255,255,0.08)', fontSize: 8.5, fontFamily: 'monospace', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', flexShrink: 0 }}>{key}</Box>
-                <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.2)' }}>{desc}</Typography>
+                <Box component="kbd" sx={{ px: 0.75, py: 0.1, borderRadius: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', fontSize: 8.5, fontFamily: 'monospace', color: 'rgb(var(--brand-fg-rgb) / 0.45)', whiteSpace: 'nowrap', flexShrink: 0 }}>{key}</Box>
+                <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>{desc}</Typography>
               </Box>
             ))}
           </Box>
@@ -880,7 +880,7 @@ function RightPanel() {
       <Box sx={{ mb: 1.25 }}>
         {/* label row */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.3 }}>
-          <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 9.5, fontWeight: 600, letterSpacing: 0.2 }}>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 9.5, fontWeight: 600, letterSpacing: 0.2 }}>
             {label}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
@@ -888,9 +888,9 @@ function RightPanel() {
               <Box
                 onClick={() => update(field, value - 10)}
                 sx={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 0.5, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 1, userSelect: 'none',
-                  '&:hover': { color: '#fff', borderColor: 'rgba(255,255,255,0.35)', bgcolor: 'rgba(255,255,255,0.06)' },
+                  borderRadius: 0.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', cursor: 'pointer',
+                  color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, lineHeight: 1, userSelect: 'none',
+                  '&:hover': { color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.35)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
                 }}
               >−</Box>
             )}
@@ -900,9 +900,9 @@ function RightPanel() {
               inputProps={{ step: inputStep }}
               sx={{
                 width: 68,
-                '& .MuiInputBase-input': { color: '#fff', fontSize: 11, p: '3px 6px', textAlign: 'center' },
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-                '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.25)' },
+                '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 11, p: '3px 6px', textAlign: 'center' },
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)' },
                 '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: sliderColor },
               }}
             />
@@ -910,9 +910,9 @@ function RightPanel() {
               <Box
                 onClick={() => update(field, value + 10)}
                 sx={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  borderRadius: 0.5, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.4)', fontSize: 13, lineHeight: 1, userSelect: 'none',
-                  '&:hover': { color: '#fff', borderColor: 'rgba(255,255,255,0.35)', bgcolor: 'rgba(255,255,255,0.06)' },
+                  borderRadius: 0.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', cursor: 'pointer',
+                  color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, lineHeight: 1, userSelect: 'none',
+                  '&:hover': { color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.35)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
                 }}
               >＋</Box>
             )}
@@ -930,7 +930,7 @@ function RightPanel() {
             py: '6px',
             '& .MuiSlider-thumb': {
               width: 11, height: 11,
-              '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 6px ${sliderColor}28` },
+              '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 6px color-mix(in srgb, ${sliderColor} 16%, transparent)` },
             },
             '& .MuiSlider-rail': { opacity: 0.18 },
           }}
@@ -950,20 +950,20 @@ function RightPanel() {
 
   const ASSIST_BTN = {
     px: 0.9, py: 0.4, borderRadius: 1,
-    border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
-    fontSize: 9.5, fontWeight: 600, color: 'rgba(255,255,255,0.4)',
+    border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', cursor: 'pointer',
+    fontSize: 9.5, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.4)',
     userSelect: 'none', transition: 'all 0.12s',
-    '&:hover': { borderColor: '#ffa726', color: '#ffa726', bgcolor: 'rgba(255,167,38,0.07)' },
+    '&:hover': { borderColor: '#ffa726', color: 'light-dark(#ad6700, #ffa726)', bgcolor: 'rgba(255,167,38,0.07)' },
   };
 
   return (
     <Box sx={{
-      width: 240, height: '100%', bgcolor: 'rgba(10,15,25,0.95)',
-      borderLeft: '1px solid rgba(255,255,255,0.08)',
+      width: 240, height: '100%', bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.95))',
+      borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
       px: 1.75, py: 1.5, overflowY: 'auto', display: 'flex', flexDirection: 'column',
     }}>
       {/* ── header ── */}
-      <Typography sx={{ color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1, mb: 1.25, fontSize: 9, fontWeight: 700 }}>
+      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', textTransform: 'uppercase', letterSpacing: 1, mb: 1.25, fontSize: 9, fontWeight: 700 }}>
         プロパティ
       </Typography>
 
@@ -973,21 +973,21 @@ function RightPanel() {
           label="名前" size="small" value={selected.name}
           onChange={(e) => update('name', e.target.value)}
           sx={{ flex: 1,
-            '& label': { color: 'rgba(255,255,255,0.4)', fontSize: 11 },
-            '& .MuiInputBase-input': { color: '#fff', fontSize: 12 },
-            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
+            '& label': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11 },
+            '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12 },
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
           }}
         />
         <Tooltip title="複製" arrow>
           <IconButton size="small" onClick={() => duplicateComponent(selected.id)}
-            sx={{ mt: 0.5, color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1,
-              '&:hover': { color: '#ffa726', borderColor: '#ffa726', bgcolor: 'rgba(255,167,38,0.06)' } }}>
+            sx={{ mt: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1,
+              '&:hover': { color: 'light-dark(#ad6700, #ffa726)', borderColor: '#ffa726', bgcolor: 'rgba(255,167,38,0.06)' } }}>
             <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="削除 (Delete)" arrow>
           <IconButton size="small" onClick={() => removeComponent(selected.id)}
-            sx={{ mt: 0.5, color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1,
+            sx={{ mt: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1,
               '&:hover': { color: '#ff4d4f', borderColor: '#ff4d4f', bgcolor: 'rgba(255,77,79,0.06)' } }}>
             <DeleteIcon sx={{ fontSize: 13 }} />
           </IconButton>
@@ -1003,7 +1003,7 @@ function RightPanel() {
       {numField('奥行 D (mm)', 'depth',  dim.depth,  5, 3000, 1)}
       {numField('高さ H (mm)', 'height', dim.height, 5, 3000, 1)}
 
-      <Divider sx={{ my: 1.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ my: 1.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
       {/* ── 位置 ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
@@ -1016,7 +1016,7 @@ function RightPanel() {
 
       {/* ── クイック配置 ── */}
       <Box sx={{ mt: 0.25, mb: 1.5 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, fontWeight: 700, letterSpacing: 0.6, mb: 0.75, textTransform: 'uppercase' }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 9, fontWeight: 700, letterSpacing: 0.6, mb: 0.75, textTransform: 'uppercase' }}>
           クイック配置
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -1030,29 +1030,29 @@ function RightPanel() {
         </Box>
       </Box>
 
-      <Divider sx={{ mb: 1.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ mb: 1.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
       {/* ── 現在の範囲（組み立て参考） ── */}
       <Box sx={{ mb: 1.5 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, fontWeight: 700, letterSpacing: 0.6, mb: 0.75, textTransform: 'uppercase' }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 9, fontWeight: 700, letterSpacing: 0.6, mb: 0.75, textTransform: 'uppercase' }}>
           範囲参考（組み立て用）
         </Typography>
-        <Box sx={{ bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 1.25, px: 1.25, py: 0.85 }}>
+        <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', borderRadius: 1.25, px: 1.25, py: 0.85 }}>
           {[
-            { axis: 'X', min: bbox.xMin, max: bbox.xMax, color: '#ef9a9a' }, // 左右
-            { axis: 'Y', min: bbox.yMin, max: bbox.yMax, color: '#90caf9' }, // 前後
-            { axis: 'Z', min: bbox.zMin, max: bbox.zMax, color: '#a5d6a7' }, // 上下
+            { axis: 'X', min: bbox.xMin, max: bbox.xMax, color: 'light-dark(#961818, #ef9a9a)' }, // 左右
+            { axis: 'Y', min: bbox.yMin, max: bbox.yMax, color: 'light-dark(#095fa5, #90caf9)' }, // 前後
+            { axis: 'Z', min: bbox.zMin, max: bbox.zMax, color: 'rgb(var(--brand-fg-rgb) / 0.65)' }, // 上下
           ].map(({ axis, min, max, color }) => (
             <Box key={axis} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.4 }}>
               <Typography sx={{ color, fontSize: 10, fontWeight: 700, minWidth: 12 }}>{axis}</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: 'monospace' }}>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 10, fontFamily: 'monospace' }}>
                 {min >= 0 ? '+' : ''}{min}
               </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: 9 }}>↔</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: 'monospace' }}>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 9 }}>↔</Typography>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 10, fontFamily: 'monospace' }}>
                 {max >= 0 ? '+' : ''}{max}
               </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.25)', fontSize: 9, ml: 'auto' }}>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 9, ml: 'auto' }}>
                 {max - min}mm
               </Typography>
             </Box>
@@ -1060,14 +1060,14 @@ function RightPanel() {
         </Box>
       </Box>
 
-      <Divider sx={{ mb: 1.25, borderColor: 'rgba(255,255,255,0.06)' }} />
+      <Divider sx={{ mb: 1.25, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
       {/* ── 色 ── */}
-      <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 9.5, fontWeight: 700, mb: 0.75 }}>色</Typography>
+      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 9.5, fontWeight: 700, mb: 0.75 }}>色</Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <input type="color" value={selected.color} onChange={(e) => update('color', e.target.value)}
           style={{ width: 36, height: 28, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'transparent' }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: 'monospace' }}>{selected.color}</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11, fontFamily: 'monospace' }}>{selected.color}</Typography>
       </Box>
     </Box>
   );
@@ -1371,21 +1371,21 @@ function LayoutSplitPane({
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      bgcolor: '#080e1c',
+      bgcolor: 'var(--brand-bg)',
       overflow: 'hidden',
     }}>
       {/* Header */}
       <Box sx={{
         height: 30, flexShrink: 0,
         display: 'flex', alignItems: 'center', px: 1.5, gap: 0.75,
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
         bgcolor: 'rgba(5,10,20,0.92)',
       }}>
         <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'rgba(100,181,246,0.65)', flexShrink: 0 }} />
-        <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(100,181,246,0.85)', lineHeight: 1, flex: 1 }}>
+        <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'light-dark(rgba(10,95,164,0.85), rgba(100,181,246,0.85))', lineHeight: 1, flex: 1 }}>
           レイアウトビュー
         </Typography>
-        <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', lineHeight: 1, whiteSpace: 'nowrap', mr: 0.5 }}>
+        <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.25)', lineHeight: 1, whiteSpace: 'nowrap', mr: 0.5 }}>
           RMB: 回転　Shift+RMB: パン　Ctrl+RMB: ズーム
         </Typography>
         {/* Close button */}
@@ -1395,8 +1395,8 @@ function LayoutSplitPane({
             onClick={onClose}
             sx={{
               width: 18, height: 18, borderRadius: 0.5, p: 0,
-              color: 'rgba(100,181,246,0.5)',
-              '&:hover': { bgcolor: 'rgba(100,181,246,0.12)', color: 'rgba(100,181,246,0.9)' },
+              color: 'light-dark(rgba(10,95,164,0.5), rgba(100,181,246,0.5))',
+              '&:hover': { bgcolor: 'rgba(100,181,246,0.12)', color: 'light-dark(rgba(10,95,164,0.9), rgba(100,181,246,0.9))' },
             }}
           >
             <span style={{ fontSize: 12, lineHeight: 1, fontWeight: 300 }}>✕</span>
@@ -1409,7 +1409,7 @@ function LayoutSplitPane({
         <Canvas
           camera={{ position: [8, 6, 8], fov: 50, near: 0.05, far: 500 }}
           gl={{ antialias: true, alpha: false, powerPreference: 'default' }}
-          style={{ background: '#0a1830', width: '100%', height: '100%' }}
+          style={{ background: 'var(--brand-surface)', width: '100%', height: '100%' }}
         >
           <color attach="background" args={['#0a1830']} />
           <ambientLight intensity={1.2} />
@@ -1454,7 +1454,7 @@ function LayoutSplitPane({
           <Typography sx={{
             position: 'absolute', top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: 10, color: 'rgba(255,255,255,0.4)',
+            fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)',
             pointerEvents: 'none', textAlign: 'center', lineHeight: 1.6,
           }}>
             3DSL に配置された<br />アイテムがありません
@@ -1521,7 +1521,7 @@ function LayoutContextPanel({
         onClick={() => setCollapsed(v => !v)}
         sx={{
           height: 34, display: 'flex', alignItems: 'center', px: 1.25, gap: 0.75,
-          borderBottom: collapsed ? 'none' : '1px solid rgba(255,255,255,0.07)',
+          borderBottom: collapsed ? 'none' : '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
           cursor: 'pointer', userSelect: 'none',
           '&:hover': { bgcolor: 'rgba(15,20,35,0.96)' },
         }}
@@ -1533,12 +1533,12 @@ function LayoutContextPanel({
         }} />
         <Typography sx={{
           fontSize: 10, fontWeight: 700, flex: 1, lineHeight: 1,
-          color: active ? 'rgba(100,181,246,1.0)' : 'rgba(100,181,246,0.8)',
+          color: active ? 'light-dark(rgba(10,95,164,1.0), rgba(100,181,246,1.0))' : 'light-dark(rgba(10,95,164,0.8), rgba(100,181,246,0.8))',
           transition: 'color 0.15s',
         }}>
           レイアウトビュー{active ? ' ●' : ''}
         </Typography>
-        <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', flexShrink: 0, lineHeight: 1 }}>
+        <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.3)', flexShrink: 0, lineHeight: 1 }}>
           {collapsed ? '◀' : '▼'}
         </Typography>
       </Box>
@@ -1548,11 +1548,11 @@ function LayoutContextPanel({
           OrbitControls is disabled when the panel is inactive; a transparent overlay
           captures clicks and activates the panel on demand (multi-viewport pattern). */}
       {!collapsed && (
-        <Box sx={{ height: 'calc(100% - 34px)', position: 'relative', bgcolor: '#0a1830' }}>
+        <Box sx={{ height: 'calc(100% - 34px)', position: 'relative', bgcolor: 'var(--brand-surface)' }}>
           <Canvas
             camera={{ position: [8, 6, 8], fov: 50, near: 0.05, far: 500 }}
             gl={{ antialias: true, alpha: false, powerPreference: 'default' }}
-            style={{ background: '#0a1830', width: '100%', height: '100%' }}
+            style={{ background: 'var(--brand-surface)', width: '100%', height: '100%' }}
           >
             <color attach="background" args={['#0a1830']} />
             <ambientLight intensity={1.2} />
@@ -1605,7 +1605,7 @@ function LayoutContextPanel({
               }}
             >
               <Typography sx={{
-                fontSize: 9, color: 'rgba(255,255,255,0.28)',
+                fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.28)',
                 userSelect: 'none', pointerEvents: 'none', letterSpacing: '0.04em',
               }}>
                 クリックしてカメラ操作
@@ -1617,7 +1617,7 @@ function LayoutContextPanel({
           {active && (
             <Typography sx={{
               position: 'absolute', bottom: 4, right: 6, zIndex: 3,
-              fontSize: 8.5, color: 'rgba(100,181,246,0.7)',
+              fontSize: 8.5, color: 'light-dark(rgba(10,95,164,0.7), rgba(100,181,246,0.7))',
               pointerEvents: 'none', lineHeight: 1,
               textShadow: '0 1px 2px rgba(0,0,0,0.85)',
             }}>
@@ -1629,7 +1629,7 @@ function LayoutContextPanel({
             <Typography sx={{
               position: 'absolute', top: '50%', left: '50%',
               transform: 'translate(-50%, -50%)',
-              fontSize: 10, color: 'rgba(255,255,255,0.4)',
+              fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)',
               pointerEvents: 'none', textAlign: 'center', lineHeight: 1.4,
             }}>
               3DSL に配置された<br />アイテムがありません
@@ -1867,7 +1867,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
       useDscStore.getState().clearSession(DSC_NEW_SESSION_KEY);
       if (fileId) useDscStore.getState().clearSession(fileId);
       const now = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-      setSaveStatus({ text: `クラウド保存済み ${now}`, color: '#ffa726' });
+      setSaveStatus({ text: `クラウド保存済み ${now}`, color: 'light-dark(#ad6700, #ffa726)' });
     } catch (err) {
       console.error('[DSC] Failed to save furniture:', err);
       alert('保存に失敗しました。もう一度お試しください。');
@@ -2195,9 +2195,9 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                 width: 5, flexShrink: 0,
                 cursor: 'col-resize',
                 position: 'relative', zIndex: 5,
-                bgcolor: 'rgba(255,255,255,0.04)',
-                borderLeft:  '1px solid rgba(255,255,255,0.07)',
-                borderRight: '1px solid rgba(255,255,255,0.07)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
+                borderLeft:  '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
+                borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
                 transition: 'background-color 0.15s',
                 '&:hover': { bgcolor: 'rgba(100,181,246,0.14)' },
                 '&::after': {
@@ -2225,7 +2225,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
             <Box sx={{
               height: 30, flexShrink: 0,
               display: 'flex', alignItems: 'center', px: 1.5, gap: 0.75,
-              borderBottom: '1px solid rgba(255,255,255,0.07)',
+              borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
               bgcolor: 'rgba(5,10,20,0.92)',
             }}>
               {/* レイアウトビューが閉じているときの再展開ボタン */}
@@ -2237,9 +2237,9 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                       display: 'flex', alignItems: 'center', gap: 0.5,
                       px: 0.75, height: 20, borderRadius: 0.75,
                       border: '1px solid rgba(100,181,246,0.3)',
-                      color: 'rgba(100,181,246,0.7)',
+                      color: 'light-dark(rgba(10,95,164,0.7), rgba(100,181,246,0.7))',
                       cursor: 'pointer', mr: 0.5, flexShrink: 0,
-                      '&:hover': { bgcolor: 'rgba(100,181,246,0.1)', color: 'rgba(100,181,246,1.0)', borderColor: 'rgba(100,181,246,0.6)' },
+                      '&:hover': { bgcolor: 'rgba(100,181,246,0.1)', color: 'light-dark(rgba(10,95,164,1.0), rgba(100,181,246,1.0))', borderColor: 'rgba(100,181,246,0.6)' },
                       transition: 'all 0.12s',
                     }}
                   >
@@ -2251,10 +2251,10 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                 </Tooltip>
               )}
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'rgba(255,167,38,0.65)', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,167,38,0.85)', lineHeight: 1, flex: 1 }}>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'light-dark(rgba(173,103,0,0.85), rgba(255,167,38,0.85))', lineHeight: 1, flex: 1 }}>
                 3DSC エディタ
               </Typography>
-              <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', lineHeight: 1, whiteSpace: 'nowrap' }}>
+              <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.25)', lineHeight: 1, whiteSpace: 'nowrap' }}>
                 RMB: 回転　MMB: パン　LMB: 矩形選択
               </Typography>
             </Box>
@@ -2271,7 +2271,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
         <Canvas
           camera={{ position: [2, 2, 2], fov: 45 }}
           gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
-          style={{ background: '#0d1117' }}
+          style={{ background: 'var(--brand-bg)' }}
           shadows
           onPointerMissed={() => {
             useDscStore.getState().selectComponent(null);
@@ -2362,8 +2362,8 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
         {/* 空パーツ時のヒント — canvasWrapRef 基準で中央に表示 */}
         {components.length === 0 && (
           <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-            <ViewInArIcon sx={{ fontSize: 48, color: 'rgba(255,167,38,0.2)', mb: 1 }} />
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.2)' }}>左サイドバーのパーツタブからパーツを追加してください</Typography>
+            <ViewInArIcon sx={{ fontSize: 48, color: 'light-dark(rgba(173,103,0,0.2), rgba(255,167,38,0.2))', mb: 1 }} />
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>左サイドバーのパーツタブからパーツを追加してください</Typography>
           </Box>
         )}
           </Box>
@@ -2376,7 +2376,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
     const orthoProps = { components, gridCellMm, gridLineColor };
     if (viewMode === 'quad') {
       return (
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', height: '100%', gap: '1px', bgcolor: 'rgba(255,255,255,0.08)' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', height: '100%', gap: '1px', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }}>
           <OrthoViewport view="top"   {...orthoProps} focusRef={focusTopRef}   />
           <Box sx={{ overflow: 'hidden', position: 'relative' }}>{render3DView()}</Box>
           <OrthoViewport view="front" {...orthoProps} focusRef={focusFrontRef} />
@@ -2393,33 +2393,33 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0d1117', color: 'text.primary' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'var(--brand-bg)', color: 'text.primary' }}>
 
       {/* ── Top bar ── */}
-      <Box sx={{ height: 52, px: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(10,15,25,0.98)', flexShrink: 0 }}>
-        <IconButton size="small" onClick={onBack} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+      <Box sx={{ height: 52, px: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.98))', flexShrink: 0 }}>
+        <IconButton size="small" onClick={onBack} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <ArrowBackIcon fontSize="small" />
         </IconButton>
         <TextField
           value={furnitureName}
           onChange={(e) => setFurnitureName(e.target.value)}
           size="small" variant="standard"
-          sx={{ width: 200, '& .MuiInputBase-input': { color: '#fff', fontSize: 14, fontWeight: 700, p: '2px 4px' }, '& .MuiInput-underline:before': { borderColor: 'rgba(255,255,255,0.2)' } }}
+          sx={{ width: 200, '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 14, fontWeight: 700, p: '2px 4px' }, '& .MuiInput-underline:before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
         />
-        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
 
         {/* View mode buttons */}
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           {VIEW_MODES.map(({ key, label }) => (
             <Button key={key} size="small" variant={viewMode === key ? 'contained' : 'text'}
               onClick={() => setViewMode(key)}
-              sx={{ minWidth: 36, px: 1, fontSize: 11, bgcolor: viewMode === key ? '#ffa726' : 'transparent', color: viewMode === key ? '#000' : 'rgba(255,255,255,0.5)', '&:hover': { bgcolor: viewMode === key ? '#fb8c00' : 'rgba(255,255,255,0.05)', color: viewMode === key ? '#000' : '#fff' } }}>
+              sx={{ minWidth: 36, px: 1, fontSize: 11, bgcolor: viewMode === key ? '#ffa726' : 'transparent', color: viewMode === key ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { bgcolor: viewMode === key ? '#fb8c00' : 'rgb(var(--brand-fg-rgb) / 0.05)', color: viewMode === key ? '#000' : 'var(--brand-fg)' } }}>
               {label}
             </Button>
           ))}
         </Box>
 
-        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 0.5 }} />
 
         {/* Grid settings: size + color */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -2432,10 +2432,10 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
               }}
               sx={{
                 px: 1, py: 0.3, borderRadius: 1, cursor: 'pointer',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 600,
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10, fontWeight: 600,
                 userSelect: 'none', transition: 'all 0.12s',
-                '&:hover': { borderColor: 'rgba(255,255,255,0.3)', color: '#fff' },
+                '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', color: 'var(--brand-fg)' },
               }}
             >
               Grid {gridCellMm}mm
@@ -2447,10 +2447,10 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
               onClick={(e) => setGridColorAnchor(e.currentTarget as HTMLElement)}
               sx={{
                 width: 22, height: 22, borderRadius: 1, cursor: 'pointer',
-                border: '1px solid rgba(255,255,255,0.15)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
                 bgcolor: gridLineColor, flexShrink: 0,
                 transition: 'border-color 0.12s',
-                '&:hover': { borderColor: 'rgba(255,255,255,0.5)' },
+                '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.5)' },
               }}
             />
           </Tooltip>
@@ -2462,15 +2462,15 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
             PaperProps={{
               sx: {
-                bgcolor: 'rgba(10,15,25,0.97)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.97))',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
                 borderRadius: 2, p: 1.5,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
                 mt: 0.5,
               }
             }}
           >
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 9.5, fontWeight: 700, mb: 1, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 9.5, fontWeight: 700, mb: 1, letterSpacing: 0.6, textTransform: 'uppercase' }}>
               グリッド線の色
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -2480,7 +2480,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                 onChange={(e) => setGridLineColor(e.target.value)}
                 style={{ width: 40, height: 32, border: 'none', borderRadius: 4, cursor: 'pointer', background: 'transparent' }}
               />
-              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'monospace' }}>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 11, fontFamily: 'monospace' }}>
                 {gridLineColor.toUpperCase()}
               </Typography>
             </Box>
@@ -2492,7 +2492,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                   sx={{
                     width: 20, height: 20, borderRadius: 0.75, cursor: 'pointer',
                     bgcolor: c,
-                    border: gridLineColor === c ? '2px solid #ffa726' : '1px solid rgba(255,255,255,0.2)',
+                    border: gridLineColor === c ? '2px solid #ffa726' : '1px solid rgb(var(--brand-fg-rgb) / 0.2)',
                     transition: 'border-color 0.1s',
                     '&:hover': { transform: 'scale(1.15)' },
                   }}
@@ -2505,18 +2505,18 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
         {/* Room ghost toggle — only shown when 3DSL context is available */}
         {originContext?.baseGlbUrl && (
           <>
-            <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 0.5 }} />
+            <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 0.5 }} />
             <Tooltip title={showRoomGhost ? '部屋を非表示' : '部屋を表示（空間参照）'} arrow>
               <Box
                 onClick={() => setShowRoomGhost(v => !v)}
                 sx={{
                   px: 1, py: 0.3, borderRadius: 1, cursor: 'pointer',
-                  border: `1px solid ${showRoomGhost ? 'rgba(100,181,246,0.45)' : 'rgba(255,255,255,0.12)'}`,
-                  color: showRoomGhost ? 'rgba(100,181,246,0.9)' : 'rgba(255,255,255,0.35)',
+                  border: `1px solid ${showRoomGhost ? 'rgba(100,181,246,0.45)' : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
+                  color: showRoomGhost ? 'light-dark(rgba(10,95,164,0.9), rgba(100,181,246,0.9))' : 'rgb(var(--brand-fg-rgb) / 0.35)',
                   fontSize: 10, fontWeight: 600, userSelect: 'none',
                   bgcolor: showRoomGhost ? 'rgba(100,181,246,0.06)' : 'transparent',
                   transition: 'all 0.15s',
-                  '&:hover': { borderColor: 'rgba(100,181,246,0.6)', color: '#64b5f6' },
+                  '&:hover': { borderColor: 'rgba(100,181,246,0.6)', color: 'light-dark(#0a5fa4, #64b5f6)' },
                 }}
               >
                 部屋表示
@@ -2527,7 +2527,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
 
         <Box sx={{ flex: 1 }} />
 
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', mr: 0.5 }}>
+        <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', mr: 0.5 }}>
           {components.length} パーツ
         </Typography>
 
@@ -2552,12 +2552,12 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
               disabled={components.length === 0}
               sx={{
                 borderColor: 'rgba(100,181,246,0.35)',
-                color: 'rgba(100,181,246,0.8)',
+                color: 'light-dark(rgba(10,95,164,0.8), rgba(100,181,246,0.8))',
                 fontWeight: 500,
                 fontSize: 11,
                 px: 1.2,
-                '&:hover': { borderColor: '#64b5f6', color: '#64b5f6', bgcolor: 'rgba(100,181,246,0.06)' },
-                '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' },
+                '&:hover': { borderColor: '#64b5f6', color: 'light-dark(#0a5fa4, #64b5f6)', bgcolor: 'rgba(100,181,246,0.06)' },
+                '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.2)' },
               }}
             >
               テンプレ登録
@@ -2578,13 +2578,13 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
               onClick={handleSaveGlb}
               disabled={isGlbSaving || components.length === 0}
               sx={{
-                borderColor: 'rgba(255,255,255,0.2)',
-                color: 'rgba(255,255,255,0.55)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.55)',
                 fontWeight: 500,
                 fontSize: 11,
                 px: 1.2,
-                '&:hover': { borderColor: 'rgba(255,255,255,0.5)', color: '#fff', bgcolor: 'rgba(255,255,255,0.04)' },
-                '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' },
+                '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.5)', color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' },
+                '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.2)' },
               }}
             >
               {isGlbSaving ? '...' : 'GLB保存'}
@@ -2604,19 +2604,19 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
           disabled={isSaving}
           sx={{
             borderColor: 'rgba(255,167,38,0.4)',
-            color: '#ffa726',
+            color: 'light-dark(#ad6700, #ffa726)',
             fontWeight: 600,
             fontSize: 11,
             px: 1.2,
             '&:hover': { borderColor: '#ffa726', bgcolor: 'rgba(255,167,38,0.08)' },
-            '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' },
+            '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.2)' },
           }}
         >
           {isSaving ? '...' : '保存'}
         </Button>
 
         {/* 3DSS アップロードダイアログを開く */}
-        <Tooltip title="S.Modelsライブラリに保存（アップロードダイアログを開く）" arrow>
+        <Tooltip title="S.Modelライブラリに保存（アップロードダイアログを開く）" arrow>
           <span>
             <Button
               variant="outlined"
@@ -2629,16 +2629,16 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
               disabled={isPreparingGlb || components.length === 0}
               sx={{
                 borderColor: 'rgba(206,147,216,0.35)',
-                color: 'rgba(206,147,216,0.8)',
+                color: 'light-dark(rgba(116,46,127,0.8), rgba(206,147,216,0.8))',
                 fontWeight: 500,
                 fontSize: 11,
                 px: 1.2,
                 mr: 1,
-                '&:hover': { borderColor: '#ce93d8', color: '#ce93d8', bgcolor: 'rgba(206,147,216,0.06)' },
-                '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.2)' },
+                '&:hover': { borderColor: '#ce93d8', color: 'light-dark(#742e7f, #ce93d8)', bgcolor: 'rgba(206,147,216,0.06)' },
+                '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.2)' },
               }}
             >
-              {isPreparingGlb ? '生成中...' : 'S.Models'}
+              {isPreparingGlb ? '生成中...' : 'S.Model'}
             </Button>
           </span>
         </Tooltip>
@@ -2680,26 +2680,26 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
             >
               {/* タイトル */}
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography sx={{ color: '#ffa726', fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
+                <Typography sx={{ color: 'light-dark(#ad6700, #ffa726)', fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
                   数値移動 (mm)
                   {numericMove.threeAxis && (
-                    <Box component="span" sx={{ ml: 1, color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}>
+                    <Box component="span" sx={{ ml: 1, color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontWeight: 400 }}>
                       — {THREEJS_AXIS_UI_LABEL[numericMove.threeAxis]}
                     </Box>
                   )}
                 </Typography>
                 <IconButton size="small"
                   onClick={() => setNumericMove({ open: false, threeAxis: null, dx: '', dy: '', dz: '' })}
-                  sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' }, p: 0.25 }}>
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' }, p: 0.25 }}>
                   <span style={{ fontSize: 14, lineHeight: 1 }}>✕</span>
                 </IconButton>
               </Box>
 
               {/* 3 軸入力 */}
               {([
-                { label: 'X  左右', key: 'dx', auto: numericMove.threeAxis === 'x', color: '#ef9a9a' },
-                { label: 'Y  前後', key: 'dy', auto: numericMove.threeAxis === 'z', color: '#90caf9' },
-                { label: 'Z  上下', key: 'dz', auto: numericMove.threeAxis === 'y', color: '#a5d6a7' },
+                { label: 'X  左右', key: 'dx', auto: numericMove.threeAxis === 'x', color: 'light-dark(#961818, #ef9a9a)' },
+                { label: 'Y  前後', key: 'dy', auto: numericMove.threeAxis === 'z', color: 'light-dark(#095fa5, #90caf9)' },
+                { label: 'Z  上下', key: 'dz', auto: numericMove.threeAxis === 'y', color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
               ] as const).map(({ label, key, auto, color }) => (
                 <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Typography sx={{ color, fontSize: 10, fontWeight: 700, minWidth: 60 }}>{label}</Typography>
@@ -2717,12 +2717,12 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                     inputProps={{ step: 10 }}
                     sx={{
                       flex: 1,
-                      '& .MuiInputBase-input': { color: auto ? color : 'rgba(255,255,255,0.75)', fontSize: 12, p: '5px 8px' },
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: auto ? `${color}60` : 'rgba(255,255,255,0.1)' },
+                      '& .MuiInputBase-input': { color: auto ? color : 'rgb(var(--brand-fg-rgb) / 0.75)', fontSize: 12, p: '5px 8px' },
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: auto ? `color-mix(in srgb, ${color} 38%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                       '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: color },
                     }}
                   />
-                  <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, minWidth: 18 }}>mm</Typography>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 10, minWidth: 18 }}>mm</Typography>
                 </Box>
               ))}
 
@@ -2737,7 +2737,7 @@ export function DscStudio({ payload, onBack }: { payload: any; onBack: () => voi
                 <Button
                   variant="outlined" size="small"
                   onClick={() => setNumericMove({ open: false, threeAxis: null, dx: '', dy: '', dz: '' })}
-                  sx={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.45)', '&:hover': { borderColor: 'rgba(255,255,255,0.4)', color: '#fff' } }}
+                  sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', color: 'rgb(var(--brand-fg-rgb) / 0.45)', '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)', color: 'var(--brand-fg)' } }}
                 >
                   キャンセル
                 </Button>

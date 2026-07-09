@@ -33,11 +33,11 @@ export interface GalleryItem {
 export const GALLERY_KINDS: GalleryKind[] = ['model', 'layout', 'presentation', 'furniture', 'diagram', 'image', 'portfolio'];
 
 export const KIND_META: Record<GalleryKind, { label: string; color: string }> = {
-  model:        { label: 'モデル',       color: '#5dade2' },
+  model:        { label: 'モデル',       color: 'light-dark(#1a6393, #5dade2)' },
   layout:       { label: 'レイアウト',   color: '#58d68d' },
-  presentation: { label: 'プレゼン',     color: '#f5b041' },
-  furniture:    { label: '家具',         color: '#bb8fce' },
-  diagram:      { label: 'ダイアグラム', color: '#f1948a' },
+  presentation: { label: 'プレゼン',     color: 'light-dark(#a56909, #f5b041)' },
+  furniture:    { label: '家具',         color: 'light-dark(#643579, #bb8fce)' },
+  diagram:      { label: 'ダイアグラム', color: 'light-dark(#9b2013, #f1948a)' },
   image:        { label: '画像・動画',   color: '#ec407a' },
-  portfolio:    { label: 'ポートフォリオ', color: '#9575cd' },
+  portfolio:    { label: 'ポートフォリオ', color: 'light-dark(#4c2e7f, #9575cd)' },
 };

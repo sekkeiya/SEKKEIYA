@@ -2,12 +2,12 @@ import { create } from "zustand";
 import type { RankedModel } from "../services/replaceSearch";
 
 // ウォークスルーで、商品サムネ（カタログ/関連リンク）から
-//   ① 似た S.Models モデルへ置換（CLIP 類似検索 → 候補選択）
+//   ① 似た S.Model モデルへ置換（CLIP 類似検索 → 候補選択）
 //   ② 画像から 3D 生成 → 完了後に自動置換
 // を行うための状態。置換結果は overrides に入り、FurnitureItem が表示モデルを差し替える。
 
 export interface ReplaceTarget {
-  id?: string;        // S.Models アセット ID（あればプロパティ取得に使う）
+  id?: string;        // S.Model アセット ID（あればプロパティ取得に使う）
   glbUrl: string;
   title?: string;
   thumbUrl?: string | null;
@@ -86,7 +86,7 @@ export const useItemReplaceStore = create<ItemReplaceState>((set, get) => ({
         .then((d) => {
           if (!d) return;
           scrapedDims = d;
-          // 自動アップロード（S.Models）で AI 推定より優先して反映させる。
+          // 自動アップロード（S.Model）で AI 推定より優先して反映させる。
           import("../../../../store/useDssUploadBridge").then(({ useDssUploadBridge }) => useDssUploadBridge.getState().setSeedDimensions(d)).catch(() => {});
           // 既に置換済みなら、その override に寸法をマージ（S.Layout で即・正寸に）。
           const cur = get().overrides[key];
@@ -100,7 +100,7 @@ export const useItemReplaceStore = create<ItemReplaceState>((set, get) => ({
         import("../../../../store/useBatchGenStore"),
         import("../../../../store/useAppStore"),
       ]);
-      // 自動保存（S.Models アップロードダイアログ）が開く設定のときは、完了後に
+      // 自動保存（S.Model アップロードダイアログ）が開く設定のときは、完了後に
       // 元の画面（このS.Layout）へ戻すための復帰先を控えておく。
       const app = useAppStore.getState();
       if (useBatchGenStore.getState().autoSaveToModels) {

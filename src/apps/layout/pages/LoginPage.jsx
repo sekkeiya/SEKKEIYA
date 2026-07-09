@@ -75,7 +75,7 @@ export default function LoginPage() {
         <div style={{ marginBottom: 14 }}>
           <h2 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>ログイン</h2>
           <p style={{ opacity: 0.78, margin: "10px 0 0", lineHeight: 1.6 }}>
-            S.Models のアカウント（Google / メール）でそのままログインできます。
+            S.Model のアカウント（Google / メール）でそのままログインできます。
           </p>
         </div>
 
@@ -157,14 +157,14 @@ export default function LoginPage() {
         ) : null}
 
         <div style={{ marginTop: 16, opacity: 0.86, fontSize: 13, lineHeight: 1.7 }}>
-          アカウント作成は S.Models 側で行います：
+          アカウント作成は S.Model 側で行います：
           <a
             href="https://3dshapeshare3d.web.app/signup"
             target="_blank"
             rel="noreferrer"
             style={{ color: "#9bb7ff", marginLeft: 6, textDecoration: "none", fontWeight: 800 }}
           >
-            S.Modelsで新規登録 →
+            S.Modelで新規登録 →
           </a>
         </div>
 

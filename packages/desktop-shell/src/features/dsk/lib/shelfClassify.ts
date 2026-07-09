@@ -16,8 +16,8 @@ const PRODUCT_SITE_RE = /flymee|low-?ya|actus|unico|idee|idée|karimoku|cassina|
 
 /** エントリを知識/商品のどちらの棚に置くか自動判定する。 */
 export function classifyShelf(e: LibraryEntry): Shelf {
-  // 文書（書籍/PDF/メモ）は常に知識。
-  if (e.kind === 'book' || e.kind === 'pdf' || e.kind === 'note') return 'knowledge';
+  // 文書（書籍/PDF/メモ/法令）は常に知識。
+  if (e.kind === 'book' || e.kind === 'pdf' || e.kind === 'note' || e.kind === 'law') return 'knowledge';
   // カテゴリが商品系。
   if (PRODUCT_CATEGORIES.has(e.category || '')) return 'product';
   // タグ or タイトルが商品系。
@@ -33,7 +33,7 @@ export function classifyShelf(e: LibraryEntry): Shelf {
 export function canIngestRag(e: LibraryEntry): boolean {
   if (classifyShelf(e) !== 'knowledge') return false;
   return (
-    e.kind === 'book' || e.kind === 'pdf' || e.kind === 'note' ||
+    e.kind === 'book' || e.kind === 'pdf' || e.kind === 'note' || e.kind === 'law' ||
     !!e.filePath || (e.kind === 'url' && !!e.sourceUrl)
   );
 }

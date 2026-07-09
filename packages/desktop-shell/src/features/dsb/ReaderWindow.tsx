@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import SkipNextRoundedIcon from '@mui/icons-material/SkipNextRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { SourceArticleReader } from './SourceArticleReader';
 import { ReaderGallery } from './ReaderGallery';
 import { requestDiscussWrite } from './lib/discussBridge';
@@ -45,8 +46,10 @@ export const ReaderWindow: React.FC = () => {
   }, []);
 
   const playlist = useMemo(loadPlaylist, []);
-  const [tabs, setTabs] = useState<BlogSourceRef[]>(initial.url ? [initial] : []);
-  const [activeUrl, setActiveUrl] = useState<string>(initial.url);
+  // URL 指定なしで開いたとき（SEKKEIYA OS からの「リーダーを開く」等）は、読書リストの先頭を表示。
+  const firstArticle = initial.url ? initial : (playlist[0] ?? null);
+  const [tabs, setTabs] = useState<BlogSourceRef[]>(firstArticle ? [firstArticle] : []);
+  const [activeUrl, setActiveUrl] = useState<string>(firstArticle?.url ?? '');
   const [autoRead, setAutoRead] = useState(initial.autoRead); // 自動遷移後は自動で読み上げ開始
   const [nextUp, setNextUp] = useState<{ item: BlogSourceRef; sec: number } | null>(null);
 
@@ -146,16 +149,54 @@ export const ReaderWindow: React.FC = () => {
     goTo(idx + dir);
   }, [idx, playlist, goTo]);
 
+  // ↑↓ 本文スクロール：押している間は requestAnimationFrame で連続的に「スーッと」流し、
+  // 離したら慣性で滑らかに減速停止する（1コマずつのカクつきを無くす）。
   useEffect(() => {
+    let held = 0;                 // -1=上 / 0=なし / +1=下（押しっぱなしの向き）
+    let vel = 0;                  // 現在の速度（px/frame）
+    let raf: number | null = null;
+    const MAX = 16;               // 押しっぱなし時の到達速度（px/frame ≒ 960px/s @60fps）
+
+    const tick = () => {
+      const el = document.querySelector('[data-reader-scroll]') as HTMLElement | null;
+      if (!el) { raf = null; vel = 0; return; }
+      if (held !== 0) {
+        // 目標速度へなめらかに近づける（ソフトな出だし）。
+        vel += (MAX * held - vel) * 0.18;
+      } else {
+        // キーを離した後は慣性で減衰。
+        vel *= 0.86;
+        if (Math.abs(vel) < 0.35) vel = 0;
+      }
+      if (vel !== 0) {
+        el.scrollBy({ top: vel });
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = null;
+      }
+    };
+    const ensureLoop = () => { if (raf == null) raf = requestAnimationFrame(tick); };
+
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       if (e.key === 'ArrowRight') { e.preventDefault(); goNav(1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); goNav(-1); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); held = 1; ensureLoop(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); held = -1; ensureLoop(); }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' && held === 1) held = 0;      // → 慣性減衰へ
+      else if (e.key === 'ArrowUp' && held === -1) held = 0;
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+      if (raf != null) cancelAnimationFrame(raf);
+    };
   }, [goNav]);
 
   // 読み上げ完了 → 次の記事のカウントダウンを開始
@@ -183,11 +224,11 @@ export const ReaderWindow: React.FC = () => {
   const showTabs = tabs.length > 1;
 
   return (
-    <Box sx={{ width: '100vw', height: '100vh', bgcolor: '#0e1119', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <Box sx={{ width: '100vw', height: '100vh', bgcolor: 'var(--brand-surface)', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* タブバー（2枚以上のときだけ表示） */}
       {showTabs && (
         <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'stretch', gap: 0.5, px: 1, pt: 0.75,
-          bgcolor: '#0b0e15', borderBottom: '1px solid rgba(255,255,255,0.08)', overflowX: 'auto',
+          bgcolor: 'var(--brand-bg)', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflowX: 'auto',
           '&::-webkit-scrollbar': { height: 0 } }}>
           {tabs.map((t) => {
             const active = t.url === current.url;
@@ -197,14 +238,14 @@ export const ReaderWindow: React.FC = () => {
                 onClick={() => { setActiveUrl(t.url); setAutoRead(false); setNextUp(null); }}
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0, maxWidth: 220, flexShrink: 0,
                   px: 1.25, py: 0.75, borderTopLeftRadius: 8, borderTopRightRadius: 8, cursor: 'pointer', userSelect: 'none',
-                  bgcolor: active ? '#0e1119' : 'transparent',
+                  bgcolor: active ? 'var(--brand-surface)' : 'transparent',
                   borderTop: active ? '2px solid #e57373' : '2px solid transparent',
                   transition: 'background-color 120ms',
-                  '&:hover': { bgcolor: active ? '#0e1119' : 'rgba(255,255,255,0.05)' },
+                  '&:hover': { bgcolor: active ? 'var(--brand-surface)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
                   '&:hover .reader-tab-close': { opacity: 1 } }}
               >
                 <Typography noWrap sx={{ fontSize: 12, fontWeight: active ? 700 : 500,
-                  color: active ? '#fff' : 'rgba(255,255,255,0.6)', flex: 1, minWidth: 0 }}>
+                  color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)', flex: 1, minWidth: 0 }}>
                   {t.title}
                 </Typography>
                 <Box
@@ -212,9 +253,9 @@ export const ReaderWindow: React.FC = () => {
                   onClick={(e) => { e.stopPropagation(); closeTab(t.url); }}
                   sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16,
                     borderRadius: '50%', flexShrink: 0, opacity: active ? 0.7 : 0, transition: 'opacity 120ms, background-color 120ms',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', opacity: 1 } }}
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)', opacity: 1 } }}
                 >
-                  <CloseRoundedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }} />
+                  <CloseRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }} />
                 </Box>
               </Box>
             );
@@ -224,21 +265,29 @@ export const ReaderWindow: React.FC = () => {
 
       {/* 本文（アクティブタブのみマウント） */}
       <Box sx={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex' }}>
-        <SourceArticleReader
-          key={current.url}
-          source={current}
-          autoRead={autoRead}
-          announceNext={autoRead}
-          onReadEnd={handleReadEnd}
-          onDiscuss={() => void requestDiscussWrite(current)}
-        />
+        {current.url ? (
+          <SourceArticleReader
+            key={current.url}
+            source={current}
+            autoRead={autoRead}
+            announceNext={autoRead}
+            onReadEnd={handleReadEnd}
+            onDiscuss={() => void requestDiscussWrite(current)}
+          />
+        ) : (
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, p: 4, textAlign: 'center' }}>
+            <MenuBookRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} />
+            <Typography sx={{ fontSize: 14, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>読む記事がありません</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>ニュースフィードやリンクから記事を開くと、ここに表示されます。</Typography>
+          </Box>
+        )}
 
         {/* ←/→ ナビのフィードバック（現在位置 n/m・端では案内） */}
         {navToast && (
           <Box sx={{ position: 'absolute', left: '50%', bottom: 72, transform: 'translateX(-50%)', zIndex: 11,
             px: 1.75, py: 0.6, borderRadius: 99, bgcolor: 'rgba(18,22,32,0.94)',
-            border: '1px solid rgba(255,255,255,0.18)', boxShadow: '0 6px 24px rgba(0,0,0,0.45)', pointerEvents: 'none' }}>
-            <Typography sx={{ fontSize: 12, color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}>{navToast}</Typography>
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)', boxShadow: '0 6px 24px rgba(0,0,0,0.45)', pointerEvents: 'none' }}>
+            <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)', fontWeight: 700, whiteSpace: 'nowrap' }}>{navToast}</Typography>
           </Box>
         )}
 
@@ -249,23 +298,23 @@ export const ReaderWindow: React.FC = () => {
             bgcolor: 'rgba(18,22,32,0.96)', border: '1px solid rgba(229,115,115,0.45)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             maxWidth: 'min(640px, calc(100vw - 40px))' }}>
             <CircularProgress size={16} variant="determinate" value={(nextUp.sec / COUNTDOWN_SEC) * 100}
-              sx={{ color: '#e57373', flexShrink: 0 }} />
+              sx={{ color: 'light-dark(#921b1b, #e57373)', flexShrink: 0 }} />
             <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3 }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.3 }}>
                 {nextUp.sec}秒後に次の記事を読み上げます
               </Typography>
-              <Typography noWrap sx={{ fontSize: 12.5, color: '#fff', fontWeight: 700 }}>
+              <Typography noWrap sx={{ fontSize: 12.5, color: 'var(--brand-fg)', fontWeight: 700 }}>
                 {nextUp.item.title}
               </Typography>
             </Box>
             <Button size="small" startIcon={<SkipNextRoundedIcon sx={{ fontSize: '15px !important' }} />}
               onClick={() => goNext(nextUp.item)}
-              sx={{ color: '#e57373', textTransform: 'none', fontSize: 11.5, px: 1, flexShrink: 0, fontWeight: 700 }}>
+              sx={{ color: 'light-dark(#921b1b, #e57373)', textTransform: 'none', fontSize: 11.5, px: 1, flexShrink: 0, fontWeight: 700 }}>
               今すぐ
             </Button>
             <Button size="small" startIcon={<CloseRoundedIcon sx={{ fontSize: '14px !important' }} />}
               onClick={() => setNextUp(null)}
-              sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none', fontSize: 11.5, px: 1, flexShrink: 0 }}>
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none', fontSize: 11.5, px: 1, flexShrink: 0 }}>
               キャンセル
             </Button>
           </Box>

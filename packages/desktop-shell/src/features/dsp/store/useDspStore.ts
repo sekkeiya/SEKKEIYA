@@ -60,6 +60,8 @@ interface DspState {
   leftPanelActiveTab: 'slides' | 'outline';
   showProjectBrowser: boolean;
   showRightSidebar: boolean;
+  /** 上部バー等から「テンプレートとして保存」ダイアログを開くリクエスト（DeckTemplatePanel が消費）。 */
+  pendingSaveTemplate: boolean;
 
   // Actions
   initializeWorkspace: (projectId: string, projectName: string, workspaceId: string, workFileId: string, workFileName: string, initialData: PresentationContent) => void;
@@ -81,6 +83,7 @@ interface DspState {
   setActiveTool: (tool: 'select' | 'pencil') => void;
   setModelPickerOpen: (open: boolean) => void;
   setInspectorActiveTopTab: (tab: 'properties' | 'deck' | 'parts' | 'layers') => void;
+  setPendingSaveTemplate: (v: boolean) => void;
   setLeftPanelActiveTab: (tab: 'slides' | 'outline') => void;
   setShowProjectBrowser: (show: boolean) => void;
   setShowRightSidebar: (show: boolean) => void;
@@ -113,6 +116,12 @@ interface DspState {
   // Template Actions
   replacePresentation: (content: PresentationContent) => void;
   appendPages: (pages: PresentationPage[]) => void;
+  /**
+   * AI（チャット edit_presentation verb）が組み立てた content 全体を、
+   * 履歴を1コミットだけ積んで反映する（undo 一回で戻せる）。手動編集と同じライブ経路。
+   * 消えた選択は解除し、選択ページが消えたら先頭にフォールバックする。
+   */
+  applyAiEdit: (content: PresentationContent) => void;
 }
 
 export const useDspStore = create<DspState>((set, get) => ({
@@ -140,6 +149,7 @@ export const useDspStore = create<DspState>((set, get) => ({
   leftPanelActiveTab: 'slides',
   showProjectBrowser: false,
   showRightSidebar: true,
+  pendingSaveTemplate: false,
 
   setSlidesPanelOpen: (open) => set({ isSlidesPanelOpen: open }),
   toggleSlidesPanel: () => set((state) => ({ isSlidesPanelOpen: !state.isSlidesPanelOpen })),
@@ -149,6 +159,7 @@ export const useDspStore = create<DspState>((set, get) => ({
   setActiveTool: (tool) => set({ activeTool: tool }),
   setModelPickerOpen: (open) => set({ isModelPickerOpen: open }),
   setInspectorActiveTopTab: (tab) => set({ inspectorActiveTopTab: tab }),
+  setPendingSaveTemplate: (v) => set({ pendingSaveTemplate: v }),
   setLeftPanelActiveTab: (tab) => set({ leftPanelActiveTab: tab }),
   setShowProjectBrowser: (show) => set({ showProjectBrowser: show }),
   setShowRightSidebar: (show) => set({ showRightSidebar: show }),
@@ -601,6 +612,25 @@ export const useDspStore = create<DspState>((set, get) => ({
     return {
       presentation: { ...state.presentation, pages: [...state.presentation.pages, ...pages] },
       saveStatus: 'dirty',
+    };
+  }),
+
+  applyAiEdit: (content) => set(state => {
+    if (!state.presentation) return state;
+    const pageIds = new Set(content.pages.map(p => p.id));
+    const elemIds = new Set(content.pages.flatMap(p => (p.elements || []).map(e => e.id)));
+    const nextSelectedPageId = state.selectedPageId && pageIds.has(state.selectedPageId)
+      ? state.selectedPageId
+      : (content.pages[0]?.id ?? null);
+    const nextSelectedIds = state.selectedElementIds.filter(id => elemIds.has(id));
+    return {
+      presentation: content,
+      past: [...state.past, state.presentation],
+      future: [],
+      saveStatus: 'dirty',
+      selectedPageId: nextSelectedPageId,
+      selectedElementIds: nextSelectedIds,
+      selectedElementId: nextSelectedIds.length > 0 ? nextSelectedIds[0] : null,
     };
   }),
 

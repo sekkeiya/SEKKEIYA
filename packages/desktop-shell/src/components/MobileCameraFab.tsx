@@ -128,7 +128,7 @@ const MobileCameraFab: React.FC = () => {
                 width: '100%', px: 2.5, py: 1.8, border: 'none',
                 bgcolor: 'transparent', color: BRAND.text, cursor: 'pointer',
                 fontSize: '0.95rem', fontWeight: 500, textAlign: 'left',
-                '&:active': { bgcolor: 'rgba(255,255,255,0.1)' },
+                '&:active': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
               }}
             >
               <Camera size={20} />
@@ -143,7 +143,7 @@ const MobileCameraFab: React.FC = () => {
                 width: '100%', px: 2.5, py: 1.8, border: 'none',
                 bgcolor: 'transparent', color: BRAND.text, cursor: 'pointer',
                 fontSize: '0.95rem', fontWeight: 500, textAlign: 'left',
-                '&:active': { bgcolor: 'rgba(255,255,255,0.1)' },
+                '&:active': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
               }}
             >
               <ImageIcon size={20} />
@@ -173,7 +173,7 @@ const MobileCameraFab: React.FC = () => {
             {uploadState === 'preview' && (
               <IconButton
                 onClick={handleDiscard}
-                sx={{ position: 'absolute', top: 60, right: 16, color: '#fff', bgcolor: 'rgba(255,255,255,0.15)' }}
+                sx={{ position: 'absolute', top: 60, right: 16, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)' }}
               >
                 <X size={20} />
               </IconButton>
@@ -199,7 +199,7 @@ const MobileCameraFab: React.FC = () => {
                   component="button"
                   onClick={handleSave}
                   sx={{
-                    bgcolor: '#3498db', color: '#fff',
+                    bgcolor: '#3498db', color: 'var(--brand-fg)',
                     border: 'none', borderRadius: 3,
                     px: 5, py: 1.8,
                     fontSize: '1rem', fontWeight: 700, cursor: 'pointer',
@@ -229,16 +229,16 @@ const MobileCameraFab: React.FC = () => {
                     <Typography sx={{ fontSize: 24 }}>✓</Typography>
                   </Box>
                 </motion.div>
-                <Typography sx={{ color: '#fff', fontWeight: 700 }}>保存しました</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700 }}>保存しました</Typography>
                 <Box
                   component="button"
                   onClick={() => { handleDiscard(); setAIChatOpen(true); }}
                   sx={{
                     display: 'flex', alignItems: 'center', gap: 1,
-                    bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', border: `1px solid ${BRAND.line2}`,
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line2}`,
                     borderRadius: 3, px: 3, py: 1.2,
                     fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer',
-                    '&:active': { bgcolor: 'rgba(255,255,255,0.2)' },
+                    '&:active': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
                   }}
                 >
                   <MessageSquare size={16} />

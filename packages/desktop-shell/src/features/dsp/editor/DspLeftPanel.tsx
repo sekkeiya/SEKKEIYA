@@ -78,7 +78,7 @@ const SlidesTab: React.FC<{ canvasW: number; canvasH: number }> = ({ canvasW, ca
             </Typography>
             {selectedPageId === page.id && (
               <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicatePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'white' } }}>
+                <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicatePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'var(--brand-fg)' } }}>
                   <ContentCopyRoundedIcon sx={{ fontSize: '1rem' }} />
                 </IconButton>
                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); if (presentation.pages.length > 1) deletePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
@@ -91,7 +91,7 @@ const SlidesTab: React.FC<{ canvasW: number; canvasH: number }> = ({ canvasW, ca
       ))}
       <Box
         onClick={() => addPage()}
-        sx={{ borderRadius: 1.5, border: `1px dashed rgba(255,255,255,0.15)`, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 1, color: 'text.secondary', '&:hover': { borderColor: ACCENT, color: ACCENT }, transition: 'all 0.15s' }}
+        sx={{ borderRadius: 1.5, border: `1px dashed rgb(var(--brand-fg-rgb) / 0.15)`, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 1, color: 'text.secondary', '&:hover': { borderColor: ACCENT, color: ACCENT }, transition: 'all 0.15s' }}
       >
         <AddRoundedIcon sx={{ fontSize: 18 }} />
         <Typography sx={{ fontSize: 12, fontWeight: 500 }}>スライドを追加</Typography>
@@ -122,31 +122,31 @@ const OutlineTab: React.FC = () => {
             onClick={() => setSelectedPageId(page.id)}
             sx={{
               p: 1.5, borderRadius: 1.5, cursor: 'pointer',
-              bgcolor: isActive ? 'rgba(41,182,246,0.1)' : 'rgba(255,255,255,0.03)',
+              bgcolor: isActive ? 'rgba(41,182,246,0.1)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
               border: `1px solid ${isActive ? ACCENT : 'transparent'}`,
-              '&:hover': { bgcolor: isActive ? 'rgba(41,182,246,0.15)' : 'rgba(255,255,255,0.06)' },
+              '&:hover': { bgcolor: isActive ? 'rgba(41,182,246,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
               transition: 'all 0.15s',
             }}
           >
-            <Typography sx={{ color: isActive ? ACCENT : 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, mb: 0.5 }}>
+            <Typography sx={{ color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 10, fontWeight: 700, letterSpacing: 0.5, mb: 0.5 }}>
               SLIDE {idx + 1}
             </Typography>
             {titleEl ? (
-              <Typography sx={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4, mb: 0.5 }}>
+              <Typography sx={{ color: isActive ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.85)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4, mb: 0.5 }}>
                 {(titleEl.data as any).text?.split('\n')[0] || '（タイトルなし）'}
               </Typography>
             ) : (
-              <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, fontStyle: 'italic' }}>テキストなし</Typography>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 12, fontStyle: 'italic' }}>テキストなし</Typography>
             )}
             {bodyEls.map((el, i) => (
-              <Typography key={i} sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+              <Typography key={i} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
                 {(el.data as any).text?.split('\n')[0]}
               </Typography>
             ))}
             <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>
               {page.elements.length > 0 && (
-                <Box sx={{ px: 1, py: 0.25, bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{page.elements.length}要素</Typography>
+                <Box sx={{ px: 1, py: 0.25, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', borderRadius: 4 }}>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10 }}>{page.elements.length}要素</Typography>
                 </Box>
               )}
             </Box>
@@ -204,7 +204,7 @@ export const DspLeftPanel: React.FC = () => {
       >
         <Typography
           sx={{
-            color: 'rgba(255,255,255,0.6)',
+            color: 'rgb(var(--brand-fg-rgb) / 0.6)',
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: 0.8,
@@ -221,8 +221,8 @@ export const DspLeftPanel: React.FC = () => {
             onClick={() => setSlidesPanelOpen(false)}
             sx={{
               p: 0.5,
-              color: 'rgba(255,255,255,0.25)',
-              '&:hover': { color: 'rgba(255,255,255,0.7)' },
+              color: 'rgb(var(--brand-fg-rgb) / 0.25)',
+              '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.7)' },
             }}
           >
             <ChevronLeftRoundedIcon sx={{ fontSize: 18 }} />

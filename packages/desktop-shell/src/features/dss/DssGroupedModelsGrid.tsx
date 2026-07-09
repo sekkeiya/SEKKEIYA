@@ -46,13 +46,13 @@ export const DssGroupedModelsGrid: React.FC<DssGroupedModelsGridProps> = ({
           <Box key={group.pathName} sx={{ mb: 4 }}>
             {/* Group Header */}
             <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 600 }}>
+              <Typography variant="subtitle2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 600 }}>
                 {group.pathName}
               </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}>
+              <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontWeight: 500 }}>
                 {group.items.length} {group.items.length === 1 ? 'asset' : 'assets'}
               </Typography>
-              <Divider sx={{ flex: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+              <Divider sx={{ flex: 1, borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
             </Box>
 
             {/* Grid Container */}

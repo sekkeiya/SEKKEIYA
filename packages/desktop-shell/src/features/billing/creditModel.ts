@@ -70,7 +70,7 @@ export const PLANS: Record<PlanId, PlanDef> = {
   free: {
     id: 'free', label: 'Free', priceJpy: 0, monthlyCredits: 30,
     storageLabel: '5 GB', commercial: false, api: false, watermark: true,
-    teamRoles: false, tagline: 'お試し・学習', color: '#90a4ae',
+    teamRoles: false, tagline: 'お試し・学習', color: 'rgb(var(--brand-fg-rgb) / 0.65)',
   },
   standard: {
     id: 'standard', label: 'Standard', priceJpy: 1980, monthlyCredits: 120,
@@ -85,12 +85,12 @@ export const PLANS: Record<PlanId, PlanDef> = {
   pro: {
     id: 'pro', label: 'Pro', priceJpy: 4900, targetPriceJpy: 10000, monthlyCredits: 400,
     storageLabel: '1 TB', commercial: true, api: true, watermark: false,
-    teamRoles: true, tagline: 'プロ・受託', recommended: true, color: '#42a5f5',
+    teamRoles: true, tagline: 'プロ・受託', recommended: true, color: 'light-dark(#095fa5, #42a5f5)',
   },
   enterprise: {
     id: 'enterprise', label: 'Enterprise', priceJpy: null, monthlyCredits: null,
     storageLabel: 'カスタム', commercial: true, api: true, watermark: false,
-    teamRoles: true, tagline: '法人・大規模', color: '#ffa726',
+    teamRoles: true, tagline: '法人・大規模', color: 'light-dark(#ad6700, #ffa726)',
   },
 };
 

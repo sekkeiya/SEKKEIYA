@@ -31,7 +31,7 @@ export interface MediaPickerDialogProps {
 }
 
 const SOURCE_LABEL: Record<MediaSource, string> = {
-  drive: 'AI Drive',
+  drive: 'SEKKEIYA Drive',
   project: 'プロジェクト',
   gallery: '公開',
 };
@@ -136,25 +136,25 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#13151b', backgroundImage: 'none', color: '#fff',
-          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2,
+          bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2,
           height: '80vh', maxHeight: 720,
         },
       }}
     >
       {/* ヘッダー */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2.5, py: 1.75, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 16, color: '#fff' }}>メディアを挿入</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2.5, py: 1.75, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: 16, color: 'var(--brand-fg)' }}>メディアを挿入</Typography>
         <Box sx={{ flex: 1 }} />
-        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2, px: 1.5, py: 0.5, border: '1px solid rgba(255,255,255,0.08)' }}>
-          <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
-          <InputBase placeholder="検索..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: '#fff', fontSize: 13, width: 180 }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2, px: 1.5, py: 0.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
+          <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
+          <InputBase placeholder="検索..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: 'var(--brand-fg)', fontSize: 13, width: 180 }} />
         </Box>
-        <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.6)' }}><CloseRoundedIcon /></IconButton>
+        <IconButton onClick={onClose} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}><CloseRoundedIcon /></IconButton>
       </Box>
 
       {/* タブ */}
-      <Box sx={{ px: 2.5, borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ px: 2.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', display: 'flex', alignItems: 'center', gap: 2 }}>
         <Tabs
           value={tab}
           onChange={(_e, v) => setTab(v)}
@@ -162,7 +162,7 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
         >
           {TABS.map((t) => (
             <Tab key={t.key} value={t.key} label={t.label} disableRipple
-              sx={{ minHeight: 42, fontSize: 13, fontWeight: 700, textTransform: 'none', color: tab === t.key ? '#fff' : 'rgba(255,255,255,0.45)' }} />
+              sx={{ minHeight: 42, fontSize: 13, fontWeight: 700, textTransform: 'none', color: tab === t.key ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)' }} />
           ))}
         </Tabs>
         <Box sx={{ flex: 1 }} />
@@ -172,8 +172,8 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
             size="small"
             onClick={() => setGalleryMineOnly((v) => !v)}
             sx={{
-              bgcolor: galleryMineOnly ? `${ACCENT}44` : 'rgba(255,255,255,0.06)',
-              color: galleryMineOnly ? '#fff' : 'rgba(255,255,255,0.6)', fontWeight: 600,
+              bgcolor: galleryMineOnly ? `${ACCENT}44` : 'rgb(var(--brand-fg-rgb) / 0.06)',
+              color: galleryMineOnly ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)', fontWeight: 600,
             }}
           />
         )}
@@ -191,9 +191,9 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
         ) : loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: ACCENT }} /></Box>
         ) : filtered.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 8, color: 'rgba(255,255,255,0.4)' }}>
+          <Box sx={{ textAlign: 'center', py: 8, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             <Typography sx={{ fontSize: 14 }}>
-              {tab === 'mine' ? '素材がありません。各子アプリや AI Drive に保存すると、ここから挿入できます。' : '公開素材が見つかりません。'}
+              {tab === 'mine' ? '素材がありません。各子アプリや SEKKEIYA Drive に保存すると、ここから挿入できます。' : '公開素材が見つかりません。'}
             </Typography>
           </Box>
         ) : (
@@ -214,7 +214,7 @@ const MediaCard: React.FC<{ item: MediaPickerItem; onClick: () => void }> = ({ i
     onClick={onClick}
     sx={{
       position: 'relative', borderRadius: 1.5, overflow: 'hidden', cursor: 'pointer',
-      border: '1px solid rgba(255,255,255,0.08)', bgcolor: '#0a0d17', aspectRatio: '4/3',
+      border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'var(--brand-bg)', aspectRatio: '4/3',
       transition: 'border-color 0.12s, transform 0.1s',
       '&:hover': { borderColor: ACCENT, transform: 'translateY(-1px)', '& .ov': { opacity: 1 } },
     }}
@@ -222,17 +222,17 @@ const MediaCard: React.FC<{ item: MediaPickerItem; onClick: () => void }> = ({ i
     <Box component="img" src={item.thumbnailUrl} alt={item.title || ''} loading="lazy"
       sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
     {item.kind === 'video' && (
-      <PlayCircleOutlineRoundedIcon sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 30, color: 'rgba(255,255,255,0.92)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.7))' }} />
+      <PlayCircleOutlineRoundedIcon sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 30, color: 'rgb(var(--brand-fg-rgb) / 0.92)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.7))' }} />
     )}
     {/* ソースバッジ */}
     <Box sx={{ position: 'absolute', top: 5, left: 5 }}>
-      <Chip label={SOURCE_LABEL[item.source]} size="small" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 800, bgcolor: 'rgba(0,0,0,0.65)', color: item.source === 'gallery' ? '#ffd36b' : '#9db4ff' }} />
+      <Chip label={SOURCE_LABEL[item.source]} size="small" sx={{ height: 16, fontSize: '0.55rem', fontWeight: 800, bgcolor: 'rgba(0,0,0,0.65)', color: item.source === 'gallery' ? 'light-dark(#ad7a00, #ffd36b)' : 'light-dark(#0029ad, #9db4ff)' }} />
     </Box>
     {/* 下部：タイトル＋出典 */}
     <Box className="ov" sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, px: 0.75, py: 0.5, background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', opacity: 0.85, transition: 'opacity 0.12s' }}>
-      {item.title && <Typography noWrap sx={{ fontSize: '0.62rem', color: '#fff', fontWeight: 600 }}>{item.title}</Typography>}
+      {item.title && <Typography noWrap sx={{ fontSize: '0.62rem', color: 'var(--brand-fg)', fontWeight: 600 }}>{item.title}</Typography>}
       {item.source === 'gallery' && item.authorName && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: 'rgba(255,255,255,0.7)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
           <PersonRoundedIcon sx={{ fontSize: 10 }} />
           <Typography noWrap sx={{ fontSize: '0.55rem' }}>{item.authorName}</Typography>
         </Box>
@@ -255,20 +255,20 @@ const UploadPane: React.FC<{
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) onFile(f); }}
       sx={{
-        height: '100%', minHeight: 320, borderRadius: 2, border: `2px dashed ${dragOver ? ACCENT : 'rgba(255,255,255,0.18)'}`,
-        bgcolor: dragOver ? `${ACCENT}0f` : 'rgba(255,255,255,0.02)',
+        height: '100%', minHeight: 320, borderRadius: 2, border: `2px dashed ${dragOver ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.18)'}`,
+        bgcolor: dragOver ? `${ACCENT}0f` : 'rgb(var(--brand-fg-rgb) / 0.02)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, transition: 'all 0.15s',
       }}
     >
       {uploading ? (
         <>
           <CircularProgress sx={{ color: ACCENT }} />
-          <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>アップロード中...</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13 }}>アップロード中...</Typography>
         </>
       ) : (
         <>
-          <CloudUploadRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.35)' }} />
-          <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>ファイルをドラッグ＆ドロップ、または</Typography>
+          <CloudUploadRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }} />
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13 }}>ファイルをドラッグ＆ドロップ、または</Typography>
           <Button
             variant="contained" startIcon={<CloudUploadRoundedIcon />}
             onClick={() => inputRef.current?.click()}
@@ -276,7 +276,7 @@ const UploadPane: React.FC<{
           >
             ファイルを選択
           </Button>
-          <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>画像（PNG/JPG/WebP/GIF）・動画（MP4/MOV/WebM）</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 11 }}>画像（PNG/JPG/WebP/GIF）・動画（MP4/MOV/WebM）</Typography>
           <input ref={inputRef} type="file" accept={acceptAttr} hidden onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); e.currentTarget.value = ''; }} />
         </>
       )}

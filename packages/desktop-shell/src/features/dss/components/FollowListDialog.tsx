@@ -132,14 +132,14 @@ export const FollowListDialog: React.FC<{
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#1e293b',
+          bgcolor: 'var(--brand-surface2)',
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           borderRadius: '16px',
         }
       }}
     >
-      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
         <Typography variant="h6" component="div" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
           {title} {users.length > 0 && `(${users.length})`}
         </Typography>
@@ -150,13 +150,13 @@ export const FollowListDialog: React.FC<{
             onClick={() => setUserSearchOpen(true)}
             sx={{
               textTransform: 'none', fontSize: '0.78rem', fontWeight: 600, borderRadius: '20px', px: 1.5,
-              color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.15)',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+              color: 'rgb(var(--brand-fg-rgb) / 0.7)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
+              '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
             }}
           >
             ユーザーを検索
           </Button>
-          <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+          <IconButton onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
             <CloseRoundedIcon />
           </IconButton>
         </Box>
@@ -169,7 +169,7 @@ export const FollowListDialog: React.FC<{
           </Box>
         ) : users.length === 0 ? (
           <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>ユーザーがいません</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>ユーザーがいません</Typography>
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -181,8 +181,8 @@ export const FollowListDialog: React.FC<{
                   alignItems: 'center', 
                   justifyContent: 'space-between',
                   p: 2, 
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' }
+                  borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)' }
                 }}
               >
                 <Box 
@@ -200,7 +200,7 @@ export const FollowListDialog: React.FC<{
                       {u.displayName}
                     </Typography>
                     {u.bio && (
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {u.bio}
                       </Typography>
                     )}

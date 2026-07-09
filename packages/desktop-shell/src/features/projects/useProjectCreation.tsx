@@ -131,14 +131,14 @@ export function useProjectCreation() {
       onClose={() => !isCreating && setTeamSheetOpen(false)}
       maxWidth="xs"
       fullWidth
-      PaperProps={{ sx: { bgcolor: '#1a1e27', color: '#fff', borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)', backgroundImage: 'none' } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', backgroundImage: 'none' } }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1, fontSize: 16, fontWeight: 700 }}>
         <GroupsRoundedIcon sx={{ color: '#3498db' }} />
         どのチームに作成しますか？
       </DialogTitle>
       <DialogContent sx={{ pb: 1 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.6)', mb: 2, fontSize: 12.5 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 2, fontSize: 12.5 }}>
           チームを選ぶと、その配下に新しいプロジェクトを作成し、続けて「プロジェクトサイトを作成」対話画面が開きます。
         </Typography>
 
@@ -153,15 +153,15 @@ export function useProjectCreation() {
                   sx={{
                     display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1.25,
                     borderRadius: 2, cursor: 'pointer',
-                    bgcolor: selected ? 'rgba(52,152,219,0.18)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${selected ? 'rgba(52,152,219,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                    '&:hover': { bgcolor: selected ? 'rgba(52,152,219,0.22)' : 'rgba(255,255,255,0.06)' },
+                    bgcolor: selected ? 'rgba(52,152,219,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+                    border: `1px solid ${selected ? 'rgba(52,152,219,0.5)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
+                    '&:hover': { bgcolor: selected ? 'rgba(52,152,219,0.22)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
                   }}
                 >
                   <Avatar sx={{ width: 28, height: 28, bgcolor: teamColor(team.name), fontSize: 13, fontWeight: 700 }}>
                     {team.name.trim().charAt(0).toUpperCase()}
                   </Avatar>
-                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#fff', flex: 1, minWidth: 0 }} noWrap>{team.name}</Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-fg)', flex: 1, minWidth: 0 }} noWrap>{team.name}</Typography>
                 </Box>
               );
             })}
@@ -173,12 +173,12 @@ export function useProjectCreation() {
           sx={{
             display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 1.25, borderRadius: 2, cursor: 'pointer',
             bgcolor: newTeamMode ? 'rgba(52,152,219,0.18)' : 'transparent',
-            border: `1px dashed ${newTeamMode ? 'rgba(52,152,219,0.5)' : 'rgba(255,255,255,0.2)'}`,
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+            border: `1px dashed ${newTeamMode ? 'rgba(52,152,219,0.5)' : 'rgb(var(--brand-fg-rgb) / 0.2)'}`,
+            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
           }}
         >
           <AddRoundedIcon sx={{ fontSize: 20, color: '#3498db' }} />
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>新しいチームを作成</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-fg)' }}>新しいチームを作成</Typography>
         </Box>
 
         {newTeamMode && (
@@ -186,16 +186,16 @@ export function useProjectCreation() {
             <TextField
               label="チーム名" value={newTeamName} onChange={e => setNewTeamName(e.target.value)}
               size="small" fullWidth autoFocus disabled={isCreating}
-              InputProps={{ sx: { color: '#fff' } }}
-              InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
-              sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&.Mui-focused fieldset': { borderColor: '#3498db' } } }}
+              InputProps={{ sx: { color: 'var(--brand-fg)' } }}
+              InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+              sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }, '&.Mui-focused fieldset': { borderColor: '#3498db' } } }}
             />
             <FormControl size="small" fullWidth>
-              <InputLabel sx={{ color: 'rgba(255,255,255,0.5)' }}>公開設定</InputLabel>
+              <InputLabel sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>公開設定</InputLabel>
               <Select
                 value={newTeamVisibility} label="公開設定"
                 onChange={e => setNewTeamVisibility(e.target.value as 'public' | 'private')}
-                sx={{ color: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' } }}
+                sx={{ color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
               >
                 <MenuItem value="public">公開</MenuItem>
                 <MenuItem value="private">非公開</MenuItem>
@@ -205,14 +205,14 @@ export function useProjectCreation() {
         )}
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 1, gap: 1 }}>
-        <Button onClick={() => setTeamSheetOpen(false)} disabled={isCreating} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none', fontWeight: 600 }}>
+        <Button onClick={() => setTeamSheetOpen(false)} disabled={isCreating} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', fontWeight: 600 }}>
           キャンセル
         </Button>
         <Button
           onClick={createTeamProject}
           disabled={isCreating || (newTeamMode ? !newTeamName.trim() : !selectedTeamId)}
           variant="contained"
-          sx={{ bgcolor: '#3498db', color: '#fff', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}
+          sx={{ bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}
         >
           {isCreating ? <CircularProgress size={16} color="inherit" /> : '作成して対話へ'}
         </Button>

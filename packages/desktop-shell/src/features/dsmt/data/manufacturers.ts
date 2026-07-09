@@ -83,9 +83,9 @@ export interface CompareAxis {
 }
 
 export const COMPARE_AXES: CompareAxis[] = [
-  { key: 'price',      label: '価格',          higherIsBetter: false, color: '#ffb74d' },
-  { key: 'durability', label: '耐久性・メンテ', higherIsBetter: true,  color: '#4dd0e1' },
-  { key: 'fireSafety', label: '防火・安全',     higherIsBetter: true,  color: '#ff8a80' },
+  { key: 'price',      label: '価格',          higherIsBetter: false, color: 'light-dark(#ad6700, #ffb74d)' },
+  { key: 'durability', label: '耐久性・メンテ', higherIsBetter: true,  color: 'light-dark(#198694, #4dd0e1)' },
+  { key: 'fireSafety', label: '防火・安全',     higherIsBetter: true,  color: 'light-dark(#ad0e00, #ff8a80)' },
 ];
 
 /** 商品から軸の生値を取り出す（未設定は undefined）。 */

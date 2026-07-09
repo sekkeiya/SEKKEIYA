@@ -248,9 +248,9 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
           </IconButton>
         </Tooltip>
       ) : appId === "3dss" ? (
-        <Tooltip title="S.Models ホーム" placement="right">
+        <Tooltip title="S.Model ホーム" placement="right">
           <IconButton onClick={() => navigate("/dashboard")} sx={{ mb: 1 }}>
-            <AppImageIcon src={sharePng} alt="S.Models" />
+            <AppImageIcon src={sharePng} alt="S.Model" />
           </IconButton>
         </Tooltip>
       ) : null}

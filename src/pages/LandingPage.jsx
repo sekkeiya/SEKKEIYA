@@ -102,7 +102,7 @@ const RELEASES = [
     label: "β 0.1.1",
     tag: null,
     date: "2025-05-30",
-    note: "AI Drive 安定化・S.Models 連携改善",
+    note: "AI Drive 安定化・S.Model 連携改善",
     url: "https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/installers%2FSEKKEIYA%20Desktop_0.1.1_x64-setup.exe?alt=media&token=7f46f7c3-a4a5-44a6-a7c1-1fda825d341f",
     os: "Windows",
   },
@@ -248,7 +248,7 @@ const FLOW_STEPS = [
   { label: "S.Layout",        sub: "家具配置・空間検討",     color: "#2563EB" },
   { label: "AI レンダリング", sub: "空間の可視化",           color: "#0EA5E9" },
   { label: "S.Diagram",       sub: "設計根拠を図解",         color: "#10B981" },
-  { label: "S.Presentations", sub: "プレゼン完成",           color: "#22C55E" },
+  { label: "S.Slide", sub: "プレゼン完成",           color: "#22C55E" },
 ];
 
 const FlowDiagram = () => {
@@ -719,7 +719,7 @@ const LayoutPhase = () => {
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontSize: "0.74rem", fontWeight: 800, color: "#fff", lineHeight: 1.1 }}>
-            S.Models — 家具ライブラリ
+            S.Model — 家具ライブラリ
           </Typography>
           <Typography sx={{ fontSize: "0.56rem", color: "rgba(255,255,255,0.45)" }}>
             プロジェクトに使用する家具を選定
@@ -908,7 +908,7 @@ const PresentPhase = () => {
         display: "flex", alignItems: "center", px: 2, gap: 1, flexShrink: 0, zIndex: 2 }}>
         <Box sx={{ width: 6, height: 6, borderRadius: "50%", background: GRAD_PRIMARY }} />
         <Typography sx={{ fontSize: "0.6rem", color: "#A78BFA", fontWeight: 700, letterSpacing: "0.12em" }}>
-          S.Presentations — SEKKEIYA PRESENTS
+          S.Slide — SEKKEIYA PRESENTS
         </Typography>
         <Box sx={{ flex: 1 }} />
         <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.6, px: 1.1, py: 0.3, borderRadius: "100px",
@@ -982,7 +982,7 @@ const PresentPhase = () => {
         {step >= 4 && (
           <SlidePage n="04">
             <Box sx={{ p: 2 }}>
-              <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, color: "#fff", mb: 1 }}>家具構成（S.Models 選定）</Typography>
+              <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, color: "#fff", mb: 1 }}>家具構成（S.Model 選定）</Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.9 }}>
                 {PRESENT_FURNITURE.map((f, i) => {
                   const Icon = f.Icon;
@@ -1310,8 +1310,8 @@ const DownloadDialog = ({ open, onClose, onDownload, onWebApp }) => {
 const PRODUCTS = [
   // ── 正式版 ──
   { id: "3dsl",  title: "S.Layout",        desc: "空間レイアウト・家具配置・自動最適化",   status: "正式版", color: "#ffb74d" },
-  { id: "3dss",  title: "S.Models",        desc: "3Dモデルの管理・共有・高品質プレビュー", status: "正式版", color: "#ff5252" },
-  { id: "3dsp",  title: "S.Presentations", desc: "歩き回れる3Dプレゼンデッキ構築",         status: "正式版", color: "#ba68c8" },
+  { id: "3dss",  title: "S.Model",        desc: "3Dモデルの管理・共有・高品質プレビュー", status: "正式版", color: "#ff5252" },
+  { id: "3dsp",  title: "S.Slide", desc: "歩き回れる3Dプレゼンデッキ構築",         status: "正式版", color: "#ba68c8" },
   { id: "3dsi",  title: "S.Image",         desc: "画像・テクスチャ素材を整理",             status: "正式版", color: "#ec407a" },
   { id: "3dsmt", title: "S.Material",      desc: "PBR素材の作成・管理・共有",             status: "正式版", color: "#26c6da" },
   { id: "3dsm",  title: "S.Movie",         desc: "動画シーケンス編集・書き出し",           status: "正式版", color: "#C98A4B" },

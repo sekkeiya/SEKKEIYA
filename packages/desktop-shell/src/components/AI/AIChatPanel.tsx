@@ -10,6 +10,7 @@ import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
 import { useAiProfileStore } from '../../store/useAiProfileStore';
 import { useCoreOrchestrator } from '../../store/useCoreOrchestrator';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
@@ -28,7 +29,9 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useAIChatStore } from '../../store/useAIChatStore';
 import { useChatComposerStore } from '../../store/useChatComposerStore';
 import { useProjectSiteStore } from '../../store/useProjectSiteStore';
+import { ProjectViewStrip } from '../../shared/navigation/ProjectViewStrip';
 import ChatHistoryDialog from './ChatHistoryDialog';
+import MarkdownMessage from './MarkdownMessage';
 import { getChatSuggestions } from './chatSuggestions';
 import { useDsdStore } from '../../features/dsd/store/useDsdStore';
 import { ChatUiRenderer } from './ChatUiRenderer';
@@ -41,6 +44,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
 import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded';
 import CloseFullscreenRoundedIcon from '@mui/icons-material/CloseFullscreenRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PushPinRoundedIcon from '@mui/icons-material/PushPinRounded';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
@@ -48,9 +52,14 @@ import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
 import VolumeOffRoundedIcon from '@mui/icons-material/VolumeOffRounded';
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import { speak, speakSentences, splitSentences, stopSpeaking, pauseSpeaking, resumeSpeaking, isTtsAvailable } from '../../lib/tts';
-import { getProactiveSuggestions, type ProactiveSuggestions } from './proactiveSuggestions';
+import { speak, speakSentences, splitSentences, stopSpeaking, pauseSpeaking, resumeSpeaking, isTtsAvailable, getTtsSettings, buildSpeechChunks } from '../../lib/tts';
+import { AiTtsPlayer, prepareAiTts, isAiTtsLimited } from '../../lib/aiTts';
+import { getProactiveSuggestions, PROACTIVE_MODEL, type ProactiveSuggestions } from './proactiveSuggestions';
+import { logReaction, newReactionSetId } from '../../lib/learning/reactions';
 import { TtsSettingsDialog } from '../tts/TtsSettingsDialog';
+import AIDriveFilePicker from './AIDriveFilePicker';
+import { resolveAssetPreviewUrl, type AIDriveAsset } from '../../store/useAIDriveStore';
+import { useAIDriveDragStore } from '../../store/useAIDriveDragStore';
 
 function timeAgo(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000);
@@ -90,6 +99,29 @@ async function downscaleImageToBase64(file: File, maxEdge = 1568): Promise<{ med
   return { mediaType: 'image/jpeg', data: dataUrl.split(',')[1] ?? '', dataUrl };
 }
 
+// 添付として中身をそのままインライン展開できる「テキスト系」ファイルか。
+const TEXT_LIKE_EXT = /\.(txt|md|markdown|csv|tsv|json|jsonl|ya?ml|xml|html?|svg|css|scss|less|js|jsx|ts|tsx|py|rb|go|rs|java|kt|swift|c|cpp|cc|h|hpp|cs|php|sh|bash|bat|ps1|ini|toml|conf|log|sql|geojson|vue|astro)$/i;
+function isTextLikeFile(name: string, mime?: string): boolean {
+  if (TEXT_LIKE_EXT.test(name)) return true;
+  const m = (mime || '').toLowerCase();
+  return m.startsWith('text/') || /json|xml|yaml|csv|javascript|typescript|svg\+xml/.test(m);
+}
+// 送信時に AI へ渡せるようテキスト内容を取り出す。ローカルは File、Drive 等は url を fetch。
+// 巨大ファイルはトークン超過を防ぐため MAX_INLINE_CHARS で打ち切る。
+const MAX_INLINE_CHARS = 100_000;
+async function readAttachmentText(a: { file?: File; url?: string }): Promise<string | null> {
+  try {
+    let raw: string | null = null;
+    if (a.file) raw = await a.file.text();
+    else if (a.url) raw = await (await fetch(a.url)).text();
+    if (raw == null) return null;
+    return raw.length > MAX_INLINE_CHARS ? raw.slice(0, MAX_INLINE_CHARS) + '\n…（以下省略）' : raw;
+  } catch (err) {
+    console.error('[Chat] 添付テキストの読み込みに失敗', err);
+    return null;
+  }
+}
+
 const CopyButton = ({ text }: { text: string }) => {
   const [copied, setCopied] = useState(false);
   return (
@@ -108,8 +140,8 @@ const CopyButton = ({ text }: { text: string }) => {
         opacity: copied ? 1 : 0,
         transition: 'opacity 0.2s',
         bgcolor: 'rgba(26,31,43,0.8)',
-        color: copied ? '#81c995' : 'rgba(255,255,255,0.7)',
-        '&:hover': { bgcolor: 'rgba(26,31,43,1)', color: copied ? '#81c995' : '#fff' }
+        color: copied ? 'light-dark(#347947, #81c995)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+        '&:hover': { bgcolor: 'rgba(26,31,43,1)', color: copied ? 'light-dark(#347947, #81c995)' : 'var(--brand-fg)' }
       }}
     >
       {copied ? <CheckIcon sx={{ fontSize: '0.8rem' }} /> : <ContentCopyIcon sx={{ fontSize: '0.8rem' }} />}
@@ -117,29 +149,16 @@ const CopyButton = ({ text }: { text: string }) => {
   );
 };
 
-const AnimatedText = ({ text, isNew, onType }: { text: string; isNew: boolean, onType?: () => void }) => {
-  const [displayedText, setDisplayedText] = useState(isNew ? '' : text);
-
-  useEffect(() => {
-    if (!isNew) {
-      setDisplayedText(text);
-      return;
-    }
-    let currentIndex = 0;
-    const interval = setInterval(() => {
-      currentIndex++;
-      setDisplayedText(text.substring(0, currentIndex));
-      if (onType) onType();
-      if (currentIndex >= text.length) {
-        clearInterval(interval);
-      }
-    }, 15); // Adjust typing speed here (15ms per character)
-    
-    return () => clearInterval(interval);
-  }, [text, isNew, onType]);
-
-  return <>{displayedText}</>;
-};
+/**
+ * テーブル・見出し・コードフェンス・水平線など「生テキストだと崩れて読みにくい」
+ * ブロック Markdown を含むか。含む場合は読み上げ中も Markdown 整形で表示する
+ * （プレーンな文章は SpokenText の文ハイライトを優先する）。
+ */
+const hasRichMarkdown = (text: string): boolean =>
+  /^\s*\|(\s*:?-+:?\s*\|)+\s*$/m.test(text) ||   // 表の区切り行 |---|---|
+  /^\s{0,3}#{1,6}\s/m.test(text) ||              // 見出し
+  /```/.test(text) ||                            // コードフェンス
+  /^\s{0,3}(-{3,}|\*{3,}|_{3,})\s*$/m.test(text); // 水平線
 
 /**
  * 読み上げ中メッセージの本文。文単位のスパンで描画し、
@@ -161,7 +180,7 @@ const SpokenText = ({ text, currentIdx, onJump }: { text: string; currentIdx: nu
             borderRadius: '3px',
             bgcolor: i === currentIdx ? 'rgba(138,180,248,0.22)' : 'transparent',
             transition: 'background-color 0.2s',
-            '&:hover': { bgcolor: i === currentIdx ? 'rgba(138,180,248,0.3)' : 'rgba(255,255,255,0.08)' },
+            '&:hover': { bgcolor: i === currentIdx ? 'rgba(138,180,248,0.3)' : 'rgb(var(--brand-fg-rgb) / 0.08)' },
           }}
         >
           {s}
@@ -186,9 +205,14 @@ interface AIChatPanelProps {
   hideWindowControls?: boolean;
   /** コックピットの統合ヘッダーを使う際、本コンポーネント側のヘッダー行をまるごと非表示にする。 */
   hideHeader?: boolean;
+  /** チャットを独立ネイティブウィンドウへポップアウトする（本体ドック表示時のみ）。 */
+  onPopOut?: () => void;
+  /** ヘッダー左のクラスタ（サイドバー・トグル＋「SEKKEIYA Chat」＋プロジェクトchip）を隠す。
+   *  ポップアウト窓のように、上位のトップバーがこれらを担う場合に使う（アクション群は残す）。 */
+  hideHeaderTitle?: boolean;
 }
 
-const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDetached, onDragHandleMouseDown, pinned = false, onTogglePinned, hideWindowControls = false, hideHeader = false }) => {
+const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDetached, onDragHandleMouseDown, pinned = false, onTogglePinned, hideWindowControls = false, hideHeader = false, onPopOut, hideHeaderTitle = false }) => {
   const [chatText, setChatText] = useState("");
   const [showDebugPrompt, setShowDebugPrompt] = useState(false);
   const [debugPromptContent, setDebugPromptContent] = useState<string>("");
@@ -199,15 +223,21 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   // コンテキスト設定は歯車から開くポップオーバーに退避（会話上部をすっきりさせる）。
   const [contextAnchor, setContextAnchor] = useState<null | HTMLElement>(null);
 
-  // 添付（写真・ファイル）。+ メニューから選択。
+  // 添付（写真・ファイル）。+ メニュー / OS からの D&D / SEKKEIYA Drive から追加。
   // 画像は data(base64)+mediaType を保持して AI に中身を渡す。ファイルは現状は名前参照のみ。
-  type Attachment = { id: string; name: string; kind: 'image' | 'file'; url?: string; mediaType?: string; data?: string };
+  // file: ローカル添付の実体（テキスト系は送信時に中身を読んで AI へ渡す）。url: Drive 等の取得元。
+  type Attachment = { id: string; name: string; kind: 'image' | 'file'; url?: string; mediaType?: string; data?: string; file?: File };
   const [attachAnchor, setAttachAnchor] = useState<null | HTMLElement>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
+  // OS からのファイル D&D 中のハイライト。ネスト要素の dragenter/leave 揺れは深さカウンタで吸収。
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragDepthRef = React.useRef(0);
   const [expandedCitations, setExpandedCitations] = useState<Set<string>>(new Set());
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const chatInputRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const genAttachId = (name: string, salt: number | string) => `${name}-${salt}-${performance.now()}`;
 
   // 自動化作業リスト等から「チャットに挿入」された依頼文を取り込む（送信はしない）。
   const pendingInsert = useChatComposerStore(s => s.pendingInsert);
@@ -229,18 +259,20 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
     });
   }, [pendingInsert, consumeInsert]);
 
-  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>, kind: 'image' | 'file') => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = ''; // 同じファイルを再選択できるようにリセット
-    if (kind === 'file') {
-      setAttachments(prev => [...prev, ...files.map((f, i) => ({ id: `${f.name}-${f.size}-${i}-${performance.now()}`, name: f.name, kind: 'file' as const }))]);
-      return;
+  // 実ファイル群を添付に加える共通ロジック。+ メニュー・OS からの D&D で共用。
+  // kindHint 未指定時は MIME で画像/ファイルを自動判別（D&D 用）。'file' 指定なら画像でも名前参照。
+  const addFiles = async (files: File[], kindHint?: 'image' | 'file') => {
+    if (files.length === 0) return;
+    const isImage = (f: File) => kindHint === 'image' || (kindHint !== 'file' && f.type.startsWith('image/'));
+    const others = files.filter(f => !isImage(f));
+    if (others.length > 0) {
+      setAttachments(prev => [...prev, ...others.map((f, i) => ({ id: genAttachId(f.name, `${f.size}-${i}`), name: f.name, kind: 'file' as const, file: f }))]);
     }
     // 画像: base64 化（縮小）して中身を AI に渡せるようにする。
-    const blocks = await Promise.all(files.map(async (f, i) => {
+    const blocks = await Promise.all(files.filter(isImage).map(async (f, i) => {
       try {
         const b = await downscaleImageToBase64(f);
-        return { id: `${f.name}-${f.size}-${i}-${performance.now()}`, name: f.name, kind: 'image' as const, url: b.dataUrl, mediaType: b.mediaType, data: b.data };
+        return { id: genAttachId(f.name, `${f.size}-${i}`), name: f.name, kind: 'image' as const, url: b.dataUrl, mediaType: b.mediaType, data: b.data };
       } catch (err) {
         console.error('[Chat] 画像の読み込みに失敗', err);
         return null;
@@ -249,9 +281,84 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
     setAttachments(prev => [...prev, ...blocks.filter(Boolean) as Attachment[]]);
   };
 
+  const onPickFiles = async (e: React.ChangeEvent<HTMLInputElement>, kind: 'image' | 'file') => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ''; // 同じファイルを再選択できるようにリセット
+    await addFiles(files, kind);
+  };
+
+  // Drive URL が画像か（拡張子 / 資産 type で判定）。画像は base64 化して中身を AI に渡す。
+  const isImageAsset = (asset: AIDriveAsset, url: string | null) => {
+    const t = (asset.type || '').toLowerCase();
+    if (/^(image|screenshot|cover|render)$/.test(t)) return true;
+    return !!url && /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
+  };
+
+  // SEKKEIYA Drive のアセットを添付に加える（ピッカー / Drive パネルからの D&D で共用）。
+  // 画像アセットは URL を取得して base64 化（AI が中身を見られる）、それ以外は名前参照で添付。
+  const addDriveAssets = async (assets: AIDriveAsset[]) => {
+    if (!assets || assets.length === 0) return;
+    const blocks = await Promise.all(assets.map(async (asset, i) => {
+      const url = resolveAssetPreviewUrl(asset) || asset.storageUrl || null;
+      const name = asset.name || 'file';
+      if (isImageAsset(asset, url) && url) {
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
+          const b = await downscaleImageToBase64(file);
+          return { id: genAttachId(name, `drive-${asset.id}-${i}`), name, kind: 'image' as const, url: b.dataUrl, mediaType: b.mediaType, data: b.data };
+        } catch (err) {
+          console.error('[Chat] Drive 画像の取得に失敗', err);
+          // 取得に失敗しても名前参照だけは添付として残す。
+          return { id: genAttachId(name, `drive-${asset.id}-${i}`), name, kind: 'file' as const, url: url || undefined };
+        }
+      }
+      return { id: genAttachId(name, `drive-${asset.id}-${i}`), name, kind: 'file' as const, url: url || undefined };
+    }));
+    setAttachments(prev => [...prev, ...blocks.filter(Boolean) as Attachment[]]);
+  };
+
+  // OS（エクスプローラ等）からのファイル D&D を受ける。内部の Drive ドラッグ（pointer 方式）や
+  // テキストのドラッグは対象外にするため、Files 種別のときだけハイライト/受理する。
+  const dropHasFiles = (e: React.DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!dropHasFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragOver(true);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!dropHasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!dropHasFiles(e)) return;
+    dragDepthRef.current -= 1;
+    if (dragDepthRef.current <= 0) { dragDepthRef.current = 0; setIsDragOver(false); }
+  };
+  const handleDrop = (e: React.DragEvent) => {
+    if (!dropHasFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragOver(false);
+    void addFiles(Array.from(e.dataTransfer.files ?? []));
+  };
+
   const removeAttachment = (id: string) => {
     setAttachments(prev => prev.filter(a => a.id !== id));
   };
+
+  // SEKKEIYA Drive パネルからチャットへドラッグ&ドロップされたアセットを添付する。
+  // 内部ドラッグは pointer 方式で、data-drop-target="chat-attach" 上で離すと pendingDropAsset に入る。
+  const pendingDropAsset = useAIDriveDragStore(s => s.pendingDropAsset);
+  const consumeDropAsset = useAIDriveDragStore(s => s.consumeDropAsset);
+  useEffect(() => {
+    if (!pendingDropAsset || pendingDropAsset.target !== 'chat-attach') return;
+    void addDriveAssets(pendingDropAsset.assets?.length ? pendingDropAsset.assets : [pendingDropAsset.asset]);
+    consumeDropAsset();
+  }, [pendingDropAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { isProcessing, currentToolLabel, toolProgress, sendMessageToOrchestrator, stopProcessing } = useCoreOrchestrator();
   const { activeSessionId, createSession, sessions, getSessionsForProject, setActiveSession, createScopedSession, getSessionsForScope, deleteSession, rewindToMessage } = useAIChatStore();
@@ -320,31 +427,105 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   const [speakingSentenceIdx, setSpeakingSentenceIdx] = useState(-1);
   const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
   const [ttsPaused, setTtsPaused] = useState(false);
+  // AI音声（ニューラルTTS）の連続再生プレーヤー。標準音声(Web Speech)と使い分ける。
+  const aiPlayerRef = React.useRef<AiTtsPlayer | null>(null);
+  // 読み上げセッション世代。標準/AIの切替・停止・フォールバックで古いコールバックを無効化する。
+  const readSessionRef = React.useRef(0);
+  // 現在再生中のエンジン（一時停止/再開の呼び分けに使う）。
+  const activeEngineRef = React.useRef<'standard' | 'ai'>('standard');
   const stopSpeakingUi = () => {
+    readSessionRef.current += 1; // AIの準備ループも止める
     stopSpeaking();
+    aiPlayerRef.current?.stop();
     setSpeakingMsgId(null);
     setSpeakingSentenceIdx(-1);
     setTtsPaused(false);
   };
   // メッセージを startIndex 文目から読み上げる（🔊=先頭から、文クリック=その文から）。
+  // 設定が「AI音声」なら段落チャンクでニューラル再生し、利用枠切れ/未加入時は
+  // その続きの文から標準音声（無料）へ自動フォールバックする。記号は発話前に除去済み。
   const startSpeakingMessage = (msgId: string, text: string, startIndex = 0) => {
+    if (!isTtsAvailable()) return;
+    readSessionRef.current += 1;
+    const session = readSessionRef.current;
+    aiPlayerRef.current?.stop();
+    stopSpeaking();
     setSpeakingMsgId(msgId);
     setSpeakingSentenceIdx(startIndex);
     setTtsPaused(false);
-    speakSentences(splitSentences(text), {
-      startIndex,
-      onSentenceStart: (i) => setSpeakingSentenceIdx(i),
-      // onEnd は置き換え/停止された旧セッションでは呼ばれない（tts.ts の世代管理）ため、
-      // ここが呼ばれた時点でこのメッセージの読み上げが完走したと確定できる。
-      onEnd: () => { setSpeakingMsgId(null); setSpeakingSentenceIdx(-1); setTtsPaused(false); },
-    });
+
+    // 標準音声（OS・無料）で idx 文目から読む。通常再生とAI音声フォールバックで共用。
+    // 呼び出し時点の readSessionRef を世代として捕捉する（フォールバック後も正しく動く）。
+    const startStandard = (idx: number) => {
+      const s = readSessionRef.current;
+      activeEngineRef.current = 'standard';
+      setSpeakingSentenceIdx(idx);
+      speakSentences(splitSentences(text), {
+        startIndex: idx,
+        onSentenceStart: (i) => { if (s === readSessionRef.current) setSpeakingSentenceIdx(i); },
+        // onEnd は置き換え/停止された旧セッションでは呼ばれない（tts.ts の世代管理）ため、
+        // ここが呼ばれた時点でこのメッセージの読み上げが完走したと確定できる。
+        onEnd: () => { if (s === readSessionRef.current) { setSpeakingMsgId(null); setSpeakingSentenceIdx(-1); setTtsPaused(false); } },
+      });
+    };
+
+    const settings = getTtsSettings();
+    // AI音声（利用枠内のときのみ）。枠切れは即フォールバック。
+    if (settings.engine === 'ai' && !isAiTtsLimited()) {
+      activeEngineRef.current = 'ai';
+      const chunks = buildSpeechChunks(text);
+      // startIndex(文) を含む/直前のチャンクから始める
+      let startChunk = 0;
+      for (let i = 0; i < chunks.length; i++) {
+        if (chunks[i].startSentence <= startIndex) startChunk = i; else break;
+      }
+      const slice = chunks.slice(startChunk);
+      if (slice.length === 0) { startStandard(startIndex); return; }
+
+      // 続きの文から標準音声へ切り替える（枠切れ/未加入時）。
+      const fallbackToStandard = (fromChunkInSlice: number) => {
+        if (session !== readSessionRef.current) return;
+        readSessionRef.current += 1; // AI側の準備・再生コールバックを無効化
+        aiPlayerRef.current?.stop();
+        startStandard(slice[Math.min(fromChunkInSlice, slice.length - 1)]?.startSentence ?? startIndex);
+      };
+
+      // 裏で先行合成（再生は最初のチャンクができ次第すぐ始まる）。
+      void prepareAiTts(
+        slice.map((c) => c.text),
+        { voice: settings.aiVoice, style: settings.aiStyle },
+        { shouldStop: () => session !== readSessionRef.current },
+      );
+      const player = new AiTtsPlayer();
+      aiPlayerRef.current = player;
+      void player.play(
+        slice.map((c) => c.text),
+        { voice: settings.aiVoice, style: settings.aiStyle, rate: settings.rate },
+        {
+          onChunkStart: (i) => { if (session === readSessionRef.current) setSpeakingSentenceIdx(slice[i].startSentence); },
+          onEnd: () => { if (session === readSessionRef.current) { setSpeakingMsgId(null); setSpeakingSentenceIdx(-1); setTtsPaused(false); } },
+          onError: (_msg, info) => {
+            // 枠切れ/プラン外 = 以降の全チャンクが失敗する → その位置から標準音声へ
+            if (info?.code === 'TTS_LIMITED' || info?.code === 'PLAN_REQUIRED' || isAiTtsLimited()) {
+              fallbackToStandard(info?.index ?? 0);
+            }
+          },
+        },
+      );
+      return;
+    }
+
+    startStandard(startIndex);
   };
   const toggleSpeakMessage = (msgId: string, text: string) => {
     if (speakingMsgId === msgId) { stopSpeakingUi(); return; }
     startSpeakingMessage(msgId, text);
   };
   const togglePauseSpeaking = () => {
-    if (ttsPaused) { resumeSpeaking(); setTtsPaused(false); }
+    if (activeEngineRef.current === 'ai') {
+      if (ttsPaused) { aiPlayerRef.current?.resume(); setTtsPaused(false); }
+      else { aiPlayerRef.current?.pause(); setTtsPaused(true); }
+    } else if (ttsPaused) { resumeSpeaking(); setTtsPaused(false); }
     else { pauseSpeaking(); setTtsPaused(true); }
   };
   // Alt+クリック: 本文のクリック位置の文からそのまま読み上げを開始する。
@@ -386,7 +567,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   useEffect(() => {
     if (!voiceMode) stopSpeakingUi(); // OFFにしたら読み上げ中も止める
   }, [voiceMode]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => stopSpeaking(), []); // アンマウント時に停止
+  useEffect(() => () => { stopSpeaking(); aiPlayerRef.current?.stop(); }, []); // アンマウント時に停止
   useEffect(() => { stopSpeakingUi(); }, [activeSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 音声モード: 新しく届いたAI応答を自動読み上げ。
@@ -405,14 +586,26 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   // 先回り提案: 空のチャット（新規含む）を開いたとき、同プロジェクトの他チャットの
   // 進捗から「先回りの挨拶+提案チップ」を生成して表示する（表示専用・履歴には保存しない）。
   const [proactive, setProactive] = useState<ProactiveSuggestions | null>(null);
+  // 反応ログ: 表示セットの束ねID。impression と clicked を突合する鍵（表示1回ごとに採番）。
+  const proactiveSetIdRef = React.useRef<string | null>(null);
   const isEmptyChat = messages.length === 0;
   useEffect(() => {
     setProactive(null);
+    proactiveSetIdRef.current = null;
     if (!isEmptyChat || !activeProject?.id || !activeSessionId) return;
     let alive = true;
     getProactiveSuggestions(activeProject.id, activeProject.name, activeSessionId).then((r) => {
       if (!alive || !r) return;
       setProactive(r.data);
+      // 反応ログ: 表示（impression）を1セット1件で記録。「無視」は clicked との差分で導出する。
+      const setId = newReactionSetId();
+      proactiveSetIdRef.current = setId;
+      logReaction({
+        surface: 'chat-suggest', action: 'impression', targetType: 'suggestChip',
+        setId, model: PROACTIVE_MODEL,
+        projectId: activeProject.id, sessionId: activeSessionId,
+        features: { fresh: r.fresh, chipCount: r.data.chips.length },
+      });
       // 新規生成時のみ、音声モードONなら挨拶を読み上げる（キャッシュ再表示では読まない）
       if (r.fresh && useAppStore.getState().isChatVoiceModeOn && isTtsAvailable()) speak(r.data.greeting);
     });
@@ -487,19 +680,43 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!chatText.trim() && attachments.length === 0) || isProcessing) return;
+    const snapshot = attachments;
     let text = chatText.trim();
-    if (attachments.length > 0) {
-      const names = attachments.map(a => a.name).join(', ');
-      text = text ? `${text}\n\n[添付: ${names}]` : `[添付: ${names}]`;
-    }
-    // 画像は中身(base64)を AI に渡す。
-    const images = attachments
+
+    // 画像は中身(base64)を AI に渡す（吹き出しには出さず content ブロックとして送る）。
+    const images = snapshot
       .filter(a => a.kind === 'image' && a.data && a.mediaType)
       .map(a => ({ mediaType: a.mediaType as string, data: a.data as string }));
+
+    // ファイル添付: テキスト系は中身を読んで docs（吹き出しには出さず AI へ渡す追加ブロック）に、
+    // それ以外は URL/名前を可視メッセージに載せてオーケストレーター側で取得できるようにする。
+    const fileAtts = snapshot.filter(a => a.kind === 'file');
+    const docs: { name: string; text: string }[] = [];
+    const fileLines: string[] = [];
+    for (const a of fileAtts) {
+      if (isTextLikeFile(a.name, a.mediaType) && (a.file || a.url)) {
+        const content = await readAttachmentText(a);
+        if (content != null) {
+          docs.push({ name: a.name, text: content });
+          fileLines.push(a.url ? `- ${a.name}（${a.url}）` : `- ${a.name}`);
+          continue;
+        }
+      }
+      // バイナリ/取得失敗: URL があれば載せる（AI が library_add_pdf 等で取得できる）。
+      fileLines.push(a.url ? `- ${a.name}: ${a.url}` : `- ${a.name}`);
+    }
+
+    // 可視メッセージへ添付ノートを付す（画像は名前のみ、ファイルは URL 付き）。
+    const noteParts: string[] = [];
+    const imageNames = snapshot.filter(a => a.kind === 'image').map(a => a.name);
+    if (imageNames.length > 0) noteParts.push(`[添付画像: ${imageNames.join(', ')}]`);
+    if (fileLines.length > 0) noteParts.push(`[添付ファイル]\n${fileLines.join('\n')}`);
+    if (noteParts.length > 0) text = [text, ...noteParts].filter(Boolean).join('\n\n');
+
     setChatText("");
     setAttachments([]);
     // Phase B: ループ・ツール実行・保存はすべてオーケストレーター内で完結する。
-    await sendMessageToOrchestrator(text, { source: 'sidebar_chat', sessionId: activeSessionId || undefined, images });
+    await sendMessageToOrchestrator(text, { source: 'sidebar_chat', sessionId: activeSessionId || undefined, images, docs });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -519,7 +736,26 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   }, [currentUser]);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#1a1f2b', color: '#fff', position: 'relative' }}>
+    <Box
+      data-drop-target="chat-attach"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', position: 'relative' }}
+    >
+      {/* OS からのファイル D&D 中のオーバーレイ（ドロップでチャットに添付）。 */}
+      {isDragOver && (
+        <Box sx={{
+          position: 'absolute', inset: 0, zIndex: 30, borderRadius: 2,
+          border: '2px dashed #90caf9', bgcolor: 'rgba(138,180,248,0.12)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+          pointerEvents: 'none', backdropFilter: 'blur(1px)',
+        }}>
+          <AttachFileRoundedIcon sx={{ fontSize: 40, color: '#90caf9' }} />
+          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: '0.9rem' }}>ここにドロップして添付</Typography>
+        </Box>
+      )}
       {/* 画像ライトボックス（レンダー結果等の拡大＋←→ナビ）。共有オーバーレイ。 */}
       <ImageLightbox />
       {/* 右サイドバー成果物ギャラリー（プロジェクト範囲・横断プレビュー）。 */}
@@ -533,23 +769,34 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
             onDragHandleMouseDown(e);
           }
         }}
-        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid rgba(255,255,255,0.05)`, minHeight: 48, cursor: detached ? 'move' : 'default' }}
+        sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid rgb(var(--brand-fg-rgb) / 0.05)`, minHeight: 48, cursor: detached ? 'move' : 'default' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, overflow: 'hidden' }}>
-          <IconButton
-            size="small"
-            onClick={toggleChatHistorySidebar}
-            sx={{ color: isChatHistorySidebarOpen ? '#ffd740' : 'rgba(255,255,255,0.4)', p: 0.25, flexShrink: 0, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
-            title="チャット履歴サイドバー"
-          >
-            <ViewSidebarRoundedIcon sx={{ fontSize: '1.1rem' }} />
-          </IconButton>
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.5px', color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
-            SEKKEIYA Chat
+          {/* サイドバー・トグルは通常時のみ（ポップアウト窓ではトップバーが担うため隠す）。 */}
+          {!hideHeaderTitle && (
+            <IconButton
+              size="small"
+              onClick={toggleChatHistorySidebar}
+              sx={{ color: isChatHistorySidebarOpen ? 'light-dark(#ad8900, #ffd740)' : 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.25, flexShrink: 0, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
+              title="チャット履歴サイドバー"
+            >
+              <ViewSidebarRoundedIcon sx={{ fontSize: '1.1rem' }} />
+            </IconButton>
+          )}
+          {/* タイトル: 通常はブランド「SEKKEIYA Chat」。ポップアウト窓（hideHeaderTitle）は
+              トップバーがブランドを担うので、ここには現在のチャット名を出す（Claude 式の会話ヘッダー）。 */}
+          <Typography sx={{
+            fontSize: '0.8rem', fontWeight: hideHeaderTitle ? 600 : 500, letterSpacing: '0.3px',
+            color: 'rgb(var(--brand-fg-rgb) / 0.85)',
+            ...(hideHeaderTitle
+              ? { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+              : { flexShrink: 0 }),
+          }}>
+            {hideHeaderTitle ? (activeSession?.title || '新規チャット') : 'SEKKEIYA OS'}
           </Typography>
           {activeProject && (
             <Typography sx={{
-              fontSize: '0.65rem', color: '#8ab4f8', fontWeight: 500,
+              fontSize: '0.65rem', color: 'light-dark(#0a45a4, #8ab4f8)', fontWeight: 500,
               bgcolor: 'rgba(138,180,248,0.1)', border: '1px solid rgba(138,180,248,0.2)',
               borderRadius: 1, px: 0.75, py: 0.1, flexShrink: 0,
               maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -557,6 +804,10 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               {activeProject.name}
             </Typography>
           )}
+          {/* この会話の文脈（プロジェクト／アカウントサイト）のページを開くリモコン。 */}
+          <Box sx={{ pl: 0.75, ml: 0.25, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', minWidth: 0 }}>
+            <ProjectViewStrip />
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {isTtsAvailable() && (
@@ -565,14 +816,14 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                 <IconButton
                   size="small"
                   onClick={toggleVoiceMode}
-                  sx={{ color: voiceMode ? '#ffd740' : 'rgba(255,255,255,0.4)', bgcolor: voiceMode ? 'rgba(255,215,64,0.12)' : 'transparent', '&:hover': { color: voiceMode ? '#ffd740' : '#fff', bgcolor: voiceMode ? 'rgba(255,215,64,0.18)' : 'rgba(255,255,255,0.05)' } }}
+                  sx={{ color: voiceMode ? 'light-dark(#ad8900, #ffd740)' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: voiceMode ? 'rgba(255,215,64,0.12)' : 'transparent', '&:hover': { color: voiceMode ? 'light-dark(#ad8900, #ffd740)' : 'var(--brand-fg)', bgcolor: voiceMode ? 'rgba(255,215,64,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
                 >
                   {voiceMode ? <VolumeUpRoundedIcon sx={{ fontSize: '1.1rem' }} /> : <VolumeOffRoundedIcon sx={{ fontSize: '1.1rem' }} />}
                 </IconButton>
               </Tooltip>
               <Tooltip title="読み上げの設定（速度・声）">
                 <IconButton size="small" onClick={() => setTtsSettingsOpen(true)}
-                  sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                   <TuneRoundedIcon sx={{ fontSize: '1.05rem' }} />
                 </IconButton>
               </Tooltip>
@@ -581,7 +832,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           <IconButton
             size="small"
             onClick={() => activeProject?.id && createSession(activeProject.id)}
-            sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             title="New Chat"
           >
             <AddRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -589,7 +840,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           <IconButton
             size="small"
             onClick={() => setHistoryOpen(true)}
-            sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             title="History"
           >
             <HistoryRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -597,7 +848,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           <IconButton
             size="small"
             onClick={() => setDeliverablesOpen(v => !v)}
-            sx={{ color: deliverablesOpen ? '#ffd740' : 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+            sx={{ color: deliverablesOpen ? 'light-dark(#ad8900, #ffd740)' : 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             title="成果物ギャラリー"
           >
             <CollectionsRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -608,11 +859,21 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               size="small"
               onClick={onTogglePinned}
               title={pinned ? 'ピンを外す（ホバーを外すと自動で閉じる）' : 'ピン留め（開いたまま維持）'}
-              sx={{ color: pinned ? '#3498db' : 'rgba(255,255,255,0.4)', '&:hover': { color: pinned ? '#3498db' : '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+              sx={{ color: pinned ? '#3498db' : 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: pinned ? '#3498db' : 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             >
               {pinned
                 ? <PushPinRoundedIcon sx={{ fontSize: '1.05rem' }} />
                 : <PushPinOutlinedIcon sx={{ fontSize: '1.05rem' }} />}
+            </IconButton>
+          )}
+          {onPopOut && !detached && (
+            <IconButton
+              size="small"
+              onClick={onPopOut}
+              title="別ウィンドウで開く（デスクトップへ切り離す）"
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
+            >
+              <OpenInNewRoundedIcon sx={{ fontSize: '1.05rem' }} />
             </IconButton>
           )}
           {onToggleDetached && (
@@ -620,7 +881,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               size="small"
               onClick={onToggleDetached}
               title={detached ? 'ドックに戻す' : '切り離す（フローティング）'}
-              sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             >
               {detached
                 ? <CloseFullscreenRoundedIcon sx={{ fontSize: '1.05rem' }} />
@@ -630,7 +891,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           <IconButton
             size="small"
             onClick={() => setAIChatOpen(false)}
-            sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
           >
             <CloseRoundedIcon sx={{ fontSize: '1.1rem' }} />
           </IconButton>
@@ -648,8 +909,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               onClick={(e) => setContextAnchor(e.currentTarget)}
               sx={{
                 display: 'flex', alignItems: 'center', gap: 0.5, px: 0.75, py: 0.25, borderRadius: 1, cursor: 'pointer',
-                color: contextAnchor ? '#8ab4f8' : 'rgba(255,255,255,0.4)',
-                '&:hover': { color: '#8ab4f8', bgcolor: 'rgba(255,255,255,0.05)' },
+                color: contextAnchor ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
+                '&:hover': { color: 'light-dark(#0a45a4, #8ab4f8)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
               }}
             >
               <TuneRoundedIcon sx={{ fontSize: 15 }} />
@@ -674,7 +935,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               sx={{ width: 64, height: 64, objectFit: 'contain', opacity: 0.9 }}
             />
             <Typography sx={{
-              fontSize: '1.3rem', fontWeight: 300, color: 'rgba(255,255,255,0.75)',
+              fontSize: '1.3rem', fontWeight: 300, color: 'rgb(var(--brand-fg-rgb) / 0.75)',
               letterSpacing: '0.5px', textAlign: 'center',
               fontFamily: '"Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", sans-serif',
             }}>
@@ -691,17 +952,17 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           onClose={() => setContextAnchor(null)}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          PaperProps={{ sx: { bgcolor: '#1a1f2b', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, width: 300, maxWidth: '92vw', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' } }}
+          PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2, width: 300, maxWidth: '92vw', boxShadow: '0 12px 32px rgba(0,0,0,0.5)' } }}
         >
           <Box sx={{ px: 1.5, pt: 1.5, pb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
               Context Settings
             </Typography>
             <Tooltip
               title={
                 <Box sx={{ p: 0.5 }}>
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, mb: 0.5 }}>コンテキスト設定</Typography>
-                  <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)' }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>
                     AIにプロジェクト内のどの情報（要件、レイアウト、議事録など）を事前に共有するかを設定します。<br/><br/>
                     <b>Project:</b> プロジェクト全体の情報を加味して回答します。<br/>
                     <b>Workspace:</b> 現在開いている画面の情報のみ加味します。<br/>
@@ -712,50 +973,50 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               placement="bottom"
               arrow
             >
-              <InfoOutlinedIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', cursor: 'help' }} />
+              <InfoOutlinedIcon sx={{ fontSize: 14, color: 'rgb(var(--brand-fg-rgb) / 0.4)', cursor: 'help' }} />
             </Tooltip>
           </Box>
               <Box sx={{ p: 1.5, pt: 0 }}>
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', mb: 1 }}>
+                <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', mb: 1 }}>
                   Current Context
                 </Typography>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Box sx={{ display: 'flex', fontSize: '0.65rem' }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>User</Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400 }}>{currentUser ? currentUser.email : 'Not Logged In'}</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>User</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400 }}>{currentUser ? currentUser.email : 'Not Logged In'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', fontSize: '0.65rem' }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>Project</Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400 }}>{activeProject ? activeProject.name : 'None'}</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>Project</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400 }}>{activeProject ? activeProject.name : 'None'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', fontSize: '0.65rem' }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>Workspace</Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400 }}>{activeWorkspace ? activeWorkspace.name : 'None (Home view)'}</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>Workspace</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400 }}>{activeWorkspace ? activeWorkspace.name : 'None (Home view)'}</Typography>
               </Box>
               <Box sx={{ display: 'flex', fontSize: '0.65rem', alignItems: 'center' }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>Status</Typography>
-                <Typography component="div" sx={{ color: 'rgba(255,255,255,0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', width: 70, fontSize: 'inherit', fontWeight: 400 }}>Status</Typography>
+                <Typography component="div" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', flex: 1, fontSize: 'inherit', fontWeight: 400, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   {activeWorkspace ? (
                     <><Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: '#4caf50' }} /> App Runtime</>
                   ) : (
-                    <><Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.3)' }} /> Hub Mode</>
+                    <><Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.3)' }} /> Hub Mode</>
                   )}
                 </Typography>
               </Box>
             </Box>
 
             {lastLaunchPayload && (
-              <Box sx={{ mt: 1.5, p: 1, bgcolor: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.05)`, borderRadius: 1.5 }}>
-                <Typography sx={{ fontSize: '0.65rem', color: '#4fc3f7', fontWeight: 500 }}>Scope: {lastLaunchPayload.appScope}</Typography>
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', wordBreak: 'break-all', mt: 0.25 }}>wsId: {lastLaunchPayload.workspaceId}</Typography>
+              <Box sx={{ mt: 1.5, p: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid rgb(var(--brand-fg-rgb) / 0.05)`, borderRadius: 1.5 }}>
+                <Typography sx={{ fontSize: '0.65rem', color: 'light-dark(#0875a6, #4fc3f7)', fontWeight: 500 }}>Scope: {lastLaunchPayload.appScope}</Typography>
+                <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', wordBreak: 'break-all', mt: 0.25 }}>wsId: {lastLaunchPayload.workspaceId}</Typography>
                 {!activeWorkspace && (
                   <Button 
                     variant="contained"
                     size="small" 
                     disableElevation
                     onClick={() => launchWorkspace(lastLaunchPayload)}
-                    sx={{ mt: 1, width: '100%', textTransform: 'none', fontSize: '0.65rem', bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', py: 0.25, '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' } }}
+                    sx={{ mt: 1, width: '100%', textTransform: 'none', fontSize: '0.65rem', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', py: 0.25, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
                   >
                     Resume Workspace
                   </Button>
@@ -764,9 +1025,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
             )}
 
             {/* Watching Context Block */}
-            <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid rgba(255,255,255,0.05)` }}>
+            <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid rgb(var(--brand-fg-rgb) / 0.05)` }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ fontSize: '0.6rem', color: '#8ab4f8', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography sx={{ fontSize: '0.6rem', color: 'light-dark(#0a45a4, #8ab4f8)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <MemoryIcon sx={{ fontSize: 12 }} /> Watching Context
                 </Typography>
                 <Select
@@ -777,9 +1038,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                   disableUnderline
                   sx={{ 
                     fontSize: '0.6rem', 
-                    color: '#8ab4f8', 
+                    color: 'light-dark(#0a45a4, #8ab4f8)', 
                     '& .MuiSelect-select': { py: 0, px: 0.5 },
-                    '& .MuiSelect-icon': { color: '#8ab4f8', width: '0.8em', height: '0.8em' }
+                    '& .MuiSelect-icon': { color: 'light-dark(#0a45a4, #8ab4f8)', width: '0.8em', height: '0.8em' }
                   }}
                 >
                   <MenuItem value="off" sx={{ fontSize: '0.65rem' }}>OFF</MenuItem>
@@ -810,8 +1071,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                           '&:hover': { opacity: contextLevel === 'custom' ? 0.8 : (active ? 1 : 0.3) }
                         }}
                       >
-                        {active ? <CheckBoxIcon sx={{ fontSize: 12, color: '#8ab4f8' }} /> : <CheckBoxOutlineBlankIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }} />}
-                        <Typography sx={{ fontSize: '0.65rem', color: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)', textTransform: 'capitalize' }}>
+                        {active ? <CheckBoxIcon sx={{ fontSize: 12, color: 'light-dark(#0a45a4, #8ab4f8)' }} /> : <CheckBoxOutlineBlankIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />}
+                        <Typography sx={{ fontSize: '0.65rem', color: active ? 'rgb(var(--brand-fg-rgb) / 0.9)' : 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'capitalize' }}>
                           {scope}
                         </Typography>
                       </Box>
@@ -822,16 +1083,16 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
             </Box>
 
             {/* Injected System Context Debug View */}
-            <Box sx={{ mt: 1.5, pt: 1, borderTop: `1px solid rgba(255,255,255,0.05)` }}>
+            <Box sx={{ mt: 1.5, pt: 1, borderTop: `1px solid rgb(var(--brand-fg-rgb) / 0.05)` }}>
                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: '0.65rem', color: '#e2a6ff', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: 'light-dark(#7500ad, #e2a6ff)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <span style={{ fontSize: '9px' }}>🧠</span> Injected System Context
                   </Typography>
                   <Button 
                     size="small" 
                     variant="text" 
                     disableRipple
-                    sx={{ fontSize: '0.6rem', p: 0, minWidth: 'auto', textTransform: 'none', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'transparent' } }}
+                    sx={{ fontSize: '0.6rem', p: 0, minWidth: 'auto', textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'transparent' } }}
                     onClick={() => setShowDebugPrompt(!showDebugPrompt)}
                   >
                     {showDebugPrompt ? 'Hide' : 'Inspect'}
@@ -841,7 +1102,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                {showDebugPrompt && (
                  <Box sx={{ 
                    mt: 1,
-                   bgcolor: 'rgba(0,0,0,0.3)', 
+                   bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', 
                    p: 1, 
                    borderRadius: 1.5, 
                    maxHeight: 250, 
@@ -851,11 +1112,11 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                    {activeProfile ? (
                      <>
                        {/* Context Metadata */}
-                       <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                         <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>Profile: {activeProfile.name}</Typography>
-                         <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', mt: 0.25, fontWeight: 400 }}>Model: {activeProfile.baseModelId}</Typography>
-                         <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>Role: {activeProfile.role} | Scopes: {activeProfile.usageScopes.join(', ')}</Typography>
-                         <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', mt: 0.25, fontWeight: 400 }}>
+                       <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
+                         <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 500 }}>Profile: {activeProfile.name}</Typography>
+                         <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: 0.25, fontWeight: 400 }}>Model: {activeProfile.baseModelId}</Typography>
+                         <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 400 }}>Role: {activeProfile.role} | Scopes: {activeProfile.usageScopes.join(', ')}</Typography>
+                         <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: 0.25, fontWeight: 400 }}>
                            Memory: {activeProfile.useSaveDataMemories ? <span style={{color: '#4caf50'}}>ON</span> : <span style={{color: '#f44336'}}>OFF</span>}
                          </Typography>
                        </Box>
@@ -864,7 +1125,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                        <Typography component="pre" sx={{ 
                          whiteSpace: 'pre-wrap', 
                          wordBreak: 'break-all', 
-                         color: 'rgba(255,255,255,0.6)',
+                         color: 'rgb(var(--brand-fg-rgb) / 0.6)',
                          fontSize: '0.6rem',
                          lineHeight: 1.4,
                          fontFamily: 'monospace',
@@ -875,7 +1136,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                        </Typography>
                      </>
                    ) : (
-                     <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                     <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 400 }}>
                        No active AI profile found.
                      </Typography>
                    )}
@@ -893,15 +1154,15 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           {isEmptyChat && proactive && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.25, gap: 0.5 }}>
-                <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: '#8ab4f8' }} />
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(138,180,248,0.8)', fontWeight: 500, textTransform: 'uppercase' }}>
+                <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: 'light-dark(#0a45a4, #8ab4f8)' }} />
+                <Typography sx={{ fontSize: '0.6rem', color: 'light-dark(rgba(10,69,164,0.8), rgba(138,180,248,0.8))', fontWeight: 500, textTransform: 'uppercase' }}>
                   AI Assistant
                 </Typography>
               </Box>
               <Paper elevation={0} sx={{
                 p: 1.25, px: 1.5, maxWidth: '90%',
                 bgcolor: 'rgba(138,180,248,0.05)',
-                color: 'rgba(255,255,255,0.9)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.9)',
                 borderRadius: 2,
                 border: '1px solid rgba(138,180,248,0.15)',
               }}>
@@ -919,7 +1180,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           {messages.map((msg, index) => (
             <Box key={msg.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.25, gap: 1 }}>
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: 500, textTransform: 'uppercase' }}>
+                <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 500, textTransform: 'uppercase' }}>
                   {msg.role === 'user' ? 'You' : 'AI Assistant'}
                 </Typography>
               </Box>
@@ -930,28 +1191,30 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                     px: 1.5,
                     maxWidth: '90%', 
                     bgcolor: 'transparent', 
-                    color: 'rgba(255,255,255,0.9)',
+                    color: 'rgb(var(--brand-fg-rgb) / 0.9)',
                     borderRadius: 2,
-                    border: `1px solid rgba(255,255,255,0.05)`,
+                    border: `1px solid rgb(var(--brand-fg-rgb) / 0.05)`,
                     flexGrow: 1
                   }}>
-                    <Typography onClick={(e) => handleAltClickSpeak(e, msg.id, msg.text)} sx={{
+                    <Typography component="div" onClick={(e) => handleAltClickSpeak(e, msg.id, msg.text)} sx={{
                       fontSize: '0.75rem',
                       fontWeight: 300,
                       lineHeight: 1.5,
-                      whiteSpace: 'pre-wrap',
+                      // 文ハイライト（SpokenText）を出すのは、読み上げ中 かつ 生テキストでも崩れない
+                      // プレーンな文章のときだけ。表・見出し等を含むメッセージは読み上げ中も Markdown 整形で表示する。
+                      whiteSpace: speakingMsgId === msg.id && !hasRichMarkdown(msg.text) ? 'pre-wrap' : 'normal',
                       wordBreak: 'break-word',
                       fontFamily: '"Proxima Nova", "Kozuka Gothic Pr6N", "小塚ゴシック Pr6N", "Kozuka Gothic Pro", "小塚ゴシック Pro", "Segoe UI Light", "Helvetica Neue Light", "Yu Gothic UI Light", sans-serif',
                       WebkitFontSmoothing: 'antialiased'
                     }}>
-                      {speakingMsgId === msg.id ? (
+                      {speakingMsgId === msg.id && !hasRichMarkdown(msg.text) ? (
                         <SpokenText
                           text={msg.text}
                           currentIdx={speakingSentenceIdx}
                           onJump={(i) => startSpeakingMessage(msg.id, msg.text, i)}
                         />
                       ) : (
-                        <AnimatedText text={msg.text} isNew={index === messages.length - 1 && Date.now() - msg.timestamp < 1000} onType={scrollToBottom} />
+                        <MarkdownMessage text={msg.text} isNew={index === messages.length - 1 && Date.now() - msg.timestamp < 1000} onType={scrollToBottom} />
                       )}
                     </Typography>
                   </Paper>
@@ -970,8 +1233,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                             opacity: speakingMsgId === msg.id ? 1 : 0,
                             transition: 'opacity 0.2s',
                             bgcolor: 'rgba(26,31,43,0.8)',
-                            color: speakingMsgId === msg.id ? '#8ab4f8' : 'rgba(255,255,255,0.7)',
-                            '&:hover': { bgcolor: 'rgba(26,31,43,1)', color: speakingMsgId === msg.id ? '#8ab4f8' : '#fff' }
+                            color: speakingMsgId === msg.id ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                            '&:hover': { bgcolor: 'rgba(26,31,43,1)', color: speakingMsgId === msg.id ? 'light-dark(#0a45a4, #8ab4f8)' : 'var(--brand-fg)' }
                           }}
                         >
                           {speakingMsgId === msg.id ? <StopRoundedIcon sx={{ fontSize: '0.8rem' }} /> : <VolumeUpRoundedIcon sx={{ fontSize: '0.8rem' }} />}
@@ -987,7 +1250,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                               top: 4,
                               right: 60,
                               bgcolor: 'rgba(26,31,43,0.8)',
-                              color: '#8ab4f8',
+                              color: 'light-dark(#0a45a4, #8ab4f8)',
                               '&:hover': { bgcolor: 'rgba(26,31,43,1)' }
                             }}
                           >
@@ -1005,14 +1268,14 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                     opacity: 0, transition: 'opacity 0.15s',
                     display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5,
                   }}>
-                    <Typography sx={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.3)', mr: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.58rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', mr: 0.5 }}>
                       {timeAgo(msg.timestamp)}
                     </Typography>
                     <Tooltip title="コピー" placement="top" arrow>
                       <IconButton
                         size="small"
                         onClick={() => navigator.clipboard.writeText(msg.text)}
-                        sx={{ p: 0.4, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' } }}
+                        sx={{ p: 0.4, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' } }}
                       >
                         <ContentCopyIcon sx={{ fontSize: '0.75rem' }} />
                       </IconButton>
@@ -1021,7 +1284,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                       <IconButton
                         size="small"
                         onClick={() => { if (activeSessionId) rewindToMessage(activeSessionId, msg.id); }}
-                        sx={{ p: 0.4, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#f87171', bgcolor: 'rgba(248,113,113,0.1)' } }}
+                        sx={{ p: 0.4, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'light-dark(#a50808, #f87171)', bgcolor: 'rgba(248,113,113,0.1)' } }}
                       >
                         <ReplayRoundedIcon sx={{ fontSize: '0.75rem' }} />
                       </IconButton>
@@ -1031,8 +1294,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                     p: 1.25,
                     px: 1.5,
                     maxWidth: '90%',
-                    bgcolor: 'rgba(255,255,255,0.08)',
-                    color: 'rgba(255,255,255,0.9)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)',
+                    color: 'rgb(var(--brand-fg-rgb) / 0.9)',
                     borderRadius: 2,
                     border: 'none'
                   }}>
@@ -1062,8 +1325,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                     })}
                     sx={{
                       display: 'inline-flex', alignItems: 'center', gap: 0.5, cursor: 'pointer',
-                      background: 'none', border: 'none', p: 0, color: 'rgba(255,255,255,0.35)',
-                      '&:hover': { color: 'rgba(255,255,255,0.6)' }, transition: 'color 0.15s',
+                      background: 'none', border: 'none', p: 0, color: 'rgb(var(--brand-fg-rgb) / 0.35)',
+                      '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, transition: 'color 0.15s',
                     }}
                   >
                     <MenuBookRoundedIcon sx={{ fontSize: '0.65rem' }} />
@@ -1085,7 +1348,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                             display: 'inline-flex', alignItems: 'center', gap: 0.4,
                             px: 0.75, py: 0.2, borderRadius: 1,
                             bgcolor: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.3)',
-                            fontSize: '0.62rem', color: '#93c5fd', maxWidth: 200,
+                            fontSize: '0.62rem', color: 'light-dark(#0352aa, #93c5fd)', maxWidth: 200,
                           }}
                           title={c.title}
                         >
@@ -1104,7 +1367,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                     variant="text"
                     startIcon={<BookmarkAddOutlinedIcon sx={{ fontSize: '0.7rem' }} />}
                     sx={{
-                      minWidth: 'auto', p: 0, px: 1, py: 0.25, fontSize: '0.6rem', color: '#8ab4f8', textTransform: 'none',
+                      minWidth: 'auto', p: 0, px: 1, py: 0.25, fontSize: '0.6rem', color: 'light-dark(#0a45a4, #8ab4f8)', textTransform: 'none',
                       borderRadius: 1,
                       '&:hover': { bgcolor: 'rgba(138, 180, 248, 0.1)' }
                     }}
@@ -1127,44 +1390,55 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               bgcolor: 'rgba(138,180,248,0.06)', border: '1px solid rgba(138,180,248,0.15)',
               borderRadius: 2, px: 1.5, py: 0.75,
             }}>
-              <AutoAwesomeRoundedIcon sx={{ fontSize: '0.75rem', color: '#8ab4f8', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: '0.65rem', color: 'rgba(138,180,248,0.9)', fontWeight: 300, flex: 1 }}>
+              <AutoAwesomeRoundedIcon sx={{ fontSize: '0.75rem', color: 'light-dark(#0a45a4, #8ab4f8)', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: '0.65rem', color: 'light-dark(rgba(10,69,164,0.9), rgba(138,180,248,0.9))', fontWeight: 300, flex: 1 }}>
                 {currentToolLabel || 'AI が考えています...'}
               </Typography>
               {toolProgress && (
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(138,180,248,0.7)', fontWeight: 600, flexShrink: 0, minWidth: 32, textAlign: 'right' }}>
+                <Typography sx={{ fontSize: '0.6rem', color: 'light-dark(rgba(10,69,164,0.7), rgba(138,180,248,0.7))', fontWeight: 600, flexShrink: 0, minWidth: 32, textAlign: 'right' }}>
                   {toolProgress.current} / {toolProgress.total}
                 </Typography>
               )}
-              <CircularProgress size={10} sx={{ color: '#8ab4f8', flexShrink: 0 }} />
+              <CircularProgress size={10} sx={{ color: 'light-dark(#0a45a4, #8ab4f8)', flexShrink: 0 }} />
             </Box>
           </Box>
         )}
       </Box>
 
       {/* Input Area（一体型: 添付プレビュー + テキスト + ボトムツールバー） */}
-      <Box sx={{ p: 2, pt: 1, bgcolor: '#1a1f2b', flexShrink: 0 }}>
+      <Box sx={{ p: 2, pt: 1, bgcolor: 'var(--brand-surface2)', flexShrink: 0 }}>
         {/* チャット候補。空チャットで先回り提案があればそれを優先（プロジェクト文脈のパーソナライズ）、
             無ければスコープ別の固定候補（選んで入力欄に投入）。 */}
         {!isProcessing && !chatText.trim() && attachments.length === 0 && (isEmptyChat && proactive?.chips?.length ? proactive.chips : suggestions).length > 0 && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-            <Typography sx={{ width: '100%', fontSize: '0.55rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '1px', textTransform: 'uppercase', mb: 0.25 }}>
+            <Typography sx={{ width: '100%', fontSize: '0.55rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', letterSpacing: '1px', textTransform: 'uppercase', mb: 0.25 }}>
               {isEmptyChat && proactive?.chips?.length ? '先回り提案' : '候補'}
             </Typography>
-            {(isEmptyChat && proactive?.chips?.length ? proactive.chips : suggestions).map((s) => (
+            {(isEmptyChat && proactive?.chips?.length ? proactive.chips : suggestions).map((s, chipIndex) => (
               <Box
                 key={s.label}
-                onClick={() => setChatText(s.text)}
+                onClick={() => {
+                  setChatText(s.text);
+                  // 反応ログ: 先回りチップのクリックのみ記録（静的候補は対象外）
+                  if (isEmptyChat && proactive?.chips?.length) {
+                    logReaction({
+                      surface: 'chat-suggest', action: 'clicked', targetType: 'suggestChip',
+                      setId: proactiveSetIdRef.current ?? undefined,
+                      rank: chipIndex, label: s.label, model: PROACTIVE_MODEL,
+                      projectId: activeProject?.id, sessionId: activeSessionId ?? undefined,
+                    });
+                  }
+                }}
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 0.5,
-                  fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)',
+                  fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)',
                   bgcolor: 'rgba(255,215,64,0.06)', border: '1px solid rgba(255,215,64,0.25)',
                   borderRadius: 5, px: 1, py: 0.4, cursor: 'pointer', transition: 'all 0.15s',
-                  '&:hover': { bgcolor: 'rgba(255,215,64,0.14)', color: '#fff', borderColor: 'rgba(255,215,64,0.5)' },
+                  '&:hover': { bgcolor: 'rgba(255,215,64,0.14)', color: 'var(--brand-fg)', borderColor: 'rgba(255,215,64,0.5)' },
                 }}
                 title={s.text}
               >
-                <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: '#ffd740' }} />
+                <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: 'light-dark(#ad8900, #ffd740)' }} />
                 {s.label}
               </Box>
             ))}
@@ -1174,24 +1448,24 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           component="form"
           onSubmit={handleChatSubmit}
           sx={{
-            bgcolor: 'rgba(0,0,0,0.2)',
-            border: `1px solid rgba(255,255,255,0.1)`,
+            bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
+            border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`,
             borderRadius: 3,
             p: 1,
             transition: 'border-color 0.2s',
-            '&:focus-within': { borderColor: 'rgba(255,255,255,0.3)' },
+            '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
           }}
         >
           {/* 添付プレビュー */}
           {attachments.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 0.5, pb: 1 }}>
               {attachments.map(a => (
-                <Box key={a.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 1.5, pl: a.kind === 'image' ? 0.25 : 0.75, pr: 0.5, py: 0.25, maxWidth: 170 }}>
+                <Box key={a.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 1.5, pl: a.kind === 'image' ? 0.25 : 0.75, pr: 0.5, py: 0.25, maxWidth: 170 }}>
                   {a.kind === 'image' && a.url
                     ? <Box component="img" src={a.url} alt={a.name} sx={{ width: 26, height: 26, borderRadius: 1, objectFit: 'cover', flexShrink: 0 }} />
-                    : <AttachFileRoundedIcon sx={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.6)', flexShrink: 0 }} />}
-                  <Typography noWrap sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.8)', maxWidth: 96 }}>{a.name}</Typography>
-                  <IconButton size="small" onClick={() => removeAttachment(a.id)} sx={{ p: 0.15, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+                    : <AttachFileRoundedIcon sx={{ fontSize: '0.95rem', color: 'rgb(var(--brand-fg-rgb) / 0.6)', flexShrink: 0 }} />}
+                  <Typography noWrap sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)', maxWidth: 96 }}>{a.name}</Typography>
+                  <IconButton size="small" onClick={() => removeAttachment(a.id)} sx={{ p: 0.15, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
                     <CloseRoundedIcon sx={{ fontSize: '0.8rem' }} />
                   </IconButton>
                 </Box>
@@ -1215,7 +1489,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               style: {
                 fontSize: '0.75rem',
                 fontWeight: 300,
-                color: '#fff',
+                color: 'var(--brand-fg)',
                 lineHeight: 1.5,
                 fontFamily: '"Proxima Nova", "Kozuka Gothic Pr6N", "小塚ゴシック Pr6N", "Kozuka Gothic Pro", "小塚ゴシック Pro", "Segoe UI Light", "Helvetica Neue Light", "Yu Gothic UI Light", sans-serif',
                 WebkitFontSmoothing: 'antialiased',
@@ -1229,7 +1503,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
               <IconButton
                 size="small"
                 onClick={(e) => setAttachAnchor(e.currentTarget)}
-                sx={{ color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.12)', p: 0.5, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' } }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', p: 0.5, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}
               >
                 <AddRoundedIcon sx={{ fontSize: '1.15rem' }} />
               </IconButton>
@@ -1241,21 +1515,22 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                 onChange={(e) => setSelectedLlmModel(e.target.value)}
                 size="small"
                 variant="outlined"
-                MenuProps={{ PaperProps: { sx: { bgcolor: '#1a1f2b', border: `1px solid rgba(255,255,255,0.1)`, color: 'rgba(255,255,255,0.9)' } } }}
+                MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`, color: 'rgb(var(--brand-fg-rgb) / 0.9)' } } }}
                 sx={{
                   height: 24,
                   fontSize: '0.62rem',
                   fontWeight: 300,
-                  color: 'rgba(255,255,255,0.6)',
+                  color: 'rgb(var(--brand-fg-rgb) / 0.6)',
                   bgcolor: 'transparent',
                   borderRadius: 1.5,
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)' },
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'rgb(var(--brand-fg-rgb) / 0.8)' },
                   '& .MuiSelect-select': { py: 0, pl: 1, pr: '20px !important', display: 'flex', alignItems: 'center' },
-                  '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.4)', width: '0.9em', height: '0.9em' },
+                  '& .MuiSelect-icon': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', width: '0.9em', height: '0.9em' },
                 }}
               >
-                <MenuItem value="claude-sonnet-4-6" sx={{ fontSize: '0.65rem', fontWeight: 300 }}>Claude Sonnet ✦ 推奨</MenuItem>
+                <MenuItem value="auto" sx={{ fontSize: '0.65rem', fontWeight: 300 }}>自動 ✦ おすすめ（内容で最適化）</MenuItem>
+                <MenuItem value="claude-sonnet-4-6" sx={{ fontSize: '0.65rem', fontWeight: 300 }}>Claude Sonnet · 高品質</MenuItem>
                 <MenuItem value="claude-haiku-4-5-20251001" sx={{ fontSize: '0.65rem', fontWeight: 300 }}>Claude Haiku · 高速/低コスト</MenuItem>
                 <MenuItem value="gemini-2.5-flash" sx={{ fontSize: '0.65rem', fontWeight: 300 }}>Gemini 2.5 Flash · 無料枠</MenuItem>
                 <MenuItem value="gemini-1.5-flash" sx={{ fontSize: '0.65rem', fontWeight: 300 }}>Gemini 1.5 Flash (Free)</MenuItem>
@@ -1270,7 +1545,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                   title="停止"
                   sx={{
                     width: 30, height: 30, p: 0, borderRadius: '50%', transition: 'all 0.2s',
-                    bgcolor: '#ef4444', color: '#fff', '&:hover': { bgcolor: '#dc2626' },
+                    bgcolor: '#ef4444', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#dc2626' },
                   }}
                 >
                   <StopRoundedIcon sx={{ fontSize: '1.05rem' }} />
@@ -1281,10 +1556,10 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                   disabled={!chatText.trim() && attachments.length === 0}
                   sx={{
                     width: 30, height: 30, p: 0, borderRadius: '50%', transition: 'all 0.2s',
-                    bgcolor: (chatText.trim() || attachments.length > 0) ? '#fff' : 'rgba(255,255,255,0.12)',
-                    color: (chatText.trim() || attachments.length > 0) ? '#000' : 'rgba(255,255,255,0.3)',
-                    '&:hover': { bgcolor: (chatText.trim() || attachments.length > 0) ? '#f0f0f0' : 'rgba(255,255,255,0.12)' },
-                    '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.08)' },
+                    bgcolor: (chatText.trim() || attachments.length > 0) ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.12)',
+                    color: (chatText.trim() || attachments.length > 0) ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.3)',
+                    '&:hover': { bgcolor: (chatText.trim() || attachments.length > 0) ? '#f0f0f0' : 'rgb(var(--brand-fg-rgb) / 0.12)' },
+                    '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
                   }}
                 >
                   <ArrowUpwardRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -1301,17 +1576,21 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           onClose={() => setAttachAnchor(null)}
           anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
           transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          PaperProps={{ sx: { bgcolor: '#1a1f2b', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.9)' } }}
+          PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.9)' } }}
         >
           <MenuItem onClick={() => { imageInputRef.current?.click(); setAttachAnchor(null); }} sx={{ fontSize: '0.8rem', gap: 1 }}>
-            <ImageRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)' }} /> 写真を追加
+            <ImageRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} /> 写真を追加
           </MenuItem>
           <MenuItem onClick={() => { fileInputRef.current?.click(); setAttachAnchor(null); }} sx={{ fontSize: '0.8rem', gap: 1 }}>
-            <AttachFileRoundedIcon sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)' }} /> ファイルを追加
+            <AttachFileRoundedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} /> ファイルを追加
+          </MenuItem>
+          <MenuItem onClick={() => { setDrivePickerOpen(true); setAttachAnchor(null); }} sx={{ fontSize: '0.8rem', gap: 1 }}>
+            <CloudOutlinedIcon sx={{ fontSize: '1rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} /> SEKKEIYA Drive から追加
           </MenuItem>
         </Menu>
         <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={(e) => onPickFiles(e, 'image')} style={{ display: 'none' }} />
         <input ref={fileInputRef} type="file" multiple onChange={(e) => onPickFiles(e, 'file')} style={{ display: 'none' }} />
+        <AIDriveFilePicker open={drivePickerOpen} onClose={() => setDrivePickerOpen(false)} onPick={addDriveAssets} />
       </Box>
 
       <Menu
@@ -1320,9 +1599,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
         onClose={() => setActionAnchorEl(null)}
         PaperProps={{
           sx: {
-            bgcolor: '#1a1f2b',
-            border: `1px solid rgba(255,255,255,0.1)`,
-            color: 'rgba(255,255,255,0.9)'
+            bgcolor: 'var(--brand-surface2)',
+            border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`,
+            color: 'rgb(var(--brand-fg-rgb) / 0.9)'
           }
         }}
       >

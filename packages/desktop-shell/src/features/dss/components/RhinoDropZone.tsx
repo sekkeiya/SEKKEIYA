@@ -33,13 +33,13 @@ export default function RhinoDropZone({
   const primaryText = hasDocs
     ? "Rhino で開いているファイルを選択して、このモデルをインポートします。"
     : errorMessage ||
-      "Rhino が開いていないか、プラグインからの情報待ちです。Rhino を起動し、S.Models プラグインを設定してから再度お試しください。";
+      "Rhino が開いていないか、プラグインからの情報待ちです。Rhino を起動し、S.Model プラグインを設定してから再度お試しください。";
 
   const secondaryText =
     !hasDocs && !errorMessage
-      ? "Rhino を起動し、S.Models プラグインを設定してから再度お試しください。"
+      ? "Rhino を起動し、S.Model プラグインを設定してから再度お試しください。"
       : errorMessage && !hasDocs
-      ? "S.Models プラグインをインストールし、設定が完了しているかご確認ください。"
+      ? "S.Model プラグインをインストールし、設定が完了しているかご確認ください。"
       : "";
 
   return (
@@ -80,10 +80,10 @@ export default function RhinoDropZone({
             minWidth: 560,
             maxWidth: 840,
             background:
-              "linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.98))",
-            border: "1px solid rgba(148,163,184,0.4)",
+              "linear-gradient(135deg, rgb(var(--slate-panel-rgb) / 0.96), rgb(var(--slate-panel-rgb) / 0.98))",
+            border: "1px solid rgb(var(--slate-ink-rgb) / 0.4)",
             boxShadow:
-              "0 20px 45px rgba(15,23,42,0.85), 0 0 0 1px rgba(15,23,42,0.6)",
+              "0 20px 45px rgb(var(--slate-panel-rgb) / 0.85), 0 0 0 1px rgb(var(--slate-panel-rgb) / 0.6)",
           }}
         >
           {/* Icon */}
@@ -98,10 +98,10 @@ export default function RhinoDropZone({
               justifyContent: "center",
               background:
                 "radial-gradient(circle at 30% 20%, #22c55e, #0f766e, #020617)",
-              boxShadow: "0 0 0 1px rgba(15,23,42,0.85)",
+              boxShadow: "0 0 0 1px rgb(var(--slate-panel-rgb) / 0.85)",
             }}
           >
-            <CloudUploadRoundedIcon sx={{ fontSize: 22, color: "#e5e7eb" }} />
+            <CloudUploadRoundedIcon sx={{ fontSize: 22, color: "var(--brand-fg)" }} />
           </Box>
 
           {/* Texts & docs list */}
@@ -111,7 +111,7 @@ export default function RhinoDropZone({
               sx={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#e5e7eb",
+                color: "var(--brand-fg)",
               }}
             >
               {primaryText}
@@ -124,7 +124,7 @@ export default function RhinoDropZone({
                   mt: 0.2,
                   fontSize: 11,
                   display: "block",
-                  color: "rgba(148,163,184,0.9)",
+                  color: "rgb(var(--slate-ink-rgb) / 0.9)",
                 }}
               >
                 {secondaryText}
@@ -157,17 +157,17 @@ export default function RhinoDropZone({
                         px: 1.5,
                         borderColor: doc.is_active
                           ? "rgba(34,197,94,0.7)"
-                          : "rgba(148,163,184,0.6)",
+                          : "rgb(var(--slate-ink-rgb) / 0.6)",
                         backgroundColor: doc.is_active
                           ? "rgba(22,163,74,0.9)"
-                          : "rgba(15,23,42,0.9)",
+                          : "rgb(var(--slate-panel-rgb) / 0.9)",
                         "&:hover": {
                           backgroundColor: doc.is_active
                             ? "rgba(22,163,74,1)"
-                            : "rgba(15,23,42,1)",
+                            : "rgb(var(--slate-panel-rgb) / 1)",
                           borderColor: doc.is_active
                             ? "rgba(34,197,94,0.9)"
-                            : "rgba(148,163,184,0.9)",
+                            : "rgb(var(--slate-ink-rgb) / 0.9)",
                         },
                       }}
                       onClick={() => onSelectDoc?.(doc.id)}
@@ -186,14 +186,14 @@ export default function RhinoDropZone({
             onClick={onClose}
             sx={{
               ml: 1.5,
-              backgroundColor: "rgba(15,23,42,0.9)",
-              border: "1px solid rgba(31,41,55,0.9)",
+              backgroundColor: "rgb(var(--slate-panel-rgb) / 0.9)",
+              border: "1px solid rgb(var(--slate-800-rgb) / 0.9)",
               "&:hover": {
-                backgroundColor: "rgba(15,23,42,1)",
+                backgroundColor: "rgb(var(--slate-panel-rgb) / 1)",
               },
             }}
           >
-            <CloseRoundedIcon sx={{ fontSize: 18, color: "#e5e7eb" }} />
+            <CloseRoundedIcon sx={{ fontSize: 18, color: "var(--brand-fg)" }} />
           </IconButton>
         </Paper>
       </Box>

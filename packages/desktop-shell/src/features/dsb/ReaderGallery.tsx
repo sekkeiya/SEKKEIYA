@@ -28,6 +28,7 @@ interface ReaderGalleryProps {
 }
 
 export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex, onSelect }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(() => Math.max(0, activeIndex) * STEP);
   const [smooth, setSmooth] = useState(true); // CSSトランジションで滑らかに動かすか（ドラッグ中はOFF）
   const maxOffset = Math.max(0, (items.length - 1) * STEP);
@@ -63,6 +64,21 @@ export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex
     const d = drag.current;
     if (!d.active) return;
     d.active = false;
+    // タップ（ほぼ動いていない）＝クリック扱い。押した位置のカードへ切り替える。
+    // ※コンテナで setPointerCapture しているため子カードの onClick は発火しない。
+    //   そのため pointerup 位置からカードを算出してここで選択する。
+    if (d.moved < 6) {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (rect) {
+        const px = d.lastX - rect.left;                        // コンテナ左端からのX
+        const i = Math.round((px - rect.width / 2 + offset) / STEP); // 帯の並びからカードindexを逆算
+        const clamped = Math.min(items.length - 1, Math.max(0, i));
+        setSmooth(true);
+        setOffset(clamped * STEP);
+        onSelect(clamped);
+      }
+      return;
+    }
     // 慣性の投影距離（離した速度 × 320ms ぶん先）→ 最寄りのカードへ吸着
     const projected = clampOff(offset - d.v * 320);
     setSmooth(true);
@@ -75,15 +91,9 @@ export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex
     setOffset((o) => clampOff((Math.round(o / STEP) + Math.sign(delta)) * STEP));
   };
 
-  const handleCardClick = (i: number) => {
-    if (drag.current.moved >= 6) return; // ドラッグはクリック扱いしない
-    setSmooth(true);
-    setOffset(i * STEP);
-    onSelect(i);
-  };
-
   return (
     <Box
+      ref={rootRef}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -91,7 +101,7 @@ export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex
       onPointerCancel={endDrag}
       onWheel={onWheel}
       sx={{ position: 'relative', height: CARD_H + 40, flexShrink: 0, overflow: 'hidden', userSelect: 'none',
-        bgcolor: 'rgba(7,9,14,0.92)', borderTop: '1px solid rgba(255,255,255,0.08)',
+        bgcolor: 'rgba(7,9,14,0.92)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
         cursor: 'grab', '&:active': { cursor: 'grabbing' }, touchAction: 'pan-y' }}
     >
       {/* 中央フォーカスの目印（下向きの小さな三角） */}
@@ -113,11 +123,11 @@ export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex
           const opacity = Math.max(0.4, 1 - dist * 0.16);
           const isActive = i === activeIndex;
           return (
-            <Box key={`${it.url}-${i}`} onClick={() => handleCardClick(i)}
+            <Box key={`${it.url}-${i}`}
               sx={{ width: CARD_W, height: CARD_H, flexShrink: 0, borderRadius: 2, overflow: 'hidden', position: 'relative',
                 transform: `scale(${scale})`, opacity,
                 transition: 'transform 220ms ease, opacity 220ms ease, box-shadow 220ms ease',
-                border: isActive ? `2px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.12)',
+                border: isActive ? `2px solid ${ACCENT}` : '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
                 boxShadow: isActive ? '0 0 18px rgba(229,115,115,0.35)' : dist < 0.5 ? '0 4px 16px rgba(0,0,0,0.5)' : 'none',
                 bgcolor: `hsl(${hueOf(it.source || '')},35%,16%)`, cursor: 'pointer' }}>
               {it.image && (
@@ -128,7 +138,7 @@ export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex
               {/* タイトル帯（下部グラデーション） */}
               <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, px: 0.75, pt: 2, pb: 0.5,
                 background: 'linear-gradient(transparent, rgba(0,0,0,0.85))' }}>
-                <Typography noWrap sx={{ fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.92)', lineHeight: 1.3 }}>
+                <Typography noWrap sx={{ fontSize: 9.5, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.92)', lineHeight: 1.3 }}>
                   {it.title}
                 </Typography>
                 <Typography noWrap sx={{ fontSize: 8, color: `hsl(${hueOf(it.source || '')},60%,72%)`, fontWeight: 700 }}>
@@ -142,7 +152,7 @@ export const ReaderGallery: React.FC<ReaderGalleryProps> = ({ items, activeIndex
 
       {/* 操作ヒント */}
       <Typography sx={{ position: 'absolute', right: 12, bottom: 4, zIndex: 3, fontSize: 9.5,
-        color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }}>
+        color: 'rgb(var(--brand-fg-rgb) / 0.3)', pointerEvents: 'none' }}>
         ドラッグ / ← → / クリックで移動{activeIndex >= 0 ? `（${activeIndex + 1}/${items.length}）` : ''}
       </Typography>
     </Box>

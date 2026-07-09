@@ -19,8 +19,8 @@ export interface SourceRegistryEntry {
   url: string;
   category: string;     // S.Library カテゴリ（ライブラリ・エントリのサイドバー分類）
   tags: string[];
-  // 索引商品(CatalogVisionItem)へ付与する S.Models 正典カテゴリ／タグ（useUserSettingsStore.DEFAULT_CATEGORY_MAP）。
-  // クロスアプリ（S.Models / Chat）で分類を統一するため。未指定時は category/tags を流用。
+  // 索引商品(CatalogVisionItem)へ付与する S.Model 正典カテゴリ／タグ（useUserSettingsStore.DEFAULT_CATEGORY_MAP）。
+  // クロスアプリ（S.Model / Chat）で分類を統一するため。未指定時は category/tags を流用。
   // ※ 検索の種類タブ(SourceKind)は tags の「家具」等で判定するため、家具系は modelTags に種類アンカーを残す。
   modelCategory?: string; // 例 '家具 (既製品)'
   modelTags?: string[];   // 例 ['ソファ','家具']
@@ -34,6 +34,8 @@ export interface SourceRegistryGroup {
   description: string;
   homeUrl: string;
   entries: SourceRegistryEntry[];
+  /** メーカー電子カタログ（サイドバー「カタログ」導線で絞り込む対象）か。 */
+  isCatalog?: boolean;
 }
 
 export interface SourceRegistrySection {
@@ -44,8 +46,8 @@ export interface SourceRegistrySection {
 }
 
 // ── 家具：FLYMEe（カテゴリ別・確認済み） ──
-// mCat/mSub は S.Models 正典カテゴリ（DEFAULT_CATEGORY_MAP）に対応。modelTags に「家具」を残し
-// 検索の種類タブ(SourceKind=furniture)で拾えるようにする（照明は S.Models 上は設備・備品だが家具タブに含める）。
+// mCat/mSub は S.Model 正典カテゴリ（DEFAULT_CATEGORY_MAP）に対応。modelTags に「家具」を残し
+// 検索の種類タブ(SourceKind=furniture)で拾えるようにする（照明は S.Model 上は設備・備品だが家具タブに含める）。
 const FLYMEE_GENRES: { slug: string; genre: string; tags: string[]; mCat: string; mSub: string }[] = [
   { slug: 'sofa',            genre: 'ソファ',               tags: ['ソファ', '家具'],            mCat: '家具 (既製品)', mSub: 'ソファ' },
   { slug: 'chair',           genre: 'チェア・椅子',         tags: ['チェア', '椅子', '家具'],    mCat: '家具 (既製品)', mSub: 'チェア' },
@@ -136,11 +138,12 @@ const KABEGAMI_GROUP: SourceRegistryGroup = {
 };
 
 // 壁紙・床材メーカー（公式サイトは索引不可なため参照ブックマーク）。有名ブランドの一次資料として。
-const WALLPAPER_MAKER_NAMES = new Set(['サンゲツ', 'リリカラ', 'シンコール', '東リ']);
+const WALLPAPER_MAKER_NAMES = new Set(['サンゲツ', 'リリカラ', 'シンコール', '東リ', 'ルノン']);
 const WALLPAPER_MAKER_GROUP: SourceRegistryGroup = {
   site: '壁紙・床材メーカー（公式）',
   description: 'サンゲツ等メーカー公式の電子カタログ。公式サイトは動的生成で自動索引できないため参照登録（実商品の索引は上の「壁紙屋本舗」で）。',
   homeUrl: 'https://www.sangetsu.co.jp/',
+  isCatalog: true,
   entries: CATALOG_SOURCES.filter((c) => WALLPAPER_MAKER_NAMES.has(c.manufacturer)).map((c) => ({
     id: `wpmaker-${c.manufacturer}`, site: c.manufacturer, genre: c.genre,
     url: c.url, category: '素材・建材', tags: ['テクスチャ', '素材', c.manufacturer],
@@ -170,6 +173,7 @@ const MATERIAL_GROUP: SourceRegistryGroup = {
   site: '建材・仕上げメーカー',
   description: '壁紙・床材・タイル等の主要メーカー電子カタログ。製品・仕上げの一次資料として登録。',
   homeUrl: 'https://www.sangetsu.co.jp/',
+  isCatalog: true,
   entries: CATALOG_SOURCES.filter((c) => !WALLPAPER_MAKER_NAMES.has(c.manufacturer)).map((c) => ({
     id: `mat-${c.manufacturer}`, site: c.manufacturer, genre: c.genre,
     url: c.url, category: '素材・建材', tags: [c.genre, c.manufacturer],
@@ -181,7 +185,7 @@ export const SOURCE_SECTIONS: SourceRegistrySection[] = [
   {
     kind: 'furniture',
     label: '家具',
-    description: '実在商品を視覚索引化して、家具検索・S.Models 照合に使えます。',
+    description: '実在商品を視覚索引化して、家具検索・S.Model 照合に使えます。',
     groups: [FLYMEE_GROUP, ...FURNITURE_OTHER_GROUPS],
   },
   {

@@ -41,19 +41,19 @@ const AIPanel: React.FC = () => {
           pt: 1,
           '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
           '& .MuiTab-root': {
-            color: 'rgba(255,255,255,0.5)',
+            color: 'rgb(var(--brand-fg-rgb) / 0.5)',
             minHeight: 40,
             fontWeight: 600,
             textTransform: 'none',
             fontSize: 14,
-            '&.Mui-selected': { color: '#fff' }
+            '&.Mui-selected': { color: 'var(--brand-fg)' }
           }
         }}
       >
-        <Tab label="SEKKEIYA Chat" />
-        <Tab label="AI Drive" />
+        <Tab label="SEKKEIYA OS" />
+        <Tab label="SEKKEIYA Drive" />
       </Tabs>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
       
       {/* Scrollable Main Area */}
       <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
@@ -62,7 +62,7 @@ const AIPanel: React.FC = () => {
         <Box sx={{ p: 2, flexShrink: 0 }}>
           <Paper elevation={0} sx={{ 
             p: 2, 
-            bgcolor: 'rgba(255,255,255,0.03)', 
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', 
             border: `1px solid ${BRAND.line}`, 
             borderRadius: 3,
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
@@ -80,10 +80,10 @@ const AIPanel: React.FC = () => {
               Workspace: {activeWorkspace ? activeWorkspace.name : 'None (Home view)'}
             </Typography>
             <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-              Status: {activeWorkspace ? <span style={{color:'#66bb6a', fontWeight:'bold'}}>🟢 App Runtime</span> : <span style={{color:'#9e9e9e'}}>⚪ Hub Mode</span>}
+              Status: {activeWorkspace ? <span style={{color:'#66bb6a', fontWeight:'bold'}}>🟢 App Runtime</span> : <span style={{color:'rgb(var(--brand-fg-rgb) / 0.65)'}}>⚪ Hub Mode</span>}
             </Typography>
             {lastLaunchPayload && (
-              <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(0,0,0,0.2)', border: `1px dashed rgba(255,255,255,0.1)`, borderRadius: 2 }}>
+              <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', border: `1px dashed rgb(var(--brand-fg-rgb) / 0.1)`, borderRadius: 2 }}>
                 <Typography variant="caption" display="block" color="primary.light" fontWeight="bold">
                   Scope: {lastLaunchPayload.appScope}
                 </Typography>
@@ -120,13 +120,13 @@ const AIPanel: React.FC = () => {
           
           {tabIndex === 1 && (
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2, px: 2, py: 1, border: `1px solid ${BRAND.line}`, '&:hover': { borderColor: 'rgba(255,255,255,0.3)' } }}>
-                <SearchRoundedIcon sx={{ color: 'rgba(255,255,255,0.4)', mr: 1, fontSize: 20 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2, px: 2, py: 1, border: `1px solid ${BRAND.line}`, '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
+                <SearchRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1, fontSize: 20 }} />
                 <TextField 
                   placeholder="Search Drive Assets..."
                   variant="standard"
                   fullWidth
-                  InputProps={{ disableUnderline: true, sx: { color: '#fff', fontSize: '0.9rem' } }}
+                  InputProps={{ disableUnderline: true, sx: { color: 'var(--brand-fg)', fontSize: '0.9rem' } }}
                 />
               </Box>
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', opacity: 0.5 }}>
@@ -167,11 +167,11 @@ const AIPanel: React.FC = () => {
             size="small"
             sx={{
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(0,0,0,0.3)',
+                bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))',
                 color: BRAND.text,
                 borderRadius: 2,
                 '& fieldset': { borderColor: BRAND.line },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
                 '&.Mui-focused fieldset': { borderColor: 'primary.main' },
               }
             }}
@@ -180,12 +180,12 @@ const AIPanel: React.FC = () => {
             type="submit" 
             disabled={!chatText.trim()}
             sx={{ 
-              bgcolor: chatText.trim() ? 'primary.main' : 'rgba(255,255,255,0.05)',
-              color: chatText.trim() ? '#000' : 'rgba(255,255,255,0.3)',
+              bgcolor: chatText.trim() ? 'primary.main' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+              color: chatText.trim() ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.3)',
               borderRadius: 2,
               p: 1.25,
               '&:hover': {
-                bgcolor: chatText.trim() ? 'primary.dark' : 'rgba(255,255,255,0.05)',
+                bgcolor: chatText.trim() ? 'primary.dark' : 'rgb(var(--brand-fg-rgb) / 0.05)',
               }
             }}
           >

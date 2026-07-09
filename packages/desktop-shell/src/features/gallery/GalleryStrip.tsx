@@ -28,14 +28,14 @@ export const GalleryStrip: React.FC<{ count?: number }> = ({ count = 8 }) => {
   return (
     <Box sx={{ width: '100%', mt: 6 }}>
       <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-        <CollectionsRoundedIcon sx={{ color: '#5dade2', mr: 1, fontSize: 20 }} />
-        <Typography sx={{ fontWeight: 800, color: '#fff', fontSize: '1rem' }}>注目の公開作品</Typography>
+        <CollectionsRoundedIcon sx={{ color: 'light-dark(#1a6393, #5dade2)', mr: 1, fontSize: 20 }} />
+        <Typography sx={{ fontWeight: 800, color: 'var(--brand-fg)', fontSize: '1rem' }}>注目の公開作品</Typography>
         <Box sx={{ flex: 1 }} />
         <Button
           size="small"
           endIcon={<ArrowForwardRoundedIcon />}
           onClick={() => setCurrentMainView('gallery')}
-          sx={{ color: BRAND.sub, textTransform: 'none', '&:hover': { color: '#fff' } }}
+          sx={{ color: BRAND.sub, textTransform: 'none', '&:hover': { color: 'var(--brand-fg)' } }}
         >
           もっと見る
         </Button>
@@ -58,21 +58,21 @@ const StripCard: React.FC<{ item: GalleryItem; onClick: () => void }> = ({ item,
       sx={{
         flex: '0 0 auto', width: 180, bgcolor: BRAND.panel, borderRadius: 2.5,
         border: `1px solid ${BRAND.line}`, overflow: 'hidden', cursor: 'pointer',
-        transition: 'all 0.18s', '&:hover': { transform: 'translateY(-3px)', borderColor: 'rgba(255,255,255,0.22)' },
+        transition: 'all 0.18s', '&:hover': { transform: 'translateY(-3px)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.22)' },
       }}
     >
-      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', bgcolor: '#0e131c' }}>
+      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', bgcolor: 'var(--brand-surface)' }}>
         {item.thumbnailUrl ? (
           <Box component="img" src={item.thumbnailUrl} alt={item.title} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CollectionsRoundedIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.12)' }} />
+            <CollectionsRoundedIcon sx={{ fontSize: 32, color: 'rgb(var(--brand-fg-rgb) / 0.12)' }} />
           </Box>
         )}
-        <Chip label={meta.label} size="small" sx={{ position: 'absolute', top: 6, left: 6, height: 20, bgcolor: 'rgba(11,15,22,0.72)', color: meta.color, fontWeight: 700, fontSize: 10, border: `1px solid ${meta.color}55` }} />
+        <Chip label={meta.label} size="small" sx={{ position: 'absolute', top: 6, left: 6, height: 20, bgcolor: 'rgba(11,15,22,0.72)', color: meta.color, fontWeight: 700, fontSize: 10, border: `1px solid color-mix(in srgb, ${meta.color} 33%, transparent)` }} />
       </Box>
       <Box sx={{ p: 1.25 }}>
-        <Typography noWrap sx={{ fontWeight: 700, color: '#fff', fontSize: '0.82rem', mb: 0.75 }}>{item.title}</Typography>
+        <Typography noWrap sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.82rem', mb: 0.75 }}>{item.title}</Typography>
         <Stack direction="row" spacing={0.75} alignItems="center">
           <Avatar src={item.author.photoURL || undefined} sx={{ width: 18, height: 18, fontSize: 10, bgcolor: 'primary.main' }}>
             {(item.author.displayName || 'U')[0]?.toUpperCase()}

@@ -22,7 +22,7 @@ const PresentsLandingPage = () => {
       <Box sx={{ pt: 15, pb: 10, textAlign: 'center' }}>
         <Container maxWidth="md">
           <Typography variant="h2" fontWeight="bold" gutterBottom>
-            S.Presentations
+            S.Slide
           </Typography>
           <Typography variant="h5" color="text.secondary" sx={{ mb: 6 }}>
             AI Drive の資産から、提案資料とプレゼン体験をつくる

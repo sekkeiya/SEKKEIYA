@@ -48,11 +48,11 @@ const PdfPage: React.FC<{ pdf: any; pageNumber: number; aspect: number; width: n
       {src ? (
         <img src={src} alt={`page ${pageNumber}`} style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 6px 28px rgba(0,0,0,0.55)' }} />
       ) : (
-        <Box sx={{ width: '100%', aspectRatio: String(aspect || 0.707), bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ width: '100%', aspectRatio: String(aspect || 0.707), bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress size={22} sx={{ color: ACCENT }} />
         </Box>
       )}
-      <Typography sx={{ position: 'absolute', bottom: 6, right: 10, fontSize: 11, color: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(0,0,0,0.4)', px: 0.75, borderRadius: 1 }}>{pageNumber}</Typography>
+      <Typography sx={{ position: 'absolute', bottom: 6, right: 10, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', bgcolor: 'rgba(0,0,0,0.4)', px: 0.75, borderRadius: 1 }}>{pageNumber}</Typography>
     </Box>
   );
 };
@@ -99,27 +99,27 @@ export const DsrPdfViewer: React.FC<DsrPdfViewerProps> = ({ item, onClose, onOpe
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
       {/* Viewer toolbar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', flexShrink: 0 }}>
         <Tooltip title="一覧へ戻る">
-          <IconButton size="small" onClick={onClose} sx={{ color: '#fff' }}><ArrowBackRoundedIcon fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={onClose} sx={{ color: 'var(--brand-fg)' }}><ArrowBackRoundedIcon fontSize="small" /></IconButton>
         </Tooltip>
-        <Typography noWrap sx={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#fff', minWidth: 0 }}>
+        <Typography noWrap sx={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--brand-fg)', minWidth: 0 }}>
           {item.title || item.name || '図面'}
         </Typography>
         {pdf && opened && (
           <>
-            <Tooltip title="縮小"><span><IconButton size="small" disabled={zoom <= 0.5} onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))} sx={{ color: '#fff' }}><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', minWidth: 42, textAlign: 'center' }}>{Math.round(zoom * 100)}%</Typography>
-            <Tooltip title="拡大"><span><IconButton size="small" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))} sx={{ color: '#fff' }}><ZoomInRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+            <Tooltip title="縮小"><span><IconButton size="small" disabled={zoom <= 0.5} onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))} sx={{ color: 'var(--brand-fg)' }}><ZoomOutRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)', minWidth: 42, textAlign: 'center' }}>{Math.round(zoom * 100)}%</Typography>
+            <Tooltip title="拡大"><span><IconButton size="small" disabled={zoom >= 3} onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))} sx={{ color: 'var(--brand-fg)' }}><ZoomInRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
           </>
         )}
         <Tooltip title="外部ブラウザで開く">
-          <IconButton size="small" onClick={() => onOpenExternal?.(item.downloadUrl)} sx={{ color: 'rgba(255,255,255,0.7)' }}><OpenInNewRoundedIcon fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={() => onOpenExternal?.(item.downloadUrl)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}><OpenInNewRoundedIcon fontSize="small" /></IconButton>
         </Tooltip>
       </Box>
 
       {/* Viewer body */}
-      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', bgcolor: 'rgba(0,0,0,0.25)', p: 2 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', p: 2 }}>
         {!pdf ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}>
             <img src={item.downloadUrl} alt={item.title || item.name || ''} style={{ width, maxWidth: '100%', borderRadius: 4, boxShadow: '0 6px 28px rgba(0,0,0,0.55)' }} />
@@ -127,13 +127,13 @@ export const DsrPdfViewer: React.FC<DsrPdfViewerProps> = ({ item, onClose, onOpe
         ) : loading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5 }}>
             <CircularProgress sx={{ color: ACCENT }} />
-            <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>PDF を読み込み中…</Typography>
+            <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>PDF を読み込み中…</Typography>
           </Box>
         ) : error ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 2 }}>
-            <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{error}</Typography>
+            <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>{error}</Typography>
             <Button variant="outlined" startIcon={<OpenInNewRoundedIcon />} onClick={() => onOpenExternal?.(item.downloadUrl)}
-              sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.25)', '&:hover': { borderColor: ACCENT } }}>
+              sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { borderColor: ACCENT } }}>
               外部ブラウザで開く
             </Button>
           </Box>

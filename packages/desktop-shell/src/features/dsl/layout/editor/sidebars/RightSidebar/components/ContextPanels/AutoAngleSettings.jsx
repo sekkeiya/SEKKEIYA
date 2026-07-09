@@ -35,7 +35,7 @@ export default function AutoAngleSettings({ accent = "#6c87ff" }) {
   const setAvoidFurniture = useAutoAngleSettingsStore((s) => s.setAvoidFurniture);
 
   const Label = ({ children }) => (
-    <Typography sx={{ fontSize: 10, fontWeight: 700, color: alpha("#fff", 0.5), letterSpacing: 0.3, mb: 0.5 }}>
+    <Typography sx={{ fontSize: 10, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", letterSpacing: 0.3, mb: 0.5 }}>
       {children}
     </Typography>
   );
@@ -45,8 +45,8 @@ export default function AutoAngleSettings({ accent = "#6c87ff" }) {
     mb: 1.1,
     "& .MuiToggleButton-root": {
       flex: 1, py: 0.35, fontSize: 10, textTransform: "none", fontWeight: 600,
-      border: `1px solid ${alpha("#fff", 0.12)}`, color: alpha("#fff", 0.45),
-      "&.Mui-selected": { color: "#fff", background: alpha(accent, 0.25), borderColor: alpha(accent, 0.5) },
+      border: `1px solid ${alpha("#fff", 0.12)}`, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)",
+      "&.Mui-selected": { color: "var(--brand-fg)", background: alpha(accent, 0.25), borderColor: alpha(accent, 0.5) },
     },
   };
 
@@ -96,7 +96,7 @@ export default function AutoAngleSettings({ accent = "#6c87ff" }) {
       {/* 家具を避ける */}
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Tooltip title="カメラを家具の内側に置かず、遮蔽が少ない位置から狙います" placement="left">
-          <Typography sx={{ fontSize: 10, fontWeight: 700, color: alpha("#fff", 0.7) }}>家具を避けて配置</Typography>
+          <Typography sx={{ fontSize: 10, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>家具を避けて配置</Typography>
         </Tooltip>
         <Switch
           size="small"

@@ -312,7 +312,7 @@ export const DssModelCard: React.FC<{
       fontSize: 11,
       fontWeight: 800,
       letterSpacing: "0.01em",
-      boxShadow: "0 1px 0 rgba(0,0,0,0.22), 0 0 0 1px rgba(15,23,42,0.6)",
+      boxShadow: "0 1px 0 rgba(0,0,0,0.22), 0 0 0 1px rgb(var(--slate-panel-rgb) / 0.6)",
     };
     if (format === "3dm") {
       return {
@@ -397,22 +397,22 @@ export const DssModelCard: React.FC<{
             position: 'relative',
             height: '100%',
             aspectRatio: '1 / 1',
-            backgroundColor: '#020617',
-            backgroundImage: 'radial-gradient(circle at 20% 0%, rgba(51, 65, 85, 0.4) 0%, rgba(2, 6, 23, 1) 70%)',
+            backgroundColor: 'var(--brand-bg)',
+            backgroundImage: 'radial-gradient(circle at 20% 0%, rgb(var(--slate-mid-rgb) / 0.4) 0%, rgb(var(--slate-deep-rgb) / 1) 70%)',
             borderRadius: 3,
-            border: '1px solid rgba(31,41,55,0.9)',
+            border: '1px solid rgb(var(--slate-800-rgb) / 0.9)',
             boxShadow: isSelected
-              ? `0 18px 30px rgba(15,23,42,0.9), 0 0 18px ${badgeColor ? badgeColor : '#38bdf8'}33`
+              ? `0 18px 30px rgb(var(--slate-panel-rgb) / 0.9), 0 0 18px color-mix(in srgb, ${badgeColor ? badgeColor : '#38bdf8'} 20%, transparent)`
               : '0 8px 16px rgba(0,0,0,0.4)',
-            borderColor: isSelected ? undefined : 'rgba(148,163,184,0.2)',
+            borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.2)',
             transition: 'box-shadow 0.2s, border-color 0.2s',
             overflow: 'hidden',
             userSelect: 'none',
             '&:hover': {
               boxShadow: isSelected
-                ? `0 24px 40px rgba(15,23,42,1), 0 0 24px ${badgeColor ? badgeColor : '#38bdf8'}33`
-                : '0 16px 32px rgba(0,0,0,0.6), 0 0 4px rgba(148,163,184,0.3)',
-              borderColor: isSelected ? undefined : 'rgba(148,163,184,0.4)',
+                ? `0 24px 40px rgb(var(--slate-panel-rgb) / 1), 0 0 24px color-mix(in srgb, ${badgeColor ? badgeColor : '#38bdf8'} 20%, transparent)`
+                : '0 16px 32px rgba(0,0,0,0.6), 0 0 4px rgb(var(--slate-ink-rgb) / 0.3)',
+              borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.4)',
             },
             '&:hover .DesktopModelCard-thumbnail': !isBusy ? {
               transform: 'translateZ(0) scale(1.2) translateY(-4px)',
@@ -493,14 +493,14 @@ export const DssModelCard: React.FC<{
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 12,
-              color: 'rgba(148,163,184,0.9)',
-              backgroundColor: '#0b1120',
+              color: 'rgb(var(--slate-ink-rgb) / 0.9)',
+              backgroundColor: 'var(--brand-surface)',
               flexDirection: 'column',
               p: 2,
               textAlign: 'center'
             }}
           >
-            <InsertDriveFileRoundedIcon sx={{ fontSize: 32, mb: 1, color: 'rgba(148,163,184,0.6)' }} />
+            <InsertDriveFileRoundedIcon sx={{ fontSize: 32, mb: 1, color: 'rgb(var(--slate-ink-rgb) / 0.6)' }} />
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{title}</Typography>
             <Typography variant="caption" sx={{ color: 'text.disabled', mt: 1 }}>{resolvedModel.format || resolvedModel.type}</Typography>
           </Box>
@@ -528,7 +528,7 @@ export const DssModelCard: React.FC<{
               <Chip
                 size="small"
                 icon={resolvedModel.visibility === 'private'
-                  ? <LockRoundedIcon sx={{ fontSize: '11px !important', color: '#fbbf24 !important' }} />
+                  ? <LockRoundedIcon sx={{ fontSize: '11px !important', color: 'light-dark(#aa7c03, #fbbf24) !important' }} />
                   : <PublicRoundedIcon sx={{ fontSize: '11px !important', color: '#34d399 !important' }} />
                 }
                 label={resolvedModel.visibility === 'private' ? '非公開' : '公開中'}
@@ -538,13 +538,13 @@ export const DssModelCard: React.FC<{
                   fontSize: 11,
                   fontWeight: 800,
                   letterSpacing: '0.01em',
-                  boxShadow: '0 1px 0 rgba(0,0,0,0.22), 0 0 0 1px rgba(15,23,42,0.6)',
+                  boxShadow: '0 1px 0 rgba(0,0,0,0.22), 0 0 0 1px rgb(var(--slate-panel-rgb) / 0.6)',
                   ...(resolvedModel.visibility === 'private' ? {
-                    color: '#fef3c7',
+                    color: 'var(--brand-fg)',
                     background: 'linear-gradient(135deg, rgba(120,53,15,0.95), rgba(180,83,9,0.9))',
                     border: '1px solid rgba(251,191,36,0.5)',
                   } : {
-                    color: '#d1fae5',
+                    color: 'var(--brand-fg)',
                     background: 'linear-gradient(135deg, rgba(6,78,59,0.95), rgba(4,120,87,0.9))',
                     border: '1px solid rgba(52,211,153,0.5)',
                   }),
@@ -578,7 +578,7 @@ export const DssModelCard: React.FC<{
                   : <PublicRoundedIcon sx={{ fontSize: '11px !important', color: '#fff !important' }} />}
                 label={localUploadRec.visibility === 'private' ? 'クラウド · 非公開' : 'クラウド · 公開'}
                 sx={{
-                  height: 22, borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: '#fff',
+                  height: 22, borderRadius: 999, fontSize: 10.5, fontWeight: 800, color: 'var(--brand-fg)',
                   bgcolor: localUploadRec.visibility === 'private' ? 'rgba(251,146,60,0.85)' : 'rgba(167,139,250,0.85)',
                   '& .MuiChip-label': { px: 0.8 },
                 }}
@@ -595,9 +595,9 @@ export const DssModelCard: React.FC<{
                 height: 20,
                 fontSize: 10,
                 fontWeight: 600,
-                bgcolor: 'rgba(15,23,42,0.6)',
-                color: 'white',
-                border: isSelected ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.05)',
+                bgcolor: 'rgb(var(--slate-panel-rgb) / 0.6)',
+                color: 'var(--brand-fg)',
+                border: isSelected ? '2px solid #3b82f6' : '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
                 transition: 'all 0.2s',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
               }}
@@ -617,15 +617,15 @@ export const DssModelCard: React.FC<{
             <IconButton
               size="small"
               sx={{
-                backgroundColor: 'rgba(15,23,42,0.8)',
+                backgroundColor: 'rgb(var(--slate-panel-rgb) / 0.8)',
                 '&:hover': {
-                  backgroundColor: isBusy ? 'rgba(15,23,42,0.8)' : 'rgba(15,23,42,1)',
+                  backgroundColor: isBusy ? 'rgb(var(--slate-panel-rgb) / 0.8)' : 'rgb(var(--slate-panel-rgb) / 1)',
                 },
               }}
               onClick={isBusy ? undefined : handleOpenMenu}
               disabled={isBusy}
             >
-              <OpenInNewRoundedIcon sx={{ fontSize: 18, color: '#e5e7eb' }} />
+              <OpenInNewRoundedIcon sx={{ fontSize: 18, color: 'var(--brand-fg)' }} />
             </IconButton>
           </span>
         </Tooltip>
@@ -648,10 +648,10 @@ export const DssModelCard: React.FC<{
           }}
           PaperProps={{
             sx: {
-              bgcolor: 'rgba(15, 23, 42, 0.95)', /* slate-900 translucent */
+              bgcolor: 'rgb(var(--slate-panel-rgb) / 0.95)', /* slate-900 translucent */
               backdropFilter: 'blur(10px)',
-              color: '#f8fafc', /* slate-50 */
-              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'var(--brand-fg)', /* slate-50 */
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
               boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
               mt: 1,
               borderRadius: 2,
@@ -678,24 +678,24 @@ export const DssModelCard: React.FC<{
           >
             <ListItemIcon sx={{ minWidth: 'auto !important' }}>
               {rhinoStatus === 'connected' ? (
-                 <SendRoundedIcon sx={{ fontSize: 18, color: '#e2e8f0' }} />
+                 <SendRoundedIcon sx={{ fontSize: 18, color: 'var(--brand-fg)' }} />
               ) : (
-                 <ErrorOutlineRoundedIcon sx={{ fontSize: 18, color: '#fbbf24' }} />
+                 <ErrorOutlineRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#aa7c03, #fbbf24)' }} />
               )}
             </ListItemIcon>
             <ListItemText
               primary={rhinoStatus === 'connected' ? "開いているRhinoへ送る" : "Rhino連携をセットアップ"}
-              primaryTypographyProps={{ fontSize: 12, color: rhinoStatus === 'connected' ? '#f8fafc' : '#fcd34d', fontWeight: 600 }}
+              primaryTypographyProps={{ fontSize: 12, color: rhinoStatus === 'connected' ? 'var(--brand-fg)' : 'light-dark(#ab8303, #fcd34d)', fontWeight: 600 }}
             />
           </MenuItem>
-          {openTargets.length > 0 && <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }} />}
+          {openTargets.length > 0 && <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 0.5 }} />}
           {openTargets.map((t) => (
             <MenuItem 
               key={t.id} 
               onClick={() => handleSelectTarget(t)}
               sx={{ py: 1, px: 2, minHeight: 32, gap: 1 }}
             >
-              <ListItemIcon sx={{ minWidth: 'auto !important', color: '#94a3b8' }}>
+              <ListItemIcon sx={{ minWidth: 'auto !important', color: 'rgb(var(--brand-fg-rgb) / 0.65)' }}>
                 {t.app === "rhino" ? (
                   <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />
                 ) : (
@@ -704,7 +704,7 @@ export const DssModelCard: React.FC<{
               </ListItemIcon>
               <ListItemText 
                 primary={t.label} 
-                primaryTypographyProps={{ fontSize: 12, fontWeight: 500, color: '#cbd5e1' }}
+                primaryTypographyProps={{ fontSize: 12, fontWeight: 500, color: 'var(--brand-fg)' }}
               />
             </MenuItem>
           ))}
@@ -718,7 +718,7 @@ export const DssModelCard: React.FC<{
             </MenuItem>
           )}
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 0.5 }} />
           <MenuItem
             sx={{ py: 1, px: 2, minHeight: 32, gap: 1 }}
             onClick={async () => {
@@ -752,11 +752,11 @@ export const DssModelCard: React.FC<{
             }}
           >
             <ListItemIcon sx={{ minWidth: 'auto !important' }}>
-              <BookmarkAddRoundedIcon sx={{ fontSize: 16, color: '#a78bfa' }} />
+              <BookmarkAddRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#2f07a6, #a78bfa)' }} />
             </ListItemIcon>
             <ListItemText
               primary="レイアウトのデフォルトに設定"
-              primaryTypographyProps={{ fontSize: 12, color: '#a78bfa', fontWeight: 600 }}
+              primaryTypographyProps={{ fontSize: 12, color: 'light-dark(#2f07a6, #a78bfa)', fontWeight: 600 }}
             />
           </MenuItem>
         </Menu>
@@ -773,7 +773,7 @@ export const DssModelCard: React.FC<{
           }}
           onClick={() => setDefaultSetSnack(null)}
         >
-          <Typography sx={{ fontSize: 10.5, color: '#fff', lineHeight: 1.4 }}>{defaultSetSnack}</Typography>
+          <Typography sx={{ fontSize: 10.5, color: 'var(--brand-fg)', lineHeight: 1.4 }}>{defaultSetSnack}</Typography>
         </Box>
       )}
 

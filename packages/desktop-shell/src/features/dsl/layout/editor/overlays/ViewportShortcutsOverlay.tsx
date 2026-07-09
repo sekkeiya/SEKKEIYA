@@ -15,12 +15,12 @@ const MiniKeyChip = ({ label }: { label: string }) => (
   <Box
     sx={{
       display: "inline-block",
-      backgroundColor: "rgba(255, 255, 255, 0.15)",
+      backgroundColor: "rgb(var(--brand-fg-rgb) / 0.15)",
       borderRadius: "3px",
       padding: "1px 4px",
       fontSize: "0.65rem",
       fontWeight: 500,
-      color: "rgba(255,255,255,0.9)",
+      color: "rgb(var(--brand-fg-rgb) / 0.9)",
       mr: 0.5,
       whiteSpace: "nowrap",
     }}
@@ -96,7 +96,7 @@ export default function ViewportShortcutsOverlay() {
           sx={{
             backgroundColor: "rgba(20, 20, 20, 0.65)",
             backdropFilter: "blur(6px)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)",
             borderRadius: "8px",
             overflow: "hidden",
             boxShadow: "0px 4px 12px rgba(0,0,0,0.5)",
@@ -111,7 +111,7 @@ export default function ViewportShortcutsOverlay() {
               px: 1,
               py: 0.5,
               cursor: "pointer",
-              "&:hover": { backgroundColor: "rgba(255,255,255,0.05)" },
+              "&:hover": { backgroundColor: "rgb(var(--brand-fg-rgb) / 0.05)" },
             }}
             onClick={() => setFolded(!folded)}
           >
@@ -148,7 +148,7 @@ export default function ViewportShortcutsOverlay() {
                       </React.Fragment>
                     ))}
                   </Box>
-                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)", ml: 1 }}>
+                  <Typography variant="caption" sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", ml: 1 }}>
                     {item.action}
                   </Typography>
                 </Box>

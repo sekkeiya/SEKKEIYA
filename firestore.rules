@@ -530,6 +530,26 @@ service cloud.firestore {
       match /connectors/{connectorId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      /* ---- Reaction Logs（反応ログ・学習サイクル Phase 1） ---- */
+      // /users/{uid}/reactionLogs/{logId}
+      // ユーザーの暗黙の反応（表示/クリック/採用/書き直し等）を記録する追記専用ログ。
+      // 本人のみ create・読取。update/delete は永久に禁止（layout_generation_logs と同方針）。
+      // 横断集計は Cloud Functions（Admin SDK・collectionGroup）が行う。
+      match /reactionLogs/{logId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId
+          && request.resource.data.schemaVersion is int
+          && request.resource.data.surface is string
+          && request.resource.data.surface.size() <= 40
+          && request.resource.data.action is string
+          && request.resource.data.action.size() <= 24
+          && request.resource.data.targetType is string
+          && (!('label' in request.resource.data) || request.resource.data.label.size() <= 80)
+          && request.resource.data.day is string
+          && request.resource.data.createdAt == request.time; // serverTimestamp強制＝時刻偽装を防ぐ
+        allow update, delete: if false; // 不変・追記専用
+      }
     }
 
 
@@ -1117,6 +1137,20 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
       allow delete: if isAdminUser();
       allow create: if false;
+    }
+
+    /* ======================================================
+     * ★ AI使用量トラッキング（方式A / 管理者APIモニター）
+     *    書き込みは Cloud Function (admin SDK) 専用 → クライアント直書き禁止。
+     *    読み取りは管理者のみ（集計は getAdminUsageSummary CF 経由を推奨）。
+     * ==================================================== */
+    match /usageLogs/{id} {
+      allow read: if isAdminUser();
+      allow write: if false;
+    }
+    match /usageDaily/{day} {
+      allow read: if isAdminUser();
+      allow write: if false;
     }
 
   }

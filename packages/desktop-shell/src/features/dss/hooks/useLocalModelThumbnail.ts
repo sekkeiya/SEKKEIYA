@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// S.Models「Local Models」のグリッドカード用サムネを GLB から遅延生成する。
+// S.Model「Local Models」のグリッドカード用サムネを GLB から遅延生成する。
 // - glb/gltf 本体・隣接コンパニオン GLB は model.glbUrl をそのまま使う
 // - 3dm/blend は ensure_local_preview_glb でオンデマンド変換した GLB を使う
 // 生成結果は modelId 単位でメモリキャッシュし、再マウント/再スクロールで再生成しない。

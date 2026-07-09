@@ -261,10 +261,10 @@ export default function VisionPage() {
                 「ここにソファを置いたらどう見えるか」「このテーブルのサイズ感は合っているか」——そういった検討を素早くやりたいのに、モデルを探して、インポートして、スケールを合わせる作業が毎回発生する。たった一つの家具を試すだけで、思考のリズムが途切れる。
               </Prose>
               <Prose sx={{ mt: 3 }}>
-                だったら、ワンクリックで挿入できればいい。そのシンプルな発想から生まれたのが<strong style={{ color: "#fff" }}>S.Models</strong>だ。家具の3DモデルをRhinoにワンクリックで挿入できるツール。これが今のSEKKEIYAの原点であり、最初の「子アプリ」になった。
+                だったら、ワンクリックで挿入できればいい。そのシンプルな発想から生まれたのが<strong style={{ color: "#fff" }}>S.Model</strong>だ。家具の3DモデルをRhinoにワンクリックで挿入できるツール。これが今のSEKKEIYAの原点であり、最初の「子アプリ」になった。
               </Prose>
               <Prose sx={{ mt: 3 }}>
-                しかしS.Modelsを作りながら、問いはより大きく広がっていった。単に挿入を楽にするだけでなく、設計の可能性そのものを広げるツールが作れないか、と。
+                しかしS.Modelを作りながら、問いはより大きく広がっていった。単に挿入を楽にするだけでなく、設計の可能性そのものを広げるツールが作れないか、と。
               </Prose>
 
               {/* ── Section 3 ── */}
@@ -301,9 +301,9 @@ export default function VisionPage() {
               <Prose sx={{ mb: 3 }}>
                 AIが操作する道具として、複数の子アプリが存在する。子アプリは設計プロセスの各フェーズに対応している。
               </Prose>
-              <BulletItem><strong style={{ color: "#fff" }}>S.Models</strong>：3Dモデルの管理・共有・Rhinoへの挿入</BulletItem>
+              <BulletItem><strong style={{ color: "#fff" }}>S.Model</strong>：3Dモデルの管理・共有・Rhinoへの挿入</BulletItem>
               <BulletItem><strong style={{ color: "#fff" }}>S.Layout</strong>：家具配置とレイアウトのキャンバス</BulletItem>
-              <BulletItem><strong style={{ color: "#fff" }}>S.Presentations</strong>：提案書・ダイアグラムの作成</BulletItem>
+              <BulletItem><strong style={{ color: "#fff" }}>S.Slide</strong>：提案書・ダイアグラムの作成</BulletItem>
               <BulletItem><strong style={{ color: "#fff" }}>S.Create</strong>：造作家具のパラメトリックビルダー</BulletItem>
               <BulletItem><strong style={{ color: "#fff" }}>AI 3D Generate</strong>：テキスト・画像からの3Dモデル自動生成</BulletItem>
 
@@ -315,7 +315,7 @@ export default function VisionPage() {
   → S.Layout（家具配置・空間検討）
     → マテリアル設定（壁・床・天井）
       → AIレンダリング（空間の可視化）
-        → S.Presentations（提案書の完成）`}</CodeBlock>
+        → S.Slide（提案書の完成）`}</CodeBlock>
 
               <Prose>このフローをAIが一気通貫で走らせる。それがSEKKEIYAの目指す姿だ。</Prose>
 

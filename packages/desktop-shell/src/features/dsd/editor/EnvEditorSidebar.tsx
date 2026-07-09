@@ -310,7 +310,7 @@ const EnvPanel: React.FC = () => {
 
             {/* Current size / position display */}
             <Box sx={{
-              bgcolor: isWindViewSelected ? `${ACCENT}11` : 'rgba(255,255,255,0.03)',
+              bgcolor: isWindViewSelected ? `${ACCENT}11` : 'rgb(var(--brand-fg-rgb) / 0.03)',
               border: `1px solid ${isWindViewSelected ? ACCENT + '55' : BRAND.line}`,
               borderRadius: 1, px: 1.25, py: 0.75, mb: 0.75,
             }}>

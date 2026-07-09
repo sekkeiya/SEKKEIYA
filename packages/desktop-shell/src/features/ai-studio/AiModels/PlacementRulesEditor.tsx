@@ -185,14 +185,14 @@ export const PlacementRulesEditor: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: 18 }}>配置ルール (物理制約)</Typography>
-        <Button variant="outlined" onClick={handleReset} size="small" sx={{ borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)' }}>
+        <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: 18 }}>配置ルール (物理制約)</Typography>
+        <Button variant="outlined" onClick={handleReset} size="small" sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
           デフォルトに戻す
         </Button>
       </Box>
 
       {/* Building Type Tabs (Main Tabs) */}
-      <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }}>
         <Tabs 
           value={buildingType} 
           onChange={(_, newValue) => {
@@ -202,8 +202,8 @@ export const PlacementRulesEditor: React.FC = () => {
           textColor="inherit"
           TabIndicatorProps={{ style: { backgroundColor: '#a855f7', height: 3 } }}
           sx={{ 
-            '& .MuiTab-root': { color: 'rgba(255,255,255,0.6)', minWidth: 100, fontWeight: 500, fontSize: 15 }, 
-            '& .Mui-selected': { color: '#fff', fontWeight: 700 } 
+            '& .MuiTab-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', minWidth: 100, fontWeight: 500, fontSize: 15 }, 
+            '& .Mui-selected': { color: 'var(--brand-fg)', fontWeight: 700 } 
           }}
         >
           <Tab value="residential" label="住宅" />
@@ -213,7 +213,7 @@ export const PlacementRulesEditor: React.FC = () => {
       </Box>
 
       {/* Zone Purpose Sub-Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.05)', bgcolor: 'rgba(255,255,255,0.02)' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)' }}>
         <Tabs 
           value={zonePurpose} 
           onChange={(_, newValue) => setZonePurpose(newValue as ZonePurpose)}
@@ -221,8 +221,8 @@ export const PlacementRulesEditor: React.FC = () => {
           TabIndicatorProps={{ style: { backgroundColor: '#a855f7' } }}
           sx={{ 
             minHeight: 48, 
-            '& .MuiTab-root': { color: 'rgba(255,255,255,0.5)', minHeight: 48, py: 0, px: 3, fontSize: 13, textTransform: 'none' }, 
-            '& .Mui-selected': { color: '#fff' } 
+            '& .MuiTab-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)', minHeight: 48, py: 0, px: 3, fontSize: 13, textTransform: 'none' }, 
+            '& .Mui-selected': { color: 'var(--brand-fg)' } 
           }}
         >
           {PURPOSE_OPTIONS[buildingType]?.map((opt) => (
@@ -232,16 +232,16 @@ export const PlacementRulesEditor: React.FC = () => {
       </Box>
 
       {/* Content Area (Nested Card) */}
-      <Box sx={{ flex: 1, p: 4, bgcolor: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', borderTop: 'none', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
+      <Box sx={{ flex: 1, p: 4, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', borderTop: 'none', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
         
         {/* Version Control */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2 }}>
-          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, whiteSpace: 'nowrap' }}>バージョン：</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 13, whiteSpace: 'nowrap' }}>バージョン：</Typography>
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <Select
               value={selectedVersion}
               onChange={(e) => handleApplyVersion(e.target.value as string)}
-              sx={{ bgcolor: 'rgba(0,0,0,0.3)', color: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' }, fontSize: 14 }}
+              sx={{ bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, fontSize: 14 }}
             >
               <MenuItem value="current">Current (現在の設定)</MenuItem>
               {versions.map((v) => (
@@ -251,29 +251,29 @@ export const PlacementRulesEditor: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          <Button variant="outlined" onClick={handleSaveAsVersion} disabled={loading} size="small" sx={{ borderColor: 'rgba(255,255,255,0.2)', color: '#fff', height: 40 }}>
+          <Button variant="outlined" onClick={handleSaveAsVersion} disabled={loading} size="small" sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)', height: 40 }}>
             新バージョン作成
           </Button>
-          <Button variant="outlined" onClick={() => setVersionModalOpen(true)} disabled={loading} size="small" sx={{ borderColor: 'rgba(255,255,255,0.2)', color: '#fff', height: 40 }}>
+          <Button variant="outlined" onClick={() => setVersionModalOpen(true)} disabled={loading} size="small" sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)', height: 40 }}>
             バージョン一覧
           </Button>
         </Box>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress sx={{ color: '#a855f7' }} />
+          <CircularProgress sx={{ color: 'light-dark(#5908a6, #a855f7)' }} />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ bgcolor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <TableContainer component={Paper} sx={{ bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
           <Table size="small">
-            <TableHead sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}>
+            <TableHead sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}>
               <TableRow>
-                <TableCell sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>カテゴリ</TableCell>
-                <TableCell sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>配置(Relation)</TableCell>
-                <TableCell sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>壁マージン(mm)</TableCell>
-                <TableCell sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>通路幅(mm)</TableCell>
-                <TableCell sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>優先度</TableCell>
-                <TableCell sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, width: 60 }}></TableCell>
+                <TableCell sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600 }}>カテゴリ</TableCell>
+                <TableCell sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600 }}>配置(Relation)</TableCell>
+                <TableCell sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600 }}>壁マージン(mm)</TableCell>
+                <TableCell sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600 }}>通路幅(mm)</TableCell>
+                <TableCell sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600 }}>優先度</TableCell>
+                <TableCell sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600, width: 60 }}></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -284,7 +284,7 @@ export const PlacementRulesEditor: React.FC = () => {
                       size="small" 
                       value={rule.furnitureCategory} 
                       onChange={(e) => handleChange(rule.id, 'furnitureCategory', e.target.value)}
-                      sx={{ input: { color: '#fff', fontSize: 13 }, minWidth: 120 }}
+                      sx={{ input: { color: 'var(--brand-fg)', fontSize: 13 }, minWidth: 120 }}
                     />
                   </TableCell>
                   <TableCell>
@@ -292,7 +292,7 @@ export const PlacementRulesEditor: React.FC = () => {
                       size="small"
                       value={rule.placement.relation}
                       onChange={(e) => handleChange(rule.id, 'relation', e.target.value)}
-                      sx={{ color: '#fff', fontSize: 13, minWidth: 120 }}
+                      sx={{ color: 'var(--brand-fg)', fontSize: 13, minWidth: 120 }}
                     >
                       <MenuItem value="center">Center</MenuItem>
                       <MenuItem value="against_wall">Wall</MenuItem>
@@ -306,7 +306,7 @@ export const PlacementRulesEditor: React.FC = () => {
                       type="number"
                       value={rule.placement.marginFromWall} 
                       onChange={(e) => handleChange(rule.id, 'marginFromWall', Number(e.target.value))}
-                      sx={{ input: { color: '#fff', fontSize: 13 }, width: 80 }}
+                      sx={{ input: { color: 'var(--brand-fg)', fontSize: 13 }, width: 80 }}
                     />
                   </TableCell>
                   <TableCell>
@@ -315,7 +315,7 @@ export const PlacementRulesEditor: React.FC = () => {
                       type="number"
                       value={rule.placement.minPassageWidth} 
                       onChange={(e) => handleChange(rule.id, 'minPassageWidth', Number(e.target.value))}
-                      sx={{ input: { color: '#fff', fontSize: 13 }, width: 80 }}
+                      sx={{ input: { color: 'var(--brand-fg)', fontSize: 13 }, width: 80 }}
                     />
                   </TableCell>
                   <TableCell>
@@ -324,7 +324,7 @@ export const PlacementRulesEditor: React.FC = () => {
                       type="number"
                       value={rule.placement.priority} 
                       onChange={(e) => handleChange(rule.id, 'priority', Number(e.target.value))}
-                      sx={{ input: { color: '#fff', fontSize: 13 }, width: 60 }}
+                      sx={{ input: { color: 'var(--brand-fg)', fontSize: 13 }, width: 60 }}
                     />
                   </TableCell>
                   <TableCell>
@@ -336,7 +336,7 @@ export const PlacementRulesEditor: React.FC = () => {
               ))}
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ borderBottom: 'none', py: 2 }}>
-                  <Button startIcon={<AddIcon />} onClick={handleAddRule} sx={{ color: '#a855f7' }}>
+                  <Button startIcon={<AddIcon />} onClick={handleAddRule} sx={{ color: 'light-dark(#5908a6, #a855f7)' }}>
                     ルールを追加
                   </Button>
                 </TableCell>
@@ -361,16 +361,16 @@ export const PlacementRulesEditor: React.FC = () => {
         onClose={() => setVersionModalOpen(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { bgcolor: '#1e1e1e', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}
       >
-        <DialogTitle sx={{ borderBottom: '1px solid rgba(255,255,255,0.1)', pb: 2 }}>
+        <DialogTitle sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', pb: 2 }}>
           バージョン履歴 - {buildingType} / {zonePurpose}
         </DialogTitle>
         <DialogContent sx={{ mt: 2, p: 0 }}>
           <List>
             {versions.length === 0 ? (
               <ListItem>
-                <ListItemText primary="保存されたバージョンはありません" primaryTypographyProps={{ color: 'rgba(255,255,255,0.5)', align: 'center' }} />
+                <ListItemText primary="保存されたバージョンはありません" primaryTypographyProps={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', align: 'center' }} />
               </ListItem>
             ) : (
               versions.map((v) => {
@@ -382,7 +382,7 @@ export const PlacementRulesEditor: React.FC = () => {
                 return (
                   <ListItem 
                     key={v.versionId}
-                    sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)', py: 2 }}
+                    sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', py: 2 }}
                     secondaryAction={
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Button 
@@ -395,9 +395,9 @@ export const PlacementRulesEditor: React.FC = () => {
                           }}
                           sx={{ 
                             bgcolor: isApplied ? '#a855f7' : 'transparent', 
-                            borderColor: 'rgba(255,255,255,0.2)',
-                            color: '#fff',
-                            '&:hover': { bgcolor: isApplied ? '#a855f7' : 'rgba(255,255,255,0.1)' }
+                            borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                            color: 'var(--brand-fg)',
+                            '&:hover': { bgcolor: isApplied ? '#a855f7' : 'rgb(var(--brand-fg-rgb) / 0.1)' }
                           }}
                         >
                           {isApplied ? '適用中' : '適用'}
@@ -419,12 +419,12 @@ export const PlacementRulesEditor: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Typography sx={{ fontWeight: 600 }}>{v.label}</Typography>
                           {isApplied && (
-                            <Chip label="現在適用中" size="small" sx={{ bgcolor: 'rgba(168,85,247,0.2)', color: '#c084fc', height: 20, fontSize: 11 }} />
+                            <Chip label="現在適用中" size="small" sx={{ bgcolor: 'rgba(168,85,247,0.2)', color: 'light-dark(#5704a9, #c084fc)', height: 20, fontSize: 11 }} />
                           )}
                         </Box>
                       }
                       secondary={d instanceof Date ? d.toLocaleString() : String(v.createdAt)}
-                      secondaryTypographyProps={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, mt: 0.5 }}
+                      secondaryTypographyProps={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 12, mt: 0.5 }}
                     />
                   </ListItem>
                 );
@@ -432,8 +432,8 @@ export const PlacementRulesEditor: React.FC = () => {
             )}
           </List>
         </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', p: 2 }}>
-          <Button onClick={() => setVersionModalOpen(false)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+        <DialogActions sx={{ borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', p: 2 }}>
+          <Button onClick={() => setVersionModalOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
             閉じる
           </Button>
         </DialogActions>

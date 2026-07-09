@@ -77,8 +77,8 @@ const DropZone = ({ label, onDrop, isCompact }) => {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       sx={{
-        border: isDragActive ? '2px dashed #4dabf5' : '2px dashed rgba(255,255,255,0.2)',
-        bgcolor: isDragActive ? 'rgba(30,144,255,0.1)' : 'rgba(0,0,0,0.2)',
+        border: isDragActive ? '2px dashed #4dabf5' : '2px dashed rgb(var(--brand-fg-rgb) / 0.2)',
+        bgcolor: isDragActive ? 'rgba(30,144,255,0.1)' : 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
         textAlign: 'center',
         p: isCompact ? 1.5 : { xs: 3, sm: 4 },
         borderRadius: isCompact ? 2 : 3,
@@ -117,18 +117,18 @@ const DropZone = ({ label, onDrop, isCompact }) => {
 
       {isCompact ? (
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%', justifyContent: 'center' }}>
-          <CloudUploadIcon sx={{ fontSize: 24, color: isDragActive ? '#4dabf5' : 'rgba(255,255,255,0.5)' }} />
-          <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+          <CloudUploadIcon sx={{ fontSize: 24, color: isDragActive ? 'light-dark(#0960a4, #4dabf5)' : 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
+          <Typography variant="body2" sx={{ color: 'var(--brand-fg)', fontWeight: 600 }}>
             {label}
           </Typography>
         </Stack>
       ) : (
         <>
-          <CloudUploadIcon sx={{ fontSize: 48, color: isDragActive ? '#4dabf5' : 'rgba(255,255,255,0.5)', mb: 1.5 }} />
-          <Typography variant="h6" sx={{ color: '#ffffff', mb: 0.5, fontWeight: 600 }}>
+          <CloudUploadIcon sx={{ fontSize: 48, color: isDragActive ? 'light-dark(#0960a4, #4dabf5)' : 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1.5 }} />
+          <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 0.5, fontWeight: 600 }}>
             {label}
           </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)', mb: 3 }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', mb: 3 }}>
             GLB / 3DM / OBJ など複数ファイル対応
           </Typography>
 
@@ -138,10 +138,10 @@ const DropZone = ({ label, onDrop, isCompact }) => {
                 startIcon={<InsertDriveFileIcon />}
                 onClick={handleFileBtnClick} 
                 sx={{ 
-                    color: 'white', 
-                    borderColor: 'rgba(255,255,255,0.3)',
+                    color: 'var(--brand-fg)', 
+                    borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)',
                     px: 3, py: 1, borderRadius: 2,
-                    '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.05)' }
+                    '&:hover': { borderColor: 'white', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
                 }}
             >
                 ファイルを選択
@@ -151,10 +151,10 @@ const DropZone = ({ label, onDrop, isCompact }) => {
                 startIcon={<CreateNewFolderIcon />}
                 onClick={handleFolderClick} 
                 sx={{ 
-                    color: 'white', 
-                    borderColor: 'rgba(255,255,255,0.3)',
+                    color: 'var(--brand-fg)', 
+                    borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)',
                     px: 3, py: 1, borderRadius: 2,
-                    '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.05)' }
+                    '&:hover': { borderColor: 'white', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
                 }}
             >
                 フォルダを選択

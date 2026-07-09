@@ -100,21 +100,21 @@ export default function SaveTemplateDialog({
         onClick={() => setVisibility(val)}
         sx={{
           flex: 1, p: 1.25, borderRadius: 2, cursor: 'pointer',
-          border: active ? `1.5px solid ${val === 'public' ? '#4caf50' : ACCENT}` : '1.5px solid rgba(255,255,255,0.1)',
-          bgcolor: active ? (val === 'public' ? 'rgba(76,175,80,0.1)' : 'rgba(255,167,38,0.1)') : 'rgba(255,255,255,0.03)',
+          border: active ? `1.5px solid ${val === 'public' ? '#4caf50' : ACCENT}` : '1.5px solid rgb(var(--brand-fg-rgb) / 0.1)',
+          bgcolor: active ? (val === 'public' ? 'rgba(76,175,80,0.1)' : 'rgba(255,167,38,0.1)') : 'rgb(var(--brand-fg-rgb) / 0.03)',
           transition: 'all 0.18s',
           '&:hover': { borderColor: val === 'public' ? '#4caf50' : ACCENT },
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.35 }}>
-          <Box sx={{ color: active ? (val === 'public' ? '#4caf50' : ACCENT) : 'rgba(255,255,255,0.4)', display: 'flex' }}>
+          <Box sx={{ color: active ? (val === 'public' ? '#4caf50' : ACCENT) : 'rgb(var(--brand-fg-rgb) / 0.4)', display: 'flex' }}>
             {icon}
           </Box>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
             {label}
           </Typography>
         </Box>
-        <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.3)', lineHeight: 1.5 }}>{sub}</Typography>
+        <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.5 }}>{sub}</Typography>
       </Box>
     );
   };
@@ -129,7 +129,7 @@ export default function SaveTemplateDialog({
         sx: {
           bgcolor: 'rgba(14,18,30,0.97)',
           backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           borderRadius: 3,
           boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
         },
@@ -142,16 +142,16 @@ export default function SaveTemplateDialog({
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.35 }}>
               <BookmarkAddRoundedIcon sx={{ color: ACCENT, fontSize: 20 }} />
-              <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'var(--brand-fg)' }}>
                 テンプレートとして登録
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
               作成した家具をテンプレートライブラリに保存します
             </Typography>
           </Box>
           <IconButton size="small" onClick={onClose}
-            sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
             <CloseRoundedIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -161,7 +161,7 @@ export default function SaveTemplateDialog({
           <Box sx={{ px: 2.5, mb: 1.5 }}>
             <Box sx={{
               width: '100%', height: 130, borderRadius: 2, overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.1)', bgcolor: '#0d1117',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: 'var(--brand-bg)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <img src={thumbnailDataUrl} alt="preview"
@@ -170,7 +170,7 @@ export default function SaveTemplateDialog({
           </Box>
         )}
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)', mb: 2 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)', mb: 2 }} />
 
         {/* ── フォーム ── */}
         <Box sx={{ px: 2.5, pb: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -184,10 +184,10 @@ export default function SaveTemplateDialog({
             fullWidth
             inputProps={{ maxLength: 60 }}
             sx={{
-              '& label': { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
-              '& .MuiInputBase-input': { color: '#fff', fontSize: 13 },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
-              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+              '& label': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 12 },
+              '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 13 },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)' },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
               '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
               '& label.Mui-focused': { color: ACCENT },
             }}
@@ -195,7 +195,7 @@ export default function SaveTemplateDialog({
 
           {/* カテゴリ */}
           <FormControl size="small" fullWidth>
-            <InputLabel sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, '&.Mui-focused': { color: ACCENT } }}>
+            <InputLabel sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 12, '&.Mui-focused': { color: ACCENT } }}>
               カテゴリ
             </InputLabel>
             <Select
@@ -203,13 +203,13 @@ export default function SaveTemplateDialog({
               label="カテゴリ"
               onChange={e => setCategory(e.target.value)}
               sx={{
-                color: '#fff', fontSize: 13,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+                color: 'var(--brand-fg)', fontSize: 13,
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)' },
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
-                '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.4)' },
+                '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.4)' },
               }}
-              MenuProps={{ PaperProps: { sx: { bgcolor: 'rgba(18,22,36,0.98)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 } } }}
+              MenuProps={{ PaperProps: { sx: { bgcolor: 'rgba(18,22,36,0.98)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2 } } }}
             >
               {TEMPLATE_CATEGORIES_LIST.map(cat => (
                 <MenuItem key={cat} value={cat} sx={{ fontSize: 13, '&:hover': { bgcolor: 'rgba(255,167,38,0.1)' } }}>{cat}</MenuItem>
@@ -229,10 +229,10 @@ export default function SaveTemplateDialog({
             inputProps={{ maxLength: 200 }}
             placeholder="素材・用途・サイズ感など"
             sx={{
-              '& label': { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
-              '& .MuiInputBase-input': { color: '#fff', fontSize: 12 },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
-              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+              '& label': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 12 },
+              '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12 },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)' },
+              '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
               '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
               '& label.Mui-focused': { color: ACCENT },
             }}
@@ -249,10 +249,10 @@ export default function SaveTemplateDialog({
                 size="small"
                 sx={{
                   flex: 1,
-                  '& label': { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
-                  '& .MuiInputBase-input': { color: '#fff', fontSize: 12 },
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
-                  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+                  '& label': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 12 },
+                  '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12 },
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)' },
+                  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
                   '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
                   '& label.Mui-focused': { color: ACCENT },
                 }}
@@ -261,8 +261,8 @@ export default function SaveTemplateDialog({
                 onClick={addTag}
                 sx={{
                   px: 1.2, display: 'flex', alignItems: 'center', cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 1.5,
-                  color: 'rgba(255,255,255,0.4)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 1.5,
+                  color: 'rgb(var(--brand-fg-rgb) / 0.4)',
                   '&:hover': { borderColor: ACCENT, color: ACCENT },
                 }}
               >
@@ -277,7 +277,7 @@ export default function SaveTemplateDialog({
                     sx={{
                       bgcolor: 'rgba(255,167,38,0.12)', color: ACCENT, fontSize: 10,
                       border: '1px solid rgba(255,167,38,0.25)',
-                      '& .MuiChip-deleteIcon': { color: 'rgba(255,167,38,0.5)', '&:hover': { color: ACCENT } },
+                      '& .MuiChip-deleteIcon': { color: 'light-dark(rgba(173,103,0,0.5), rgba(255,167,38,0.5))', '&:hover': { color: ACCENT } },
                     }}
                   />
                 ))}
@@ -287,7 +287,7 @@ export default function SaveTemplateDialog({
 
           {/* 公開設定 */}
           <Box>
-            <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', mb: 0.85, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 0.85, letterSpacing: 0.5, textTransform: 'uppercase' }}>
               公開設定
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -311,8 +311,8 @@ export default function SaveTemplateDialog({
             onClick={!saving && !saved && name.trim() ? handleSave : undefined}
             sx={{
               py: 1.25, borderRadius: 2, textAlign: 'center', cursor: saved ? 'default' : 'pointer',
-              bgcolor: saved ? 'rgba(76,175,80,0.2)' : name.trim() ? ACCENT : 'rgba(255,255,255,0.06)',
-              border: saved ? '1px solid #4caf50' : `1px solid ${name.trim() ? 'transparent' : 'rgba(255,255,255,0.08)'}`,
+              bgcolor: saved ? 'rgba(76,175,80,0.2)' : name.trim() ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.06)',
+              border: saved ? '1px solid #4caf50' : `1px solid ${name.trim() ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
               transition: 'all 0.2s',
               '&:hover': !saved && name.trim() ? { filter: 'brightness(1.1)' } : {},
             }}
@@ -325,14 +325,14 @@ export default function SaveTemplateDialog({
             ) : saved ? (
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#4caf50' }}>✓ 保存しました</Typography>
             ) : (
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: name.trim() ? '#000' : 'rgba(255,255,255,0.2)' }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: name.trim() ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.2)' }}>
                 テンプレートを登録する
               </Typography>
             )}
           </Box>
 
           {/* 注意書き */}
-          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', lineHeight: 1.6 }}>
+          <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.2)', textAlign: 'center', lineHeight: 1.6 }}>
             登録後もマイテンプレートから公開設定を変更できます
           </Typography>
         </Box>

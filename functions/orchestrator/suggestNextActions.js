@@ -55,5 +55,15 @@ exports.suggestNextActions = async ({ projectName, digest }) => {
   if (!greeting || chips.length === 0) throw new Error("suggestNextActions: empty result");
 
   console.log(`[suggestNextActions] chips=${chips.length} in=${resp.usage?.input_tokens} out=${resp.usage?.output_tokens}`);
-  return { greeting, chips };
+  return {
+    greeting,
+    chips,
+    model: MODEL,
+    usage: {
+      inputTokens: resp.usage?.input_tokens,
+      outputTokens: resp.usage?.output_tokens,
+      cacheReadTokens: resp.usage?.cache_read_input_tokens,
+      cacheCreationTokens: resp.usage?.cache_creation_input_tokens,
+    },
+  };
 };

@@ -193,7 +193,7 @@ interface Props {
 
 /**
  * ウォークスルー閲覧ビュー：3Dモデルをクリックすると操作アイコン群（ⓘ情報・ドア等のギミック）が出る。
- * S.Layout のウォークスルー（ホバー/クリックで操作）と同じ体験を S.Models 上で確認できる。
+ * S.Layout のウォークスルー（ホバー/クリックで操作）と同じ体験を S.Model 上で確認できる。
  */
 export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, info, swapModels }) => {
   // 家具置き換え候補（元モデル＋登録分）。swapIndex で現在表示中を切替。
@@ -216,14 +216,14 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
   const gimmicksList = Array.isArray(gimmicks) ? gimmicks : [];
 
   if (!glbUrl) {
-    return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>GLB が無いためアニメーションを表示できません。</Typography></Box>;
+    return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13 }}>GLB が無いためアニメーションを表示できません。</Typography></Box>;
   }
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box sx={{ position: 'relative', width: '100%', height: 360, bgcolor: '#05060a', borderRadius: 2, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+      <Box sx={{ position: 'relative', width: '100%', height: 360, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
         {loading || !url ? (
-          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: '#4f8cff' }} /></Box>
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: 'light-dark(#003cad, #4f8cff)' }} /></Box>
         ) : (
           <Canvas shadows camera={{ position: [4, 3, 5], fov: 45 }} onPointerMissed={() => setRevealed(false)}>
             <Suspense fallback={null}>
@@ -240,7 +240,7 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
 
         {/* クリック前のヒント */}
         {hasAnyAction && !revealed && !infoPanelOpen && (
-          <Box sx={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.5, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.8)' }}>
+          <Box sx={{ position: 'absolute', bottom: 12, left: 12, display: 'flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.5, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.55)', color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>
             <TouchAppRoundedIcon sx={{ fontSize: 14 }} />
             <Typography sx={{ fontSize: 11 }}>アイテムをクリックして操作</Typography>
           </Box>
@@ -257,7 +257,7 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
                   onClick={() => c.toggle()}
                   startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
                   sx={{
-                    textTransform: 'none', fontWeight: 800, fontSize: 12.5, px: 1.5, py: 0.6, borderRadius: 2, color: '#fff',
+                    textTransform: 'none', fontWeight: 800, fontSize: 12.5, px: 1.5, py: 0.6, borderRadius: 2, color: 'var(--brand-fg)',
                     bgcolor: open ? 'rgba(239,83,80,0.9)' : 'rgba(79,140,255,0.92)', backdropFilter: 'blur(4px)',
                     '&:hover': { bgcolor: open ? 'rgba(239,83,80,1)' : 'rgba(79,140,255,1)' },
                   }}
@@ -271,7 +271,7 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
                 onClick={() => setInfoPanelOpen(true)}
                 startIcon={<InfoOutlinedIcon sx={{ fontSize: 16 }} />}
                 sx={{
-                  textTransform: 'none', fontWeight: 800, fontSize: 12.5, px: 1.5, py: 0.6, borderRadius: 2, color: '#fff',
+                  textTransform: 'none', fontWeight: 800, fontSize: 12.5, px: 1.5, py: 0.6, borderRadius: 2, color: 'var(--brand-fg)',
                   bgcolor: 'rgba(56,189,248,0.92)', backdropFilter: 'blur(4px)',
                   '&:hover': { bgcolor: 'rgba(56,189,248,1)' },
                 }}
@@ -284,7 +284,7 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
                 onClick={() => setSwapIndex((i) => (i + 1) % swapOptions.length)}
                 startIcon={<SwapHorizRoundedIcon sx={{ fontSize: 16 }} />}
                 sx={{
-                  textTransform: 'none', fontWeight: 800, fontSize: 12.5, px: 1.5, py: 0.6, borderRadius: 2, color: '#fff',
+                  textTransform: 'none', fontWeight: 800, fontSize: 12.5, px: 1.5, py: 0.6, borderRadius: 2, color: 'var(--brand-fg)',
                   bgcolor: 'rgba(124,77,255,0.92)', backdropFilter: 'blur(4px)',
                   '&:hover': { bgcolor: 'rgba(124,77,255,1)' },
                 }}
@@ -297,7 +297,7 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
 
         {/* 家具置き換え中ラベル */}
         {hasSwap && swapIndex > 0 && (
-          <Box sx={{ position: 'absolute', bottom: 12, right: 12, px: 1.25, py: 0.5, borderRadius: 1, bgcolor: 'rgba(124,77,255,0.85)', color: '#fff' }}>
+          <Box sx={{ position: 'absolute', bottom: 12, right: 12, px: 1.25, py: 0.5, borderRadius: 1, bgcolor: 'rgba(124,77,255,0.85)', color: 'var(--brand-fg)' }}>
             <Typography sx={{ fontSize: 11, fontWeight: 700 }}>{swapOptions[swapIndex]?.title || '差し替え中'}</Typography>
           </Box>
         )}
@@ -307,24 +307,24 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
           <Box onClick={() => setInfoPanelOpen(false)} sx={{ position: 'absolute', inset: 0, zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.45)' }}>
             <Box onClick={(e) => e.stopPropagation()} sx={{ width: 320, maxWidth: '88%', maxHeight: '84%', overflowY: 'auto', p: 2, borderRadius: 2, bgcolor: 'rgba(11,16,32,0.97)', border: '1px solid rgba(56,189,248,0.4)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <InfoOutlinedIcon sx={{ color: '#38bdf8', fontSize: 18 }} />
-                <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 14, flex: 1 }}>アイテム情報</Typography>
-                <IconButton size="small" onClick={() => setInfoPanelOpen(false)} sx={{ color: 'rgba(255,255,255,0.6)' }}><CloseRoundedIcon sx={{ fontSize: 16 }} /></IconButton>
+                <InfoOutlinedIcon sx={{ color: 'light-dark(#0676a8, #38bdf8)', fontSize: 18 }} />
+                <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 800, fontSize: 14, flex: 1 }}>アイテム情報</Typography>
+                <IconButton size="small" onClick={() => setInfoPanelOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}><CloseRoundedIcon sx={{ fontSize: 16 }} /></IconButton>
               </Box>
               {info?.description && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 12.5, whiteSpace: 'pre-wrap', mb: 1.5 }}>{info.description}</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.85)', fontSize: 12.5, whiteSpace: 'pre-wrap', mb: 1.5 }}>{info.description}</Typography>
               )}
               {(info?.links || []).filter((l) => l && l.url).map((l, i) => (
                 <Box key={i} onClick={() => openUrlExternal(l.url)} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.75, mb: 0.75, borderRadius: 1, cursor: 'pointer', bgcolor: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', '&:hover': { bgcolor: 'rgba(56,189,248,0.2)' } }}>
-                  <LaunchRoundedIcon sx={{ color: '#38bdf8', fontSize: 15 }} />
-                  <Typography sx={{ color: '#fff', fontSize: 12, fontWeight: 600, flex: 1 }} noWrap>{l.title || l.url}</Typography>
+                  <LaunchRoundedIcon sx={{ color: 'light-dark(#0676a8, #38bdf8)', fontSize: 15 }} />
+                  <Typography sx={{ color: 'var(--brand-fg)', fontSize: 12, fontWeight: 600, flex: 1 }} noWrap>{l.title || l.url}</Typography>
                 </Box>
               ))}
             </Box>
           </Box>
         )}
       </Box>
-      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', mt: 1 }}>
+      <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>
         ドラッグで回転・ホイールでズーム。モデルをクリックすると操作アイコンが表示されます。
       </Typography>
     </Box>

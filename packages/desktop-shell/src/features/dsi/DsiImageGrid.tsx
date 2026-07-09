@@ -36,7 +36,7 @@ type Entry =
   | { kind: 'image'; item: any }
   | { kind: 'texture-group'; group: TextureGroup; isGenerated?: boolean };
 
-/** ResizeObserver でコンテナの実寸を取得（S.Models と同じ方式）。 */
+/** ResizeObserver でコンテナの実寸を取得（S.Model と同じ方式）。 */
 function useElementSize() {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -181,11 +181,19 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
     [tagFilter],
   );
 
-  // ローカル参照ソース（複数フォルダ）の絞り込み。null = 全ソース。
+  // ローカル参照ソース（複数フォルダ）＋サブフォルダの絞り込み。null = 全ソース／ソース全体。
   const sourceFilter = useImageSourcesStore((s) => s.sourceFilter);
+  const subfolderFilter = useImageSourcesStore((s) => s.subfolderFilter);
   const matchesSource = useCallback(
-    (item: any) => !sourceFilter || item.sourceId === sourceFilter,
-    [sourceFilter],
+    (item: any) => {
+      if (sourceFilter && item.sourceId !== sourceFilter) return false;
+      if (subfolderFilter) {
+        const sub = String(item.subfolder || '');
+        if (sub !== subfolderFilter && !sub.startsWith(subfolderFilter + '/')) return false;
+      }
+      return true;
+    },
+    [sourceFilter, subfolderFilter],
   );
 
   // セットごとの子枚数を一度に集計。
@@ -201,7 +209,7 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
   const entries = useMemo<Entry[]>(() => {
     if (openSetId) {
       return images
-        .filter((d) => d.parentSetId === openSetId && matchesCategory(d) && matchesTag(d) && matchesSource(d))
+        .filter((d) => d.parentSetId === openSetId && d.mediaType !== 'video' && matchesCategory(d) && matchesTag(d) && matchesSource(d))
         .map((item) => ({ kind: 'image', item }));
     }
     const setEntries: Entry[] = sets
@@ -211,7 +219,7 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
     const groupEntries: Entry[] = textureGroups
       .filter((g) => matchesCategory(g)
         && (!tagFilter || g.tags.includes(tagFilter))
-        && (!sourceFilter || g.items.some((it: any) => it.sourceId === sourceFilter))
+        && ((!sourceFilter && !subfolderFilter) || g.items.some((it: any) => matchesSource(it)))
         && (!applicationFilter || g.applications.includes(applicationFilter as any)))
       .map((group) => {
         let isGenerated = false;
@@ -229,11 +237,11 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
       });
     // 用途・部位フィルタはテクスチャ専用。設定中は通常画像/セットを隠す。
     const imageEntries: Entry[] = applicationFilter ? [] : images
-      .filter((d) => !d.parentSetId && d.category !== 'テクスチャ' && matchesCategory(d) && matchesTag(d) && matchesSource(d))
+      .filter((d) => !d.parentSetId && d.mediaType !== 'video' && d.category !== 'テクスチャ' && matchesCategory(d) && matchesTag(d) && matchesSource(d))
       .map((item) => ({ kind: 'image', item }));
     const visibleSetEntries = applicationFilter ? [] : setEntries;
     return [...visibleSetEntries, ...groupEntries, ...imageEntries];
-  }, [images, sets, textureGroups, openSetId, matchesCategory, matchesTag, matchesSource, sourceFilter, tagFilter, applicationFilter, generatedFilter, existingMaterialIds, childCountMap]);
+  }, [images, sets, textureGroups, openSetId, matchesCategory, matchesTag, matchesSource, sourceFilter, subfolderFilter, tagFilter, applicationFilter, generatedFilter, existingMaterialIds, childCountMap]);
 
   const handleCardClick = useCallback(
     (entry: Entry) => {
@@ -289,7 +297,7 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
   const columnCount = Math.max(1, Math.floor(width / COLUMN_WIDTH));
   const rowCount = Math.ceil(entries.length / columnCount);
   const rowHeight = DSI_CARD_SIZE + (pickMode ? 0 : DSI_META_HEIGHT) + CELL_PAD * 2;
-  // 余ったスペースを左右に振ってグリッドを中央寄せ（S.Models と同じ）。
+  // 余ったスペースを左右に振ってグリッドを中央寄せ（S.Model と同じ）。
   const paddingLeft = Math.floor(Math.max(0, width - columnCount * COLUMN_WIDTH) / 2);
 
   const itemData = useMemo(
@@ -322,18 +330,18 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
 
   if (entries.length === 0) {
     return (
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0, color: 'rgba(255,255,255,0.4)', gap: 1.5, p: 3 }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0, color: 'rgb(var(--brand-fg-rgb) / 0.4)', gap: 1.5, p: 3 }}>
         <PhotoLibraryRoundedIcon sx={{ fontSize: 48, opacity: 0.5 }} />
         <Typography sx={{ fontSize: 14 }}>
-          {isLocal ? 'ローカル素材が見つかりません' : openSetId ? 'このセットには画像/動画がありません' : '画像・動画がまだありません'}
+          {isLocal ? 'ローカル素材が見つかりません' : openSetId ? 'このセットには画像がありません' : '画像がまだありません'}
         </Typography>
         <Typography sx={{ fontSize: 12, opacity: 0.7, textAlign: 'center' }}>
           {isLocal
-            ? '%USERPROFILE%\\SEKKEIYA\\LocalAssets\\Images または Movies に画像・動画を置いてください'
+            ? '%USERPROFILE%\\SEKKEIYA\\LocalAssets\\Images に画像を置いてください（動画は S.Movie へ）'
             : '右上の「アップロード」から追加、または S.Layout / AI Render の成果物が自動でここに集まります'}
         </Typography>
         {isLocal && localError && (
-          <Typography sx={{ fontSize: 11, color: '#f48fb1', opacity: 0.9, textAlign: 'center', maxWidth: 480, wordBreak: 'break-all' }}>
+          <Typography sx={{ fontSize: 11, color: 'light-dark(#9e103f, #f48fb1)', opacity: 0.9, textAlign: 'center', maxWidth: 480, wordBreak: 'break-all' }}>
             エラー: {localError}
           </Typography>
         )}

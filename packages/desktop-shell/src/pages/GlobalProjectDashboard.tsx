@@ -61,20 +61,20 @@ const GlobalProjectDashboard: React.FC = () => {
   return (
     <Box sx={{ flex: 1, p: { xs: 4, md: 6 }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default', overflowY: 'auto' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, maxWidth: 1000, mx: 'auto', width: '100%' }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.9)' }}>
           最近のプロジェクト
         </Typography>
         <Button 
           variant="contained" 
           startIcon={<AddRoundedIcon />}
           sx={{ 
-            bgcolor: 'rgba(255,255,255,0.1)', 
-            color: '#fff', 
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', 
+            color: 'var(--brand-fg)', 
             fontWeight: 700,
             textTransform: 'none',
             borderRadius: 2,
             px: 2,
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' }
           }}
           onClick={() => setIsDialogOpen(true)}
         >
@@ -84,12 +84,12 @@ const GlobalProjectDashboard: React.FC = () => {
 
       <Box sx={{ maxWidth: 1000, mx: 'auto', width: '100%' }}>
         {projects.length === 0 ? (
-          <Box sx={{ p: 8, textAlign: 'center', border: `1px dashed ${BRAND.line}`, borderRadius: 4, bgcolor: 'rgba(255,255,255,0.01)' }}>
-            <FolderRoundedIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.2)', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.8)', mb: 1, fontWeight: 700 }}>
+          <Box sx={{ p: 8, textAlign: 'center', border: `1px dashed ${BRAND.line}`, borderRadius: 4, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.01)' }}>
+            <FolderRoundedIcon sx={{ fontSize: 48, color: 'rgb(var(--brand-fg-rgb) / 0.2)', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', mb: 1, fontWeight: 700 }}>
               プロジェクトがありません
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', mb: 4 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 4 }}>
               以下のボタンから最初のプロジェクトを作成してください。
             </Typography>
             <Button 
@@ -127,15 +127,15 @@ const GlobalProjectDashboard: React.FC = () => {
                       position: 'relative',
                       '&:hover': {
                         transform: 'translateY(-4px)',
-                        borderColor: 'rgba(255,255,255,0.2)',
-                        bgcolor: 'rgba(255,255,255,0.03)',
+                        borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                        bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
                         boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
                       }
                     }}
                   >
                     <IconButton 
                       size="small" 
-                      sx={{ position: 'absolute', top: 12, right: 12, color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff' } }}
+                      sx={{ position: 'absolute', top: 12, right: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'var(--brand-fg)' } }}
                       onClick={(e) => { e.stopPropagation(); }}
                     >
                       <MoreVertIcon fontSize="small" />
@@ -150,10 +150,10 @@ const GlobalProjectDashboard: React.FC = () => {
                       <FolderRoundedIcon sx={{ fontSize: 20, color: `hsl(${hue}, 80%, 70%)` }} />
                     </Box>
 
-                    <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700, color: '#fff', mb: 0.5 }}>
+                    <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700, color: 'var(--brand-fg)', mb: 0.5 }}>
                       {project.name}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', fontWeight: 500 }}>
+                    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', display: 'block', fontWeight: 500 }}>
                       Last updated recently
                     </Typography>
                   </Paper>
@@ -167,7 +167,7 @@ const GlobalProjectDashboard: React.FC = () => {
       <Dialog 
         open={isDialogOpen} 
         onClose={() => !isCreating && setIsDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: BRAND.panel, color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 400 } }}
+        PaperProps={{ sx: { bgcolor: BRAND.panel, color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 400 } }}
       >
         <DialogTitle>新規プロジェクト作成</DialogTitle>
         <DialogContent>
@@ -181,20 +181,20 @@ const GlobalProjectDashboard: React.FC = () => {
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
             disabled={isCreating}
-            InputProps={{ style: { color: '#fff' } }}
-            InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
+            InputProps={{ style: { color: 'var(--brand-fg)' } }}
+            InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
             sx={{
               mt: 1,
               '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
                 '&.Mui-focused fieldset': { borderColor: '#00BFFF' },
               }
             }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setIsDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          <Button onClick={() => setIsDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
             キャンセル
           </Button>
           <Button onClick={handleCreateProject} disabled={isCreating || !newProjectName.trim()} variant="contained" sx={{ bgcolor: '#00BFFF', color: '#000', '&:hover': { bgcolor: '#4facfe' } }}>

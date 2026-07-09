@@ -15,10 +15,10 @@ export interface ItemInfoEntry {
   description?: string;
   links?: ItemInfoLink[];
   thumbUrl?: string | null; // プレビュー画像（フローティングパネル用）
-  modelId?: string | null;  // S.Models の元モデル ID（詳細画面遷移用）
-  model?: any;              // S.Models 詳細を開くためのモデルオブジェクト
+  modelId?: string | null;  // S.Model の元モデル ID（詳細画面遷移用）
+  model?: any;              // S.Model 詳細を開くためのモデルオブジェクト
 
-  // S.Models 相当のリッチ表示用（説明/リンクが無いモデルでも仕様を出せるように）
+  // S.Model 相当のリッチ表示用（説明/リンクが無いモデルでも仕様を出せるように）
   categoryPath?: string | null; // 例: "家具 (既製品) / チェア / ラウンジチェア"
   dimsLabel?: string | null;    // 例: "W 1000 × D 780 × H 738 mm"
   priceLabel?: string | null;   // 例: "¥91,300"

@@ -43,14 +43,14 @@ export default function RecentGenerationsPanel() {
                 height: 64, 
                 borderRadius: 2, 
                 border: `1px solid ${tokens.border.subtle}`, 
-                bgcolor: 'rgba(255,255,255,0.02)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
                 display: 'flex',
                 alignItems: 'center',
                 p: 1,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.06)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)',
                   borderColor: tokens.border.active
                 }
               }}

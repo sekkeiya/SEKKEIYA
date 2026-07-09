@@ -15,7 +15,6 @@ export default function Header({
   onClickHelp,
   breadcrumb,
   loadingMeta,
-  onClickPreview,
   onClickProductionPreview,
   onClickShare,
 
@@ -55,7 +54,7 @@ export default function Header({
         top: 0,
         zIndex: theme.zIndex.appBar,
         backdropFilter: "blur(10px)",
-        background: alpha("#050815", 0.88),
+        background: "color-mix(in srgb, var(--brand-bg) 88%, transparent)",
         borderBottom: `1px solid ${line}`,
         minHeight: 48,
         height: "auto",
@@ -78,7 +77,6 @@ export default function Header({
         onClickHelp={onClickHelp}
         breadcrumb={breadcrumb}
         loadingMeta={loadingMeta}
-        onClickPreview={onClickPreview}
         onClickImportLocal={onClickImportLocal}
         dirty={dirty}
         saving={saving}
@@ -98,7 +96,6 @@ export default function Header({
             onUndo={onUndo}
             onRedo={onRedo}
             layoutItems={layoutItems}
-            onClickPreview={onClickPreview}
             onClickProductionPreview={onClickProductionPreview}
             onClickShare={onClickShare}
           />

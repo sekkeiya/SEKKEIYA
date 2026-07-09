@@ -67,47 +67,47 @@ export const DssRightPanel: React.FC = () => {
 const DssProjectInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', pb: 1.5, mb: -0.5 }}>
-        <InfoOutlinedIcon sx={{ fontSize: 18, color: '#4fc3f7' }} />
-        <Typography sx={{ fontWeight: 600, color: '#fff', letterSpacing: 0.5, fontSize: 12 }}>Project Info</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pb: 1.5, mb: -0.5 }}>
+        <InfoOutlinedIcon sx={{ fontSize: 18, color: 'light-dark(#0875a6, #4fc3f7)' }} />
+        <Typography sx={{ fontWeight: 600, color: 'var(--brand-fg)', letterSpacing: 0.5, fontSize: 12 }}>Project Info</Typography>
       </Box>
 
       {/* Project image/preview or icon */}
-      <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, border: '1px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 500 }}>No Preview Available</Typography>
+      <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 11, fontWeight: 500 }}>No Preview Available</Typography>
       </Box>
 
       {/* Title */}
       <Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 0.5, display: 'block', fontSize: 10 }}>PROJECT NAME</Typography>
-        <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fff', px: 1, py: 0.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1 }}>{selectedItem.name || 'Untitled Project'}</Typography>
+        <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--brand-fg)', px: 1, py: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 1 }}>{selectedItem.name || 'Untitled Project'}</Typography>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Description */}
       <Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 0.5, display: 'block', fontSize: 10 }}>DESCRIPTION</Typography>
-        <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', px: 1, py: 0.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, minHeight: 40, whiteSpace: 'pre-wrap' }}>
+        <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.8)', px: 1, py: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 1, minHeight: 40, whiteSpace: 'pre-wrap' }}>
           {selectedItem.description || 'No description provided.'}
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Project Metadata */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10 }}>OWNER</Typography>
-          <Typography variant="caption" sx={{ color: '#fff', fontSize: 10 }}>{selectedItem.ownerName || 'Unknown'}</Typography>
+          <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontSize: 10 }}>{selectedItem.ownerName || 'Unknown'}</Typography>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10 }}>TYPE</Typography>
-          <Typography variant="caption" sx={{ color: '#fff', fontSize: 10 }}>{selectedItem.isTeam ? 'Team Project' : 'Personal Project'}</Typography>
+          <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontSize: 10 }}>{selectedItem.isTeam ? 'Team Project' : 'Personal Project'}</Typography>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10 }}>VISIBILITY</Typography>
-          <Typography variant="caption" sx={{ color: '#fff', fontSize: 10 }}>{selectedItem.visibility === 'public' ? 'Public' : 'Private'}</Typography>
+          <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontSize: 10 }}>{selectedItem.visibility === 'public' ? 'Public' : 'Private'}</Typography>
         </Box>
       </Box>
     </Box>
@@ -422,42 +422,42 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
     const isHighlighted = autoFilledFields.includes(fieldName);
     return {
       '& .MuiInputBase-root': { height: 26, fontSize: 11, transition: 'all 0.3s' },
-      input: { color: isHighlighted ? '#facc15' : '#fff', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.1)' : 'rgba(0,0,0,0.2)', borderRadius: 1, px: 1 },
-      fieldset: { borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.1)', transition: 'border-color 0.3s' },
-      '&:hover fieldset': { borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.2)' }
+      input: { color: isHighlighted ? 'light-dark(#aa8804, #facc15)' : 'var(--brand-fg)', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.1)' : 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, px: 1 },
+      fieldset: { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.1)', transition: 'border-color 0.3s' },
+      '&:hover fieldset': { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.2)' }
     };
   };
 
   const getSelectSx = (fieldName: string) => {
     const isHighlighted = autoFilledFields.includes(fieldName);
     return {
-      height: 26, fontSize: 11, color: isHighlighted ? '#facc15' : '#fff', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.1)' : 'rgba(0,0,0,0.2)',
+      height: 26, fontSize: 11, color: isHighlighted ? 'light-dark(#aa8804, #facc15)' : 'var(--brand-fg)', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.1)' : 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
       transition: 'all 0.3s',
-      '.MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.1)', transition: 'border-color 0.3s' },
-      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.2)' }
+      '.MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.1)', transition: 'border-color 0.3s' },
+      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.2)' }
     };
   };
   const getToggleSx = (fieldName: string) => {
     const isHighlighted = autoFilledFields.includes(fieldName);
-    return { width: '100%', '& .MuiToggleButton-root': { transition: 'all 0.3s', flex: 1, py: 0.5, fontSize: 11, fontWeight: 500, color: 'text.secondary', borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.1)', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.05)' : 'transparent', textTransform: 'none', '&.Mui-selected': { bgcolor: 'rgba(79, 195, 247, 0.15)', color: '#4fc3f7', borderColor: 'rgba(79, 195, 247, 0.3)', '&:hover': { bgcolor: 'rgba(79, 195, 247, 0.2)' } } } };
+    return { width: '100%', '& .MuiToggleButton-root': { transition: 'all 0.3s', flex: 1, py: 0.5, fontSize: 11, fontWeight: 500, color: 'text.secondary', borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.05)' : 'transparent', textTransform: 'none', '&.Mui-selected': { bgcolor: 'rgba(79, 195, 247, 0.15)', color: 'light-dark(#0875a6, #4fc3f7)', borderColor: 'rgba(79, 195, 247, 0.3)', '&:hover': { bgcolor: 'rgba(79, 195, 247, 0.2)' } } } };
   };
 
   const inputSx = getInputSx(''); // Fallback
   const selectSx = getSelectSx(''); // Fallback
-  const selectMenuProps = { PaperProps: { sx: { bgcolor: '#1a1f2b', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)' } } };
+  const selectMenuProps = { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } } };
 
   const getAutocompleteSx = (fieldName?: string) => {
     const isHighlighted = fieldName && autoFilledFields.includes(fieldName);
     return {
-      '& .MuiInputBase-root': { py: 0.5, minHeight: 26, fontSize: 11, color: isHighlighted ? '#facc15' : '#fff', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.1)' : 'rgba(0,0,0,0.2)', borderRadius: 1, transition: 'all 0.3s' },
-      '& .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.1)', transition: 'border-color 0.3s' },
-      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgba(255,255,255,0.2)' },
-      '& .MuiChip-root': { height: 18, fontSize: 10, bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.1)', color: isHighlighted ? '#facc15' : 'text.secondary', mt: 0.5, mb: 0.5, '& .MuiChip-deleteIcon': { color: isHighlighted ? '#facc15' : 'text.secondary', fontSize: 14, '&:hover': { color: '#fff' } } },
+      '& .MuiInputBase-root': { py: 0.5, minHeight: 26, fontSize: 11, color: isHighlighted ? 'light-dark(#aa8804, #facc15)' : 'var(--brand-fg)', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.1)' : 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, transition: 'all 0.3s' },
+      '& .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.1)', transition: 'border-color 0.3s' },
+      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.2)' },
+      '& .MuiChip-root': { height: 18, fontSize: 10, bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.2)' : 'rgb(var(--brand-fg-rgb) / 0.1)', color: isHighlighted ? 'light-dark(#aa8804, #facc15)' : 'text.secondary', mt: 0.5, mb: 0.5, '& .MuiChip-deleteIcon': { color: isHighlighted ? 'light-dark(#aa8804, #facc15)' : 'text.secondary', fontSize: 14, '&:hover': { color: 'var(--brand-fg)' } } },
       '& .MuiAutocomplete-input': { p: '0 !important' },
     };
   };
   const autocompletePaperProps = {
-    sx: { bgcolor: '#1a1f2b', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', '& .MuiAutocomplete-option': { fontSize: 11, minHeight: 'auto', p: 1 } }
+    sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', '& .MuiAutocomplete-option': { fontSize: 11, minHeight: 'auto', p: 1 } }
   };
 
 
@@ -921,14 +921,14 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', pb: 1.5, mb: -0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pb: 1.5, mb: -0.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          <InfoOutlinedIcon sx={{ fontSize: 16, color: '#4fc3f7' }} />
-          <Typography sx={{ fontWeight: 600, color: '#fff', letterSpacing: 0.5, fontSize: 11, whiteSpace: 'nowrap' }}>Model Info</Typography>
+          <InfoOutlinedIcon sx={{ fontSize: 16, color: 'light-dark(#0875a6, #4fc3f7)' }} />
+          <Typography sx={{ fontWeight: 600, color: 'var(--brand-fg)', letterSpacing: 0.5, fontSize: 11, whiteSpace: 'nowrap' }}>Model Info</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexShrink: 0 }}>
           {isSaving && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#4fc3f7' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'light-dark(#0875a6, #4fc3f7)' }}>
               <CircularProgress size={10} color="inherit" />
               <Typography sx={{ fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' }}>保存中...</Typography>
             </Box>
@@ -982,7 +982,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
               px: 1, 
               borderRadius: 1, 
               bgcolor: rhinoStatus === 'connected' ? 'rgba(22,163,74,0.9)' : 'rgba(245, 158, 11, 0.9)', 
-              color: '#fff', 
+              color: 'var(--brand-fg)', 
               whiteSpace: 'nowrap',
               '&:hover': { bgcolor: rhinoStatus === 'connected' ? 'rgba(22,163,74,1)' : 'rgba(245, 158, 11, 1)' } 
             }}
@@ -1002,7 +1002,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
       />
 
       {/* Model Preview */}
-      <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+      <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
         {((versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || (selectedVersionId === latestVersion && effectiveLocalGlbUrl)) ? (
           <RightPanelModelViewer
             modelUrl={(versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || effectiveLocalGlbUrl}
@@ -1011,17 +1011,17 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
           />
         ) : convertingPreview ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={22} sx={{ color: 'rgba(255,255,255,0.5)' }} />
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>プレビュー生成中…</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>{String(selectedItem.topExt || '').toUpperCase()} を変換しています</Typography>
+            <CircularProgress size={22} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 10 }}>プレビュー生成中…</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 9 }}>{String(selectedItem.topExt || '').toUpperCase()} を変換しています</Typography>
           </Box>
         ) : ((versionsObj[selectedVersionId] && versionsObj[selectedVersionId].thumbnailUrl) || (selectedVersionId === latestVersion && (selectedItem.thumbnailUrl || selectedItem.imageUrl))) ? (
           <img src={(versionsObj[selectedVersionId] && versionsObj[selectedVersionId].thumbnailUrl) || selectedItem.thumbnailUrl || selectedItem.imageUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.75)' }} />
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, px: 2, textAlign: 'center' }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 500 }}>No Preview Available</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 11, fontWeight: 500 }}>No Preview Available</Typography>
             {previewError && (
-              <Typography sx={{ color: 'rgba(255,120,120,0.55)', fontSize: 9, lineHeight: 1.3 }}>変換に失敗しました</Typography>
+              <Typography sx={{ color: 'light-dark(rgba(173,0,0,0.55), rgba(255,120,120,0.55))', fontSize: 9, lineHeight: 1.3 }}>変換に失敗しました</Typography>
             )}
           </Box>
         )}
@@ -1029,17 +1029,17 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
 
       {/* Local Models: クラウド保存（公開/非公開） */}
       {selectedItem.isLocal && (
-        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
           {localUploadRec ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {localUploadRec.visibility === 'private'
-                ? <LockRoundedIcon sx={{ fontSize: 16, color: '#fb923c' }} />
-                : <PublicRoundedIcon sx={{ fontSize: 16, color: '#a78bfa' }} />}
+                ? <LockRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#aa4e03, #fb923c)' }} />
+                : <PublicRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#2f07a6, #a78bfa)' }} />}
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-fg)' }}>
                   クラウド保存済み · {localUploadRec.visibility === 'private' ? '非公開' : '公開'}
                 </Typography>
-                <Typography sx={{ fontSize: 9.5, color: 'rgba(255,255,255,0.4)' }}>
+                <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                   {localUploadRec.visibility === 'private' ? 'Private Models に保存されています' : 'Public Models に公開されています'}
                 </Typography>
               </Box>
@@ -1055,11 +1055,11 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
             </Button>
           )}
           {localUploadRec && (
-            <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Button
                 size="small" variant="text" disabled={localUploading}
                 onClick={() => setCloudUploadDialogOpen(true)}
-                sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', minWidth: 0 }}
+                sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)', minWidth: 0 }}
               >
                 {localUploadRec.visibility === 'private' ? '公開に変更' : '公開設定を変更'}
               </Button>
@@ -1070,7 +1070,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                     revertLocalModel(selectedItem);
                   }
                 }}
-                sx={{ fontSize: 10.5, color: '#ff6b6b', minWidth: 0 }}
+                sx={{ fontSize: 10.5, color: 'light-dark(#ad0000, #ff6b6b)', minWidth: 0 }}
               >
                 {localUploading ? <CircularProgress size={12} color="inherit" /> : 'ローカルに戻す'}
               </Button>
@@ -1095,7 +1095,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
 
       {/* Version Selector */}
       {versionKeys.length > 0 && (
-        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10 }}>バージョンを選択:</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Select
@@ -1105,7 +1105,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
               sx={{
                 ...selectSx,
                 minWidth: 100,
-                bgcolor: 'rgba(255,255,255,0.05)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
                 '& .MuiSelect-select': { py: 0.5, px: 2, fontSize: 12, fontWeight: 600 }
               }}
               MenuProps={selectMenuProps}
@@ -1124,7 +1124,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                         setActiveDeleteVersion(v);
                       }}
                       sx={{ 
-                        color: 'rgba(255,255,255,0.3)', 
+                        color: 'rgb(var(--brand-fg-rgb) / 0.3)', 
                         p: 0.5,
                         mr: -1,
                         '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } 
@@ -1143,7 +1143,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                   setSelectedVersionsToDelete([]);
                   setIsManageVersionsOpen(true);
                 }}
-                sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
               >
                 <SettingsOutlinedIcon sx={{ fontSize: 18 }} />
               </IconButton>
@@ -1163,7 +1163,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
             py: 1,
             mt: 0.5,
             bgcolor: 'rgba(250, 204, 21, 0.05)', 
-            color: '#facc15', 
+            color: 'light-dark(#aa8804, #facc15)', 
             borderColor: 'rgba(250, 204, 21, 0.3)',
             fontWeight: 600,
             fontSize: 12,
@@ -1187,11 +1187,11 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
             sx={{ ...inputSx, input: { ...inputSx.input, fontWeight: 500, fontSize: 12 } }} 
           />
         ) : (
-          <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fff', px: 1, py: 0.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1 }}>{selectedItem.title || selectedItem.name || 'Untitled'}</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--brand-fg)', px: 1, py: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 1 }}>{selectedItem.title || selectedItem.name || 'Untitled'}</Typography>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Visibility */}
       <Box>
@@ -1202,17 +1202,17 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
             exclusive
             onChange={(_e, val) => { if(val) setEditData({...editData, visibility: val}); }}
             size="small"
-            sx={{ width: '100%', '& .MuiToggleButton-root': { flex: 1, py: 0.5, fontSize: 11, fontWeight: 500, color: 'text.secondary', borderColor: 'rgba(255,255,255,0.1)', textTransform: 'none', '&.Mui-selected': { bgcolor: 'rgba(79, 195, 247, 0.15)', color: '#4fc3f7', borderColor: 'rgba(79, 195, 247, 0.3)', '&:hover': { bgcolor: 'rgba(79, 195, 247, 0.2)' } } } }}
+            sx={{ width: '100%', '& .MuiToggleButton-root': { flex: 1, py: 0.5, fontSize: 11, fontWeight: 500, color: 'text.secondary', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', textTransform: 'none', '&.Mui-selected': { bgcolor: 'rgba(79, 195, 247, 0.15)', color: 'light-dark(#0875a6, #4fc3f7)', borderColor: 'rgba(79, 195, 247, 0.3)', '&:hover': { bgcolor: 'rgba(79, 195, 247, 0.2)' } } } }}
           >
             <ToggleButton value="public">全体公開</ToggleButton>
             <ToggleButton value="private">非公開（自分のみ）</ToggleButton>
           </ToggleButtonGroup>
         ) : (
-          <Chip size="small" label={selectedItem.visibility === 'private' ? '非公開' : '全体公開'} sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 11, borderRadius: 1 }} />
+          <Chip size="small" label={selectedItem.visibility === 'private' ? '非公開' : '全体公開'} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'var(--brand-fg)', fontSize: 11, borderRadius: 1 }} />
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Categories */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1268,12 +1268,12 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         ) : (
           <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
              {selectedItem.macroCategory && (
-                <Typography sx={{ fontSize: 12, color: '#a5d6a7', px: 1, py: 0.5, bgcolor: 'rgba(165, 214, 167, 0.1)', borderRadius: 1, display: 'inline-flex', width: 'fit-content' }}>{selectedItem.macroCategory}</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.65)', px: 1, py: 0.5, bgcolor: 'rgba(165, 214, 167, 0.1)', borderRadius: 1, display: 'inline-flex', width: 'fit-content' }}>{selectedItem.macroCategory}</Typography>
              )}
              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Typography sx={{ fontSize: 12, color: '#fff', px: 1, py: 0.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, display: 'inline-flex' }}>{selectedItem.mainCategory || 'Uncategorized'}</Typography>
+                <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)', px: 1, py: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 1, display: 'inline-flex' }}>{selectedItem.mainCategory || 'Uncategorized'}</Typography>
                 {selectedItem.subCategory && (
-                   <Typography sx={{ fontSize: 12, color: 'text.secondary', px: 1, py: 0.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, display: 'inline-flex' }}>{selectedItem.subCategory}</Typography>
+                   <Typography sx={{ fontSize: 12, color: 'text.secondary', px: 1, py: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 1, display: 'inline-flex' }}>{selectedItem.subCategory}</Typography>
                 )}
              </Box>
           </Box>
@@ -1282,7 +1282,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
 
 
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Dimensions & Price */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1295,11 +1295,11 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
           </Box>
         ) : (
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-            <Typography sx={{ fontSize: 12, color: '#fff' }}><Typography component="span" sx={{ fontSize: 10, color: 'text.secondary', mr: 0.5 }}>W</Typography>{selectedItem.dimensions?.width || '---'}</Typography>
+            <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}><Typography component="span" sx={{ fontSize: 10, color: 'text.secondary', mr: 0.5 }}>W</Typography>{selectedItem.dimensions?.width || '---'}</Typography>
             <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>×</Typography>
-            <Typography sx={{ fontSize: 12, color: '#fff' }}><Typography component="span" sx={{ fontSize: 10, color: 'text.secondary', mr: 0.5 }}>D</Typography>{selectedItem.dimensions?.depth || '---'}</Typography>
+            <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}><Typography component="span" sx={{ fontSize: 10, color: 'text.secondary', mr: 0.5 }}>D</Typography>{selectedItem.dimensions?.depth || '---'}</Typography>
             <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>×</Typography>
-            <Typography sx={{ fontSize: 12, color: '#fff' }}><Typography component="span" sx={{ fontSize: 10, color: 'text.secondary', mr: 0.5 }}>H</Typography>{selectedItem.dimensions?.height || '---'}</Typography>
+            <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}><Typography component="span" sx={{ fontSize: 10, color: 'text.secondary', mr: 0.5 }}>H</Typography>{selectedItem.dimensions?.height || '---'}</Typography>
           </Box>
         )}
 
@@ -1307,11 +1307,11 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         {isAuthor ? (
           <TextField fullWidth size="small" value={editData.price} onChange={(e) => setEditData({...editData, price: e.target.value})} placeholder="価格" sx={inputSx} />
         ) : (
-          <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fff', px: 1, py: 0.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1 }}>{selectedItem.price ? `¥${Number(selectedItem.price).toLocaleString()}` : '未設定'}</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--brand-fg)', px: 1, py: 0.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 1 }}>{selectedItem.price ? `¥${Number(selectedItem.price).toLocaleString()}` : '未設定'}</Typography>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Spatial Context */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -1389,7 +1389,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {Array.isArray(data) && data.length > 0 ? (
                     data.map((item: string) => (
-                      <Chip key={item} label={item} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 10, height: 20 }} />
+                      <Chip key={item} label={item} size="small" sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'var(--brand-fg)', fontSize: 10, height: 20 }} />
                     ))
                   ) : (
                     <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic' }}>Not specified</Typography>
@@ -1401,7 +1401,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Meta */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1428,7 +1428,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 9, mb: 0.5, display: 'block' }}>CUSTOM TAGS</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
                 {editData.tags && editData.tags.map(tag => (
-                  <Chip key={tag} label={tag} size="small" onDelete={isAuthor ? () => handleRemoveTag(tag) : undefined} sx={{ bgcolor: autoFilledFields.includes('tags') ? 'rgba(250, 204, 21, 0.2)' : 'rgba(255,255,255,0.1)', color: autoFilledFields.includes('tags') ? '#facc15' : 'text.secondary', fontSize: 10, height: 20, '& .MuiChip-deleteIcon': { color: 'text.secondary', fontSize: 14, '&:hover': { color: '#fff' } } }} />
+                  <Chip key={tag} label={tag} size="small" onDelete={isAuthor ? () => handleRemoveTag(tag) : undefined} sx={{ bgcolor: autoFilledFields.includes('tags') ? 'rgba(250, 204, 21, 0.2)' : 'rgb(var(--brand-fg-rgb) / 0.1)', color: autoFilledFields.includes('tags') ? 'light-dark(#aa8804, #facc15)' : 'text.secondary', fontSize: 10, height: 20, '& .MuiChip-deleteIcon': { color: 'text.secondary', fontSize: 14, '&:hover': { color: 'var(--brand-fg)' } } }} />
                 ))}
                 {editData.tags.length === 0 && (
                   <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic' }}>No tags provided</Typography>
@@ -1436,7 +1436,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
               </Box>
               <TextField fullWidth disabled={!isAuthor} size="small" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleAddTag} placeholder="+ タグを追加 (Enter)" sx={{ ...getInputSx('tags'), mt: 0.5 }} />
               {useUserSettingsStore.getState().customTags.filter(t => !editData.tags.includes(t)).length > 0 && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, pt: 0.5, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, pt: 0.5, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
                   <Typography sx={{ width: '100%', fontSize: 9, color: 'text.secondary', mb: 0.5 }}>マイタグから追加:</Typography>
                   {useUserSettingsStore.getState().customTags.filter(t => !editData.tags.includes(t)).map(tag => (
                     <Chip 
@@ -1444,7 +1444,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                       onClick={() => setEditData({ ...editData, tags: [...editData.tags, tag] })} 
                       label={`+ ${tag}`} 
                       size="small" 
-                      sx={{ bgcolor: 'rgba(250, 204, 21, 0.1)', color: '#facc15', fontSize: 9, height: 20, '&:hover': { bgcolor: 'rgba(250, 204, 21, 0.2)' } }} 
+                      sx={{ bgcolor: 'rgba(250, 204, 21, 0.1)', color: 'light-dark(#aa8804, #facc15)', fontSize: 9, height: 20, '&:hover': { bgcolor: 'rgba(250, 204, 21, 0.2)' } }} 
                     />
                   ))}
                 </Box>
@@ -1458,7 +1458,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {Array.isArray(selectedItem.materials) && selectedItem.materials.length > 0 ? (
                   selectedItem.materials.map((m: string) => (
-                    <Chip key={m} label={m} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 10, height: 20 }} />
+                    <Chip key={m} label={m} size="small" sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'var(--brand-fg)', fontSize: 10, height: 20 }} />
                   ))
                 ) : (
                   <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic' }}>Not specified</Typography>
@@ -1470,7 +1470,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {Array.isArray(selectedItem.tags) && selectedItem.tags.length > 0 ? (
                   selectedItem.tags.map((tag: string) => (
-                    <Chip key={tag} label={tag} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'text.secondary', fontSize: 10, height: 20 }} />
+                    <Chip key={tag} label={tag} size="small" sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'text.secondary', fontSize: 10, height: 20 }} />
                   ))
                 ) : (
                   <Typography sx={{ fontSize: 11, color: 'text.secondary', fontStyle: 'italic' }}>No tags</Typography>
@@ -1481,7 +1481,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Related URLs */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1512,8 +1512,8 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                     }}
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 0.5 }}>
-                    <Typography sx={{ fontSize: 10, cursor: 'pointer', color: 'text.secondary', '&:hover': { color: '#fff' } }} onClick={() => setEditingLinkIndex(null)}>キャンセル</Typography>
-                    <Typography sx={{ fontSize: 10, cursor: 'pointer', color: '#4fc3f7', '&:hover': { color: '#81d4fa' } }} onClick={() => {
+                    <Typography sx={{ fontSize: 10, cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'var(--brand-fg)' } }} onClick={() => setEditingLinkIndex(null)}>キャンセル</Typography>
+                    <Typography sx={{ fontSize: 10, cursor: 'pointer', color: 'light-dark(#0875a6, #4fc3f7)', '&:hover': { color: 'light-dark(#0774a7, #81d4fa)' } }} onClick={() => {
                         const updatedLinks = [...editData.relatedLinks];
                         updatedLinks[idx] = { title: editLinkTitle || '関連リンク', url: editLinkUrl };
                         setEditData({ ...editData, relatedLinks: updatedLinks });
@@ -1523,10 +1523,10 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                 </Box>
               ) : (
                 <>
-                  <Box sx={{ width: 40, height: 40, borderRadius: 1, flexShrink: 0, overflow: 'hidden', bgcolor: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: 1, flexShrink: 0, overflow: 'hidden', bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {link.thumbnail
                       ? <Box component="img" src={link.thumbnail} alt="" referrerPolicy="no-referrer" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <LinkRoundedIcon sx={{ fontSize: 16, color: 'rgba(79,195,247,0.6)' }} />}
+                      : <LinkRoundedIcon sx={{ fontSize: 16, color: 'light-dark(rgba(8,117,166,0.6), rgba(79,195,247,0.6))' }} />}
                   </Box>
                   <Box
                     sx={{ flex: 1, overflow: 'hidden', cursor: 'pointer', py: 0.5, '&:hover': { opacity: 0.8 } }}
@@ -1544,10 +1544,10 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                         .catch(() => window.open(targetUrl, '_blank'));
                     }}
                   >
-                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {link.title || '関連リンク'}
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: '#4fc3f7', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'underline' }}>
+                    <Typography sx={{ fontSize: 10, color: 'light-dark(#0875a6, #4fc3f7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'underline' }}>
                       {link.url}
                     </Typography>
                   </Box>
@@ -1560,14 +1560,14 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                           setEditLinkTitle(link.title);
                           setEditLinkUrl(link.url);
                         }}
-                        sx={{ color: 'rgba(255,255,255,0.3)', p: 0.5, '&:hover': { color: '#4fc3f7', bgcolor: 'rgba(79, 195, 247, 0.1)' } }}
+                        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', p: 0.5, '&:hover': { color: 'light-dark(#0875a6, #4fc3f7)', bgcolor: 'rgba(79, 195, 247, 0.1)' } }}
                       >
                         <EditRoundedIcon sx={{ fontSize: 14 }} />
                       </IconButton>
                       <IconButton 
                         size="small" 
                         onClick={() => setEditData({ ...editData, relatedLinks: editData.relatedLinks.filter((_, i) => i !== idx) })}
-                        sx={{ color: 'rgba(255,255,255,0.3)', p: 0.5, '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
+                        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', p: 0.5, '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
                       >
                         <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
                       </IconButton>
@@ -1583,7 +1583,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         </Box>
 
         {isAuthor && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5, p: 1, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5, p: 1, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 9 }}>新しいリンクを追加</Typography>
             <TextField 
               fullWidth 
@@ -1615,7 +1615,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
 
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* カタログ登録（S.Library カタログ照合の商品を登録。RELATED URLs とは別管理） */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1624,10 +1624,10 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
           {editData.catalogLinks && editData.catalogLinks.map((link, idx) => (
             <Box key={idx} sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(134, 239, 172, 0.06)', px: 1, py: 0.5, borderRadius: 1 }}>
-              <Box sx={{ width: 40, height: 40, borderRadius: 1, flexShrink: 0, overflow: 'hidden', bgcolor: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: 40, height: 40, borderRadius: 1, flexShrink: 0, overflow: 'hidden', bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {(link.thumbnail || catalogThumbMap[link.url])
                   ? <Box component="img" src={link.thumbnail || catalogThumbMap[link.url]} alt="" referrerPolicy="no-referrer" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <LinkRoundedIcon sx={{ fontSize: 16, color: 'rgba(134,239,172,0.6)' }} />}
+                  : <LinkRoundedIcon sx={{ fontSize: 16, color: 'light-dark(rgba(20,153,68,0.6), rgba(134,239,172,0.6))' }} />}
               </Box>
               <Box
                 sx={{ flex: 1, overflow: 'hidden', cursor: 'pointer', py: 0.5, '&:hover': { opacity: 0.8 } }}
@@ -1641,14 +1641,14 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'var(--brand-fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
                     {link.title || 'カタログ商品'}
                   </Typography>
                   {link.price && (
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: '#86efac', flexShrink: 0 }}>{link.price}</Typography>
+                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'light-dark(#149944, #86efac)', flexShrink: 0 }}>{link.price}</Typography>
                   )}
                 </Box>
-                <Typography sx={{ fontSize: 10, color: '#86efac', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'underline' }}>
+                <Typography sx={{ fontSize: 10, color: 'light-dark(#149944, #86efac)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'underline' }}>
                   {link.source || link.url}
                 </Typography>
               </Box>
@@ -1656,7 +1656,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                 <IconButton
                   size="small"
                   onClick={() => setEditData({ ...editData, catalogLinks: editData.catalogLinks.filter((_, i) => i !== idx) })}
-                  sx={{ color: 'rgba(255,255,255,0.3)', p: 0.5, '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', p: 0.5, '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
                 >
                   <DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />
                 </IconButton>
@@ -1669,7 +1669,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         </Box>
 
         {isAuthor && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5, p: 1, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5, p: 1, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 9 }}>カタログ商品を手動追加（または S.Library カタログ照合から登録）</Typography>
             <TextField
               fullWidth size="small"
@@ -1700,18 +1700,18 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
 
       {isAuthor && isSaving && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
-          <Typography sx={{ fontSize: 10, color: '#4fc3f7', fontStyle: 'italic' }}>Saving changes...</Typography>
+          <Typography sx={{ fontSize: 10, color: 'light-dark(#0875a6, #4fc3f7)', fontStyle: 'italic' }}>Saving changes...</Typography>
         </Box>
       )}
       {activeDeleteVersion !== null && (
         <Box sx={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", bgcolor: "rgba(0,0,0,0.5)", zIndex: 1300, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Box sx={{ width: 400, bgcolor: "#1a1e27", p: 4, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
-            <Typography variant="h6" sx={{ color: "#fff", mb: 2, fontWeight: 700 }}>バージョンを削除</Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: 3, fontSize: 14 }}>
+          <Box sx={{ width: 400, bgcolor: "var(--brand-surface2)", p: 4, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }}>
+            <Typography variant="h6" sx={{ color: "var(--brand-fg)", mb: 2, fontWeight: 700 }}>バージョンを削除</Typography>
+            <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", mb: 3, fontSize: 14 }}>
               本当にバージョン v{activeDeleteVersion} を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-              <Typography onClick={() => !isDeletingVersion && setActiveDeleteVersion(null)} sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: isDeletingVersion ? "not-allowed" : "pointer", py: 1, '&:hover': { color: "#fff" } }}>キャンセル</Typography>
+              <Typography onClick={() => !isDeletingVersion && setActiveDeleteVersion(null)} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 13, cursor: isDeletingVersion ? "not-allowed" : "pointer", py: 1, '&:hover': { color: "var(--brand-fg)" } }}>キャンセル</Typography>
               <Typography onClick={() => !isDeletingVersion && confirmDeleteVersion()} sx={{ color: "#ff4d4f", fontSize: 13, cursor: isDeletingVersion ? "not-allowed" : "pointer", py: 1, fontWeight: 600, opacity: isDeletingVersion ? 0.5 : 1 }}>
                 {isDeletingVersion ? '削除中...' : '削除'}
               </Typography>
@@ -1724,22 +1724,22 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
       <Dialog 
         open={isCompanionDialogOpen} 
         onClose={() => setIsCompanionDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#1e1e1e', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 400, maxWidth: 500, height: 500 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 400, maxWidth: 500, height: 500 } }}
       >
-        <DialogTitle sx={{ fontSize: 14, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.05)', pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle sx={{ fontSize: 14, fontWeight: 600, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', pb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           セット家具を追加
           <TextField
             placeholder="モデルを検索..."
             size="small"
             value={companionSearchText}
             onChange={(e) => setCompanionSearchText(e.target.value)}
-            sx={{ width: 200, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(0,0,0,0.3)', color: '#fff', borderRadius: 1 }, '& input': { fontSize: 12, py: 0.5 } }}
+            sx={{ width: 200, '& .MuiOutlinedInput-root': { bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', color: 'var(--brand-fg)', borderRadius: 1 }, '& input': { fontSize: 12, py: 0.5 } }}
           />
         </DialogTitle>
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
           {isLoadingCompanions ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, py: 4 }}>
-              <CircularProgress size={24} sx={{ color: '#4fc3f7' }} />
+              <CircularProgress size={24} sx={{ color: 'light-dark(#0875a6, #4fc3f7)' }} />
             </Box>
           ) : (
             <List sx={{ pt: 0, overflowY: 'auto' }}>
@@ -1753,17 +1753,17 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                       const newCompanion = { id: m.id, title: m.title || m.name || 'Untitled', thumbnailUrl: m.thumbnailUrl || m.thumbnail || '' };
                       setEditData({ ...editData, companionModels: [...(editData.companionModels || []), newCompanion] });
                     }}
-                    sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }, display: 'flex', gap: 2, py: 1 }}
+                    sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }, display: 'flex', gap: 2, py: 1 }}
                   >
-                    <Box sx={{ width: 40, height: 40, borderRadius: 1, overflow: 'hidden', bgcolor: 'rgba(0,0,0,0.3)', flexShrink: 0 }}>
+                    <Box sx={{ width: 40, height: 40, borderRadius: 1, overflow: 'hidden', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', flexShrink: 0 }}>
                       {(m.thumbnailUrl || m.thumbnail) ? (
                         <img src={m.thumbnailUrl || m.thumbnail} alt={m.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <ImageIcon sx={{ color: 'rgba(255,255,255,0.2)', fontSize: 20, m: 1 }} />
+                        <ImageIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 20, m: 1 }} />
                       )}
                     </Box>
                     <ListItemText 
-                      primary={<Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{m.title || m.name || 'Untitled'}</Typography>}
+                      primary={<Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--brand-fg)' }}>{m.title || m.name || 'Untitled'}</Typography>}
                       secondary={<Typography sx={{ fontSize: 11, color: 'text.secondary' }}>{m.visibility === 'public' ? 'Public' : 'Private'} / {m.macroCategory || ''}</Typography>}
                     />
                   </ListItemButton>
@@ -1775,8 +1775,8 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
             </List>
           )}
         </DialogContent>
-        <DialogActions sx={{ borderTop: '1px solid rgba(255,255,255,0.05)', px: 3, py: 1.5 }}>
-          <Button onClick={() => setIsCompanionDialogOpen(false)} sx={{ color: 'text.secondary', textTransform: 'none', '&:hover': { color: '#fff' } }}>
+        <DialogActions sx={{ borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', px: 3, py: 1.5 }}>
+          <Button onClick={() => setIsCompanionDialogOpen(false)} sx={{ color: 'text.secondary', textTransform: 'none', '&:hover': { color: 'var(--brand-fg)' } }}>
             キャンセル
           </Button>
         </DialogActions>
@@ -1786,9 +1786,9 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
       <Dialog 
         open={isManageVersionsOpen} 
         onClose={() => !isDeletingVersions && setIsManageVersionsOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#1e1e1e', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 320 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 320 } }}
       >
-        <DialogTitle sx={{ fontSize: 14, fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.05)', pb: 1.5 }}>
+        <DialogTitle sx={{ fontSize: 14, fontWeight: 600, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', pb: 1.5 }}>
           バージョン一括削除
         </DialogTitle>
         <DialogContent sx={{ p: 0, maxHeight: 400 }}>
@@ -1805,7 +1805,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                         setSelectedVersionsToDelete(prev => [...prev, v]);
                       }
                     }}
-                    sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}
+                    sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
                   >
                     <ListItemIcon sx={{ minWidth: 36 }}>
                       <Checkbox 
@@ -1813,12 +1813,12 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                         checked={isSelected} 
                         tabIndex={-1} 
                         disableRipple 
-                        sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: '#ef4444' } }}
+                        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&.Mui-checked': { color: '#ef4444' } }}
                       />
                     </ListItemIcon>
                     <ListItemText 
                       primary={`v${v} ${v === latestVersion ? '(最新版)' : ''}`} 
-                      primaryTypographyProps={{ fontSize: 13, fontWeight: v === latestVersion ? 600 : 400, color: isSelected ? '#ef4444' : '#fff' }}
+                      primaryTypographyProps={{ fontSize: 13, fontWeight: v === latestVersion ? 600 : 400, color: isSelected ? '#ef4444' : 'var(--brand-fg)' }}
                     />
                   </ListItemButton>
                 </ListItem>
@@ -1826,11 +1826,11 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
             })}
           </List>
         </DialogContent>
-        <DialogActions sx={{ p: 1.5, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <DialogActions sx={{ p: 1.5, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
           <Button 
             onClick={() => setIsManageVersionsOpen(false)} 
             disabled={isDeletingVersions}
-            sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 12 }}
           >
             キャンセル
           </Button>
@@ -1876,9 +1876,9 @@ const getCategoryIcon = (catName: string): React.ElementType => {
 const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: () => void }> = ({ filters, setFilters, resetFilters }) => {
   const getMergedCategoryMap = useUserSettingsStore(s => s.getMergedCategoryMap);
   const mergedCategoryMap = getMergedCategoryMap();
-  const inputSx = { '& .MuiInputBase-root': { height: 26, fontSize: 11 }, input: { color: '#fff', bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1, px: 1 }, fieldset: { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' } };
-  const selectSx = { height: 26, fontSize: 11, color: '#fff', bgcolor: 'rgba(0,0,0,0.2)', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } };
-  const selectMenuProps = { PaperProps: { sx: { bgcolor: '#1a1f2b', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)' } } };
+  const inputSx = { '& .MuiInputBase-root': { height: 26, fontSize: 11 }, input: { color: 'var(--brand-fg)', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, px: 1 }, fieldset: { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } };
+  const selectSx = { height: 26, fontSize: 11, color: 'var(--brand-fg)', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } };
+  const selectMenuProps = { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } } };
 
   // Resolve dynamic categories based on user selection
   // Fallback to "家具 (既製品)" if ALL is selected, just to show some generic subcategories rather than empty
@@ -1896,12 +1896,12 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pb: 2 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', pb: 1.5, mb: -0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pb: 1.5, mb: -0.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <FilterAltIcon sx={{ fontSize: 18, color: '#a5d6a7' }} />
-          <Typography sx={{ fontWeight: 600, color: '#fff', letterSpacing: 0.5, fontSize: 12 }}>Search & Filter</Typography>
+          <FilterAltIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.65)' }} />
+          <Typography sx={{ fontWeight: 600, color: 'var(--brand-fg)', letterSpacing: 0.5, fontSize: 12 }}>Search & Filter</Typography>
         </Box>
-        <Button size="small" startIcon={<RefreshIcon sx={{ fontSize: 12 }} />} sx={{ color: 'text.secondary', textTransform: 'none', fontSize: 10, height: 22, minWidth: 0, px: 1, borderRadius: 1, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }} onClick={resetFilters}>
+        <Button size="small" startIcon={<RefreshIcon sx={{ fontSize: 12 }} />} sx={{ color: 'text.secondary', textTransform: 'none', fontSize: 10, height: 22, minWidth: 0, px: 1, borderRadius: 1, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }} onClick={resetFilters}>
           Reset
         </Button>
       </Box>
@@ -1934,7 +1934,7 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
               </Select>
             </FormControl>
           </Box>
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
         </>
       )}
 
@@ -1945,28 +1945,28 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
           {['ALL', '3DM', 'BLEND', 'GLB'].map((fmt) => {
             const isActive = filters.format === fmt || (fmt === 'ALL' && !filters.format);
             return (
-              <Button key={fmt} fullWidth disableElevation variant="outlined" sx={{ color: isActive ? '#a5d6a7' : 'text.secondary', fontWeight: isActive ? 600 : 400, borderColor: isActive ? '#a5d6a7' : 'rgba(255,255,255,0.1)', bgcolor: isActive ? 'rgba(165, 214, 167, 0.15)' : 'transparent', textTransform: 'none', fontSize: 10, height: 28, borderRadius: 1.5, '&:hover': { borderColor: '#a5d6a7', color: '#a5d6a7', bgcolor: 'rgba(165, 214, 167, 0.05)' } }} onClick={() => setFilters({format: fmt === 'ALL' ? '' : fmt})}>{fmt}</Button>
+              <Button key={fmt} fullWidth disableElevation variant="outlined" sx={{ color: isActive ? 'rgb(var(--brand-fg-rgb) / 0.65)' : 'text.secondary', fontWeight: isActive ? 600 : 400, borderColor: isActive ? '#a5d6a7' : 'rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: isActive ? 'rgba(165, 214, 167, 0.15)' : 'transparent', textTransform: 'none', fontSize: 10, height: 28, borderRadius: 1.5, '&:hover': { borderColor: '#a5d6a7', color: 'rgb(var(--brand-fg-rgb) / 0.65)', bgcolor: 'rgba(165, 214, 167, 0.05)' } }} onClick={() => setFilters({format: fmt === 'ALL' ? '' : fmt})}>{fmt}</Button>
             );
           })}
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Primary Category Toggles */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10 }}>PRIMARY CATEGORY</Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.5, bgcolor: 'rgba(0,0,0,0.2)', p: 0.5, borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.05)' }}>
-          <Button fullWidth disableElevation sx={{ gridColumn: '1 / -1', color: filters.type === 'ALL' || !filters.type ? '#a5d6a7' : 'text.secondary', fontWeight: filters.type === 'ALL' || !filters.type ? 600 : 400, fontSize: 10, height: 26, borderRadius: 1, bgcolor: filters.type === 'ALL' || !filters.type ? 'rgba(165, 214, 167, 0.15)' : 'transparent', '&:hover': { bgcolor: 'rgba(165, 214, 167, 0.1)' }, whiteSpace: 'nowrap' }} onClick={() => setFilters({type: 'ALL', category: 'ALL', subCategory: 'ALL'})}>ALL</Button>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.5, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', p: 0.5, borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
+          <Button fullWidth disableElevation sx={{ gridColumn: '1 / -1', color: filters.type === 'ALL' || !filters.type ? 'rgb(var(--brand-fg-rgb) / 0.65)' : 'text.secondary', fontWeight: filters.type === 'ALL' || !filters.type ? 600 : 400, fontSize: 10, height: 26, borderRadius: 1, bgcolor: filters.type === 'ALL' || !filters.type ? 'rgba(165, 214, 167, 0.15)' : 'transparent', '&:hover': { bgcolor: 'rgba(165, 214, 167, 0.1)' }, whiteSpace: 'nowrap' }} onClick={() => setFilters({type: 'ALL', category: 'ALL', subCategory: 'ALL'})}>ALL</Button>
           {MACRO_CATEGORY_ORDER.filter(c => Object.keys(mergedCategoryMap).includes(c)).map((macroCat) => {
             return (
-              <Button key={macroCat} fullWidth disableElevation sx={{ color: filters.type === macroCat ? '#a5d6a7' : 'text.secondary', fontWeight: filters.type === macroCat ? 600 : 400, fontSize: 10, height: 26, borderRadius: 1, bgcolor: filters.type === macroCat ? 'rgba(165, 214, 167, 0.15)' : 'transparent', '&:hover': { bgcolor: 'rgba(165, 214, 167, 0.1)' }, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }} onClick={() => setFilters({type: macroCat, category: 'ALL', subCategory: 'ALL', wantsReady: false, wantsCustom: false})}>{macroCat}</Button>
+              <Button key={macroCat} fullWidth disableElevation sx={{ color: filters.type === macroCat ? 'rgb(var(--brand-fg-rgb) / 0.65)' : 'text.secondary', fontWeight: filters.type === macroCat ? 600 : 400, fontSize: 10, height: 26, borderRadius: 1, bgcolor: filters.type === macroCat ? 'rgba(165, 214, 167, 0.15)' : 'transparent', '&:hover': { bgcolor: 'rgba(165, 214, 167, 0.1)' }, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }} onClick={() => setFilters({type: macroCat, category: 'ALL', subCategory: 'ALL', wantsReady: false, wantsCustom: false})}>{macroCat}</Button>
             );
           })}
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Sub Categories Grid */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1977,7 +1977,7 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
             const isActive = filters.category === logicalCat || (logicalCat === 'ALL' && (!filters.category || filters.category === 'ALL'));
             const IconComp = getCategoryIcon(cat);
             return (
-              <Button key={cat} variant="outlined" sx={{ flexDirection: 'column', py: 1.5, px: 0.5, color: isActive ? '#a5d6a7' : 'text.secondary', borderColor: isActive ? 'rgba(165, 214, 167, 0.3)' : 'rgba(255,255,255,0.1)', bgcolor: isActive ? 'rgba(165, 214, 167, 0.05)' : 'transparent', borderRadius: 1.5, fontSize: 9, minWidth: 0, textTransform: 'none', '&:hover': { borderColor: '#a5d6a7', color: '#a5d6a7', bgcolor: 'rgba(165, 214, 167, 0.05)' } }} onClick={() => setFilters({category: logicalCat, subCategory: 'ALL'})}>
+              <Button key={cat} variant="outlined" sx={{ flexDirection: 'column', py: 1.5, px: 0.5, color: isActive ? 'rgb(var(--brand-fg-rgb) / 0.65)' : 'text.secondary', borderColor: isActive ? 'rgba(165, 214, 167, 0.3)' : 'rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: isActive ? 'rgba(165, 214, 167, 0.05)' : 'transparent', borderRadius: 1.5, fontSize: 9, minWidth: 0, textTransform: 'none', '&:hover': { borderColor: '#a5d6a7', color: 'rgb(var(--brand-fg-rgb) / 0.65)', bgcolor: 'rgba(165, 214, 167, 0.05)' } }} onClick={() => setFilters({category: logicalCat, subCategory: 'ALL'})}>
                 <IconComp sx={{ mb: 0.5, fontSize: 16, opacity: isActive ? 1 : 0.8 }} />
                 {cat}
               </Button>
@@ -1996,7 +1996,7 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
 
 
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Tags */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -2004,7 +2004,7 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
         <TextField fullWidth size="small" placeholder="例: 北欧, シンプル" sx={inputSx} value={filters.tags || ''} onChange={(e) => setFilters({tags: e.target.value})} />
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Extended Metadata */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -2016,7 +2016,7 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
         <TextField fullWidth size="small" placeholder="COMPANION (例: ダイニングセット)" sx={inputSx} value={filters.companionClasses || ''} onChange={(e) => setFilters({companionClasses: e.target.value})} />
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
       {/* Dimensions & Price */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -2029,7 +2029,7 @@ const DssFilterPanel: React.FC<{ filters: any, setFilters: any, resetFilters: ()
               <Typography sx={{ color: 'text.secondary', fontSize: 10 }}>0 - MAX</Typography>
             </Box>
             <Box sx={{ px: 1 }}>
-              <Slider defaultValue={[0, 100]} sx={{ color: '#a5d6a7', py: 1.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} size="small" />
+              <Slider defaultValue={[0, 100]} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', py: 1.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} size="small" />
             </Box>
           </Box>
         ))}

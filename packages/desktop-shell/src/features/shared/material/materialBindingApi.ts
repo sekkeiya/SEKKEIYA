@@ -1,7 +1,7 @@
 // MaterialBinding 永続化 API（Phase C 基盤）
 //
 // 「どのモデル / 配置インスタンスの・どのスロットに・どの素材を当てたか」を
-// projects/{projectId}/materialBindings/{id} に保存する。S.Models 詳細（Phase D）と
+// projects/{projectId}/materialBindings/{id} に保存する。S.Model 詳細（Phase D）と
 // S.Layout Properties（Phase E）の双方がこの API を通じて読み書きする。
 //
 // ドキュメント ID は決定的:

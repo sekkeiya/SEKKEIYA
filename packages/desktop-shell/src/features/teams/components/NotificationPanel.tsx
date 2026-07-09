@@ -86,7 +86,7 @@ const UpdateNotifCard: React.FC<{ notif: AppNotification }> = ({ notif }) => {
             onClick={handleDismiss}
             sx={{
               color: BRAND.sub2, fontSize: 12, textTransform: 'none', borderRadius: 2,
-              '&:hover': { color: BRAND.text, bgcolor: 'rgba(255,255,255,0.06)' },
+              '&:hover': { color: BRAND.text, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
             }}
           >
             確認済みにする
@@ -161,7 +161,7 @@ const InviteNotifCard: React.FC<{ notif: AppNotification }> = ({ notif }) => {
             disabled={busy}
             onClick={() => handle('accept')}
             sx={{
-              bgcolor: '#3498db', color: '#fff', fontWeight: 700, fontSize: 12,
+              bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, fontSize: 12,
               textTransform: 'none', borderRadius: 2, px: 2,
               '&:hover': { bgcolor: '#2980b9' },
             }}
@@ -175,7 +175,7 @@ const InviteNotifCard: React.FC<{ notif: AppNotification }> = ({ notif }) => {
             onClick={() => handle('decline')}
             sx={{
               color: BRAND.sub2, fontSize: 12, textTransform: 'none', borderRadius: 2,
-              '&:hover': { color: BRAND.text, bgcolor: 'rgba(255,255,255,0.06)' },
+              '&:hover': { color: BRAND.text, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
             }}
           >
             辞退
@@ -247,7 +247,7 @@ const InterviewNotifCard: React.FC<{ notif: AppNotification; onClose: () => void
     <Box sx={{ px: 2.5, py: 2, display: 'flex', alignItems: 'flex-start', gap: 1.5,
       bgcolor: notif.read ? 'transparent' : 'rgba(251,146,60,0.08)', borderBottom: `1px solid ${BRAND.line}` }}>
       <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(251,146,60,0.15)' }}>
-        <MicRoundedIcon fontSize="small" sx={{ color: '#fb923c' }} />
+        <MicRoundedIcon fontSize="small" sx={{ color: 'light-dark(#aa4e03, #fb923c)' }} />
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: BRAND.text, lineHeight: 1.4 }}>
@@ -283,7 +283,7 @@ const FollowedNotifCard: React.FC<{ notif: AppNotification }> = ({ notif }) => (
     }}
   >
     <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(255,215,64,0.15)' }}>
-      <PersonAddAltRoundedIcon fontSize="small" sx={{ color: '#ffd740' }} />
+      <PersonAddAltRoundedIcon fontSize="small" sx={{ color: 'light-dark(#ad8900, #ffd740)' }} />
     </Avatar>
     <Box sx={{ flex: 1, minWidth: 0 }}>
       <Typography sx={{ fontSize: 13, color: BRAND.text, lineHeight: 1.4 }}>
@@ -346,11 +346,11 @@ const ChatMessageNotifCard: React.FC<{ notif: AppNotification; onOpenChat: () =>
         cursor: 'pointer',
         bgcolor: notif.read ? 'transparent' : 'rgba(138,180,248,0.06)',
         borderBottom: `1px solid ${BRAND.line}`,
-        '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+        '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' },
       }}
     >
       <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(138,180,248,0.15)' }}>
-        <ForumRoundedIcon fontSize="small" sx={{ color: '#8ab4f8' }} />
+        <ForumRoundedIcon fontSize="small" sx={{ color: 'light-dark(#0a45a4, #8ab4f8)' }} />
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontSize: 13, color: BRAND.text, lineHeight: 1.4 }}>
@@ -390,7 +390,7 @@ const GenericNotifCard: React.FC<{ notif: AppNotification }> = ({ notif }) => (
       borderBottom: `1px solid ${BRAND.line}`,
     }}
   >
-    <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgba(255,255,255,0.1)', fontSize: 14 }}>
+    <Avatar sx={{ width: 36, height: 36, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', fontSize: 14 }}>
       <GroupsRoundedIcon fontSize="small" sx={{ color: BRAND.sub }} />
     </Avatar>
     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -450,7 +450,7 @@ export const NotificationPanel: React.FC<{
           {unreadCount > 0 && (
             <Box
               sx={{
-                bgcolor: '#3498db', color: '#fff', borderRadius: '10px',
+                bgcolor: '#3498db', color: 'var(--brand-fg)', borderRadius: '10px',
                 px: 0.8, py: 0.1, fontSize: 11, fontWeight: 700, lineHeight: '18px',
                 minWidth: 18, textAlign: 'center',
               }}

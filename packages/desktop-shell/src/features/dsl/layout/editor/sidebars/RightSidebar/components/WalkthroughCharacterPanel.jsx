@@ -1,7 +1,7 @@
 // WalkthroughCharacterPanel.jsx
 //
 // 右サイドバーのキャラクター選択パネル。
-// プリセット（簡易シルエット）と、S.Models に登録された「キャラクター」モデルの両方から選べる。
+// プリセット（簡易シルエット）と、S.Model に登録された「キャラクター」モデルの両方から選べる。
 
 import React from "react";
 import { Box, Typography } from "@mui/material";
@@ -52,12 +52,12 @@ function CharacterCard({ desc, selected, onClick }) {
         borderRadius: 1.5,
         cursor: "pointer",
         userSelect: "none",
-        background: selected ? alpha(desc.color, 0.18) : alpha("#fff", 0.03),
-        border: `1px solid ${selected ? alpha(desc.color, 0.8) : alpha("#fff", 0.08)}`,
+        background: selected ? `color-mix(in srgb, ${desc.color} 18%, transparent)` : alpha("#fff", 0.03),
+        border: `1px solid ${selected ? `color-mix(in srgb, ${desc.color} 80%, transparent)` : alpha("#fff", 0.08)}`,
         transition: "all 0.15s",
         "&:hover": {
-          background: selected ? alpha(desc.color, 0.22) : alpha("#fff", 0.07),
-          borderColor: selected ? alpha(desc.color, 0.9) : alpha("#fff", 0.18),
+          background: selected ? `color-mix(in srgb, ${desc.color} 22%, transparent)` : alpha("#fff", 0.07),
+          borderColor: selected ? `color-mix(in srgb, ${desc.color} 90%, transparent)` : alpha("#fff", 0.18),
         },
       }}
     >
@@ -74,14 +74,14 @@ function CharacterCard({ desc, selected, onClick }) {
             style={{ height: 52, width: 40, objectFit: "contain", borderRadius: 4 }}
           />
         ) : (
-          <Silhouette color={selected ? desc.color : alpha("#ffffff", 0.55)} heightM={desc.heightM} />
+          <Silhouette color={selected ? desc.color : "color-mix(in srgb, var(--brand-fg) 55%, transparent)"} heightM={desc.heightM} />
         )}
       </Box>
       <Typography
         sx={{
           fontSize: "0.72rem",
           fontWeight: selected ? 700 : 500,
-          color: selected ? "#fff" : alpha("#fff", 0.8),
+          color: selected ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 80%, transparent)",
           textAlign: "center",
           lineHeight: 1.2,
           wordBreak: "break-word",
@@ -89,7 +89,7 @@ function CharacterCard({ desc, selected, onClick }) {
       >
         {desc.label}
       </Typography>
-      <Typography sx={{ fontSize: "0.62rem", color: alpha("#fff", 0.45) }}>
+      <Typography sx={{ fontSize: "0.62rem", color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>
         身長 {Math.round(desc.heightM * 100)}cm
       </Typography>
     </Box>
@@ -114,13 +114,13 @@ export default function WalkthroughCharacterPanel() {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <Box sx={{ px: 1.25, py: 1, overflowY: "auto" }}>
-        <Typography sx={{ color: alpha("#fff", 0.55), fontSize: "0.68rem", mb: 1 }}>
+        <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", fontSize: "0.68rem", mb: 1 }}>
           ウォークスルーで歩くキャラクターを選択（{viewMode === "first" ? "一人称" : "三人称"}）
         </Typography>
 
-        {/* S.Models 登録キャラクター */}
-        <Typography sx={{ color: alpha("#fff", 0.7), fontSize: "0.7rem", fontWeight: 700, mb: 0.75 }}>
-          登録キャラクター（S.Models）
+        {/* S.Model 登録キャラクター */}
+        <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: "0.7rem", fontWeight: 700, mb: 0.75 }}>
+          登録キャラクター（S.Model）
         </Typography>
         {modelChars.length > 0 ? (
           <Box sx={{ ...gridSx, mb: 2 }}>
@@ -134,15 +134,15 @@ export default function WalkthroughCharacterPanel() {
             ))}
           </Box>
         ) : (
-          <Typography sx={{ color: alpha("#fff", 0.35), fontSize: "0.66rem", mb: 2, lineHeight: 1.5 }}>
+          <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", fontSize: "0.66rem", mb: 2, lineHeight: 1.5 }}>
             {loading
               ? "読み込み中…"
-              : "S.Models に「キャラクター」カテゴリでモデルを登録すると、ここに表示されます。"}
+              : "S.Model に「キャラクター」カテゴリでモデルを登録すると、ここに表示されます。"}
           </Typography>
         )}
 
         {/* プリセット */}
-        <Typography sx={{ color: alpha("#fff", 0.7), fontSize: "0.7rem", fontWeight: 700, mb: 0.75 }}>
+        <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: "0.7rem", fontWeight: 700, mb: 0.75 }}>
           プリセット
         </Typography>
         <Box sx={gridSx}>
@@ -159,7 +159,7 @@ export default function WalkthroughCharacterPanel() {
           })}
         </Box>
 
-        <Typography sx={{ color: alpha("#fff", 0.35), fontSize: "0.6rem", mt: 1.5, lineHeight: 1.5 }}>
+        <Typography sx={{ color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", fontSize: "0.6rem", mt: 1.5, lineHeight: 1.5 }}>
           目線の高さ・体格が変わります。建築の視線やスケールの検討にご利用ください。
         </Typography>
       </Box>

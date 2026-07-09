@@ -17,9 +17,9 @@ export default function SidePanelSection({ icon, title, accent = "#6c87ff", defa
         sx={{ cursor: "pointer", py: 0.3, userSelect: "none" }}
         onClick={() => setOpen((v) => !v)}
       >
-        <ExpandMoreRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.6), transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.18s" }} />
+        <ExpandMoreRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", transform: open ? "none" : "rotate(-90deg)", transition: "transform 0.18s" }} />
         {icon ? React.cloneElement(icon, { sx: { fontSize: 13, color: alpha(accent, 0.9), ...(icon.props.sx || {}) } }) : null}
-        <Typography sx={{ flex: 1, fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.55), letterSpacing: 0.4 }}>
+        <Typography sx={{ flex: 1, fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", letterSpacing: 0.4 }}>
           {title}
         </Typography>
         {right}

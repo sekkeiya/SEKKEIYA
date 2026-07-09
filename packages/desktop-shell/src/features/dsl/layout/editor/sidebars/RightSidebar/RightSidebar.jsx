@@ -52,7 +52,7 @@ const Section = React.forwardRef(({ title, children, explicitHeight, minHeight =
           sx={{
             px: 1.25,
             py: 0.75,
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -98,7 +98,7 @@ const Resizer = ({ onResize }) => {
         }
       }}
     >
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.05)", position: "absolute", top: 4, left: 0, right: 0, pointerEvents: 'none' }} />
+      <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.05)", position: "absolute", top: 4, left: 0, right: 0, pointerEvents: 'none' }} />
       <Box className="hover-bar" sx={{ position: "absolute", top: 3, left: 0, right: 0, height: 2, transition: "background-color 0.2s", pointerEvents: 'none' }} />
     </Box>
   );

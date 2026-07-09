@@ -30,7 +30,7 @@ import {
 } from '../../dsl/layout/constants/furnitureCategoryDefaults';
 
 const ACCENT = '#a78bfa';
-const LINE = 'rgba(255,255,255,0.08)';
+const LINE = 'rgb(var(--brand-fg-rgb) / 0.08)';
 const BG_SIDEBAR = '#111118';
 
 const OFFICIAL_EMAILS = ['s.sekkeiya@gmail.com'];
@@ -254,8 +254,8 @@ export const DssSetFurnitureGrid: React.FC<DssSetFurnitureGridProps> = ({
           sx: {
             width: '92vw', height: '88vh',
             maxWidth: 'none', maxHeight: 'none',
-            bgcolor: '#0f1117', overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.08)',
+            bgcolor: 'var(--brand-surface)', overflow: 'hidden',
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
             borderRadius: 2,
           },
         }}
@@ -307,10 +307,10 @@ export const DssSetFurnitureGrid: React.FC<DssSetFurnitureGridProps> = ({
                     borderBottom: activeSubTab === t.key
                       ? `2px solid ${ACCENT}`
                       : '2px solid transparent',
-                    color: activeSubTab === t.key ? '#fff' : alpha('#fff', 0.4),
+                    color: activeSubTab === t.key ? 'var(--brand-fg)' : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                     fontSize: 12, fontWeight: activeSubTab === t.key ? 700 : 500,
                     transition: 'color 0.15s, border-color 0.15s',
-                    '&:hover': { color: activeSubTab === t.key ? '#fff' : alpha('#fff', 0.7) },
+                    '&:hover': { color: activeSubTab === t.key ? 'var(--brand-fg)' : "color-mix(in srgb, var(--brand-fg) 70%, transparent)" },
                   }}
                 >
                   {t.icon}
@@ -349,13 +349,13 @@ export const DssSetFurnitureGrid: React.FC<DssSetFurnitureGridProps> = ({
           <Box sx={{ px: 1.75, py: 0.75, bgcolor: alpha('#fff', 0.02), borderBottom: `1px solid ${LINE}`, flexShrink: 0 }}>
             {activeSubTab === 'official' ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <TrendingUpRoundedIcon sx={{ fontSize: 12, color: alpha('#fbbf24', 0.7) }} />
-                <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.4), lineHeight: 1.4 }}>
+                <TrendingUpRoundedIcon sx={{ fontSize: 12, color: 'light-dark(rgba(170,124,3,0.7), rgba(251,191,36,0.7))' }} />
+                <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.4 }}>
                   採用回数順に表示。Auto Layout が自動選択します。
                 </Typography>
               </Box>
             ) : (
-              <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.4), lineHeight: 1.4 }}>
+              <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.4 }}>
                 自分が登録したセット。建物タイプ・ゾーン用途を設定すると Auto Layout の精度が上がります。
               </Typography>
             )}
@@ -371,12 +371,12 @@ export const DssSetFurnitureGrid: React.FC<DssSetFurnitureGridProps> = ({
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, gap: 2 }}>
                 {activeSubTab === 'official' ? (
                   <>
-                    <StarRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.06)' }} />
+                    <StarRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
                     <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>公式セットはまだありません</Typography>
                   </>
                 ) : (
                   <>
-                    <CategoryIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.06)' }} />
+                    <CategoryIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
                     <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>マイセットが登録されていません</Typography>
                     {canCreate && (
                       <Button
@@ -463,21 +463,21 @@ const SetFurnitureCard: React.FC<{
       }}
     >
       {/* Mosaic thumbnail */}
-      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4/3', bgcolor: 'rgba(0,0,0,0.28)', display: 'flex', flexWrap: 'wrap', gap: '2px', p: '4px' }}>
+      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4/3', bgcolor: 'light-dark(rgba(15,23,42,0.09), rgba(0,0,0,0.28))', display: 'flex', flexWrap: 'wrap', gap: '2px', p: '4px' }}>
         {set.companionModels.length > 0 ? (
           set.companionModels.slice(0, 4).map((cm, i) => (
-            <Box key={i} sx={{ width: 'calc(50% - 1px)', height: 'calc(50% - 1px)', borderRadius: '3px', overflow: 'hidden', bgcolor: 'rgba(0,0,0,0.2)' }}>
+            <Box key={i} sx={{ width: 'calc(50% - 1px)', height: 'calc(50% - 1px)', borderRadius: '3px', overflow: 'hidden', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))' }}>
               {cm.thumbnailUrl
                 ? <img src={cm.thumbnailUrl} alt={cm.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ImageIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.1)' }} />
+                    <ImageIcon sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
                   </Box>
               }
             </Box>
           ))
         ) : (
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CategoryIcon sx={{ fontSize: 30, color: 'rgba(255,255,255,0.07)' }} />
+            <CategoryIcon sx={{ fontSize: 30, color: 'rgb(var(--brand-fg-rgb) / 0.07)' }} />
           </Box>
         )}
 
@@ -512,7 +512,7 @@ const SetFurnitureCard: React.FC<{
       <Box sx={{ px: 1.1, py: 0.8 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0.5 }}>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: isSelected ? '#fff' : '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: isSelected ? 'var(--brand-fg)' : 'var(--brand-fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
               {set.title}
             </Typography>
             <Typography sx={{ fontSize: 10, color: isSelected ? alpha(ACCENT, 0.7) : 'text.secondary', mt: 0.15, lineHeight: 1.2 }}>
@@ -522,10 +522,10 @@ const SetFurnitureCard: React.FC<{
           </Box>
           {canEdit && (
             <Box sx={{ display: 'flex', gap: 0.15, flexShrink: 0 }}>
-              <IconButton size="small" onClick={e => { e.stopPropagation(); onEdit(); }} sx={{ color: 'rgba(255,255,255,0.22)', p: 0.35, '&:hover': { color: ACCENT, bgcolor: alpha(ACCENT, 0.1) } }}>
+              <IconButton size="small" onClick={e => { e.stopPropagation(); onEdit(); }} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.22)', p: 0.35, '&:hover': { color: ACCENT, bgcolor: alpha(ACCENT, 0.1) } }}>
                 <EditRoundedIcon sx={{ fontSize: 11 }} />
               </IconButton>
-              <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(); }} sx={{ color: 'rgba(255,255,255,0.22)', p: 0.35, '&:hover': { color: '#ef4444', bgcolor: alpha('#ef4444', 0.1) } }}>
+              <IconButton size="small" onClick={e => { e.stopPropagation(); onDelete(); }} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.22)', p: 0.35, '&:hover': { color: '#ef4444', bgcolor: alpha('#ef4444', 0.1) } }}>
                 <DeleteOutlineRoundedIcon sx={{ fontSize: 11 }} />
               </IconButton>
             </Box>
@@ -540,7 +540,7 @@ const SetFurnitureCard: React.FC<{
                 display: 'flex', alignItems: 'center', gap: 0.25,
                 px: 0.5, py: 0.15, borderRadius: 0.75, fontSize: 9.5,
                 bgcolor: alpha('#3b82f6', 0.12),
-                color: alpha('#93c5fd', 0.85),
+                color: 'light-dark(rgba(3,82,170,0.85), rgba(147,197,253,0.85))',
                 border: `1px solid ${alpha('#3b82f6', 0.2)}`,
               }}>
                 <span style={{ fontSize: 9 }}>{z.icon}</span>
@@ -684,8 +684,8 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
       <Typography sx={{ fontSize: 9.5, fontWeight: 800, color: alpha(ACCENT, 0.75), flex: 1, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
         {label}
       </Typography>
-      {hint && <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.28) }}>{hint}</Typography>}
-      <Box sx={{ fontSize: 9, color: alpha('#fff', 0.3), transform: expandSection[id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', lineHeight: 1 }}>▼</Box>
+      {hint && <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 28%, transparent)" }}>{hint}</Typography>}
+      <Box sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", transform: expandSection[id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', lineHeight: 1 }}>▼</Box>
     </Box>
   );
 
@@ -696,10 +696,10 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
       {/* ── ヘッダー ── */}
       <Box sx={{ px: 1.5, py: 1.1, flexShrink: 0, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: 1 }}>
         {isOfficial
-          ? <StarRoundedIcon sx={{ fontSize: 14, color: '#fbbf24', flexShrink: 0 }} />
+          ? <StarRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#aa7c03, #fbbf24)', flexShrink: 0 }} />
           : <LayersRoundedIcon sx={{ fontSize: 14, color: alpha(ACCENT, 0.7), flexShrink: 0 }} />
         }
-        <Typography sx={{ fontSize: 12, fontWeight: 700, color: alpha('#fff', 0.65), flex: 1 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)", flex: 1 }}>
           {isOfficial ? '公式セット詳細' : 'セット詳細'}
         </Typography>
         {isOfficial && rate !== null && (
@@ -709,7 +709,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
           </Box>
         )}
         <Tooltip title="閉じる">
-          <IconButton size="small" onClick={onClose} sx={{ color: alpha('#fff', 0.3), '&:hover': { color: '#fff' }, p: 0.4 }}>
+          <IconButton size="small" onClick={onClose} sx={{ color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", '&:hover': { color: 'var(--brand-fg)' }, p: 0.4 }}>
             <CloseRoundedIcon sx={{ fontSize: 14 }} />
           </IconButton>
         </Tooltip>
@@ -720,11 +720,11 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
         <Box sx={{ px: 1.5, py: 0.9, borderBottom: `1px solid ${LINE}`, display: 'flex', gap: 2 }}>
           <Box sx={{ textAlign: 'center' }}>
             <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#4ade80', lineHeight: 1 }}>{set.adoptionCount ?? 0}</Typography>
-            <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.35), mt: 0.2 }}>採用</Typography>
+            <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", mt: 0.2 }}>採用</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
-            <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#f87171', lineHeight: 1 }}>{set.rejectionCount ?? 0}</Typography>
-            <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.35), mt: 0.2 }}>却下</Typography>
+            <Typography sx={{ fontSize: 16, fontWeight: 800, color: 'light-dark(#a50808, #f87171)', lineHeight: 1 }}>{set.rejectionCount ?? 0}</Typography>
+            <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", mt: 0.2 }}>却下</Typography>
           </Box>
           <Box sx={{ flex: 1 }} />
           {rate !== null && (
@@ -732,7 +732,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
               <Box sx={{ width: 80, height: 4, bgcolor: alpha('#fff', 0.08), borderRadius: 2, overflow: 'hidden' }}>
                 <Box sx={{ height: '100%', width: `${rate}%`, bgcolor: rate >= 70 ? '#4ade80' : rate >= 40 ? '#fbbf24' : '#f87171', borderRadius: 2 }} />
               </Box>
-              <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.3), mt: 0.3, textAlign: 'right' }}>採用率</Typography>
+              <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", mt: 0.3, textAlign: 'right' }}>採用率</Typography>
             </Box>
           )}
         </Box>
@@ -743,7 +743,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
 
         {/* セット名 */}
         <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
-          <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.35), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             セット名
           </Typography>
           <TextField
@@ -753,7 +753,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
             disabled={!canEdit}
             sx={{
               '& .MuiOutlinedInput-root': {
-                color: '#fff', fontSize: 13, fontWeight: 600,
+                color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600,
                 '& fieldset': { borderColor: alpha('#fff', 0.12) },
                 '&:hover fieldset': { borderColor: canEdit ? alpha('#fff', 0.28) : alpha('#fff', 0.12) },
                 '&.Mui-focused fieldset': { borderColor: ACCENT },
@@ -769,7 +769,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
           <Box sx={{ px: 1.5, py: 1.1, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             {/* 建物タイプ */}
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>建物タイプ</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>建物タイプ</Typography>
               <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
                 {[{ key: '', label: 'すべて' }, ...BUILDING_TYPE_OPTIONS].map(bt => (
                   <Box key={bt.key} onClick={() => canEdit && setBuildingType(buildingType === bt.key ? '' : bt.key)}
@@ -777,7 +777,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                       px: 0.85, py: 0.3, borderRadius: 1, cursor: canEdit ? 'pointer' : 'default',
                       fontSize: 10.5, fontWeight: 600,
                       bgcolor: buildingType === bt.key ? alpha(ACCENT, 0.18) : alpha('#fff', 0.05),
-                      color: buildingType === bt.key ? ACCENT : alpha('#fff', 0.4),
+                      color: buildingType === bt.key ? ACCENT : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                       border: `1px solid ${buildingType === bt.key ? alpha(ACCENT, 0.35) : alpha('#fff', 0.08)}`,
                       transition: 'all 0.12s',
                     }}
@@ -788,7 +788,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
 
             {/* ゾーン用途 */}
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>ゾーン用途</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>ゾーン用途</Typography>
               <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
                 {ZONE_PURPOSES.map(zp => {
                   const active = zonePurposes.includes(zp.key);
@@ -799,7 +799,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                         px: 0.7, py: 0.3, borderRadius: 1, cursor: canEdit ? 'pointer' : 'default',
                         fontSize: 10, fontWeight: active ? 700 : 400,
                         bgcolor: active ? alpha('#3b82f6', 0.18) : alpha('#fff', 0.04),
-                        color: active ? '#93c5fd' : alpha('#fff', 0.38),
+                        color: active ? 'light-dark(#0352aa, #93c5fd)' : "color-mix(in srgb, var(--brand-fg) 38%, transparent)",
                         border: `1px solid ${active ? alpha('#3b82f6', 0.35) : alpha('#fff', 0.07)}`,
                         transition: 'all 0.12s', userSelect: 'none',
                       }}
@@ -809,45 +809,45 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                   );
                 })}
               </Box>
-              <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.22), mt: 0.4 }}>未選択 = 用途不問</Typography>
+              <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)", mt: 0.4 }}>未選択 = 用途不問</Typography>
             </Box>
 
             {/* 面積レンジ */}
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>適用面積（㎡）</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>適用面積（㎡）</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 <TextField size="small" placeholder="最小" value={minAreaSqm}
                   onChange={e => setMinAreaSqm(e.target.value.replace(/[^0-9.]/g, ''))}
                   disabled={!canEdit} inputProps={{ type: 'number', min: 0 }}
-                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
+                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
                 />
-                <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.3) }}>〜</Typography>
+                <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }}>〜</Typography>
                 <TextField size="small" placeholder="最大" value={maxAreaSqm}
                   onChange={e => setMaxAreaSqm(e.target.value.replace(/[^0-9.]/g, ''))}
                   disabled={!canEdit} inputProps={{ type: 'number', min: 0 }}
-                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
+                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
                 />
-                <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.3) }}>㎡</Typography>
+                <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }}>㎡</Typography>
               </Box>
             </Box>
 
             {/* 優先度 */}
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), letterSpacing: '0.04em', textTransform: 'uppercase' }}>優先度</Typography>
+                <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", letterSpacing: '0.04em', textTransform: 'uppercase' }}>優先度</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                   <TextField size="small" value={priority}
                     onChange={e => setPriority(String(Math.max(0, Math.min(100, Number(e.target.value.replace(/[^0-9]/g, '') || '50')))))}
                     disabled={!canEdit} inputProps={{ type: 'number', min: 0, max: 100 }}
-                    sx={{ width: 52, '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '3px', textAlign: 'center' } }}
+                    sx={{ width: 52, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '3px', textAlign: 'center' } }}
                   />
-                  <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.28) }}>/100</Typography>
+                  <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 28%, transparent)" }}>/100</Typography>
                 </Box>
               </Box>
               <Box sx={{ height: 3, bgcolor: alpha('#fff', 0.07), borderRadius: 2, overflow: 'hidden' }}>
                 <Box sx={{ height: '100%', width: `${Math.max(0, Math.min(100, Number(priority) || 0))}%`, bgcolor: ACCENT, transition: 'width 0.2s' }} />
               </Box>
-              <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.22), mt: 0.35 }}>複数マッチ時、高い順に選択（0〜100）</Typography>
+              <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)", mt: 0.35 }}>複数マッチ時、高い順に選択（0〜100）</Typography>
             </Box>
           </Box>
         )}
@@ -858,7 +858,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
           <Box sx={{ px: 1.5, py: 1.1, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             {/* 配置関係 */}
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>配置関係</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>配置関係</Typography>
               <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap' }}>
                 {SET_RELATION_OPTIONS.map(opt => {
                   const active = placementRule.relation === opt.key;
@@ -870,7 +870,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                           px: 0.75, py: 0.3, borderRadius: 1, cursor: canEdit ? 'pointer' : 'default',
                           fontSize: 10.5, fontWeight: active ? 700 : 400, userSelect: 'none',
                           bgcolor: active ? alpha(ACCENT, 0.18) : alpha('#fff', 0.05),
-                          color: active ? ACCENT : alpha('#fff', 0.4),
+                          color: active ? ACCENT : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                           border: `1px solid ${active ? alpha(ACCENT, 0.35) : alpha('#fff', 0.08)}`,
                           transition: 'all 0.12s',
                         }}
@@ -885,7 +885,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
 
             {/* 正面方向 */}
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>正面方向（TOPビュー基準）</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>正面方向（TOPビュー基準）</Typography>
               <Box sx={{ display: 'flex', gap: 0.4 }}>
                 {SET_FRONT_DIRECTIONS.map(dir => {
                   const active = placementRule.frontDirectionDeg === dir.deg;
@@ -895,7 +895,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                         flex: 1, textAlign: 'center', py: 0.45, borderRadius: 1,
                         cursor: canEdit ? 'pointer' : 'default', userSelect: 'none',
                         bgcolor: active ? alpha('#38bdf8', 0.18) : alpha('#fff', 0.04),
-                        color: active ? '#38bdf8' : alpha('#fff', 0.4),
+                        color: active ? 'light-dark(#0676a8, #38bdf8)' : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                         border: `1px solid ${active ? alpha('#38bdf8', 0.4) : alpha('#fff', 0.07)}`,
                         transition: 'all 0.12s',
                       }}
@@ -911,33 +911,33 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
             {/* クリアランス */}
             <Box sx={{ display: 'flex', gap: 0.75 }}>
               <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>前方スペース</Typography>
+                <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>前方スペース</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                   <TextField size="small" value={String(placementRule.frontClearanceMm)}
                     onChange={e => canEdit && updateRule('frontClearanceMm', Math.max(0, Number(e.target.value.replace(/[^0-9]/g, '') || '0')))}
                     disabled={!canEdit} inputProps={{ type: 'number', min: 0 }}
-                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
+                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
                   />
-                  <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.3) }}>mm</Typography>
+                  <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }}>mm</Typography>
                 </Box>
               </Box>
               <Box sx={{ flex: 1, opacity: (placementRule.relation === 'against_wall' || placementRule.relation === 'corner') ? 1 : 0.4 }}>
-                <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>壁マージン</Typography>
+                <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}>壁マージン</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                   <TextField size="small" value={String(placementRule.marginFromWallMm)}
                     onChange={e => canEdit && updateRule('marginFromWallMm', Math.max(0, Number(e.target.value.replace(/[^0-9]/g, '') || '0')))}
                     disabled={!canEdit || !(placementRule.relation === 'against_wall' || placementRule.relation === 'corner')}
                     inputProps={{ type: 'number', min: 0 }}
-                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
+                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '4px', textAlign: 'center' } }}
                   />
-                  <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.3) }}>mm</Typography>
+                  <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }}>mm</Typography>
                 </Box>
               </Box>
             </Box>
 
             {/* 回転 + 繰り返し */}
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.38), mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>配置時の回転</Typography>
+              <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>配置時の回転</Typography>
               <Box sx={{ display: 'flex', gap: 0.4 }}>
                 {SET_ROTATION_OPTIONS.map(opt => {
                   const active = placementRule.rotationPolicy === opt.key;
@@ -948,7 +948,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                         fontSize: 10, fontWeight: active ? 700 : 400,
                         cursor: canEdit ? 'pointer' : 'default', userSelect: 'none',
                         bgcolor: active ? alpha(ACCENT, 0.18) : alpha('#fff', 0.04),
-                        color: active ? ACCENT : alpha('#fff', 0.4),
+                        color: active ? ACCENT : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                         border: `1px solid ${active ? alpha(ACCENT, 0.35) : alpha('#fff', 0.07)}`,
                         transition: 'all 0.12s',
                       }}
@@ -965,7 +965,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                   px: 0.7, py: 0.4, borderRadius: 1, cursor: canEdit ? 'pointer' : 'default', userSelect: 'none',
                   fontSize: 10.5, fontWeight: placementRule.repeatable ? 700 : 400,
                   bgcolor: placementRule.repeatable ? alpha('#4ade80', 0.14) : alpha('#fff', 0.04),
-                  color: placementRule.repeatable ? '#4ade80' : alpha('#fff', 0.4),
+                  color: placementRule.repeatable ? '#4ade80' : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                   border: `1px solid ${placementRule.repeatable ? alpha('#4ade80', 0.35) : alpha('#fff', 0.07)}`,
                   transition: 'all 0.12s',
                 }}
@@ -974,16 +974,16 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
               </Box>
               {placementRule.repeatable && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                  <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.35) }}>最大</Typography>
+                  <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }}>最大</Typography>
                   <TextField size="small" value={String(placementRule.maxCount ?? 0)}
                     onChange={e => canEdit && updateRule('maxCount', (() => { const n = Number(e.target.value.replace(/[^0-9]/g, '') || '0'); return n > 0 ? n : undefined; })())}
                     disabled={!canEdit} inputProps={{ type: 'number', min: 0 }}
-                    sx={{ width: 48, '& .MuiOutlinedInput-root': { color: '#fff', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '3px', textAlign: 'center' } }}
+                    sx={{ width: 48, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 11, '& fieldset': { borderColor: alpha('#fff', 0.12) }, '&.Mui-focused fieldset': { borderColor: ACCENT } }, '& input': { py: '3px', textAlign: 'center' } }}
                   />
                 </Box>
               )}
             </Box>
-            <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.22), mt: -0.5 }}>
+            <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)", mt: -0.5 }}>
               正面方向・クリアランスはフルエディタで視覚的に確認できます
             </Typography>
           </Box>
@@ -1002,7 +1002,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                       px: 0.85, py: 0.3, borderRadius: 10, cursor: canEdit ? 'pointer' : 'default',
                       fontSize: 10, fontWeight: active ? 700 : 400,
                       bgcolor: active ? alpha('#ec4899', 0.18) : alpha('#fff', 0.04),
-                      color: active ? '#f9a8d4' : alpha('#fff', 0.38),
+                      color: active ? 'light-dark(#a20b5d, #f9a8d4)' : "color-mix(in srgb, var(--brand-fg) 38%, transparent)",
                       border: `1px solid ${active ? alpha('#ec4899', 0.35) : alpha('#fff', 0.07)}`,
                       transition: 'all 0.12s', userSelect: 'none',
                     }}
@@ -1018,19 +1018,19 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
         {expandSection.models && (
           <Box sx={{ px: 1.5, py: 0.85, display: 'flex', flexDirection: 'column', gap: 0.45 }}>
             {companions.length === 0 ? (
-              <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.22), py: 1.5, textAlign: 'center' }}>モデルなし</Typography>
+              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)", py: 1.5, textAlign: 'center' }}>モデルなし</Typography>
             ) : companions.map(cm => (
               <Box key={cm.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.65, px: 0.75, py: 0.55, borderRadius: 1.25, bgcolor: alpha('#fff', 0.03), border: `1px solid ${alpha('#fff', 0.06)}` }}>
                 <Avatar src={cm.thumbnailUrl} variant="rounded" sx={{ width: 26, height: 26, flexShrink: 0, bgcolor: alpha('#7c3aed', 0.2), border: `1px solid ${alpha(ACCENT, 0.2)}` }}>
                   {!cm.thumbnailUrl && <ImageIcon sx={{ fontSize: 12 }} />}
                 </Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.78), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+                  <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 78%, transparent)", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
                     {cm.title}
                   </Typography>
                   {canEdit ? (
                     <Box component="select" value={cm.layoutCategory ?? ''} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleCompanionLayoutCategory(cm.id, e.target.value)}
-                      sx={{ mt: 0.2, bgcolor: alpha('#000', 0.3), color: cm.layoutCategory ? alpha(ACCENT, 0.85) : alpha('#fff', 0.28), border: `1px solid ${cm.layoutCategory ? alpha(ACCENT, 0.3) : alpha('#fff', 0.1)}`, borderRadius: '3px', fontSize: 9, px: 0.4, py: '2px', width: '100%', cursor: 'pointer', outline: 'none', '&:focus': { borderColor: ACCENT } }}>
+                      sx={{ mt: 0.2, bgcolor: "color-mix(in srgb, var(--brand-bg) 30%, transparent)", color: cm.layoutCategory ? alpha(ACCENT, 0.85) : alpha('#fff', 0.28), border: `1px solid ${cm.layoutCategory ? alpha(ACCENT, 0.3) : alpha('#fff', 0.1)}`, borderRadius: '3px', fontSize: 9, px: 0.4, py: '2px', width: '100%', cursor: 'pointer', outline: 'none', '&:focus': { borderColor: ACCENT } }}>
                       <option value="">カテゴリ未設定</option>
                       {LAYOUT_CATEGORIES.map(lc => <option key={lc.key} value={lc.key}>{lc.icon} {lc.label}</option>)}
                     </Box>
@@ -1039,12 +1039,12 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
                       {LAYOUT_CATEGORIES.find(l => l.key === cm.layoutCategory)?.label ?? cm.layoutCategory}
                     </Typography>
                   ) : (
-                    <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.22), lineHeight: 1.2 }}>カテゴリ未設定</Typography>
+                    <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)", lineHeight: 1.2 }}>カテゴリ未設定</Typography>
                   )}
                 </Box>
                 {canEdit && (
                   <Tooltip title="削除">
-                    <IconButton size="small" onClick={() => handleRemoveCompanion(cm.id)} sx={{ color: alpha('#fff', 0.18), p: 0.3, flexShrink: 0, '&:hover': { color: '#f87171', bgcolor: alpha('#f87171', 0.1) } }}>
+                    <IconButton size="small" onClick={() => handleRemoveCompanion(cm.id)} sx={{ color: "color-mix(in srgb, var(--brand-fg) 18%, transparent)", p: 0.3, flexShrink: 0, '&:hover': { color: 'light-dark(#a50808, #f87171)', bgcolor: alpha('#f87171', 0.1) } }}>
                       <CloseRoundedIcon sx={{ fontSize: 11 }} />
                     </IconButton>
                   </Tooltip>
@@ -1057,10 +1057,10 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
         {/* フットプリント */}
         {set.footprintMm && (
           <Box sx={{ px: 1.5, py: 0.85, borderTop: `1px solid ${LINE}` }}>
-            <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.3), letterSpacing: '0.04em', textTransform: 'uppercase', mb: 0.4 }}>フットプリント</Typography>
-            <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.55), fontVariantNumeric: 'tabular-nums' }}>
+            <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", letterSpacing: '0.04em', textTransform: 'uppercase', mb: 0.4 }}>フットプリント</Typography>
+            <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", fontVariantNumeric: 'tabular-nums' }}>
               {set.footprintMm.w.toLocaleString()} × {set.footprintMm.d.toLocaleString()} mm
-              <Typography component="span" sx={{ fontSize: 9.5, color: alpha('#fff', 0.25), ml: 0.75 }}>
+              <Typography component="span" sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)", ml: 0.75 }}>
                 ≈ {((set.footprintMm.w * set.footprintMm.d) / 1_000_000).toFixed(1)} ㎡
               </Typography>
             </Typography>
@@ -1070,11 +1070,11 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
         {/* カテゴリ構成 */}
         {set.categoryComposition && Object.keys(set.categoryComposition).length > 0 && (
           <Box sx={{ px: 1.5, py: 0.75, borderTop: `1px solid ${LINE}` }}>
-            <Typography sx={{ fontSize: 9.5, color: alpha('#fff', 0.3), letterSpacing: '0.04em', textTransform: 'uppercase', mb: 0.4 }}>カテゴリ構成</Typography>
+            <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", letterSpacing: '0.04em', textTransform: 'uppercase', mb: 0.4 }}>カテゴリ構成</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.35 }}>
               {Object.entries(set.categoryComposition).map(([key, count]) => (
                 <Chip key={key} label={`${key} ×${count}`} size="small"
-                  sx={{ height: 17, fontSize: 9, bgcolor: alpha('#fff', 0.05), color: alpha('#fff', 0.4), '& .MuiChip-label': { px: 0.5 } }}
+                  sx={{ height: 17, fontSize: 9, bgcolor: alpha('#fff', 0.05), color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", '& .MuiChip-label': { px: 0.5 } }}
                 />
               ))}
             </Box>
@@ -1093,7 +1093,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
               color: savedFlash ? '#4ade80' : ACCENT,
               border: `1px solid ${savedFlash ? alpha('#4ade80', 0.28) : alpha(ACCENT, 0.28)}`,
               '&:hover': { bgcolor: savedFlash ? alpha('#4ade80', 0.25) : alpha(ACCENT, 0.25) },
-              '&.Mui-disabled': { bgcolor: alpha('#fff', 0.03), color: alpha('#fff', 0.18), border: `1px solid ${alpha('#fff', 0.07)}` },
+              '&.Mui-disabled': { bgcolor: alpha('#fff', 0.03), color: "color-mix(in srgb, var(--brand-fg) 18%, transparent)", border: `1px solid ${alpha('#fff', 0.07)}` },
               borderRadius: 1.5, py: 0.55, transition: 'all 0.2s',
             }}
           >
@@ -1103,7 +1103,7 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
         {canEdit && (
           <Button fullWidth size="small" onClick={onOpenEditor}
             startIcon={<OpenInFullRoundedIcon sx={{ fontSize: 12 }} />}
-            sx={{ textTransform: 'none', fontSize: 11, bgcolor: alpha('#fff', 0.04), color: alpha('#fff', 0.55), border: `1px solid ${alpha('#fff', 0.09)}`, '&:hover': { bgcolor: alpha('#fff', 0.08), color: '#fff' }, borderRadius: 1.5, py: 0.5 }}
+            sx={{ textTransform: 'none', fontSize: 11, bgcolor: alpha('#fff', 0.04), color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", border: `1px solid ${alpha('#fff', 0.09)}`, '&:hover': { bgcolor: alpha('#fff', 0.08), color: 'var(--brand-fg)' }, borderRadius: 1.5, py: 0.5 }}
           >
             フルエディタで開く
           </Button>
@@ -1112,18 +1112,18 @@ const SetDetailSidebar: React.FC<SetDetailSidebarProps> = ({
           confirmDelete ? (
             <Box sx={{ display: 'flex', gap: 0.65 }}>
               <Button fullWidth size="small" onClick={onDelete}
-                sx={{ textTransform: 'none', fontSize: 11, fontWeight: 700, bgcolor: alpha('#ef4444', 0.15), color: '#f87171', border: `1px solid ${alpha('#ef4444', 0.3)}`, '&:hover': { bgcolor: alpha('#ef4444', 0.25) }, borderRadius: 1.5, py: 0.5 }}>
+                sx={{ textTransform: 'none', fontSize: 11, fontWeight: 700, bgcolor: alpha('#ef4444', 0.15), color: 'light-dark(#a50808, #f87171)', border: `1px solid ${alpha('#ef4444', 0.3)}`, '&:hover': { bgcolor: alpha('#ef4444', 0.25) }, borderRadius: 1.5, py: 0.5 }}>
                 本当に削除
               </Button>
               <Button size="small" onClick={() => setConfirmDelete(false)}
-                sx={{ textTransform: 'none', fontSize: 11, color: alpha('#fff', 0.4), '&:hover': { bgcolor: alpha('#fff', 0.05) }, minWidth: 48, borderRadius: 1.5 }}>
+                sx={{ textTransform: 'none', fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", '&:hover': { bgcolor: alpha('#fff', 0.05) }, minWidth: 48, borderRadius: 1.5 }}>
                 取消
               </Button>
             </Box>
           ) : (
             <Button fullWidth size="small" onClick={() => setConfirmDelete(true)}
               startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 12 }} />}
-              sx={{ textTransform: 'none', fontSize: 11, color: alpha('#f87171', 0.55), '&:hover': { bgcolor: alpha('#ef4444', 0.07), color: '#f87171' }, borderRadius: 1.5, py: 0.5 }}>
+              sx={{ textTransform: 'none', fontSize: 11, color: 'light-dark(rgba(165,8,8,0.55), rgba(248,113,113,0.55))', '&:hover': { bgcolor: alpha('#ef4444', 0.07), color: 'light-dark(#a50808, #f87171)' }, borderRadius: 1.5, py: 0.5 }}>
               セットを削除
             </Button>
           )

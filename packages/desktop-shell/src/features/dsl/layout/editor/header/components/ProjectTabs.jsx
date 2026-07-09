@@ -165,13 +165,13 @@ export default function ProjectTabs({
             borderRadius: 999,
             color: alpha(theme.palette.common.white, 0.78),
             border: `1px solid ${alpha(theme.palette.common.white, 0.10)}`,
-            background: alpha("#0b1024", 0.45),
+            background: "color-mix(in srgb, var(--brand-surface) 45%, transparent)",
             minWidth: 120,
             maxWidth: 260,
           },
           "& .MuiTab-root.Mui-selected": {
             color: theme.palette.common.white,
-            background: alpha("#0b1024", 0.85),
+            background: "color-mix(in srgb, var(--brand-surface) 85%, transparent)",
             borderColor: alpha(theme.palette.common.white, 0.18),
           },
           "& .MuiTabs-indicator": { display: "none" },
@@ -255,8 +255,8 @@ export default function ProjectTabs({
             height: 30,
             borderRadius: 999,
             border: `1px solid ${alpha(theme.palette.common.white, 0.14)}`,
-            background: alpha("#0b1024", 0.55),
-            "&:hover": { background: alpha("#0b1024", 0.8) },
+            background: "color-mix(in srgb, var(--brand-surface) 55%, transparent)",
+            "&:hover": { background: "color-mix(in srgb, var(--brand-surface) 80%, transparent)" },
           }}
         >
           <AddRoundedIcon fontSize="small" />
@@ -277,7 +277,7 @@ export default function ProjectTabs({
             py: 0.25,
             borderRadius: 999,
             border: `1px solid ${alpha(theme.palette.common.white, 0.12)}`,
-            background: alpha("#0b1024", 0.6),
+            background: "color-mix(in srgb, var(--brand-surface) 60%, transparent)",
             color: alpha(theme.palette.common.white, 0.85),
             fontSize: 11,
             pointerEvents: "none",

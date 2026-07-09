@@ -23,9 +23,19 @@ export interface TtsSettings {
 }
 const TTS_SETTINGS_KEY = 'sekkeiya-tts-settings';
 const DEFAULT_TTS_SETTINGS: TtsSettings = {
-  rate: 1.05, pitch: 1.0, voiceURI: null,
+  rate: 1.0, pitch: 1.0, voiceURI: null,
   engine: 'standard', aiVoice: 'Kore', aiStyle: 'anchor',
 };
+
+/**
+ * 話速の基準倍率。UI上の「標準(1.00x)」を実際の再生ではこの倍率で読む。
+ * 素の TTS の 1.0 は体感が遅いため、1.00x=1.3倍速をベースラインとする。
+ * 設定値(rate)は 1.00 基準のまま保存し、実再生時にのみ本倍率を掛ける。
+ */
+export const RATE_BASELINE = 1.3;
+
+/** UI上の rate(1.00基準) を実再生の速度へ変換する。 */
+export const toPlaybackRate = (rate: number): number => rate * RATE_BASELINE;
 
 function loadTtsSettings(): TtsSettings {
   try {
@@ -81,12 +91,67 @@ export function splitSentences(text: string): string[] {
   return String(text || '').split(/(?<=[。！？!?\n])/).filter((s) => s.length > 0);
 }
 
-/** 読み上げ用に Markdown 記号・URL を除去する（1文単位）。 */
-function cleanForSpeech(sentence: string): string {
+/**
+ * 読み上げ用にテキストを整える（1文 or 1チャンク単位）。
+ * 「そのまま読むと記号を読み上げてしまう」Markdown 記法・URL・絵文字を落とし、
+ * AI の応答（箇条書き・表・見出し・強調・コード）も自然に発話できるようにする。
+ * 表示側は元テキストのままなので、ここでの除去は発話にのみ効く。
+ */
+export function cleanForSpeech(sentence: string): string {
   return sentence
-    .replace(/[*_#>`]|!\[[^\]]*\]\([^)]*\)|\[([^\]]*)\]\([^)]*\)/g, '$1')
+    // 画像 ![alt](url) は丸ごと除去（altも読まない）
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    // リンク [表示文](url) は表示文だけ残す
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    // 生のURL
     .replace(/https?:\/\/\S+/g, '')
+    // コードフェンス記号
+    .replace(/```+/g, '')
+    // 行頭のリストマーカー（- * + ・ / 1. 2) …）・見出し(#)・引用(>)
+    .replace(/^[ \t]*(?:[-*+・]|\d+[.)])[ \t]+/gm, '')
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
+    .replace(/^[ \t]*>+[ \t]?/gm, '')
+    // 水平線・表の区切り行（|---|---|）は行ごと除去
+    .replace(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm, '')
+    .replace(/^[ \t]*\|?(?:[ \t]*:?-{2,}:?[ \t]*\|)+[ \t]*$/gm, '')
+    // 表のセル区切り | は間（スペース）に
+    .replace(/[ \t]*\|[ \t]*/g, '  ')
+    // 強調・打消し・インラインコードの記号
+    .replace(/[*_`~]/g, '')
+    // 絵文字・装飾ピクトグラム・国旗・異体字セレクタ・囲みキーキャップ（読み上げ非対象）
+    .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}️⃣]/gu, '')
+    // チェックボックス [ ] / [x]
+    .replace(/\[[ xX]\]/g, '')
+    // 連続空白の圧縮
+    .replace(/[ \t]{2,}/g, ' ')
     .trim();
+}
+
+/**
+ * AI音声（段落単位で合成）用に、テキストを発話チャンクへ整える。
+ * 表示側の文ハイライトと同じ splitSentences で分割し、各チャンクが
+ * 「元テキストの何文目から始まるか」(startSentence) を保持する
+ * ＝チャンク再生中にその文をハイライトできる。記号は cleanForSpeech で除去済み。
+ */
+export function buildSpeechChunks(text: string, maxLen = 180): { text: string; startSentence: number }[] {
+  const sentences = splitSentences(text);
+  const chunks: { text: string; startSentence: number }[] = [];
+  let buf = '';
+  let start = -1;
+  const flush = () => {
+    if (buf.trim()) chunks.push({ text: buf.trim(), startSentence: start });
+    buf = '';
+    start = -1;
+  };
+  for (let i = 0; i < sentences.length; i++) {
+    const clean = cleanForSpeech(sentences[i]);
+    if (!clean) continue;            // 記号だけの行（区切り・画像等）はスキップ
+    if (start === -1) start = i;
+    buf += (buf ? ' ' : '') + clean;
+    if (buf.length >= maxLen) flush(); // 長すぎるチャンクは分割（開始レイテンシ短縮）
+  }
+  flush();
+  return chunks;
 }
 
 // 読み上げセッション世代。cancel で古い utterance の onend/onerror が遅れて発火しても
@@ -133,7 +198,7 @@ export function speakSentences(
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
     if (voice) u.voice = voice;
-    u.rate = opts?.rate ?? ttsSettings.rate;
+    u.rate = toPlaybackRate(opts?.rate ?? ttsSettings.rate);
     u.pitch = ttsSettings.pitch;
     u.onstart = () => { if (my === session) opts?.onSentenceStart?.(idx); };
     u.onend = done;

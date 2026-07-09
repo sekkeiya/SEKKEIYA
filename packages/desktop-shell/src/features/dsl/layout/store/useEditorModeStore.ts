@@ -25,7 +25,7 @@ const DEFAULT_WALKTHROUGH_CHARACTER: WalkthroughCharacterDescriptor = {
   eyeM: 1.70,
   heightM: 1.75,
   shoulderM: 0.46,
-  color: "#5b8def",
+  color: "light-dark(#0f409e, #5b8def)",
   glbUrl: null,
 };
 
@@ -51,7 +51,7 @@ interface EditorModeState {
   walkthroughLens: { first: number; third: number; fly: number };
   setWalkthroughLens: (mode: "first" | "third" | "fly", focalMm: number) => void;
 
-  // キャラクター記述子（プリセット or S.Models モデル）。定義は walkthroughCharacters.js
+  // キャラクター記述子（プリセット or S.Model モデル）。定義は walkthroughCharacters.js
   walkthroughCharacter: WalkthroughCharacterDescriptor;
   setWalkthroughCharacter: (c: WalkthroughCharacterDescriptor) => void;
 

@@ -62,10 +62,10 @@ export const DslRendersGrid: React.FC<DslRendersGridProps> = ({
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, py: 8, gap: 1.5 }}>
         <Icon sx={{ fontSize: 48, color: 'rgba(0,191,255,0.18)' }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontWeight: 600 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, fontWeight: 600 }}>
           {emptyMessage ?? (contentType === 'Movie' ? '動画がありません' : contentType === 'Image' ? '静止画がありません' : 'レンダリング画像がありません')}
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.22)', fontSize: 12, textAlign: 'center', maxWidth: 320 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.22)', fontSize: 12, textAlign: 'center', maxWidth: 320 }}>
           3DSL エディターでレンダリングして保存すると表示されます
         </Typography>
       </Box>

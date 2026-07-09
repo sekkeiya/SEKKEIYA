@@ -327,7 +327,7 @@ export type SiteSectionType =
   | 'hero'         // プロジェクト名・キービジュアル
   | 'overview'     // 概要・コンセプト文
   | 'layout'       // S.Layout レンダー
-  | 'presentation' // S.Presentations スライド
+  | 'presentation' // S.Slide スライド
   | 'walkthrough'  // 動画
   | 'diagram'      // S.Diagram
   | 'drawing'      // S.Drawing 図面

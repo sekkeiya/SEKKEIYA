@@ -14,7 +14,7 @@ import { Modal } from '@mui/material';
 import { useAuth } from "../../features/dsl/layout/hooks/useAuthProxy";
 import { MODEL_3D_DISPLAY_NAMES } from '../../features/ai-studio/constants/ai-model-plans';
 import { useAiModelLimits } from '../../features/ai-studio/hooks/useAiModelLimits';
-import { useAIDriveStore } from '../../store/useAIDriveStore';
+import { useDriveAssets, PICKER_LAYERS } from '../../features/drive/driveAccess';
 
 import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -44,11 +44,8 @@ const AI3DCreatePanel: React.FC = () => {
     }
   }, [imageUrl]);
 
-  // AI Drive Image Assets for the picker
-  const assets = useAIDriveStore(s => s.assets);
-  const driveAssets = React.useMemo(() => {
-    return assets.filter(a => a.type === 'image' || (!a.type && (a.storageUrl?.includes('.png') || a.storageUrl?.includes('.jpg'))));
-  }, [assets]);
+  // SEKKEIYA Drive の画像資産（driveAccess = 単一の読み取り窓口・決定的プール）。
+  const { assets: driveAssets } = useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
 
   const handleFromUrl = async () => {
     if (!urlInput.trim()) return;
@@ -164,7 +161,7 @@ const AI3DCreatePanel: React.FC = () => {
   };
 
   const handleAddToWorkspace = () => {
-    alert('現在のワークスペースに追加しました（AI Drive連携モック）');
+    alert('現在のワークスペースに追加しました（SEKKEIYA Drive連携モック）');
   };
 
   const handleSaveToDrive = async () => {
@@ -187,19 +184,19 @@ const AI3DCreatePanel: React.FC = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'rgba(20,24,32,0.85)', backdropFilter: 'blur(24px)' }}>
       {/* Header */}
       <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${BRAND.line}`, minHeight: 48, flexShrink: 0 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>AI 3D Generate</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 'bold' }}>AI 3D Generate</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton 
             size="small" 
             onClick={() => setAI3DCreateExpanded(true)}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
           >
             <OpenInFullRoundedIcon fontSize="small" />
           </IconButton>
           <IconButton 
             size="small" 
             onClick={() => setAI3DCreateOpen(false)}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
           >
             <CloseRoundedIcon fontSize="small" />
           </IconButton>
@@ -211,7 +208,7 @@ const AI3DCreatePanel: React.FC = () => {
         
         {/* AI Model Selection Cards */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
+          <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
             AI Model
           </Typography>
           {AI_MODELS.map(m => {
@@ -236,27 +233,27 @@ const AI3DCreatePanel: React.FC = () => {
                   flexDirection: 'column',
                   p: 1.5,
                   borderRadius: 2,
-                  border: `1px solid ${active ? '#90caf9' : 'rgba(255,255,255,0.1)'}`,
-                  bgcolor: active ? 'rgba(144, 202, 249, 0.08)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${active ? '#90caf9' : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
+                  bgcolor: active ? 'rgba(144, 202, 249, 0.08)' : 'rgb(var(--brand-fg-rgb) / 0.02)',
                   cursor: (locked || busy || status === 'running') ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s',
                   opacity: locked ? 0.6 : 1,
                   '&:hover': {
-                    bgcolor: (!locked && !busy && status !== 'running') ? (active ? 'rgba(144, 202, 249, 0.12)' : 'rgba(255,255,255,0.05)') : undefined,
+                    bgcolor: (!locked && !busy && status !== 'running') ? (active ? 'rgba(144, 202, 249, 0.12)' : 'rgb(var(--brand-fg-rgb) / 0.05)') : undefined,
                   }
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: active ? '#90caf9' : 'rgba(255,255,255,0.9)' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: active ? 'light-dark(#095fa5, #90caf9)' : 'rgb(var(--brand-fg-rgb) / 0.9)' }}>
                     {title}
                   </Typography>
                   {locked && <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>🔒 Locked</Typography>}
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                     {desc}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: active ? '#90caf9' : 'rgba(255,255,255,0.5)', fontWeight: 'bold' }}>
+                  <Typography variant="caption" sx={{ color: active ? 'light-dark(#095fa5, #90caf9)' : 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 'bold' }}>
                     {getRemainingText(m.id).replace(/[()]/g, '')}
                   </Typography>
                 </Box>
@@ -266,8 +263,8 @@ const AI3DCreatePanel: React.FC = () => {
         </Box>
 
         {/* Input Section */}
-        <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2 }}>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mb: 1.5, fontWeight: 'bold' }}>
+        <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', mb: 1.5, fontWeight: 'bold' }}>
             画像を選択して生成
           </Typography>
           
@@ -282,12 +279,12 @@ const AI3DCreatePanel: React.FC = () => {
               sx={{ 
                 borderRadius: 1.5, 
                 textTransform: 'none', 
-                color: 'rgba(255,255,255,0.9)',
-                borderColor: 'rgba(255,255,255,0.2)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.9)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                 borderStyle: 'dashed',
                 borderWidth: 1,
                 py: 1,
-                '&:hover': { borderColor: '#fff', borderWidth: 1, bgcolor: 'rgba(255,255,255,0.05)' }
+                '&:hover': { borderColor: '#fff', borderWidth: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
               }}
             >
               ローカルから
@@ -303,22 +300,22 @@ const AI3DCreatePanel: React.FC = () => {
               sx={{ 
                 borderRadius: 1.5, 
                 textTransform: 'none', 
-                color: 'rgba(255,255,255,0.9)',
-                borderColor: 'rgba(255,255,255,0.2)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.9)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                 borderStyle: 'dashed',
                 borderWidth: 1,
                 py: 1,
-                '&:hover': { borderColor: '#fff', borderWidth: 1, bgcolor: 'rgba(255,255,255,0.05)' }
+                '&:hover': { borderColor: '#fff', borderWidth: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
               }}
             >
-              AI Driveから
+              SEKKEIYA Driveから
             </Button>
           </Box>
 
           {/* Show Generate Button and Preview if image is selected */}
           {urlInput && status !== 'running' && status !== 'done' && (
              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-               <Box sx={{ aspectRatio: '16/9', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1.5, overflow: 'hidden', position: 'relative' }}>
+               <Box sx={{ aspectRatio: '16/9', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1.5, overflow: 'hidden', position: 'relative' }}>
                  <img src={urlInput} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                  <IconButton 
                    size="small"
@@ -335,7 +332,7 @@ const AI3DCreatePanel: React.FC = () => {
                      '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } 
                    }}
                  >
-                   <CloseRoundedIcon fontSize="small" sx={{ color: '#fff' }} />
+                   <CloseRoundedIcon fontSize="small" sx={{ color: 'var(--brand-fg)' }} />
                  </IconButton>
                </Box>
                <Box sx={{ display: 'flex', gap: 1 }}>
@@ -352,10 +349,10 @@ const AI3DCreatePanel: React.FC = () => {
                      borderRadius: 1.5, 
                      textTransform: 'none', 
                      fontWeight: 'bold',
-                     borderColor: 'rgba(255,255,255,0.2)',
-                     color: 'rgba(255,255,255,0.8)',
+                     borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                     color: 'rgb(var(--brand-fg-rgb) / 0.8)',
                      py: 1,
-                     '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.05)' }
+                     '&:hover': { borderColor: '#fff', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }
                    }}
                  >
                    キャンセル
@@ -385,9 +382,9 @@ const AI3DCreatePanel: React.FC = () => {
 
         {/* Status / Viewer Section */}
         {(taskId || busy) && (
-          <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+          <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>
+              <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontWeight: 'bold' }}>
                 プレビュー
               </Typography>
               <Typography variant="caption" sx={{ color: status === 'done' ? '#66bb6a' : '#3498db', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -427,7 +424,7 @@ const AI3DCreatePanel: React.FC = () => {
                       borderRadius: 20,
                       border: 'none',
                       background: '#1976d2',
-                      color: 'white',
+                      color: 'var(--brand-fg)',
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -453,14 +450,14 @@ const AI3DCreatePanel: React.FC = () => {
                     fullWidth 
                     startIcon={<CloudUploadRoundedIcon />}
                     onClick={handleSaveToDrive}
-                    sx={{ textTransform: 'none', borderRadius: 1.5, color: 'white', whiteSpace: 'nowrap' }}
+                    sx={{ textTransform: 'none', borderRadius: 1.5, color: 'var(--brand-fg)', whiteSpace: 'nowrap' }}
                   >
-                    S.Modelsに保存
+                    S.Modelに保存
                   </Button>
                   <Button 
                     variant="outlined" 
                     onClick={handleDownload}
-                    sx={{ textTransform: 'none', borderRadius: 1.5, borderColor: 'rgba(255,255,255,0.2)', color: 'white', minWidth: 60 }}
+                    sx={{ textTransform: 'none', borderRadius: 1.5, borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)', minWidth: 60 }}
                   >
                     DL
                   </Button>
@@ -480,13 +477,13 @@ const AI3DCreatePanel: React.FC = () => {
       {/* AI Drive Image Picker Dialog */}
       <Dialog open={isDrivePickerOpen} onClose={() => setIsDrivePickerOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: BRAND.bg, backgroundImage: 'none', height: '60vh' } }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${BRAND.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold' }}>AI Drive から画像を選択</Typography>
-          <IconButton onClick={() => setIsDrivePickerOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)' }}><CloseRoundedIcon /></IconButton>
+          <Typography variant="h6" sx={{ color: 'var(--brand-fg)', fontWeight: 'bold' }}>SEKKEIYA Drive から画像を選択</Typography>
+          <IconButton onClick={() => setIsDrivePickerOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}><CloseRoundedIcon /></IconButton>
         </Box>
         <Box sx={{ flexGrow: 1, p: 2, overflowY: 'auto' }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 2 }}>
             {driveAssets.length === 0 ? (
-              <Typography sx={{ color: 'rgba(255,255,255,0.5)', gridColumn: '1 / -1', textAlign: 'center', py: 4 }}>画像アセットが見つかりません</Typography>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', gridColumn: '1 / -1', textAlign: 'center', py: 4 }}>画像アセットが見つかりません</Typography>
             ) : (
               driveAssets.map(asset => (
                 <Box 
@@ -498,7 +495,7 @@ const AI3DCreatePanel: React.FC = () => {
                     setGlbUrl(null);
                     setIsDrivePickerOpen(false);
                   }}
-                  sx={{ aspectRatio: '1', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2, overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent', '&:hover': { borderColor: '#90caf9' } }}
+                  sx={{ aspectRatio: '1', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2, overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent', '&:hover': { borderColor: '#90caf9' } }}
                 >
                   <img src={asset.storageUrl || asset.url || ''} alt={asset.title || 'image'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </Box>

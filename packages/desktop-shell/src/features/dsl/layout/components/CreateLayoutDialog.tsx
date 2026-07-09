@@ -23,7 +23,7 @@ const BASE_OPTIONS: { id: BaseSetupOption; icon: React.ReactElement; label: stri
     id: 'select_project',
     icon: <FolderOpenRoundedIcon />,
     label: 'プロジェクトから選択',
-    desc: 'S.Models のアセットを躯体として使用',
+    desc: 'S.Model のアセットを躯体として使用',
   },
   {
     id: 'select_workfile',
@@ -95,15 +95,15 @@ export const CreateLayoutDialog: React.FC<CreateLayoutDialogProps> = ({
       onClose={handleClose}
       PaperProps={{
         sx: {
-          bgcolor: '#1a1e27',
+          bgcolor: 'var(--brand-surface2)',
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           borderRadius: 3,
           minWidth: 420,
         },
       }}
     >
-      <DialogTitle sx={{ color: '#fff', fontWeight: 700, pb: 1 }}>
+      <DialogTitle sx={{ color: 'var(--brand-fg)', fontWeight: 700, pb: 1 }}>
         新規レイアウト
       </DialogTitle>
 
@@ -123,11 +123,11 @@ export const CreateLayoutDialog: React.FC<CreateLayoutDialogProps> = ({
           disabled={isCreating}
           sx={{
             mt: 1,
-            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
+            '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' },
             '& .MuiOutlinedInput-root': {
-              color: '#fff',
-              '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-              '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+              color: 'var(--brand-fg)',
+              '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+              '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
               '&.Mui-focused fieldset': { borderColor: '#00BFFF' },
             },
           }}
@@ -136,7 +136,7 @@ export const CreateLayoutDialog: React.FC<CreateLayoutDialogProps> = ({
         <Typography
           sx={{
             mt: 2.5, mb: 1.5, fontSize: 11,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgb(var(--brand-fg-rgb) / 0.45)',
             fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase',
           }}
         >
@@ -153,23 +153,23 @@ export const CreateLayoutDialog: React.FC<CreateLayoutDialogProps> = ({
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 1.5,
                   px: 1.75, py: 1.25, borderRadius: 2, cursor: isCreating ? 'default' : 'pointer',
-                  border: `1px solid ${selected ? '#00BFFF' : 'rgba(255,255,255,0.1)'}`,
+                  border: `1px solid ${selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
                   bgcolor: selected ? 'rgba(0,191,255,0.08)' : 'transparent',
                   transition: 'border-color 0.15s, background 0.15s',
                   '&:hover': !isCreating ? {
-                    borderColor: selected ? '#00BFFF' : 'rgba(255,255,255,0.25)',
-                    bgcolor: selected ? 'rgba(0,191,255,0.12)' : 'rgba(255,255,255,0.04)',
+                    borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.25)',
+                    bgcolor: selected ? 'rgba(0,191,255,0.12)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
                   } : {},
                 }}
               >
-                <Box sx={{ color: selected ? '#00BFFF' : 'rgba(255,255,255,0.35)', display: 'flex', flexShrink: 0 }}>
+                <Box sx={{ color: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.35)', display: 'flex', flexShrink: 0 }}>
                   {React.cloneElement(opt.icon, { sx: { fontSize: 20 } })}
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: selected ? 600 : 500, color: selected ? '#fff' : 'rgba(255,255,255,0.7)' }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: selected ? 600 : 500, color: selected ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
                     {opt.label}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)', lineHeight: 1.4 }}>
                     {opt.desc}
                   </Typography>
                 </Box>
@@ -179,7 +179,7 @@ export const CreateLayoutDialog: React.FC<CreateLayoutDialogProps> = ({
         </Box>
 
         {!baseSetup && (
-          <Typography sx={{ mt: 1.5, fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
+          <Typography sx={{ mt: 1.5, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.25)', textAlign: 'center' }}>
             未選択の場合はエディター内で後から設定できます
           </Typography>
         )}
@@ -189,7 +189,7 @@ export const CreateLayoutDialog: React.FC<CreateLayoutDialogProps> = ({
         <Button
           onClick={handleClose}
           disabled={isCreating}
-          sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}
+          sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}
         >
           キャンセル
         </Button>

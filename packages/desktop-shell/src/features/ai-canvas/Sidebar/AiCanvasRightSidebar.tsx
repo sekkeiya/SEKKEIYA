@@ -53,7 +53,7 @@ const EditablePropField = ({ item, propKey, propValue }: { item: any, propKey: s
       multiline={propKey === 'specs' || isMultiline}
       value={val}
       onChange={handleChange}
-      InputProps={{ sx: { fontSize: 13, color: 'white' } }}
+      InputProps={{ sx: { fontSize: 13, color: 'var(--brand-fg)' } }}
       InputLabelProps={{ sx: { color: 'text.secondary' } }}
     />
   );
@@ -107,7 +107,7 @@ export const AiCanvasRightSidebar: React.FC = () => {
     if (!selectedItem) {
       return (
         <Box sx={{ p: 2 }}>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
             キャンバス上の要素を選択すると、<br/>ここにプロパティが表示されます。
           </Typography>
         </Box>
@@ -116,7 +116,7 @@ export const AiCanvasRightSidebar: React.FC = () => {
 
     return (
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Typography variant="caption" sx={{ color: '#90caf9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
+        <Typography variant="caption" sx={{ color: 'light-dark(#095fa5, #90caf9)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>
           {selectedItem.type || 'Unknown'} Properties
         </Typography>
 
@@ -143,11 +143,11 @@ export const AiCanvasRightSidebar: React.FC = () => {
           })}
         </Box>
 
-        <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)' }}>
+        <Box sx={{ p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
             Advanced Data
           </Typography>
-          <Box component="pre" sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', m: 0, overflowX: 'auto' }}>
+          <Box component="pre" sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.5)', m: 0, overflowX: 'auto' }}>
             {JSON.stringify({ x: selectedItem.x, y: selectedItem.y, rotation: selectedItem.rotation }, null, 2)}
           </Box>
         </Box>
@@ -157,11 +157,11 @@ export const AiCanvasRightSidebar: React.FC = () => {
 
   const renderElementsTab = () => (
     <Box sx={{ p: 2 }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, mb: 2, display: 'block' }}>基本図形 & ゾーニング</Typography>
+      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontWeight: 600, mb: 2, display: 'block' }}>基本図形 & ゾーニング</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
         {['Rectangle', 'Ellipse', 'Triangle', 'Line', 'Zoning LDK', 'Zoning Bath'].map(el => (
-          <Box key={el} sx={{ height: 60, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'grab', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{el}</Typography>
+          <Box key={el} sx={{ height: 60, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'grab', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>{el}</Typography>
           </Box>
         ))}
       </Box>
@@ -182,15 +182,15 @@ export const AiCanvasRightSidebar: React.FC = () => {
 
   const renderAITab = () => (
     <Box sx={{ p: 2 }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, mb: 2, display: 'block' }}>AI デザインツール</Typography>
+      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontWeight: 600, mb: 2, display: 'block' }}>AI デザインツール</Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ p: 2, bgcolor: 'rgba(144, 202, 249, 0.1)', border: '1px solid #90caf9', borderRadius: 2, cursor: 'pointer' }}>
-          <Typography sx={{ fontSize: 13, color: '#90caf9', fontWeight: 700, mb: 0.5 }}>配置の最適化</Typography>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>選択したレイアウトを自動調整します。</Typography>
+          <Typography sx={{ fontSize: 13, color: 'light-dark(#095fa5, #90caf9)', fontWeight: 700, mb: 0.5 }}>配置の最適化</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>選択したレイアウトを自動調整します。</Typography>
         </Box>
-        <Box sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, cursor: 'pointer' }}>
-          <Typography sx={{ fontSize: 13, color: '#fff', fontWeight: 700, mb: 0.5 }}>ゾーニング診断</Typography>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>部屋同士のつながりや矛盾をチェックします。</Typography>
+        <Box sx={{ p: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2, cursor: 'pointer' }}>
+          <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 700, mb: 0.5 }}>ゾーニング診断</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>部屋同士のつながりや矛盾をチェックします。</Typography>
         </Box>
       </Box>
     </Box>
@@ -198,18 +198,18 @@ export const AiCanvasRightSidebar: React.FC = () => {
 
   const renderBottomAssetsTab = () => (
     <Box sx={{ p: 2 }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, mb: 2, display: 'block' }}>アセット</Typography>
-      <Typography variant="body2" sx={{ color: 'text.secondary' }}>AI Driveの画像やファイルをここにドラッグして配置できます。</Typography>
+      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontWeight: 600, mb: 2, display: 'block' }}>アセット</Typography>
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>SEKKEIYA Driveの画像やファイルをここにドラッグして配置できます。</Typography>
     </Box>
   );
 
   const renderBottomLayersTab = () => (
     <Box sx={{ p: 2 }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, mb: 2, display: 'block' }}>レイヤー</Typography>
-      <Box sx={{ p: 1, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 1, textAlign: 'center', mb: 1 }}>
+      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontWeight: 600, mb: 2, display: 'block' }}>レイヤー</Typography>
+      <Box sx={{ p: 1, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1, textAlign: 'center', mb: 1 }}>
          <Typography variant="body2" sx={{ color: 'text.secondary' }}>レイヤー1</Typography>
       </Box>
-      <Box sx={{ p: 1, border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 1, textAlign: 'center' }}>
+      <Box sx={{ p: 1, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1, textAlign: 'center' }}>
          <Typography variant="body2" sx={{ color: 'text.secondary' }}>背景</Typography>
       </Box>
     </Box>
@@ -217,7 +217,7 @@ export const AiCanvasRightSidebar: React.FC = () => {
 
   const renderBottomHistoryTab = () => (
     <Box sx={{ p: 2 }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, mb: 2, display: 'block' }}>履歴</Typography>
+      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontWeight: 600, mb: 2, display: 'block' }}>履歴</Typography>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>作業の履歴がここに表示されます。</Typography>
     </Box>
   );
@@ -267,7 +267,7 @@ export const AiCanvasRightSidebar: React.FC = () => {
           ...(isResizing && { bgcolor: '#90caf9' })
         }} 
       >
-        <Box sx={{ width: 30, height: 2, bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mt: '1px', borderRadius: 1 }} />
+        <Box sx={{ width: 30, height: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)', mx: 'auto', mt: '1px', borderRadius: 1 }} />
       </Box>
 
       {/* --- BOTTOM PANE --- */}

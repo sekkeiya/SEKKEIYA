@@ -16,7 +16,7 @@ import { useAIChatStore } from '../../store/useAIChatStore';
 
 // 子アプリ appScope → 表示名（docs/12 §3）。
 const APP_LABEL: Record<string, string> = {
-  '3dss': 'S.Models', '3dsl': 'S.Layout', '3dsp': 'S.Presentations',
+  '3dss': 'S.Model', '3dsl': 'S.Layout', '3dsp': 'S.Slide',
   '3dsc': 'S.Create', '3dsd': 'S.Diagram', '3dsr': 'S.Drawing',
   '3dsi': 'S.Image', '3dsf': 'S.Portfolio', '3dsq': 'S.Quest', '3dsk': 'S.Library',
 };
@@ -46,31 +46,31 @@ const Row: React.FC<RowProps> = ({ depth, icon, label, tag, count, active, caret
       ...(active
         ? { background: 'linear-gradient(90deg, rgba(255,215,64,0.14), rgba(255,215,64,0.03))', outline: '1px solid rgba(255,215,64,0.35)' }
         : {}),
-      '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
     }}
   >
-    <Box sx={{ width: 12, flexShrink: 0, display: 'flex', justifyContent: 'center', color: 'rgba(255,255,255,0.4)' }}>
+    <Box sx={{ width: 12, flexShrink: 0, display: 'flex', justifyContent: 'center', color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
       {caret === 'down' ? <KeyboardArrowDownIcon sx={{ fontSize: 13 }} />
         : caret === 'right' ? <KeyboardArrowRightIcon sx={{ fontSize: 13 }} />
         : null}
     </Box>
-    <Box sx={{ display: 'flex', alignItems: 'center', color: active ? ACCENT : 'rgba(255,255,255,0.7)', flexShrink: 0 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.7)', flexShrink: 0 }}>
       {icon}
     </Box>
     <Typography noWrap sx={{
       flex: 1, fontSize: '0.72rem',
-      color: active ? ACCENT : muted ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)',
+      color: active ? ACCENT : muted ? 'rgb(var(--brand-fg-rgb) / 0.5)' : 'rgb(var(--brand-fg-rgb) / 0.85)',
       fontWeight: active ? 600 : 400,
     }}>
       {label}
     </Typography>
     {tag && (
-      <Typography sx={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 0.75, px: 0.5 }}>
+      <Typography sx={{ fontSize: '0.55rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 0.75, px: 0.5 }}>
         {tag}
       </Typography>
     )}
     {count != null && (
-      <Typography sx={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.06)', borderRadius: 5, px: 0.75 }}>
+      <Typography sx={{ fontSize: '0.55rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', borderRadius: 5, px: 0.75 }}>
         {count}
       </Typography>
     )}
@@ -112,7 +112,7 @@ const ChatSessionRow: React.FC<ChatSessionRowProps> = ({
   if (editing) {
     return (
       <Box sx={{ pl: 0.5 + depth * 1.4, pr: 1, py: '3px', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.5)', flexShrink: 0, ml: '12px', mr: 0.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', color: 'rgb(var(--brand-fg-rgb) / 0.5)', flexShrink: 0, ml: '12px', mr: 0.5 }}>
           {icon}
         </Box>
         <TextField
@@ -127,7 +127,7 @@ const ChatSessionRow: React.FC<ChatSessionRowProps> = ({
           autoFocus
           InputProps={{
             sx: {
-              fontSize: '0.72rem', color: '#fff',
+              fontSize: '0.72rem', color: 'var(--brand-fg)',
               '&:before': { borderBottomColor: 'rgba(255,215,64,0.5)' },
               '&:after': { borderBottomColor: ACCENT },
             },
@@ -148,17 +148,17 @@ const ChatSessionRow: React.FC<ChatSessionRowProps> = ({
         ...(active
           ? { background: 'linear-gradient(90deg, rgba(255,215,64,0.14), rgba(255,215,64,0.03))', outline: '1px solid rgba(255,215,64,0.35)' }
           : {}),
-        '&:hover': { bgcolor: active ? undefined : 'rgba(255,255,255,0.05)' },
+        '&:hover': { bgcolor: active ? undefined : 'rgb(var(--brand-fg-rgb) / 0.05)' },
       }}
     >
       {/* カレット領域（幅揃え） */}
       <Box sx={{ width: 12, flexShrink: 0 }} />
-      <Box sx={{ display: 'flex', alignItems: 'center', color: active ? ACCENT : 'rgba(255,255,255,0.7)', flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.7)', flexShrink: 0 }}>
         {icon}
       </Box>
       <Typography noWrap sx={{
         flex: 1, fontSize: '0.72rem',
-        color: active ? ACCENT : 'rgba(255,255,255,0.85)',
+        color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
         fontWeight: active ? 600 : 400,
         minWidth: 0,
       }}>
@@ -170,14 +170,14 @@ const ChatSessionRow: React.FC<ChatSessionRowProps> = ({
           <IconButton
             size="small"
             onClick={() => setEditing(true)}
-            sx={{ p: '3px', color: 'rgba(255,255,255,0.4)', borderRadius: 1, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+            sx={{ p: '3px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', borderRadius: 1, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
           >
             <EditRoundedIcon sx={{ fontSize: 12 }} />
           </IconButton>
           <IconButton
             size="small"
             onClick={() => onDelete(sessionId, label)}
-            sx={{ p: '3px', color: 'rgba(255,255,255,0.4)', borderRadius: 1, '&:hover': { color: '#fa709a', bgcolor: 'rgba(250,112,154,0.12)' } }}
+            sx={{ p: '3px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', borderRadius: 1, '&:hover': { color: 'light-dark(#a80637, #fa709a)', bgcolor: 'rgba(250,112,154,0.12)' } }}
           >
             <DeleteRoundedIcon sx={{ fontSize: 12 }} />
           </IconButton>
@@ -308,7 +308,7 @@ const ChatScopeNavigator: React.FC<Props> = ({ onSelect }) => {
                                 key={t.id}
                                 sessionId={t.id}
                                 depth={depth + 3}
-                                icon={<DescriptionRoundedIcon sx={{ fontSize: 13, color: '#4fc3f7' }} />}
+                                icon={<DescriptionRoundedIcon sx={{ fontSize: 13, color: 'light-dark(#0875a6, #4fc3f7)' }} />}
                                 label={t.taskTitle ?? t.title}
                                 active={t.id === activeSessionId}
                                 onClick={() => pick(t.id)}
@@ -361,31 +361,31 @@ const ChatScopeNavigator: React.FC<Props> = ({ onSelect }) => {
       <Dialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#131920', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, color: '#fff', minWidth: 300 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, color: 'var(--brand-fg)', minWidth: 300 } }}
       >
         <DialogContent sx={{ px: 3, pt: 3, pb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2.5 }}>
             <Box sx={{ width: 34, height: 34, borderRadius: '50%', bgcolor: 'rgba(250,112,154,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25 }}>
-              <DeleteRoundedIcon sx={{ fontSize: 17, color: '#fa709a' }} />
+              <DeleteRoundedIcon sx={{ fontSize: 17, color: 'light-dark(#a80637, #fa709a)' }} />
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff', mb: 0.75 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--brand-fg)', mb: 0.75 }}>
                 チャットを削除しますか？
               </Typography>
-              <Typography sx={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.65 }}>
+              <Typography sx={{ fontSize: '0.76rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.65 }}>
                 「{deleteTarget?.title}」を削除します。<br />この操作は取り消せません。
               </Typography>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
             <Button onClick={() => setDeleteTarget(null)}
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', px: 2, borderRadius: 2,
-                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' } }}>
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', px: 2, borderRadius: 2,
+                '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
               キャンセル
             </Button>
             <Button variant="contained" onClick={handleDeleteConfirm}
               sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', px: 2.5, borderRadius: 2,
-                bgcolor: '#fa709a', color: '#fff', boxShadow: 'none', '&:hover': { bgcolor: '#f04e7a', boxShadow: 'none' } }}>
+                bgcolor: '#fa709a', color: 'var(--brand-fg)', boxShadow: 'none', '&:hover': { bgcolor: '#f04e7a', boxShadow: 'none' } }}>
               削除する
             </Button>
           </Box>

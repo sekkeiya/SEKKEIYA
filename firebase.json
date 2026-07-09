@@ -35,6 +35,18 @@
         ]
       }
     ],
+    "redirects": [
+      {
+        "source": "/products/s-models",
+        "destination": "/products/s-model",
+        "type": 301
+      },
+      {
+        "source": "/products/s-presentations",
+        "destination": "/products/s-slide",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
         "source": "/sitemap-community.xml",

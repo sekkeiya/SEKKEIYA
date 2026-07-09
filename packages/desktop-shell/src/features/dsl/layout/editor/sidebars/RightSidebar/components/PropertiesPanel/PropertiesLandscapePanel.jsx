@@ -114,7 +114,7 @@ function FlatProperties() {
       <SectionHeader
         icon={
           <LandscapeRoundedIcon
-            sx={{ fontSize: 18, color: "#9bc88a" }}
+            sx={{ fontSize: 18, color: "light-dark(#497637, #9bc88a)" }}
           />
         }
         title="Flat (地面)"
@@ -138,9 +138,9 @@ function FlatProperties() {
           MenuProps={{
             PaperProps: {
               sx: {
-                bgcolor: "#1e293b",
+                bgcolor: "var(--brand-surface2)",
                 border: `1px solid ${alpha("#fff", 0.1)}`,
-                "& .MuiMenuItem-root": { fontSize: 12.5, color: "#fff" },
+                "& .MuiMenuItem-root": { fontSize: 12.5, color: "var(--brand-fg)" },
               },
             },
           }}
@@ -162,7 +162,7 @@ function FlatProperties() {
             style={{
               width: 32,
               height: 24,
-              border: "1px solid rgba(255,255,255,0.15)",
+              border: "1px solid rgb(var(--brand-fg-rgb) / 0.15)",
               borderRadius: 4,
               background: "transparent",
               cursor: "pointer",
@@ -266,7 +266,7 @@ function SkyProperties() {
     <Box>
       <SectionHeader
         icon={
-          <CloudRoundedIcon sx={{ fontSize: 18, color: "#9fc7ee" }} />
+          <CloudRoundedIcon sx={{ fontSize: 18, color: "light-dark(#1a5793, #9fc7ee)" }} />
         }
         title="Sky (空 / HDR Environment)"
         visible={skyVisible}
@@ -290,9 +290,9 @@ function SkyProperties() {
           MenuProps={{
             PaperProps: {
               sx: {
-                bgcolor: "#1e293b",
+                bgcolor: "var(--brand-surface2)",
                 border: `1px solid ${alpha("#fff", 0.1)}`,
-                "& .MuiMenuItem-root": { fontSize: 12.5, color: "#fff" },
+                "& .MuiMenuItem-root": { fontSize: 12.5, color: "var(--brand-fg)" },
               },
             },
           }}
@@ -355,7 +355,7 @@ function SkyProperties() {
             style={{
               width: 32,
               height: 24,
-              border: "1px solid rgba(255,255,255,0.15)",
+              border: "1px solid rgb(var(--brand-fg-rgb) / 0.15)",
               borderRadius: 4,
               background: "transparent",
               cursor: skyVisible ? "not-allowed" : "pointer",

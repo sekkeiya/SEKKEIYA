@@ -122,7 +122,7 @@ export function useRhinoDragImport() {
 
           if (raw.includes("RHINO_NOT_RUNNING")) {
             setErrorMessage(
-              "Rhino が開いていないか、プラグインからの情報待ちです。Rhino を起動し、S.Models プラグインを設定してから再度お試しください。"
+              "Rhino が開いていないか、プラグインからの情報待ちです。Rhino を起動し、S.Model プラグインを設定してから再度お試しください。"
             );
           } else {
             setErrorMessage(

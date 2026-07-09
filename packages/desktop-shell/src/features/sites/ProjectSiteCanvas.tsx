@@ -785,7 +785,7 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
       {/* ツールバー（ページタブを左端に統合して 1 行に） */}
       <Box sx={{
         display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, px: { xs: 1, md: 3 }, py: 0.5,
-        borderBottom: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(10,15,25,0.6)', flexShrink: 0,
+        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(255,255,255,0.85), rgba(10,15,25,0.6))', flexShrink: 0,
         overflowX: 'hidden',
       }}>
         {/* モバイル：ページ／目次ドロワーを開くメニューボタン */}
@@ -795,8 +795,8 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
               size="small"
               onClick={() => setNavOpen(o => !o)}
               sx={{
-                color: navOpen ? accent : 'rgba(255,255,255,0.85)', flexShrink: 0,
-                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 1.5,
+                color: navOpen ? accent : 'rgb(var(--brand-fg-rgb) / 0.85)', flexShrink: 0,
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 1.5,
                 bgcolor: navOpen ? `${accent}22` : 'transparent',
               }}
             >
@@ -806,7 +806,7 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
         )}
 
         {tabsSlot && <Box sx={{ minWidth: 0 }}>{tabsSlot}</Box>}
-        {tabsSlot && !isMobile && <Box sx={{ width: '1px', alignSelf: 'stretch', my: 0.75, bgcolor: 'rgba(255,255,255,0.12)' }} />}
+        {tabsSlot && !isMobile && <Box sx={{ width: '1px', alignSelf: 'stretch', my: 0.75, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)' }} />}
 
         <Box sx={{ flex: 1, minWidth: 0 }} />
 
@@ -822,11 +822,11 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
                   ? <CircularProgress size={12} sx={{ color: 'inherit' }} />
                   : <CloudSyncRoundedIcon sx={{ fontSize: '0.95rem !important' }} />}
                 sx={{
-                  fontSize: '0.68rem', fontWeight: 700, textTransform: 'none', color: '#fff',
+                  fontSize: '0.68rem', fontWeight: 700, textTransform: 'none', color: 'light-dark(#006c91, #fff)',
                   bgcolor: 'rgba(0,191,255,0.18)', border: '1px solid rgba(0,191,255,0.4)',
                   borderRadius: 1.5, px: 1.2, py: 0.3, minWidth: 0,
                   '&:hover': { bgcolor: 'rgba(0,191,255,0.28)' },
-                  '&.Mui-disabled': { color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.12)', bgcolor: 'transparent' },
+                  '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', bgcolor: 'transparent' },
                 }}
               >
                 {saving ? '保存中…' : '保存'}
@@ -842,8 +842,8 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
           onChange={(_e, v) => v && setMode(v)}
           sx={{
             flexShrink: 0,
-            '& .MuiToggleButton-root': { color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.12)', textTransform: 'none', fontWeight: 700, px: { xs: 0.9, md: 1.5 }, py: 0.4, fontSize: '0.78rem' },
-            '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgba(0,191,255,0.2) !important' },
+            '& .MuiToggleButton-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)', textTransform: 'none', fontWeight: 700, px: { xs: 0.9, md: 1.5 }, py: 0.4, fontSize: '0.78rem' },
+            '& .Mui-selected': { color: 'var(--brand-fg) !important', bgcolor: 'rgba(0,191,255,0.2) !important' },
           }}
         >
           <ToggleButton value="edit"><EditRoundedIcon sx={{ fontSize: '1rem', mr: isMobile ? 0 : 0.5 }} />{!isMobile && '編集'}</ToggleButton>
@@ -858,11 +858,11 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
             onClick={() => { setInBlogView(false); if (mode !== 'preview') setMode('preview'); setPresentOpen(true); }}
             sx={{
               flexShrink: 0, minWidth: isMobile ? 0 : undefined, px: isMobile ? 1 : 1.2, py: 0.3,
-              color: presentOpen ? '#000' : 'rgba(255,255,255,0.75)',
+              color: presentOpen ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.75)',
               bgcolor: presentOpen ? accent : 'transparent',
-              border: `1px solid ${presentOpen ? accent : 'rgba(255,255,255,0.12)'}`,
+              border: `1px solid ${presentOpen ? accent : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
               borderRadius: 1.5, textTransform: 'none', fontWeight: 700,
-              '&:hover': { bgcolor: presentOpen ? accent : 'rgba(255,255,255,0.06)', color: presentOpen ? '#000' : '#fff' },
+              '&:hover': { bgcolor: presentOpen ? accent : 'rgb(var(--brand-fg-rgb) / 0.06)', color: presentOpen ? '#000' : 'var(--brand-fg)' },
             }}
           >
             {!isMobile && 'プレゼン'}
@@ -875,10 +875,10 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
             size="small"
             onClick={() => setSettingsOpen(true)}
             sx={{
-              color: settingsOpen ? '#00BFFF' : 'rgba(255,255,255,0.6)',
-              border: '1px solid rgba(255,255,255,0.12)', borderRadius: 1.5,
+              color: settingsOpen ? 'light-dark(#0086b3, #00BFFF)' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 1.5,
               bgcolor: settingsOpen ? 'rgba(0,191,255,0.12)' : 'transparent',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', color: '#fff' },
+              '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'var(--brand-fg)' },
             }}
           >
             {isAccount
@@ -909,10 +909,10 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
               size="small"
               onClick={() => setDockOpen(o => !o)}
               sx={{
-                color: dockOpen ? '#00BFFF' : 'rgba(255,255,255,0.6)',
-                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 1.5,
+                color: dockOpen ? 'light-dark(#0086b3, #00BFFF)' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 1.5,
                 bgcolor: dockOpen ? 'rgba(0,191,255,0.12)' : 'transparent',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', color: '#fff' },
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'var(--brand-fg)' },
               }}
             >
               <ViewSidebarRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -1116,7 +1116,7 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
               <SortableContext items={pageSections.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 {pageSections.length === 0 ? (
                   <Box sx={{ p: 8, textAlign: 'center', color: theme.subtext }}>
-                    <Typography sx={{ fontFamily: theme.bodyFamily }}>このページにはまだセクションがありません。SEKKEIYA Chat で「〜セクションを追加して」と頼むか、右上の素材パネルから追加できます。</Typography>
+                    <Typography sx={{ fontFamily: theme.bodyFamily }}>このページにはまだセクションがありません。SEKKEIYA OS で「〜セクションを追加して」と頼むか、右上の素材パネルから追加できます。</Typography>
                   </Box>
                 ) : (
                 <>

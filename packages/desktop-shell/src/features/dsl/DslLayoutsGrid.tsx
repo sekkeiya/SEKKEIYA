@@ -30,8 +30,8 @@ const CreateCard: React.FC<{ cardSize: number; onClick: () => void }> = ({ cardS
         width: cardSize,
         borderRadius: 2,
         overflow: 'hidden',
-        border: `1.5px dashed ${hovered ? 'rgba(0,191,255,0.6)' : 'rgba(148,163,184,0.2)'}`,
-        background: hovered ? 'rgba(0,191,255,0.04)' : 'rgba(15,23,42,0.3)',
+        border: `1.5px dashed ${hovered ? 'rgba(0,191,255,0.6)' : 'rgb(var(--slate-ink-rgb) / 0.2)'}`,
+        background: hovered ? 'rgba(0,191,255,0.04)' : 'rgb(var(--slate-panel-rgb) / 0.3)',
         cursor: 'pointer',
         transition: 'border-color 0.15s, background 0.15s',
         flexShrink: 0,
@@ -47,10 +47,10 @@ const CreateCard: React.FC<{ cardSize: number; onClick: () => void }> = ({ cardS
           justifyContent: 'center',
         }}
       >
-        <AddRoundedIcon sx={{ fontSize: Math.round(cardSize * 0.18), color: hovered ? 'rgba(0,191,255,0.7)' : 'rgba(148,163,184,0.25)', transition: 'color 0.15s' }} />
+        <AddRoundedIcon sx={{ fontSize: Math.round(cardSize * 0.18), color: hovered ? 'rgba(0,191,255,0.7)' : 'rgb(var(--slate-ink-rgb) / 0.25)', transition: 'color 0.15s' }} />
       </Box>
       <Box sx={{ px: 1.25, py: 0.75 }}>
-        <Typography sx={{ fontSize: cardSize < 190 ? 11 : 12, fontWeight: 600, color: hovered ? 'rgba(0,191,255,0.8)' : 'rgba(148,163,184,0.35)', transition: 'color 0.15s' }}>
+        <Typography sx={{ fontSize: cardSize < 190 ? 11 : 12, fontWeight: 600, color: hovered ? 'rgba(0,191,255,0.8)' : 'rgb(var(--slate-ink-rgb) / 0.35)', transition: 'color 0.15s' }}>
           新規レイアウト追加
         </Typography>
       </Box>
@@ -98,7 +98,7 @@ export const DslLayoutsGrid: React.FC<DslLayoutsGridProps> = ({
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, height: '100%', gap: 3, py: 6 }}>
         {onCreateNew && <CreateCard cardSize={210} onClick={onCreateNew} />}
-        <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 500, fontSize: 13 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 500, fontSize: 13 }}>
           {emptyMessage}
         </Typography>
       </Box>
@@ -118,7 +118,7 @@ export const DslLayoutsGrid: React.FC<DslLayoutsGridProps> = ({
         transition: 'opacity 0.2s ease',
         '&::-webkit-scrollbar': { width: 4 },
         '&::-webkit-scrollbar-track': { background: 'transparent' },
-        '&::-webkit-scrollbar-thumb': { background: 'rgba(148,163,184,0.18)', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { background: 'rgb(var(--slate-ink-rgb) / 0.18)', borderRadius: 2 },
       }}
     >
       <Box

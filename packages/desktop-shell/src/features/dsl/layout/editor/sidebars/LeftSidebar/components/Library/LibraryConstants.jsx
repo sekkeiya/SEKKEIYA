@@ -27,7 +27,7 @@ import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
 import DirectionsWalkRoundedIcon from "@mui/icons-material/DirectionsWalkRounded";
 
 // ルートカテゴリ = 正典マクロ（useUserSettingsStore の MACRO_CATEGORY_ORDER）。
-// サブグループ・リーフは getMergedCategoryMap() から動的に生成され、S.Models Settings と一致する。
+// サブグループ・リーフは getMergedCategoryMap() から動的に生成され、S.Model Settings と一致する。
 //   macro:   モデルの macroCategory と照合するキー（null = 特殊パネル）
 //   context: 'plan'=家具配置(Plan/Option)時 / 'base'=躯体(Base)時 / 'both'=両方で表示
 export const ROOT_CATEGORIES = [

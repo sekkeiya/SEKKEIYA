@@ -107,3 +107,16 @@ export function saveUrlSnapshot(localId: string, url: string): Promise<SnapshotR
 export function readLocalBinaryFile(path: string): Promise<number[]> {
   return invoke<number[]>('read_local_binary_file', { path });
 }
+
+/**
+ * e-Gov 法令API v2 を GET して本文（JSON文字列）を返す（CORS回避・Rust側で取得）。
+ * path は "laws?law_title=..." のような /api/2/ からの相対パス。
+ */
+export function fetchEgovApi(path: string): Promise<string> {
+  return invoke<string>('fetch_egov_api', { path });
+}
+
+/** エントリフォルダ直下にテキストファイルを書く（law.json 等）。保存パスを返す。 */
+export function writeEntryTextFile(localId: string, fileName: string, content: string): Promise<string> {
+  return invoke<string>('write_entry_text_file', { localId, fileName, content });
+}

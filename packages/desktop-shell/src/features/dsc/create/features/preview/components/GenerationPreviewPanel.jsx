@@ -87,11 +87,11 @@ export default function GenerationPreviewPanel() {
               opacity: 0.5,
               transition: 'all 0.2s',
               '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.05)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
                 transform: 'translateY(-1px)'
               },
               '&.Mui-selected': {
-                bgcolor: 'rgba(255,255,255,0.1)',
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)',
                 color: 'text.primary',
                 opacity: 1,
                 boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
@@ -116,16 +116,16 @@ export default function GenerationPreviewPanel() {
         boxShadow: 'inset 0 0 100px rgba(0,0,0,0.7)', // Vignette effect
         m: 1,
         borderRadius: 2,
-        border: `1px solid rgba(255,255,255,0.03)`
+        border: `1px solid rgb(var(--brand-fg-rgb) / 0.03)`
       }}>
         
         {/* Empty State */}
         {isEmpty && (
           <Box sx={{ textAlign: 'center', color: 'text.secondary', opacity: 0.8, maxWidth: 400, px: 3, animation: 'fadeIn 0.5s ease-in' }}>
             <Box sx={{ 
-              width: 80, height: 80, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)', 
+              width: 80, height: 80, borderRadius: '50%', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', 
               display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3,
-              boxShadow: '0 0 20px rgba(255,255,255,0.05)'
+              boxShadow: '0 0 20px rgb(var(--brand-fg-rgb) / 0.05)'
             }}>
               <ImageSearchIcon sx={{ fontSize: 40, color: tokens.text.accent }} />
             </Box>
@@ -165,7 +165,7 @@ export default function GenerationPreviewPanel() {
               <Box sx={{ 
                 position: 'absolute', top: 16, right: 16, zIndex: 10,
                 bgcolor: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.5)',
-                color: '#FFD700', px: 1.5, py: 0.5, borderRadius: 1,
+                color: 'light-dark(#ad9200, #FFD700)', px: 1.5, py: 0.5, borderRadius: 1,
                 display: 'flex', alignItems: 'center', gap: 1, backdropFilter: 'blur(4px)',
                 boxShadow: '0 4px 12px rgba(255,215,0,0.1)'
               }}>
@@ -207,7 +207,7 @@ export default function GenerationPreviewPanel() {
                   width: '100%', 
                   height: '100%',
                   color: 'text.disabled',
-                  bgcolor: 'rgba(0,0,0,0.2)',
+                  bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
                   borderRadius: 2
                 }}
               >
@@ -246,7 +246,7 @@ export default function GenerationPreviewPanel() {
       </Box>
 
       {/* Bottom Scaffolding: Candidate Thumbnails / Compare */}
-      <Box sx={{ height: 80, borderTop: `1px solid ${tokens.border.subtle}`, display: 'flex', alignItems: 'center', px: 2, gap: 1, bgcolor: 'rgba(0,0,0,0.2)' }}>
+      <Box sx={{ height: 80, borderTop: `1px solid ${tokens.border.subtle}`, display: 'flex', alignItems: 'center', px: 2, gap: 1, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))' }}>
         <Typography variant="caption" color="text.secondary" sx={{ mr: 2 }}>
           候補モデル:
         </Typography>
@@ -257,9 +257,9 @@ export default function GenerationPreviewPanel() {
           </Typography>
         ) : (
           <>
-            <Box sx={{ width: 60, height: 60, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid ${tokens.border.active}` }} />
-            <Box sx={{ width: 60, height: 60, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid ${tokens.border.subtle}` }} />
-            <Box sx={{ width: 60, height: 60, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid ${tokens.border.subtle}` }} />
+            <Box sx={{ width: 60, height: 60, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', border: `1px solid ${tokens.border.active}` }} />
+            <Box sx={{ width: 60, height: 60, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', border: `1px solid ${tokens.border.subtle}` }} />
+            <Box sx={{ width: 60, height: 60, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', border: `1px solid ${tokens.border.subtle}` }} />
           </>
         )}
         <Box sx={{ flexGrow: 1 }} />

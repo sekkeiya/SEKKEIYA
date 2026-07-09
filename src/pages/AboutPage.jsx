@@ -55,9 +55,9 @@ const GradText = ({ children }) => (
 );
 
 const ECOSYSTEM = [
-  { id: "3dss", name: "S.Models",          value: "3Dモデルの高品質共有DB",        status: "Live" },
+  { id: "3dss", name: "S.Model",          value: "3Dモデルの高品質共有DB",        status: "Live" },
   { id: "3dsl", name: "S.Layout",          value: "ブラウザ完結の空間レイアウト",   status: "Beta" },
-  { id: "3dsp", name: "S.Presentations",   value: "歩き回れる3Dプレゼン生成",       status: "Alpha" },
+  { id: "3dsp", name: "S.Slide",   value: "歩き回れる3Dプレゼン生成",       status: "Alpha" },
 ];
 
 export default function AboutPage() {
@@ -152,9 +152,9 @@ export default function AboutPage() {
               </motion.div>
 
               {[
-                { label: "S.Models (共有)", deg: 0 },
+                { label: "S.Model (共有)", deg: 0 },
                 { label: "S.Layout (配置)", deg: 90 },
-                { label: "S.Presentations (提案)", deg: 180 },
+                { label: "S.Slide (提案)", deg: 180 },
                 { label: "AI (思考)",   deg: 270 },
               ].map((item, i) => {
                 const r = 160;

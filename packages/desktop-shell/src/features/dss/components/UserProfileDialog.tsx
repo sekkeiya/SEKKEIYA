@@ -240,9 +240,9 @@ export const UserProfileDialog: React.FC<{
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#1e293b',
+          bgcolor: 'var(--brand-surface2)',
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           overflow: 'hidden'
         }
       }}
@@ -252,7 +252,7 @@ export const UserProfileDialog: React.FC<{
         sx={{ 
           height: '160px', 
           width: '100%', 
-          bgcolor: 'rgba(255,255,255,0.05)',
+          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
           backgroundImage: extendedProfile?.bannerURL ? `url(${extendedProfile.bannerURL})` : 'none',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -314,35 +314,35 @@ export const UserProfileDialog: React.FC<{
         </Box>
 
         {extendedProfile?.bio && (
-          <Typography variant="body1" sx={{ mt: 3, color: 'rgba(255,255,255,0.85)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+          <Typography variant="body1" sx={{ mt: 3, color: 'rgb(var(--brand-fg-rgb) / 0.85)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
             {extendedProfile.bio}
           </Typography>
         )}
 
-        <Box sx={{ display: 'flex', gap: 4, mt: 4, mb: 1, p: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
+        <Box sx={{ display: 'flex', gap: 4, mt: 4, mb: 1, p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: '12px' }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {modelCount === null ? <CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.5)' }} /> : modelCount}
+              {modelCount === null ? <CircularProgress size={16} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} /> : modelCount}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>投稿モデル</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>投稿モデル</Typography>
           </Box>
           <Box 
             onClick={() => setFollowListType('followers')}
             sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 }, minWidth: 64 }}
           >
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {followerCount === null ? <CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.5)' }} /> : followerCount}
+              {followerCount === null ? <CircularProgress size={16} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} /> : followerCount}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>フォロワー</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>フォロワー</Typography>
           </Box>
           <Box 
             onClick={() => setFollowListType('following')}
             sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 }, minWidth: 64 }}
           >
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              {followingCount === null ? <CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.5)' }} /> : followingCount}
+              {followingCount === null ? <CircularProgress size={16} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} /> : followingCount}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>フォロー中</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>フォロー中</Typography>
           </Box>
         </Box>
 
@@ -372,7 +372,7 @@ export const UserProfileDialog: React.FC<{
             )}
             {extendedProfile.socials.github && (
               <Tooltip title="GitHub">
-                 <IconButton size="small" onClick={() => goToLink(extendedProfile.socials.github)} sx={{ color: '#ffffff', bgcolor: 'rgba(255, 255, 255, 0.1)' }}>
+                 <IconButton size="small" onClick={() => goToLink(extendedProfile.socials.github)} sx={{ color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }}>
                    <GitHubIcon fontSize="small" />
                  </IconButton>
               </Tooltip>
@@ -390,19 +390,19 @@ export const UserProfileDialog: React.FC<{
         {/* 公開モデル一覧 */}
         <Box sx={{ mt: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
               公開モデル
             </Typography>
             {publicModels !== null && (
-              <Chip label={publicModels.length} size="small" sx={{ height: 18, fontSize: 11, bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }} />
+              <Chip label={publicModels.length} size="small" sx={{ height: 18, fontSize: 11, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
             )}
           </Box>
           {publicModels === null ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress size={20} sx={{ color: 'rgba(255,255,255,0.4)' }} />
+              <CircularProgress size={20} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
             </Box>
           ) : publicModels.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', py: 2, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', py: 2, textAlign: 'center' }}>
               まだ公開モデルがありません
             </Typography>
           ) : (
@@ -427,8 +427,8 @@ export const UserProfileDialog: React.FC<{
                         aspectRatio: '1 / 1',
                         borderRadius: '8px',
                         overflow: 'hidden',
-                        bgcolor: 'rgba(0,0,0,0.25)',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))',
+                        border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -437,7 +437,7 @@ export const UserProfileDialog: React.FC<{
                       {thumb ? (
                         <Box component="img" src={thumb} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', px: 0.5, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', px: 0.5, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {m.name || m.title || '3D'}
                         </Typography>
                       )}
@@ -462,7 +462,7 @@ export const UserProfileDialog: React.FC<{
       )}
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>閉じる</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>閉じる</Button>
       </DialogActions>
     </Dialog>
   );

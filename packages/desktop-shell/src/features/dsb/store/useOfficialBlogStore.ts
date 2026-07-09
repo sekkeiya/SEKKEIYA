@@ -9,8 +9,10 @@ import {
 } from '../api/officialBlogApi';
 
 type OfficialMode = 'list' | 'edit';
-// 公式モードのナビ。articles=記事一覧 / strategy=Content Strategy / categories=カテゴリ管理。
-type OfficialView = 'articles' | 'strategy' | 'categories';
+// 公式モードのナビ（アカウントブログとサイドバー項目を揃える）。
+// feed=ホーム / overview=概要・分析 / schedule=スケジュール(Schedules & Tasks) /
+// strategy=コンテンツ戦略(Content Strategy) / articles=記事一覧 / categories=カテゴリ管理。
+type OfficialView = 'feed' | 'overview' | 'schedule' | 'strategy' | 'articles' | 'categories';
 
 interface OfficialBlogState {
   articles: OfficialArticle[];
@@ -19,8 +21,11 @@ interface OfficialBlogState {
   mode: OfficialMode;
   view: OfficialView;
   draft: OfficialDraft | null;
+  /** 記事一覧のカテゴリ絞り込み（サイドバーのカテゴリ行から。null=全件） */
+  categoryFilter: string | null;
 
   setView: (v: OfficialView) => void;
+  setCategoryFilter: (c: string | null) => void;
   refresh: () => Promise<void>;
   startNew: () => void;
   startEdit: (id: string) => Promise<void>;
@@ -38,9 +43,14 @@ export const useOfficialBlogStore = create<OfficialBlogState>((set, get) => ({
   mode: 'list',
   view: 'articles',
   draft: null,
+  categoryFilter: null,
 
   // ビュー切替は編集を抜けてから（未保存の下書きは破棄される点は呼び出し側で配慮）。
-  setView: (view) => set({ view, mode: 'list', draft: null }),
+  // ナビからのビュー切替は常にカテゴリ絞り込みを解除する（「記事一覧」= 全件）。
+  // カテゴリでの絞り込みは setCategoryFilter が別途 view='articles' + filter を立てる。
+  setView: (view) => set({ view, mode: 'list', draft: null, categoryFilter: null }),
+  // カテゴリを選んだら記事一覧ビューへ（アカウント側 setCategoryFilter と同じ挙動）。
+  setCategoryFilter: (categoryFilter) => set({ categoryFilter, view: 'articles', mode: 'list', draft: null }),
 
   refresh: async () => {
     set({ loading: true });

@@ -54,7 +54,7 @@ export class MoodBoardShapeUtil extends ShapeUtil<any> {
           {imgUrl ? (
             <img src={imgUrl} alt={keyword} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <span style={{ color: '#aaa', fontSize: '0.8rem', textAlign: 'center', padding: '10px' }}>
+            <span style={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontSize: '0.8rem', textAlign: 'center', padding: '10px' }}>
               画像なし<br/>(D&Dで今後実装予定)
             </span>
           )}

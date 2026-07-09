@@ -7,12 +7,12 @@ import type { DslPlanType, DslQuality, DslSortBy } from './store/useDslFilterSto
 const PLAN_TYPE_OPTIONS: { value: DslPlanType; label: string; color: string }[] = [
   { value: 'base', label: 'Base', color: '#34d399' },
   { value: 'plan', label: 'Plan', color: '#00BFFF' },
-  { value: 'option', label: 'Option', color: '#f472b6' },
+  { value: 'option', label: 'Option', color: 'light-dark(#a10d5a, #f472b6)' },
 ];
 
 const QUALITY_OPTIONS: { value: DslQuality; label: string; color: string }[] = [
-  { value: 'cycles', label: 'Cycles', color: '#a78bfa' },
-  { value: 'standard', label: '標準', color: '#6c87ff' },
+  { value: 'cycles', label: 'Cycles', color: 'light-dark(#2f07a6, #a78bfa)' },
+  { value: 'standard', label: '標準', color: 'light-dark(#0020ad, #6c87ff)' },
 ];
 
 const SORT_OPTIONS: { value: DslSortBy; label: string }[] = [
@@ -26,7 +26,7 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
     sx={{
       fontSize: 10,
       fontWeight: 700,
-      color: 'rgba(148,163,184,0.75)',
+      color: 'rgb(var(--slate-ink-rgb) / 0.75)',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       mb: 1,
@@ -57,11 +57,11 @@ export const DslFilterPanel: React.FC = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           height: 48,
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
           flexShrink: 0,
         }}
       >
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'rgba(229,231,235,0.9)' }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
           Search & Filter
         </Typography>
         {hasFilters && (
@@ -71,11 +71,11 @@ export const DslFilterPanel: React.FC = () => {
             sx={{
               fontSize: 11,
               textTransform: 'none',
-              color: 'rgba(148,163,184,0.65)',
+              color: 'rgb(var(--slate-ink-rgb) / 0.65)',
               minWidth: 0,
               px: 1,
               py: 0.25,
-              '&:hover': { color: '#fff' },
+              '&:hover': { color: 'var(--brand-fg)' },
             }}
           >
             Reset
@@ -94,7 +94,7 @@ export const DslFilterPanel: React.FC = () => {
           flexDirection: 'column',
           gap: 2.5,
           '&::-webkit-scrollbar': { width: 4 },
-          '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.1)', borderRadius: 2 },
+          '&::-webkit-scrollbar-thumb': { background: 'rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2 },
         }}
       >
         {/* Sort */}
@@ -119,7 +119,7 @@ export const DslFilterPanel: React.FC = () => {
                 <Typography
                   sx={{
                     fontSize: 12,
-                    color: sortBy === opt.value ? '#00BFFF' : 'rgba(229,231,235,0.65)',
+                    color: sortBy === opt.value ? '#00BFFF' : 'light-dark(rgba(31,41,55,0.65), rgba(229,231,235,0.65))',
                     fontWeight: sortBy === opt.value ? 700 : 400,
                   }}
                 >
@@ -130,7 +130,7 @@ export const DslFilterPanel: React.FC = () => {
           </Box>
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
         {/* Plan Type */}
         {showPlanType && (
@@ -149,12 +149,12 @@ export const DslFilterPanel: React.FC = () => {
                       height: 24,
                       fontSize: 11,
                       fontWeight: 700,
-                      border: `1px solid ${active ? opt.color : 'rgba(255,255,255,0.14)'}`,
-                      background: active ? alpha(opt.color, 0.18) : 'transparent',
-                      color: active ? opt.color : 'rgba(229,231,235,0.6)',
+                      border: `1px solid ${active ? opt.color : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+                      background: active ? `color-mix(in srgb, ${opt.color} 18%, transparent)` : 'transparent',
+                      color: active ? opt.color : 'light-dark(rgba(31,41,55,0.6), rgba(229,231,235,0.6))',
                       cursor: 'pointer',
                       '& .MuiChip-label': { px: 1 },
-                      '&:hover': { background: active ? alpha(opt.color, 0.28) : alpha('#fff', 0.06) },
+                      '&:hover': { background: active ? `color-mix(in srgb, ${opt.color} 28%, transparent)` : alpha('#fff', 0.06) },
                     }}
                   />
                 );
@@ -180,12 +180,12 @@ export const DslFilterPanel: React.FC = () => {
                       height: 24,
                       fontSize: 11,
                       fontWeight: 700,
-                      border: `1px solid ${active ? opt.color : 'rgba(255,255,255,0.14)'}`,
-                      background: active ? alpha(opt.color, 0.18) : 'transparent',
-                      color: active ? opt.color : 'rgba(229,231,235,0.6)',
+                      border: `1px solid ${active ? opt.color : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+                      background: active ? `color-mix(in srgb, ${opt.color} 18%, transparent)` : 'transparent',
+                      color: active ? opt.color : 'light-dark(rgba(31,41,55,0.6), rgba(229,231,235,0.6))',
                       cursor: 'pointer',
                       '& .MuiChip-label': { px: 1 },
-                      '&:hover': { background: active ? alpha(opt.color, 0.28) : alpha('#fff', 0.06) },
+                      '&:hover': { background: active ? `color-mix(in srgb, ${opt.color} 28%, transparent)` : alpha('#fff', 0.06) },
                     }}
                   />
                 );

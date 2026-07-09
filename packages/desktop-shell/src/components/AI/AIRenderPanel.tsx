@@ -58,19 +58,19 @@ const AIRenderPanel: React.FC = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'rgba(20,24,32,0.85)', backdropFilter: 'blur(24px)' }}>
       {/* Header */}
       <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${BRAND.line}`, minHeight: 48, flexShrink: 0 }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>AI Render</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 'bold' }}>AI Render</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IconButton
             size="small"
             onClick={() => setAIRenderExpanded(true)}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
           >
             <OpenInFullRoundedIcon fontSize="small" />
           </IconButton>
           <IconButton
             size="small"
             onClick={() => setAIRenderOpen(false)}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
           >
             <CloseRoundedIcon fontSize="small" />
           </IconButton>
@@ -83,15 +83,15 @@ const AIRenderPanel: React.FC = () => {
         {/* Model Selection */}
         <FormControl fullWidth size="small" variant="outlined" sx={{
           '& .MuiOutlinedInput-root': {
-            color: 'white',
+            color: 'var(--brand-fg)',
             borderRadius: 1.5,
-            bgcolor: 'rgba(255,255,255,0.03)',
-            '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-            '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+            '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+            '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
             '&.Mui-focused fieldset': { borderColor: '#90caf9' },
           },
-          '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' },
-          '& .MuiInputLabel-root.Mui-focused': { color: '#90caf9' }
+          '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: '0.85rem' },
+          '& .MuiInputLabel-root.Mui-focused': { color: 'light-dark(#095fa5, #90caf9)' }
         }}>
           <InputLabel id="panel-render-model-select">適用モデル</InputLabel>
           <Select
@@ -118,8 +118,8 @@ const AIRenderPanel: React.FC = () => {
         </FormControl>
 
         {/* Input Section */}
-        <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2 }}>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mb: 1.5, fontWeight: 'bold' }}>
+        <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', mb: 1.5, fontWeight: 'bold' }}>
             プロンプトからの生成
           </Typography>
 
@@ -133,10 +133,10 @@ const AIRenderPanel: React.FC = () => {
               disabled={isRunning}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  color: 'white',
+                  color: 'var(--brand-fg)',
                   borderRadius: 1.5,
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                  '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                  '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
                 }
               }}
             />
@@ -151,7 +151,7 @@ const AIRenderPanel: React.FC = () => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>または</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', flexShrink: 0 }}>または</Typography>
             <Button
               component="label"
               variant="outlined"
@@ -162,8 +162,8 @@ const AIRenderPanel: React.FC = () => {
               sx={{
                 borderRadius: 1.5,
                 textTransform: 'none',
-                color: 'rgba(255,255,255,0.8)',
-                borderColor: 'rgba(255,255,255,0.2)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.8)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                 '&:hover': { borderColor: '#fff' }
               }}
             >
@@ -180,12 +180,12 @@ const AIRenderPanel: React.FC = () => {
               sx={{
                 borderRadius: 1.5,
                 textTransform: 'none',
-                color: 'rgba(255,255,255,0.8)',
-                borderColor: 'rgba(255,255,255,0.2)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.8)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                 '&:hover': { borderColor: '#fff' }
               }}
             >
-              AI Driveから
+              SEKKEIYA Driveから
             </Button>
           </Box>
 
@@ -196,7 +196,7 @@ const AIRenderPanel: React.FC = () => {
                 size="small"
                 disabled={isRunning}
                 onClick={() => setImageUrl(null)}
-                sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
+                sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
               >
                 <CloseRoundedIcon fontSize="small" />
               </IconButton>
@@ -205,12 +205,12 @@ const AIRenderPanel: React.FC = () => {
         </Paper>
 
         {/* Status / Viewer Section */}
-        <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+        <Paper elevation={0} sx={{ p: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${BRAND.line}`, borderRadius: 2, display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontWeight: 'bold' }}>
               プレビュー
             </Typography>
-            <Typography variant="caption" sx={{ color: status === 'done' ? '#66bb6a' : status === 'error' ? '#e57373' : '#3498db', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="caption" sx={{ color: status === 'done' ? '#66bb6a' : status === 'error' ? 'light-dark(#921b1b, #e57373)' : '#3498db', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
               {isRunning && <CircularProgress size={12} sx={{ color: 'inherit' }} />}
               {String(status).toUpperCase()}
             </Typography>
@@ -220,19 +220,19 @@ const AIRenderPanel: React.FC = () => {
             {resultUrl ? (
               <img src={resultUrl} alt="Result" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'rgba(255,255,255,0.4)', gap: 1.5, width: '80%' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'rgb(var(--brand-fg-rgb) / 0.4)', gap: 1.5, width: '80%' }}>
                 {isRunning ? (
                   <>
-                    <CircularProgress size={32} sx={{ color: '#90caf9' }} />
-                    <Typography variant="body2" sx={{ color: '#90caf9', fontWeight: 'bold' }}>
+                    <CircularProgress size={32} sx={{ color: 'light-dark(#095fa5, #90caf9)' }} />
+                    <Typography variant="body2" sx={{ color: 'light-dark(#095fa5, #90caf9)', fontWeight: 'bold' }}>
                       {Math.floor(progress)}%
                     </Typography>
                     <LinearProgress
                       variant="determinate"
                       value={progress}
-                      sx={{ width: '100%', height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.08)', '& .MuiLinearProgress-bar': { bgcolor: '#90caf9' } }}
+                      sx={{ width: '100%', height: 6, borderRadius: 3, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', '& .MuiLinearProgress-bar': { bgcolor: '#90caf9' } }}
                     />
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                       生成中...（推定 約60秒）
                     </Typography>
                   </>
@@ -252,10 +252,10 @@ const AIRenderPanel: React.FC = () => {
                 現在のWorkspaceに追加（未実装）
               </Button>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button variant="outlined" fullWidth startIcon={<CloudUploadRoundedIcon />} onClick={saveResultToDrive} disabled={busy} sx={{ textTransform: 'none', borderRadius: 1.5, borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}>
-                  AI Drive保存
+                <Button variant="outlined" fullWidth startIcon={<CloudUploadRoundedIcon />} onClick={saveResultToDrive} disabled={busy} sx={{ textTransform: 'none', borderRadius: 1.5, borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }}>
+                  SEKKEIYA Drive保存
                 </Button>
-                <Button variant="outlined" fullWidth startIcon={<DownloadRoundedIcon />} onClick={handleDownload} sx={{ textTransform: 'none', borderRadius: 1.5, borderColor: 'rgba(255,255,255,0.2)', color: 'white' }}>
+                <Button variant="outlined" fullWidth startIcon={<DownloadRoundedIcon />} onClick={handleDownload} sx={{ textTransform: 'none', borderRadius: 1.5, borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }}>
                   DL
                 </Button>
               </Box>

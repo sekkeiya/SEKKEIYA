@@ -10,9 +10,9 @@ import { useProjectContext } from "@sekkeiya/global-panel";
 const SEKKEIYA_TAB = { scope: "sekkeiya", label: "SEKKEIYA（Overview）", color: "#64b5f6", path: "landing" };
 
 const ALL_CHILD_TABS = [
-  { scope: "3dss", label: "S.Models",   color: "#ff5252",  getPath: (pid) => `/app/share/dashboard${pid ? `?projectId=${pid}` : ""}` },
+  { scope: "3dss", label: "S.Model",   color: "#ff5252",  getPath: (pid) => `/app/share/dashboard${pid ? `?projectId=${pid}` : ""}` },
   { scope: "3dsl", label: "S.Layout",   color: "#ffb74d",  getPath: (pid) => pid ? `/app/layout/dashboard?projectId=${pid}` : `/app/layout/dashboard` },
-  { scope: "3dsp", label: "S.Presentations", color: "#ba68c8",  getPath: (pid) => pid ? `/app/presents/projects/${pid}/workspaces/presents` : `/app/presents/dashboard` },
+  { scope: "3dsp", label: "S.Slide", color: "#ba68c8",  getPath: (pid) => pid ? `/app/presents/projects/${pid}/workspaces/presents` : `/app/presents/dashboard` },
   { scope: "3dsc", label: "S.Create",   color: "#ffa726",  getPath: (pid) => pid ? `/app/create/dashboard?projectId=${pid}` : `/app/create/dashboard` },
 ];
 

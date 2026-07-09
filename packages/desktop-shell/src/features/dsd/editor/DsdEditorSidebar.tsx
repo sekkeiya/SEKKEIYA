@@ -367,7 +367,7 @@ const AnnotatePanel: React.FC = () => {
                   width: 24, height: 24, borderRadius: '50%', cursor: 'pointer',
                   bgcolor: c.value,
                   border: annotationColor === c.value ? `2px solid ${ACCENT}` : '2px solid transparent',
-                  outline: annotationColor === c.value ? `1px solid ${ACCENT}` : '1px solid rgba(255,255,255,0.15)',
+                  outline: annotationColor === c.value ? `1px solid ${ACCENT}` : '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
                   transition: 'all 0.15s',
                   '&:hover': { outline: `1px solid ${ACCENT}` },
                 }}

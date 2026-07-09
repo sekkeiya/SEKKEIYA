@@ -45,20 +45,20 @@ export const AutomationTaskList: React.FC<Props> = ({ selectedId, onSelect }) =>
     : undefined;
 
   return (
-    <Box sx={{ width: 292, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', bgcolor: '#0e1118' }}>
+    <Box sx={{ width: 292, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'var(--brand-surface)' }}>
       {/* ヘッダー */}
-      <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <Box sx={{ px: 2, py: 1.75, flexShrink: 0, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <AutoAwesomeRoundedIcon sx={{ color: ACCENT, fontSize: 20 }} />
-          <Typography sx={{ flex: 1, fontSize: 15, fontWeight: 800, color: '#fff' }}>自動化作業リスト</Typography>
+          <Typography sx={{ flex: 1, fontSize: 15, fontWeight: 800, color: 'var(--brand-fg)' }}>自動化作業リスト</Typography>
           <Tooltip title={allCollapsed ? 'すべて開く' : 'すべて閉じる'}>
-            <Box onClick={() => setAll(!allCollapsed)} sx={{ display: 'flex', p: 0.5, borderRadius: 1, cursor: 'pointer', color: 'rgba(255,255,255,0.45)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' } }}>
+            <Box onClick={() => setAll(!allCollapsed)} sx={{ display: 'flex', p: 0.5, borderRadius: 1, cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.45)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
               {allCollapsed ? <UnfoldMoreRoundedIcon sx={{ fontSize: 16 }} /> : <UnfoldLessRoundedIcon sx={{ fontSize: 16 }} />}
             </Box>
           </Tooltip>
         </Stack>
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mt: 0.5 }}>
-          SEKKEIYA Chat の受け答えガイド。AIはこれを参考に、状況に応じて最適な手順を選びます。
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mt: 0.5 }}>
+          SEKKEIYA OS の受け答えガイド。AIはこれを参考に、状況に応じて最適な手順を選びます。
         </Typography>
       </Box>
 
@@ -71,13 +71,13 @@ export const AutomationTaskList: React.FC<Props> = ({ selectedId, onSelect }) =>
               {/* カテゴリ見出し（クリックで開閉） */}
               <Box
                 onClick={() => toggle(cat.id)}
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mx: 1, px: 1, py: 0.6, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mx: 1, px: 1, py: 0.6, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
               >
-                <KeyboardArrowRightRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
-                <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>
+                <KeyboardArrowRightRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
+                <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
                   {cat.title}
                 </Typography>
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{cat.capabilities.length}</Typography>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', flexShrink: 0 }}>{cat.capabilities.length}</Typography>
               </Box>
 
               <Collapse in={open} timeout="auto" unmountOnExit>
@@ -92,15 +92,15 @@ export const AutomationTaskList: React.FC<Props> = ({ selectedId, onSelect }) =>
                         display: 'flex', alignItems: 'center', gap: 1, mx: 1, pl: 2.5, pr: 1.25, py: 0.8, borderRadius: 1.5, cursor: 'pointer',
                         bgcolor: isSel ? 'rgba(196,163,247,0.14)' : 'transparent',
                         borderLeft: `2px solid ${isSel ? ACCENT : 'transparent'}`,
-                        '&:hover': { bgcolor: isSel ? 'rgba(196,163,247,0.18)' : 'rgba(255,255,255,0.05)' },
+                        '&:hover': { bgcolor: isSel ? 'rgba(196,163,247,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
                       }}
                     >
                       <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: STATUS_DOT[cap.status], flexShrink: 0 }} />
-                      <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: isSel ? 700 : 500, color: isSel ? '#fff' : 'rgba(255,255,255,0.82)' }}>
+                      <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: isSel ? 700 : 500, color: isSel ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.82)' }}>
                         {cap.title}
                       </Typography>
                       {cap.sceneBound && (
-                        <Tooltip title="3Dシーンが必要"><ViewInArRoundedIcon sx={{ fontSize: 13, color: '#c0a3ff', flexShrink: 0 }} /></Tooltip>
+                        <Tooltip title="3Dシーンが必要"><ViewInArRoundedIcon sx={{ fontSize: 13, color: 'light-dark(#3700ad, #c0a3ff)', flexShrink: 0 }} /></Tooltip>
                       )}
                       {isCustom && (
                         <Tooltip title="カスタム設定あり"><TuneRoundedIcon sx={{ fontSize: 13, color: ACCENT, flexShrink: 0 }} /></Tooltip>

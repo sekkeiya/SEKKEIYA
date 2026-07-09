@@ -8,7 +8,7 @@ import type { ConnectorToken } from '../types';
 
 // ── Credentials（デスクトップアプリ用 OAuth 設定） ──────────────────────────────
 // インストール済みアプリの client_secret は Google 上「機密ではない」扱いだが、
-// ソース管理に平文で残さないため build 時に env（.env.local）から注入する。
+// ソース管理に平文で残さないため build 時に env（.env）から注入する。
 // Login.tsx と同じ VITE_GOOGLE_* を使用。設定例は .env.example を参照。
 const GOOGLE_CLIENT_ID     = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
@@ -17,7 +17,7 @@ const REDIRECT_URI         = import.meta.env.VITE_GOOGLE_REDIRECT_URI ?? 'http:/
 function assertGoogleCredentials(): void {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     throw new Error(
-      'Google OAuth 未設定: VITE_GOOGLE_CLIENT_ID / VITE_GOOGLE_CLIENT_SECRET を .env.local に設定してください（.env.example 参照）',
+      'Google OAuth 未設定: VITE_GOOGLE_CLIENT_ID / VITE_GOOGLE_CLIENT_SECRET を .env に設定してください（.env.example 参照）',
     );
   }
 }

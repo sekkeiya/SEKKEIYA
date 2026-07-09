@@ -13,6 +13,10 @@ import { useAIChatStore } from '../../store/useAIChatStore';
 export interface ProactiveChip { label: string; text: string }
 export interface ProactiveSuggestions { greeting: string; chips: ProactiveChip[] }
 
+// チップの生成元モデル。functions/orchestrator/suggestNextActions.js の MODEL と揃えること
+// （反応ログ reactionLogs の model フィールドに記録され、学習の教師信号になる）。
+export const PROACTIVE_MODEL = 'claude-haiku-4-5-20251001';
+
 const CACHE_PREFIX = 'sekkeiya-proactive:';
 const MAX_SESSIONS = 5;      // ダイジェストに含める直近セッション数
 const MAX_MSGS_PER_SESSION = 4;

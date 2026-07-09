@@ -122,6 +122,12 @@ export function isReusableAsset(a: { type?: string; sourceCollection?: string; a
 
 interface AIDriveState {
   assets: AIDriveAsset[];
+  /**
+   * スコープ非依存の「集約プール」。全リスナーから取得・重複排除した資産の総体（削除済みも含む）。
+   * activeScope で絞る前の生の union で、Drive アクセス層（driveAccess）が各子アプリ向けに
+   * レイヤー/種別で純粋に絞り込むための単一ソース。UI 都合の activeScope とは独立。
+   */
+  pooledAssets: AIDriveAsset[];
   selectedAssetIds: string[];
   activeScope: AIDriveScope;
   isLoading: boolean;
@@ -161,6 +167,7 @@ const globalSubscribedKeys = new Set<string>();
 
 export const useAIDriveStore = create<AIDriveState>((set, get) => ({
     assets: [],
+    pooledAssets: [],
     selectedAssetIds: [],
     activeScope: 'all',
     isLoading: false,
@@ -277,7 +284,8 @@ export const useAIDriveStore = create<AIDriveState>((set, get) => ({
          }
 
          finalAssets.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-         set({ assets: finalAssets, isLoading: false });
+         // pooledAssets = スコープ非依存の集約プール（driveAccess が純粋関数で絞り込む単一ソース）。
+         set({ assets: finalAssets, pooledAssets: uniqueAssets, isLoading: false });
     },
 
     updateAsset: async (assetId, projectId, updates) => {

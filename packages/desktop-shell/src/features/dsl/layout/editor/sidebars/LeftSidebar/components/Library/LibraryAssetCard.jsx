@@ -185,7 +185,7 @@ function LibraryAssetCard({
             sx={{
               fontSize: 11,
               fontWeight: 500,
-              color: alpha("#fff", 0.7),
+              color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)",
               lineHeight: 1.2,
               display: "-webkit-box",
               WebkitLineClamp: 1,
@@ -212,7 +212,7 @@ function LibraryAssetCard({
             top: 8,
             right: 8,
             bgcolor: theme.palette.primary.main,
-            color: "#fff",
+            color: "var(--brand-fg)",
             width: 28,
             height: 28,
             borderRadius: "50%",
@@ -238,7 +238,7 @@ function LibraryAssetCard({
         >
           {isAdding ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.3 }}>
-              <Typography sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.5px", color: "#fff" }}>
+              <Typography sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.5px", color: "var(--brand-fg)" }}>
                 {displayProgress}%
               </Typography>
               {/* プログレスバー */}

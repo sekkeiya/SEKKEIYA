@@ -1,6 +1,6 @@
 // MaterialBinding を three.js オブジェクトへ適用するヘルパー（Phase C 基盤・純粋関数）
 //
-// dsl エンジンに依存しないため、S.Models 詳細ビューア / S.Layout シーンの双方から再利用できる。
+// dsl エンジンに依存しないため、S.Model 詳細ビューア / S.Layout シーンの双方から再利用できる。
 // 既存の FurnitureItem.jsx と同じ「traverse → mesh.material 差し替え」方式に揃える。
 
 import * as THREE from 'three';
@@ -91,7 +91,7 @@ export async function buildThreeMaterial(snap: DsmtMaterialSnapshot): Promise<TH
   return mat;
 }
 
-/** 1 スロット記述子（S.Models 詳細でのスロット列挙結果）。 */
+/** 1 スロット記述子（S.Model 詳細でのスロット列挙結果）。 */
 export interface EnumeratedSlot {
   meshName: string;
   meshUuid: string;

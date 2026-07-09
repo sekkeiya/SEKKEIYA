@@ -81,7 +81,7 @@ const RibbonButton: React.FC<{
       minWidth: 44, height: 48, p: 0.5, borderRadius: 1, flexShrink: 0,
       color: disabled ? BRAND.sub2 : (color || BRAND.text),
       bgcolor: bgcolor || 'transparent',
-      '&:hover': { bgcolor: bgcolor ? `${bgcolor}dd` : 'rgba(255,255,255,0.05)' },
+      '&:hover': { bgcolor: bgcolor ? `color-mix(in srgb, ${bgcolor} 87%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.05)' },
       '& .MuiSvgIcon-root': { fontSize: '1.2rem' },
     }}
   >
@@ -124,7 +124,7 @@ const TransitionNode: React.FC<{ clip: DsmDraftClip }> = ({ clip }) => {
         sx={{
           alignSelf: 'center', mx: 0.5, cursor: 'pointer', flexShrink: 0,
           width: 22, height: 22, transform: 'rotate(45deg)', borderRadius: '4px',
-          border: `1.5px solid ${type === 'cut' ? 'rgba(255,255,255,0.25)' : ACCENT}`,
+          border: `1.5px solid ${type === 'cut' ? 'rgb(var(--brand-fg-rgb) / 0.25)' : ACCENT}`,
           bgcolor: type === 'cut' ? 'transparent' : `${ACCENT}33`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
           '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}22` },
@@ -132,7 +132,7 @@ const TransitionNode: React.FC<{ clip: DsmDraftClip }> = ({ clip }) => {
       >
         <Typography sx={{
           transform: 'rotate(-45deg)', fontSize: 9, fontFamily: MONO, lineHeight: 1,
-          color: type === 'cut' ? 'rgba(255,255,255,0.5)' : ACCENT, fontWeight: 700,
+          color: type === 'cut' ? 'rgb(var(--brand-fg-rgb) / 0.5)' : ACCENT, fontWeight: 700,
         }}>
           {type === 'cut' ? '|' : type === 'xfade' ? 'X' : 'F'}
         </Typography>
@@ -163,20 +163,20 @@ const CutCard: React.FC<{ clip: DsmDraftClip; index: number; assetSrc?: string }
     >
       <Box sx={{
         borderRadius: 2, overflow: 'hidden', position: 'relative',
-        border: `1.5px solid ${selected ? ACCENT : 'rgba(255,255,255,0.12)'}`,
+        border: `1.5px solid ${selected ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
         boxShadow: selected ? `0 0 10px ${ACCENT}55` : 'none',
-        bgcolor: 'rgba(0,0,0,0.35)', transition: 'border-color 0.15s, box-shadow 0.15s',
-        '&:hover': { borderColor: selected ? ACCENT : 'rgba(255,255,255,0.3)' },
+        bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', transition: 'border-color 0.15s, box-shadow 0.15s',
+        '&:hover': { borderColor: selected ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.3)' },
       }}>
-        <Box sx={{ height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0d0c0b' }}>
+        <Box sx={{ height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--brand-bg)' }}>
           {assetSrc ? (
             <video src={assetSrc} muted preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
           ) : (
-            <MovieRoundedIcon sx={{ color: 'rgba(255,255,255,0.25)', fontSize: 30 }} />
+            <MovieRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 30 }} />
           )}
           <Typography sx={{
             position: 'absolute', top: 4, left: 6, fontSize: 10, fontFamily: MONO,
-            color: '#fff', bgcolor: 'rgba(0,0,0,0.6)', px: 0.6, borderRadius: 1, lineHeight: 1.6,
+            color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.6)', px: 0.6, borderRadius: 1, lineHeight: 1.6,
           }}>
             {String(index + 1).padStart(2, '0')}
           </Typography>
@@ -189,7 +189,7 @@ const CutCard: React.FC<{ clip: DsmDraftClip; index: number; assetSrc?: string }
             </Typography>
           )}
         </Box>
-        <Typography noWrap sx={{ px: 1, py: 0.5, fontSize: 11, color: selected ? '#fff' : 'rgba(255,255,255,0.75)', fontWeight: selected ? 600 : 400 }}>
+        <Typography noWrap sx={{ px: 1, py: 0.5, fontSize: 11, color: selected ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.75)', fontWeight: selected ? 600 : 400 }}>
           {clip.label || clip.path.split(/[\\/]/).pop()}
         </Typography>
       </Box>
@@ -200,22 +200,22 @@ const CutCard: React.FC<{ clip: DsmDraftClip; index: number; assetSrc?: string }
 
 // ── インスペクタ共通要素 ─────────────────────────────────────────────────────
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', mb: 1 }}>
+  <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase', mb: 1 }}>
     {children}
   </Typography>
 );
 
 const NumField: React.FC<{ label: string; value: number; onChange: (v: number) => void; step?: number }> = ({ label, value, onChange, step = 0.1 }) => (
   <Box sx={{ flex: 1 }}>
-    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', mb: 0.25 }}>{label}</Typography>
+    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.25 }}>{label}</Typography>
     <InputBase
       type="number"
       value={value}
       inputProps={{ step, min: 0 }}
       onChange={(e) => { const v = parseFloat(e.target.value); if (isFinite(v) && v >= 0) onChange(v); }}
       sx={{
-        width: '100%', px: 1, py: 0.25, fontSize: 12, fontFamily: MONO, color: '#fff',
-        bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.1)',
+        width: '100%', px: 1, py: 0.25, fontSize: 12, fontFamily: MONO, color: 'var(--brand-fg)',
+        bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
         '&:focus-within': { borderColor: ACCENT },
       }}
     />
@@ -395,8 +395,25 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
   }, []);
   const onSeqDragEnd = useCallback(() => { seqDragRef.current = null; }, []);
 
-  // 右プロパティドックの開閉
+  // ── レスポンシブ: エディターの実効幅を測る（サイドバーで可変のため window ではなく自身を測る）──
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [containerW, setContainerW] = useState(1200);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setContainerW(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const isNarrow = containerW < 760;   // 右パネルをオーバーレイ化
+  const isCompact = containerW < 1024; // ヘッダーを圧縮
+
+  // 右プロパティドックの開閉（幅がブレークポイントを跨いだら自動で開閉）
   const [rightOpen, setRightOpen] = useState(true);
+  useEffect(() => { setRightOpen(!isNarrow); }, [isNarrow]);
 
   // テロップ追加フォーム
   const [titleText, setTitleText] = useState('');
@@ -416,34 +433,37 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
   };
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', bgcolor: BRAND.bg }}>
+    <Box ref={rootRef} sx={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', bgcolor: BRAND.bg }}>
 
       {/* ══ 左カラム: ヘッダー + リボン + 中央（プレビュー＋シーケンス）══ */}
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ══ ヘッダー ════════════════════════════════════════════ */}
-      <Box sx={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, borderBottom: `1px solid ${BRAND.line}`, bgcolor: 'rgba(10,10,14,0.6)', flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: isCompact ? 1 : 2, borderBottom: `1px solid ${BRAND.line}`, bgcolor: 'rgba(10,10,14,0.6)', flexShrink: 0, gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           <Button size="small" startIcon={<ArrowBackRoundedIcon />} onClick={onBack}
-            sx={{ color: 'rgba(255,255,255,0.6)', minWidth: 'auto', textTransform: 'none', mr: 0.5, '&:hover': { color: '#fff' } }}>
-            ダッシュボード
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', minWidth: 'auto', textTransform: 'none', mr: 0.5, flexShrink: 0,
+              '& .MuiButton-startIcon': isCompact ? { mr: 0 } : undefined, '&:hover': { color: 'var(--brand-fg)' } }}>
+            {!isCompact && 'ダッシュボード'}
           </Button>
-          <MovieFilterRoundedIcon sx={{ color: ACCENT, fontSize: 20 }} />
-          <Typography variant="subtitle2" sx={{ color: ACCENT, fontWeight: 600 }}>{projectName}</Typography>
-          <Typography sx={{ fontSize: 11, fontFamily: MONO, color: BLUEPRINT }}>
-            {clips.length} cuts ・ {fmtSec(totalSec)}
-          </Typography>
+          {!isNarrow && <MovieFilterRoundedIcon sx={{ color: ACCENT, fontSize: 20, flexShrink: 0 }} />}
+          <Typography noWrap variant="subtitle2" sx={{ color: ACCENT, fontWeight: 600, minWidth: 0 }}>{projectName}</Typography>
+          {!isNarrow && (
+            <Typography noWrap sx={{ fontSize: 11, fontFamily: MONO, color: BLUEPRINT, flexShrink: 0 }}>
+              {clips.length} cuts ・ {fmtSec(totalSec)}
+            </Typography>
+          )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {/* プロジェクト保存ステータス（.smovie.json） */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'rgba(255,255,255,0.4)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: isCompact ? 0.5 : 1.5, flexShrink: 0 }}>
+          {/* プロジェクト保存ステータス（.smovie.json）— 狭い幅では省略 */}
+          <Box sx={{ display: isCompact ? 'none' : 'flex', alignItems: 'center', gap: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             {clips.length === 0 ? (
-              <><FiberManualRecordRoundedIcon sx={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }} /><Typography variant="caption">シーケンスなし</Typography></>
+              <><FiberManualRecordRoundedIcon sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} /><Typography variant="caption">シーケンスなし</Typography></>
             ) : isDirty ? (
               <><FiberManualRecordRoundedIcon sx={{ fontSize: 9, color: '#ff9800' }} /><Typography variant="caption">未保存の変更</Typography></>
             ) : projectPath ? (
-              <><SaveRoundedIcon sx={{ fontSize: 14, color: '#81c784' }} /><Typography variant="caption" sx={{ color: '#81c784' }}>保存済</Typography></>
+              <><SaveRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#357838, #81c784)' }} /><Typography variant="caption" sx={{ color: 'light-dark(#357838, #81c784)' }}>保存済</Typography></>
             ) : (
               <><FiberManualRecordRoundedIcon sx={{ fontSize: 9, color: '#ff9800' }} /><Typography variant="caption">未保存</Typography></>
             )}
@@ -451,7 +471,7 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
           {/* プロジェクトを開く */}
           <Tooltip title="プロジェクトを開く（.smovie.json）">
             <IconButton size="small" onClick={handleOpenProject}
-              sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: ACCENT } }}>
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: ACCENT } }}>
               <FolderOpenRoundedIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
@@ -459,19 +479,19 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
           <Tooltip title={projectPath ? '上書き保存（.smovie.json）' : '名前を付けて保存（.smovie.json）'}>
             <span>
               <IconButton size="small" onClick={handleSaveProject} disabled={clips.length === 0 || isSaving}
-                sx={{ color: isDirty ? ACCENT : 'rgba(255,255,255,0.6)', '&:hover': { color: ACCENT },
-                  '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' } }}>
+                sx={{ color: isDirty ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: ACCENT },
+                  '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}>
                 {isSaving ? <CircularProgress size={14} sx={{ color: ACCENT }} /> : <SaveRoundedIcon sx={{ fontSize: 18 }} />}
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={rightOpen ? 'プロパティを隠す' : 'プロパティを表示'}>
             <IconButton size="small" onClick={() => setRightOpen(o => !o)}
-              sx={{ color: rightOpen ? ACCENT : 'rgba(255,255,255,0.5)', '&:hover': { color: ACCENT } }}>
+              sx={{ color: rightOpen ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: ACCENT } }}>
               <ViewSidebarRoundedIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
-          <Box sx={{ width: 1, height: 20, bgcolor: 'rgba(255,255,255,0.1)' }} />
+          <Box sx={{ width: '1px', height: 20, flexShrink: 0, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
           <Button
             variant="contained"
             size="small"
@@ -480,8 +500,9 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
             startIcon={isExporting ? <CircularProgress size={14} sx={{ color: '#191815' }} /> : <DownloadRoundedIcon />}
             sx={{
               bgcolor: ACCENT, color: '#191815', fontWeight: 700, fontSize: 12, px: 2, borderRadius: 2, textTransform: 'none',
+              flexShrink: 0, whiteSpace: 'nowrap', minWidth: 'max-content',
               '&:hover': { bgcolor: '#daa05f' },
-              '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' },
+              '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
             }}
           >
             {isExporting ? `書き出し中 ${exportProgress ? `${exportProgress.pct}%` : ''}` : '書き出し'}
@@ -494,7 +515,7 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
         <Box sx={{ borderBottom: `1px solid ${BRAND.line}`, px: 2 }}>
           <Typography sx={{ fontSize: '0.7rem', color: BRAND.text, fontWeight: 700, py: 0.6 }}>ホーム</Typography>
         </Box>
-        <Box sx={{ height: 72, display: 'flex', alignItems: 'center', overflowX: 'auto', bgcolor: 'rgba(0,0,0,0.1)',
+        <Box sx={{ height: 72, display: 'flex', alignItems: 'center', overflowX: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))',
           '&::-webkit-scrollbar': { height: 4 },
           '&::-webkit-scrollbar-thumb': { background: BRAND.line, borderRadius: 4 },
         }}>
@@ -537,7 +558,7 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
       {ffmpegMissing && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5, py: 1, bgcolor: `${ACCENT}1a`, borderBottom: `1px solid ${ACCENT}55`, flexShrink: 0 }}>
           <DownloadRoundedIcon sx={{ color: ACCENT, fontSize: 18 }} />
-          <Typography sx={{ fontSize: 12, color: '#fff', flex: 1 }}>
+          <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)', flex: 1 }}>
             動画の書き出しには FFmpeg が必要です（初回のみ・自動セットアップ）
           </Typography>
           {ffmpegDlPct != null ? (
@@ -557,30 +578,30 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
           {/* 書き出し結果 / エラー帯 */}
           {lastError && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2.5, py: 0.75, bgcolor: 'rgba(244,67,54,0.12)', borderBottom: '1px solid rgba(244,67,54,0.4)', flexShrink: 0 }}>
-              <Typography noWrap sx={{ fontSize: 11, color: '#ff8a80', flex: 1 }}>書き出しエラー: {lastError.split('\n')[0]}</Typography>
+              <Typography noWrap sx={{ fontSize: 11, color: 'light-dark(#ad0e00, #ff8a80)', flex: 1 }}>書き出しエラー: {lastError.split('\n')[0]}</Typography>
             </Box>
           )}
           {showResult && lastOutputPath && !isExporting && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2.5, py: 0.75, bgcolor: 'rgba(129,199,132,0.1)', borderBottom: '1px solid rgba(129,199,132,0.35)', flexShrink: 0 }}>
-              <Typography noWrap sx={{ fontSize: 11, color: '#a5d6a7', flex: 1, fontFamily: MONO }}>✓ {lastOutputPath}</Typography>
-              <Button size="small" startIcon={<FolderOpenRoundedIcon />} onClick={handleRevealOutput} sx={{ color: '#a5d6a7', fontSize: 11, flexShrink: 0 }}>フォルダを開く</Button>
-              <IconButton size="small" onClick={() => setShowResult(false)} sx={{ color: 'rgba(255,255,255,0.4)' }}><CloseRoundedIcon sx={{ fontSize: 14 }} /></IconButton>
+              <Typography noWrap sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.65)', flex: 1, fontFamily: MONO }}>✓ {lastOutputPath}</Typography>
+              <Button size="small" startIcon={<FolderOpenRoundedIcon />} onClick={handleRevealOutput} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontSize: 11, flexShrink: 0 }}>フォルダを開く</Button>
+              <IconButton size="small" onClick={() => setShowResult(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}><CloseRoundedIcon sx={{ fontSize: 14 }} /></IconButton>
             </Box>
           )}
 
           {/* プレビュー */}
-          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2, bgcolor: '#0d0c0b' }}>
+          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2, bgcolor: 'var(--brand-bg)' }}>
             {previewSrc ? (
               <Box sx={{ position: 'relative', maxWidth: '100%', maxHeight: '100%', display: 'flex' }}>
-                <video key={previewSrc} src={previewSrc} controls style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, outline: '1px solid rgba(255,255,255,0.1)' }} />
+                <video key={previewSrc} src={previewSrc} controls style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, outline: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }} />
                 {showResult && lastOutputPath && (
                   <Typography sx={{ position: 'absolute', top: 8, left: 8, fontSize: 10, fontFamily: MONO, fontWeight: 700, color: '#191815', bgcolor: ACCENT, px: 0.75, py: 0.25, borderRadius: 1 }}>EXPORT</Typography>
                 )}
               </Box>
             ) : (
               <Box sx={{ textAlign: 'center' }}>
-                <MovieRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.12)', mb: 1 }} />
-                <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+                <MovieRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.12)', mb: 1 }} />
+                <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                   {clips.length === 0 ? 'リボンの「クリップ追加」から素材を選んでください' : 'カットを選択するとプレビューが表示されます'}
                 </Typography>
               </Box>
@@ -597,13 +618,13 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
               onPointerLeave={onSeqDragEnd}
               sx={{
                 flexShrink: 0, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'ns-resize', bgcolor: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                cursor: 'ns-resize', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
                 userSelect: 'none', gap: 1, '&:hover': { bgcolor: `${ACCENT}11` },
               }}
             >
-              <DragHandleRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.2)' }} />
-              <ViewCarouselRoundedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }} />
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              <DragHandleRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
+              <ViewCarouselRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
                 カットシーケンス
               </Typography>
             </Box>
@@ -611,8 +632,8 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
             <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', px: 2, pt: 1.5, pb: 1, display: 'flex', flexDirection: 'column' }}>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', flex: 1, minHeight: 0 }}>
                 {clips.length === 0 ? (
-                  <Box sx={{ flex: 1, minHeight: 110, borderRadius: 2, border: '1.5px dashed rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Button startIcon={<AddRoundedIcon />} onClick={() => setPickerOpen(true)} sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, textTransform: 'none' }}>
+                  <Box sx={{ flex: 1, minHeight: 110, borderRadius: 2, border: '1.5px dashed rgb(var(--brand-fg-rgb) / 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Button startIcon={<AddRoundedIcon />} onClick={() => setPickerOpen(true)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 12, textTransform: 'none' }}>
                       カットを追加して動画を組み立てる
                     </Button>
                   </Box>
@@ -637,10 +658,20 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
       {/* ── 左カラム終わり ── */}
 
       {/* ══ 右プロパティパネル（3DSM プロパティ位置・赤枠全高）════════ */}
+      {/* 狭い幅ではプレビューを潰さないよう、スクリム付きのオーバーレイドロワーにする */}
+      {rightOpen && isNarrow && (
+        <Box onClick={() => setRightOpen(false)}
+          sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.45)', zIndex: 20 }} />
+      )}
       {rightOpen && (
-        <Box sx={{ width: 320, flexShrink: 0, borderLeft: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{
+          ...(isNarrow
+            ? { position: 'absolute', top: 0, right: 0, bottom: 0, width: Math.min(320, containerW - 48), zIndex: 21, boxShadow: '-8px 0 24px rgba(0,0,0,0.45)' }
+            : { width: 320, flexShrink: 0 }),
+          borderLeft: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel, overflowY: 'auto', display: 'flex', flexDirection: 'column',
+        }}>
           <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${BRAND.line}` }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>プロパティ</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)' }}>プロパティ</Typography>
           </Box>
 
           <Box sx={{ p: 2, flex: 1 }}>
@@ -648,10 +679,10 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
             {selectedClip ? (
               <Box sx={{ mb: 2.5 }}>
                 <SectionTitle>カット {clips.findIndex(c => c.id === selectedClip.id) + 1}</SectionTitle>
-                <Typography noWrap sx={{ fontSize: 13, color: '#fff', fontWeight: 600, mb: 0.25 }}>
+                <Typography noWrap sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 600, mb: 0.25 }}>
                   {selectedClip.label || selectedClip.path.split(/[\\/]/).pop()}
                 </Typography>
-                <Typography noWrap sx={{ fontSize: 10, fontFamily: MONO, color: 'rgba(255,255,255,0.35)', mb: 1.5 }}>
+                <Typography noWrap sx={{ fontSize: 10, fontFamily: MONO, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 1.5 }}>
                   {selectedClip.path}
                 </Typography>
 
@@ -662,12 +693,12 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
                     onChange={(v) => updateClip(selectedClip.id, { trim: { inSec: selectedClip.trim?.inSec ?? 0, outSec: v } })} />
                 </Box>
                 {selectedClip.trim && (
-                  <Button size="small" onClick={() => updateClip(selectedClip.id, { trim: undefined })} sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 1, p: 0, textTransform: 'none' }}>
+                  <Button size="small" onClick={() => updateClip(selectedClip.id, { trim: undefined })} sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, p: 0, textTransform: 'none' }}>
                     トリムを解除
                   </Button>
                 )}
 
-                <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', mb: 0.5, mt: 1 }}>次のカットへのトランジション</Typography>
+                <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.5, mt: 1 }}>次のカットへのトランジション</Typography>
                 <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
                   {TRANSITION_CYCLE.map(t => {
                     const active = (selectedClip.transitionAfter?.type ?? 'cut') === t;
@@ -677,10 +708,10 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
                         onClick={() => !isLast && setTransition(selectedClip.id, { type: t, durationSec: selectedClip.transitionAfter?.durationSec ?? 1.0 })}
                         sx={{
                           px: 1, py: 0.4, borderRadius: 1.5, cursor: isLast ? 'not-allowed' : 'pointer', fontSize: 11,
-                          color: active ? '#191815' : 'rgba(255,255,255,0.65)',
-                          bgcolor: active ? ACCENT : 'rgba(255,255,255,0.06)',
+                          color: active ? '#191815' : 'rgb(var(--brand-fg-rgb) / 0.65)',
+                          bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.06)',
                           fontWeight: active ? 700 : 500, opacity: isLast ? 0.35 : 1,
-                          '&:hover': !isLast ? { bgcolor: active ? ACCENT : 'rgba(255,255,255,0.12)' } : {},
+                          '&:hover': !isLast ? { bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.12)' } : {},
                         }}
                       >
                         {TRANSITION_LABEL[t]}
@@ -696,7 +727,7 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
                 )}
 
                 <Button size="small" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => removeClip(selectedClip.id)}
-                  sx={{ fontSize: 11, color: '#ff8a80', p: 0.5, textTransform: 'none', '&:hover': { bgcolor: 'rgba(244,67,54,0.1)' } }}>
+                  sx={{ fontSize: 11, color: 'light-dark(#ad0e00, #ff8a80)', p: 0.5, textTransform: 'none', '&:hover': { bgcolor: 'rgba(244,67,54,0.1)' } }}>
                   カットを削除
                 </Button>
               </Box>
@@ -708,23 +739,23 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
                     <Box key={a} onClick={() => setAspect(a)}
                       sx={{
                         flex: 1, textAlign: 'center', py: 0.6, borderRadius: 1.5, cursor: 'pointer', fontSize: 12, fontFamily: MONO,
-                        color: aspect === a ? '#191815' : 'rgba(255,255,255,0.6)',
-                        bgcolor: aspect === a ? BLUEPRINT : 'rgba(255,255,255,0.06)', fontWeight: aspect === a ? 700 : 500,
+                        color: aspect === a ? '#191815' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                        bgcolor: aspect === a ? BLUEPRINT : 'rgb(var(--brand-fg-rgb) / 0.06)', fontWeight: aspect === a ? 700 : 500,
                       }}>
                       {a}
                     </Box>
                   ))}
                 </Box>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, fontFamily: MONO }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.8, fontFamily: MONO }}>
                   {aspect === '16:9' ? '1920×1080' : '1080×1920'} / {fps}fps / H.264
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', mt: 1 }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mt: 1 }}>
                   シーケンスのカットを選択すると、トリムやトランジションをここで編集できます。
                 </Typography>
               </Box>
             )}
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', my: 2 }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', my: 2 }} />
 
             {/* BGM */}
             <Box sx={{ mb: 2.5 }}>
@@ -733,22 +764,22 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
                 <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                     <MusicNoteRoundedIcon sx={{ fontSize: 16, color: ACCENT }} />
-                    <Typography noWrap sx={{ fontSize: 12, color: '#fff', flex: 1 }}>{bgm.path.split(/[\\/]/).pop()}</Typography>
-                    <IconButton size="small" onClick={() => setBgm(null)} sx={{ color: 'rgba(255,255,255,0.4)' }}><CloseRoundedIcon sx={{ fontSize: 14 }} /></IconButton>
+                    <Typography noWrap sx={{ fontSize: 12, color: 'var(--brand-fg)', flex: 1 }}>{bgm.path.split(/[\\/]/).pop()}</Typography>
+                    <IconButton size="small" onClick={() => setBgm(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}><CloseRoundedIcon sx={{ fontSize: 14 }} /></IconButton>
                   </Box>
-                  <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>音量</Typography>
+                  <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>音量</Typography>
                   <Slider size="small" value={bgm.volume ?? 0.35} min={0} max={1} step={0.05}
                     onChange={(_, v) => setBgm({ ...bgm, volume: v as number })} sx={{ color: ACCENT, py: 0.5 }} />
                 </Box>
               ) : (
                 <Button size="small" startIcon={<MusicNoteRoundedIcon />} onClick={handlePickBgm}
-                  sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 2, px: 1.5, textTransform: 'none', '&:hover': { borderColor: ACCENT, color: '#fff' } }}>
+                  sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 2, px: 1.5, textTransform: 'none', '&:hover': { borderColor: ACCENT, color: 'var(--brand-fg)' } }}>
                   BGM を選択…
                 </Button>
               )}
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', my: 2 }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', my: 2 }} />
 
             {/* テロップ */}
             <Box sx={{ mb: 2.5 }}>
@@ -756,9 +787,9 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
               {overlays.map((o, i) => (
                 <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                   <TitleRoundedIcon sx={{ fontSize: 14, color: BLUEPRINT }} />
-                  <Typography noWrap sx={{ fontSize: 12, color: '#fff', flex: 1 }}>{o.text}</Typography>
+                  <Typography noWrap sx={{ fontSize: 12, color: 'var(--brand-fg)', flex: 1 }}>{o.text}</Typography>
                   <Typography sx={{ fontSize: 10, fontFamily: MONO, color: BLUEPRINT }}>{o.atSec}–{o.atSec + o.durationSec}s</Typography>
-                  <IconButton size="small" onClick={() => removeOverlay(i)} sx={{ color: 'rgba(255,255,255,0.4)' }}><CloseRoundedIcon sx={{ fontSize: 13 }} /></IconButton>
+                  <IconButton size="small" onClick={() => removeOverlay(i)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}><CloseRoundedIcon sx={{ fontSize: 13 }} /></IconButton>
                 </Box>
               ))}
               <Box sx={{ display: 'flex', gap: 0.75, mt: 1 }}>
@@ -767,10 +798,10 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
                   value={titleText}
                   onChange={(e) => setTitleText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') addTitle(); }}
-                  sx={{ flex: 1, px: 1, py: 0.4, fontSize: 12, color: '#fff', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.1)', '&:focus-within': { borderColor: ACCENT } }}
+                  sx={{ flex: 1, px: 1, py: 0.4, fontSize: 12, color: 'var(--brand-fg)', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', '&:focus-within': { borderColor: ACCENT } }}
                 />
                 <IconButton size="small" disabled={!titleText.trim()} onClick={addTitle}
-                  sx={{ color: ACCENT, border: `1px solid ${ACCENT}66`, borderRadius: 1.5, '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.1)' } }}>
+                  sx={{ color: ACCENT, border: `1px solid ${ACCENT}66`, borderRadius: 1.5, '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
                   <AddRoundedIcon sx={{ fontSize: 16 }} />
                 </IconButton>
               </Box>
@@ -779,7 +810,7 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
 
           {/* フッター: ローカル完結の明示（docs/14 §0.5） */}
           <Box sx={{ px: 2, py: 1.5, borderTop: `1px solid ${BRAND.line}` }}>
-            <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+            <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.6 }}>
               書き出し先: SEKKEIYA/LocalAssets/Movies/（ローカルのみ・クラウドへは自動アップロードしません）
             </Typography>
           </Box>
@@ -892,12 +923,12 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
       <Box sx={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, borderBottom: `1px solid ${BRAND.line}`, flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MovieFilterRoundedIcon sx={{ color: ACCENT, fontSize: 20 }} />
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>S.Movie</Typography>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{scopeLabel[dsmScope] ?? '動画'}</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)' }}>S.Movie</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{scopeLabel[dsmScope] ?? '動画'}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Tooltip title="再読み込み">
-            <IconButton size="small" onClick={load} sx={{ color: 'rgba(255,255,255,0.5)' }}><RefreshRoundedIcon sx={{ fontSize: 18 }} /></IconButton>
+            <IconButton size="small" onClick={load} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}><RefreshRoundedIcon sx={{ fontSize: 18 }} /></IconButton>
           </Tooltip>
           <Button variant="contained" size="small" startIcon={<MovieFilterRoundedIcon />} onClick={() => { clearDraft(); onOpenEditor(); }}
             sx={{ bgcolor: ACCENT, color: '#191815', fontWeight: 700, fontSize: 12, px: 2, borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: '#daa05f' } }}>
@@ -911,7 +942,7 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: ACCENT }} /></Box>
           ) : isCloudScope ? (
-            <Box sx={{ textAlign: 'center', py: 10, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ textAlign: 'center', py: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <MovieRoundedIcon sx={{ fontSize: 52, mb: 1.5, opacity: 0.35 }} />
               <Typography sx={{ fontSize: 14, mb: 0.5 }}>このスコープには動画がありません</Typography>
               <Typography sx={{ fontSize: 12, lineHeight: 1.8 }}>
@@ -920,7 +951,7 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
               </Typography>
             </Box>
           ) : movies.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 10, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ textAlign: 'center', py: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <MovieRoundedIcon sx={{ fontSize: 52, mb: 1.5, opacity: 0.35 }} />
               <Typography sx={{ fontSize: 14, mb: 2 }}>まだ動画がありません</Typography>
               <Button variant="outlined" startIcon={<MovieFilterRoundedIcon />} onClick={(e) => { e.stopPropagation(); clearDraft(); onOpenEditor(); }}
@@ -938,20 +969,20 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
                     onDoubleClick={(e) => { e.stopPropagation(); openInEditor(m); }}
                     sx={{
                       borderRadius: 2, overflow: 'hidden', cursor: 'pointer', position: 'relative',
-                      border: `1.5px solid ${isSel ? ACCENT : 'rgba(255,255,255,0.1)'}`,
+                      border: `1.5px solid ${isSel ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
                       boxShadow: isSel ? `0 0 12px ${ACCENT}55` : 'none',
-                      bgcolor: 'rgba(255,255,255,0.03)', transition: 'all 0.15s',
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', transition: 'all 0.15s',
                       '&:hover': { borderColor: ACCENT, '& .play': { opacity: 1 } },
                     }}>
-                    <Box sx={{ height: 125, bgcolor: '#0d0c0b', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                      {m.src ? <video src={m.src} muted preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MovieRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.2)' }} />}
-                      <PlayCircleFilledRoundedIcon className="play" sx={{ position: 'absolute', fontSize: 40, color: '#fff', opacity: 0, transition: 'opacity 0.15s', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))', pointerEvents: 'none' }} />
+                    <Box sx={{ height: 125, bgcolor: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      {m.src ? <video src={m.src} muted preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MovieRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />}
+                      <PlayCircleFilledRoundedIcon className="play" sx={{ position: 'absolute', fontSize: 40, color: 'var(--brand-fg)', opacity: 0, transition: 'opacity 0.15s', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))', pointerEvents: 'none' }} />
                       {m.origin && (
                         <Typography sx={{ position: 'absolute', top: 6, left: 6, fontSize: 9, fontFamily: MONO, fontWeight: 700, color: '#191815', bgcolor: BLUEPRINT, px: 0.6, borderRadius: 1 }}>{m.origin}</Typography>
                       )}
                     </Box>
                     <Box sx={{ p: 1.25 }}>
-                      <Typography noWrap sx={{ fontSize: 13, color: '#fff', fontWeight: 500 }}>{m.name}</Typography>
+                      <Typography noWrap sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 500 }}>{m.name}</Typography>
                       {m.durationSec != null && <Typography sx={{ fontSize: 10, fontFamily: MONO, color: BLUEPRINT }}>{fmtSec(m.durationSec)}</Typography>}
                     </Box>
                   </Box>
@@ -966,30 +997,30 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
       {/* ══ 右情報パネル（3DSM プロパティ位置・赤枠全高）══ */}
       <Box sx={{ width: 320, flexShrink: 0, borderLeft: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${BRAND.line}` }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>プロパティ</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)' }}>プロパティ</Typography>
           </Box>
           {selected ? (
             <Box sx={{ p: 2 }}>
               {/* プレビュー */}
-              <Box sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: '#0d0c0b', mb: 1.5, aspectRatio: '16 / 9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: 'var(--brand-bg)', mb: 1.5, aspectRatio: '16 / 9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {selected.src
                   ? <video key={selected.src} src={selected.src} controls preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                  : <MovieRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.2)' }} />}
+                  : <MovieRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />}
               </Box>
-              <Typography sx={{ fontSize: 13, color: '#fff', fontWeight: 600, mb: 0.5, wordBreak: 'break-all' }}>{selected.name}</Typography>
+              <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 600, mb: 0.5, wordBreak: 'break-all' }}>{selected.name}</Typography>
               {selected.origin && (
                 <Typography sx={{ display: 'inline-block', fontSize: 9, fontFamily: MONO, fontWeight: 700, color: '#191815', bgcolor: BLUEPRINT, px: 0.6, borderRadius: 1, mb: 1 }}>{selected.origin} で生成</Typography>
               )}
               <Box sx={{ mt: 1, mb: 2 }}>
                 {selected.durationSec != null && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>長さ</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+                    <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>長さ</Typography>
                     <Typography sx={{ fontSize: 11, fontFamily: MONO, color: BLUEPRINT }}>{fmtSec(selected.durationSec)}</Typography>
                   </Box>
                 )}
                 <Box sx={{ py: 0.5 }}>
-                  <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mb: 0.25 }}>{selected.isLocal ? 'パス' : 'URL'}</Typography>
-                  <Typography sx={{ fontSize: 10, fontFamily: MONO, color: 'rgba(255,255,255,0.5)', wordBreak: 'break-all' }}>{selected.path}</Typography>
+                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.25 }}>{selected.isLocal ? 'パス' : 'URL'}</Typography>
+                  <Typography sx={{ fontSize: 10, fontFamily: MONO, color: 'rgb(var(--brand-fg-rgb) / 0.5)', wordBreak: 'break-all' }}>{selected.path}</Typography>
                 </Box>
               </Box>
 
@@ -999,18 +1030,18 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
               </Button>
               {selected.isLocal && (
                 <Button fullWidth size="small" startIcon={<FolderOpenRoundedIcon />} onClick={() => handleReveal(selected)}
-                  sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, textTransform: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 2, '&:hover': { borderColor: ACCENT, color: '#fff' } }}>
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 11, textTransform: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: 2, '&:hover': { borderColor: ACCENT, color: 'var(--brand-fg)' } }}>
                   フォルダを開く
                 </Button>
               )}
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', mt: 1.5, lineHeight: 1.6 }}>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mt: 1.5, lineHeight: 1.6 }}>
                 ダブルクリックでもエディターを開けます。
               </Typography>
             </Box>
           ) : (
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 3, textAlign: 'center' }}>
-              <MovieRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.15)', mb: 1 }} />
-              <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
+              <MovieRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.15)', mb: 1 }} />
+              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.7 }}>
                 Movie を選択すると<br />情報が表示されます
               </Typography>
             </Box>

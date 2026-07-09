@@ -24,7 +24,7 @@ const TAXO = [
   { name:'AI 3D生成', slug:'ai-3d-create', order:22, parent:'ai-design', description:'画像・テキストからのAI 3Dモデル生成' },
   { name:'AI設計対話', slug:'ai-chat', order:23, parent:'ai-design', description:'AIチャットで設計を進めるノウハウ' },
   // subs: 3d-models
-  { name:'S.Models', slug:'s-models', order:31, parent:'3d-models', description:'3Dモデルの管理・共有・プレビュー' },
+  { name:'S.Model', slug:'s-model', order:31, parent:'3d-models', description:'3Dモデルの管理・共有・プレビュー' },
   { name:'S.Material', slug:'s-material', order:32, parent:'3d-models', description:'PBRマテリアル・テクスチャの作成と管理' },
   { name:'S.Image', slug:'s-image', order:33, parent:'3d-models', description:'画像・テクスチャ素材の整理' },
   // subs: space-planning
@@ -32,7 +32,7 @@ const TAXO = [
   { name:'S.Create', slug:'s-create', order:42, parent:'space-planning', description:'造作家具・オリジナル家具の設計' },
   { name:'S.Diagram', slug:'s-diagram', order:43, parent:'space-planning', description:'日照・配置・敷地・環境ダイアグラム' },
   // subs: presentation
-  { name:'S.Presentations', slug:'s-presentations', order:51, parent:'presentation', description:'歩ける3Dプレゼン・ウォークスルー' },
+  { name:'S.Slide', slug:'s-slide', order:51, parent:'presentation', description:'歩ける3Dプレゼン・ウォークスルー' },
   { name:'S.Drawing', slug:'s-drawing', order:52, parent:'presentation', description:'図面・設計図書のクラウド管理' },
   { name:'S.Portfolio', slug:'s-portfolio', order:53, parent:'presentation', description:'建築・インテリアのPDFポートフォリオ' },
   { name:'S.Movie', slug:'s-movie', order:54, parent:'presentation', description:'建築ウォークスルー動画・シーケンス編集' },
@@ -60,8 +60,8 @@ const cat = (slug) => { const t = TAXO.find(x=>x.slug===slug); return { slug: t.
 const MAP = {
   HA5lPJDfX6KT4xXLi0bP: ['news', 'release-notes'],
   EDdoeLuRwMCXaI9Yh6Qu: ['news', 'sekkeiya'],
-  '6jWN5n8O97UoYmHQ2Idh': ['3d-models', 's-models'],
-  r2AN2YLmQYuOmyW0dYnt: ['3d-models', 's-models'],
+  '6jWN5n8O97UoYmHQ2Idh': ['3d-models', 's-model'],
+  r2AN2YLmQYuOmyW0dYnt: ['3d-models', 's-model'],
   gMVQK6OivIBtn8QH6Vm8: ['workflow-hub', 'data-conversion'],
   IQ4lNEOdgdB6yHazNmbG: ['workflow-hub', 'rhino'],
   SE8pQ7WW4HakXYj6lHtb: ['workflow-hub', 'rhino'],

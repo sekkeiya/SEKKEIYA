@@ -28,7 +28,7 @@ export default function RecentGenerationsPanel() {
 
       <Stack spacing={2} sx={{ flexGrow: 1 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        生成履歴がここに表示されます。S.Modelsに保存するとアセットとして管理されます。
+        生成履歴がここに表示されます。S.Modelに保存するとアセットとして管理されます。
       </Typography>
         {recentJobs.length === 0 ? (
           <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>

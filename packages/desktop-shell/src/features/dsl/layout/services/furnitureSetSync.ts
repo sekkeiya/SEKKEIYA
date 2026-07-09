@@ -1,6 +1,6 @@
 /**
  * furnitureSetSync.ts
- * S.Layout の FurnitureSet を S.Models の modelSets コレクションに同期する。
+ * S.Layout の FurnitureSet を S.Model の modelSets コレクションに同期する。
  * doc ID は `dsl_<furnitureSetId>` で一意に管理する（ユーザーが別途作成した modelSet と衝突しない）。
  */
 

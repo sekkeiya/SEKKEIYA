@@ -49,7 +49,7 @@ const RibbonActionButton = ({ icon, label, onClick, disabled, color, bgcolor }: 
       minWidth: '44px', height: '48px', p: 0.5, borderRadius: 1, flexShrink: 0,
       color: disabled ? BRAND.sub2 : (color || BRAND.text), 
       bgcolor: bgcolor || 'transparent',
-      '&:hover': { bgcolor: bgcolor ? (bgcolor + 'dd') : 'rgba(255,255,255,0.05)' },
+      '&:hover': { bgcolor: bgcolor ? (bgcolor + 'dd') : 'rgb(var(--brand-fg-rgb) / 0.05)' },
       '& .MuiSvgIcon-root': { fontSize: '1.2rem' }
     }}
   >
@@ -107,7 +107,7 @@ export function DspToolbar() {
     addElement(selectedPageId, {
       type: 'shape',
       x: 150, y: 150, w: 120, h: 120, zIndex: 1, rotation: 0, opacity: 100,
-      data: { shapeType: 'rect', fill: 'rgba(255, 255, 255, 0.7)', border: '1px solid #d2d2d7', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
+      data: { shapeType: 'rect', fill: 'rgb(var(--brand-fg-rgb) / 0.7)', border: '1px solid #d2d2d7', borderRadius: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
     });
   };
 
@@ -116,7 +116,7 @@ export function DspToolbar() {
     addElement(selectedPageId, {
       type: 'text',
       x: 200, y: 200, w: 160, h: 160, zIndex: 1, rotation: 0, opacity: 100,
-      data: { text: 'アイデア', fontSize: '18px', color: '#1d1d1f', textAlign: 'center', bgcolor: '#fff9c4', boxShadow: '0 4px 14px rgba(0,0,0,0.1)', borderRadius: '8px', padding: 2 }
+      data: { text: 'アイデア', fontSize: '18px', color: '#1d1d1f', textAlign: 'center', bgcolor: '#fff9c4', boxShadow: '0 4px 14px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))', borderRadius: '8px', padding: 2 }
     });
   };
 
@@ -271,7 +271,7 @@ export function DspToolbar() {
         {showLeftScroll && (
           <IconButton 
             onClick={() => handleScroll(-300)} 
-            sx={{ position: 'absolute', left: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '3px 0 6px rgba(0,0,0,0.2)', borderRadius: 0, height: '72px', width: '28px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
+            sx={{ position: 'absolute', left: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '3px 0 6px light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 0, height: '72px', width: '28px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
           >
             <ChevronLeftIcon />
           </IconButton>
@@ -291,7 +291,7 @@ export function DspToolbar() {
             display: 'flex', 
             alignItems: 'center', 
             overflowX: 'auto', 
-            bgcolor: 'rgba(0,0,0,0.1)',
+            bgcolor: 'light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))',
             '&::-webkit-scrollbar': { height: '4px' },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': { background: BRAND.line, borderRadius: '4px' },
@@ -371,7 +371,7 @@ export function DspToolbar() {
         {showRightScroll && (
           <IconButton 
             onClick={() => handleScroll(300)} 
-            sx={{ position: 'absolute', right: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '-3px 0 6px rgba(0,0,0,0.2)', borderRadius: 0, height: '72px', width: '28px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
+            sx={{ position: 'absolute', right: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '-3px 0 6px light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 0, height: '72px', width: '28px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
           >
             <ChevronRightIcon />
           </IconButton>

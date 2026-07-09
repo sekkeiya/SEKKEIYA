@@ -16,7 +16,7 @@ import { useDskStore } from '../store/useDskStore';
 const normUrl = (u?: string | null) => (u || '').trim().toLowerCase().replace(/\/+$/, '');
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', mb: 0.75, mt: 2 }}>
+  <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase', mb: 0.75, mt: 2 }}>
     {children}
   </Typography>
 );
@@ -27,13 +27,13 @@ const Toggle: React.FC<{ label: string; active: boolean; onClick: () => void; co
     onClick={onClick}
     sx={{
       display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.4, borderRadius: 10, cursor: 'pointer',
-      border: '1px solid', borderColor: active ? `${color}80` : 'rgba(255,255,255,0.12)',
-      bgcolor: active ? `${color}24` : 'transparent', transition: 'all 0.15s',
-      '&:hover': { bgcolor: active ? `${color}33` : 'rgba(255,255,255,0.06)' },
+      border: '1px solid', borderColor: active ? `color-mix(in srgb, ${color} 50%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.12)',
+      bgcolor: active ? `color-mix(in srgb, ${color} 14%, transparent)` : 'transparent', transition: 'all 0.15s',
+      '&:hover': { bgcolor: active ? `color-mix(in srgb, ${color} 20%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.06)' },
     }}
   >
-    <Typography sx={{ fontSize: 11, fontWeight: 700, color: active ? color : 'rgba(255,255,255,0.55)' }}>{label}</Typography>
-    {count != null && <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{count}</Typography>}
+    <Typography sx={{ fontSize: 11, fontWeight: 700, color: active ? color : 'rgb(var(--brand-fg-rgb) / 0.55)' }}>{label}</Typography>
+    {count != null && <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>{count}</Typography>}
   </Box>
 );
 
@@ -65,11 +65,11 @@ export const SourceRegistryFilterPanel: React.FC<{ filter: RegistryFilter; onCha
   return (
     <Box sx={{ p: 2, height: '100%', overflowY: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FilterAltRoundedIcon sx={{ fontSize: 16, color: '#7dd3fc' }} />
-        <Typography sx={{ fontSize: 13, fontWeight: 800, color: '#fff', flex: 1 }}>絞り込み</Typography>
+        <FilterAltRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#0474a9, #7dd3fc)' }} />
+        <Typography sx={{ fontSize: 13, fontWeight: 800, color: 'var(--brand-fg)', flex: 1 }}>絞り込み</Typography>
         {!isDefault && (
           <Box onClick={() => onChange({ ...DEFAULT_REGISTRY_FILTER })}
-            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
             <RestartAltRoundedIcon sx={{ fontSize: 14 }} />
             <Typography sx={{ fontSize: 10.5 }}>リセット</Typography>
           </Box>
@@ -80,8 +80,8 @@ export const SourceRegistryFilterPanel: React.FC<{ filter: RegistryFilter; onCha
         fullWidth size="small" placeholder="サイト・ジャンルで検索"
         value={filter.search}
         onChange={(e) => onChange({ ...filter, search: e.target.value })}
-        sx={{ mt: 1.5, '& .MuiOutlinedInput-root': { fontSize: 12.5, color: '#fff', bgcolor: 'rgba(255,255,255,0.04)', '& fieldset': { borderColor: 'rgba(255,255,255,0.12)' } } }}
-        InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)' }} /></InputAdornment> }}
+        sx={{ mt: 1.5, '& .MuiOutlinedInput-root': { fontSize: 12.5, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)' } } }}
+        InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} /></InputAdornment> }}
       />
 
       <SectionTitle>種類</SectionTitle>

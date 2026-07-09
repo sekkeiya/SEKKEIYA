@@ -102,31 +102,31 @@ const SUN_PRESETS = [
     id: "morning",
     label: "朝 (Morning)",
     desc: "低い太陽・暖かい光",
-    config: { elevation: 20, color: "#ffd9a8", intensity: 0.9, castShadow: true },
+    config: { elevation: 20, color: "light-dark(#ad6200, #ffd9a8)", intensity: 0.9, castShadow: true },
   },
   {
     id: "noon",
     label: "正午 (Noon)",
     desc: "高い太陽・白色光",
-    config: { elevation: 75, color: "#ffffff", intensity: 1.5, castShadow: true },
+    config: { elevation: 75, color: "var(--brand-fg)", intensity: 1.5, castShadow: true },
   },
   {
     id: "evening",
     label: "夕方 (Evening)",
     desc: "低い太陽・オレンジ光",
-    config: { elevation: 12, color: "#ff9d5e", intensity: 0.9, castShadow: true },
+    config: { elevation: 12, color: "light-dark(#ad4400, #ff9d5e)", intensity: 0.9, castShadow: true },
   },
   {
     id: "overcast",
     label: "曇天 (Overcast)",
     desc: "拡散光・低コントラスト",
-    config: { elevation: 55, color: "#d8dde2", intensity: 0.5, castShadow: false },
+    config: { elevation: 55, color: "var(--brand-fg)", intensity: 0.5, castShadow: false },
   },
   {
     id: "night",
     label: "月光 (Moonlight)",
     desc: "夜間・寒色低輝度",
-    config: { elevation: 45, color: "#7392c8", intensity: 0.15, castShadow: true },
+    config: { elevation: 45, color: "light-dark(#314c7c, #7392c8)", intensity: 0.15, castShadow: true },
   },
 ];
 
@@ -237,8 +237,8 @@ function PresetSelector({ presets, currentPresetId, onApply }) {
         if (activePreset) {
           return (
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-              <AutoAwesomeRoundedIcon sx={{ fontSize: 13, color: "#7eb3ff" }} />
-              <Typography sx={{ fontSize: 11.5, color: "#fff", fontWeight: 600 }}>
+              <AutoAwesomeRoundedIcon sx={{ fontSize: 13, color: "light-dark(#0047ad, #7eb3ff)" }} />
+              <Typography sx={{ fontSize: 11.5, color: "var(--brand-fg)", fontWeight: 600 }}>
                 {activePreset.label}
               </Typography>
             </Box>
@@ -247,7 +247,7 @@ function PresetSelector({ presets, currentPresetId, onApply }) {
         if (currentPresetId === null) {
           // 過去にプリセット適用 → その後手動編集
           return (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: alpha("#fff", 0.55) }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
               <AutoAwesomeRoundedIcon sx={{ fontSize: 13 }} />
               <Typography sx={{ fontSize: 11.5, fontStyle: "italic" }}>Custom (手動調整)</Typography>
             </Box>
@@ -255,7 +255,7 @@ function PresetSelector({ presets, currentPresetId, onApply }) {
         }
         // 初期状態 (undefined) — まだプリセット未選択
         return (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: alpha("#fff", 0.55) }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
             <AutoAwesomeRoundedIcon sx={{ fontSize: 13 }} />
             <Typography sx={{ fontSize: 11.5 }}>プリセットを適用…</Typography>
           </Box>
@@ -275,8 +275,8 @@ function PresetSelector({ presets, currentPresetId, onApply }) {
           sx: {
             mt: 0.5,
             bgcolor: "rgba(22, 22, 26, 0.96)",
-            color: "rgba(255, 255, 255, 0.9)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            color: "rgb(var(--brand-fg-rgb) / 0.9)",
+            border: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
             backdropFilter: "blur(8px)",
           },
         },
@@ -352,7 +352,7 @@ function SectionHeader({ icon, label }) {
         borderBottom: `1px solid ${alpha("#fff", 0.07)}`,
       }}
     >
-      <Box sx={{ color: alpha("#fff", 0.5), display: "flex" }}>{icon}</Box>
+      <Box sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", display: "flex" }}>{icon}</Box>
       <Typography sx={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 0.2 }}>{label}</Typography>
     </Box>
   );
@@ -502,7 +502,7 @@ const LabeledSlider = React.memo(function LabeledSlider({
             border: `2px solid ${alpha("#fff", 0.55)}`,
             boxShadow: "0 1px 6px rgba(0,0,0,0.55)",
             "&:hover, &.Mui-focusVisible": {
-              boxShadow: "0 0 0 6px rgba(255,255,255,0.12)",
+              boxShadow: "0 0 0 6px rgb(var(--brand-fg-rgb) / 0.12)",
             },
           },
         }}
@@ -548,7 +548,7 @@ const IntensitySlider = React.memo(function IntensitySlider({ value, onChange, m
         max={max}
         step={0.05}
         size="small"
-        sx={{ flex: 1, color: alpha("#fff", 0.6) }}
+        sx={{ flex: 1, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}
       />
       <Typography sx={{ fontSize: 12, opacity: 0.7, minWidth: 32, textAlign: "right" }}>
         {draft.toFixed(2)}
@@ -603,7 +603,7 @@ const AngleSlider = React.memo(function AngleSlider({
           max={max}
           step={step ?? 1}
           size="small"
-          sx={{ flex: 1, color: alpha("#fff", 0.6) }}
+          sx={{ flex: 1, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}
         />
         <Typography sx={{ fontSize: 12, opacity: 0.7, minWidth: 38, textAlign: "right" }}>
           {draft.toFixed(unit === "rad" ? 2 : 0)}
@@ -631,7 +631,7 @@ function NumberInput({ value, onChange, step = 0.1, min }) {
         background: alpha("#fff", 0.06),
         border: `1px solid ${alpha("#fff", 0.14)}`,
         borderRadius: 1,
-        color: "#fff",
+        color: "var(--brand-fg)",
         fontSize: 12,
         px: 0.75,
         py: 0.4,
@@ -710,11 +710,11 @@ function AmbienceTabBar({ active, onChange }) {
               userSelect: "none",
               background: selected ? alpha("#7eb3ff", 0.15) : "transparent",
               border: `1px solid ${selected ? alpha("#7eb3ff", 0.4) : "transparent"}`,
-              color: selected ? "#fff" : alpha("#fff", 0.55),
+              color: selected ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 55%, transparent)",
               transition: "all 0.12s",
               "&:hover": {
                 background: selected ? alpha("#7eb3ff", 0.18) : alpha("#fff", 0.04),
-                color: "#fff",
+                color: "var(--brand-fg)",
               },
             }}
           >
@@ -876,7 +876,7 @@ function CameraTab() {
             fontSize: 10.5,
             opacity: 0.5,
             cursor: "pointer",
-            "&:hover": { opacity: 0.9, color: "#7eb3ff" },
+            "&:hover": { opacity: 0.9, color: "light-dark(#0047ad, #7eb3ff)" },
           }}
         >
           Reset to defaults
@@ -927,8 +927,8 @@ function RenderTab() {
               sx: {
                 mt: 0.5,
                 bgcolor: "rgba(22, 22, 26, 0.96)",
-                color: "rgba(255, 255, 255, 0.9)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                color: "rgb(var(--brand-fg-rgb) / 0.9)",
+                border: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
               },
             },
           }}
@@ -959,8 +959,8 @@ function RenderTab() {
               sx: {
                 mt: 0.5,
                 bgcolor: "rgba(22, 22, 26, 0.96)",
-                color: "rgba(255, 255, 255, 0.9)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
+                color: "rgb(var(--brand-fg-rgb) / 0.9)",
+                border: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
               },
             },
           }}
@@ -980,7 +980,7 @@ function RenderTab() {
             fontSize: 10.5,
             opacity: 0.5,
             cursor: "pointer",
-            "&:hover": { opacity: 0.9, color: "#7eb3ff" },
+            "&:hover": { opacity: 0.9, color: "light-dark(#0047ad, #7eb3ff)" },
           }}
         >
           Reset to defaults
@@ -1334,7 +1334,7 @@ export default function PropertiesLightPanel({ lightId }) {
           <IconButton
             size="small"
             onClick={() => togglePin(lightId)}
-            sx={{ opacity: light.pinned ? 1 : 0.4, color: light.pinned ? "#fbbf24" : "inherit" }}
+            sx={{ opacity: light.pinned ? 1 : 0.4, color: light.pinned ? "light-dark(#aa7c03, #fbbf24)" : "inherit" }}
           >
             {light.pinned ? (
               <PushPinRoundedIcon sx={{ fontSize: 18 }} />

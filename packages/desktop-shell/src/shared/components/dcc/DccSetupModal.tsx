@@ -120,9 +120,9 @@ export const DccSetupModal: React.FC<DccSetupModalProps> = ({ toolId, open, onCl
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#1a1f2b',
+          bgcolor: 'var(--brand-surface2)',
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.1)'
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)'
         }
       }}
     >

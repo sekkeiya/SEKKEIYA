@@ -137,7 +137,7 @@ export default function LeafletLocator({
   return (
     <div
       ref={elRef}
-      style={{ width: "100%", height, borderRadius: 8, overflow: "hidden", background: "#0b0f1a" }}
+      style={{ width: "100%", height, borderRadius: 8, overflow: "hidden", background: "var(--brand-bg)" }}
     />
   );
 }

@@ -25,10 +25,10 @@ function Btn({ label, color, onClick, disabled, active, full }) {
         px: 1.1, py: 0.6, borderRadius: 1, fontSize: 12, fontWeight: 800,
         cursor: disabled ? "default" : "pointer",
         opacity: disabled ? 0.4 : 1,
-        color: "#fff",
+        color: "var(--brand-fg)",
         background: alpha(color, active ? 0.5 : 0.16),
         border: `1px solid ${alpha(color, active ? 0.95 : 0.45)}`,
-        boxShadow: active ? `0 0 0 1px ${alpha(color, 0.6)}` : "none",
+        boxShadow: active ? `0 0 0 1px ${`color-mix(in srgb, ${color} 60%, transparent)`}` : "none",
         userSelect: "none",
         "&:hover": disabled ? {} : { background: alpha(color, active ? 0.6 : 0.3) },
       }}
@@ -84,7 +84,7 @@ export default function StructureFacePanel() {
   if (!hasSel) {
     return (
       <Box sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.25 }}>
-        <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.6) }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>
           躯体の面（床・壁・天井）をクリックすると、ここで役割ラベルとコリジョンを設定できます。Shift+クリックで複数選択、Ctrl+A で全選択。
         </Typography>
         {labelCount > 0 && (
@@ -96,12 +96,12 @@ export default function StructureFacePanel() {
 
   return (
     <Box sx={{ p: 1.5, display: "flex", flexDirection: "column", gap: 1.25 }}>
-      <Typography sx={{ fontSize: 11, color: alpha("#fff", 0.6) }}>
+      <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>
         選択中の面: {selCount}
       </Typography>
 
       <Box>
-        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.5), mb: 0.5 }}>役割ラベル</Typography>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mb: 0.5 }}>役割ラベル</Typography>
         <Box sx={{ display: "flex", gap: 0.6, flexWrap: "wrap" }}>
           {SEMANTICS.map((sem) => (
             <Btn
@@ -116,7 +116,7 @@ export default function StructureFacePanel() {
       </Box>
 
       <Box>
-        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.5), mb: 0.5 }}>コリジョン（ウォークスルーの当たり判定）</Typography>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mb: 0.5 }}>コリジョン（ウォークスルーの当たり判定）</Typography>
         <Box sx={{ display: "flex", gap: 0.6 }}>
           <Btn full label="ON" color="#3b82f6" active={allHaveCollision(true)} onClick={() => applyToSelection({ collision: true })} />
           <Btn full label="OFF" color="#9aa0a6" active={allHaveCollision(false)} onClick={() => applyToSelection({ collision: false })} />
@@ -137,7 +137,7 @@ export default function StructureFacePanel() {
         <Btn full label={`全ラベル解除（${labelCount}面）`} color="#ef5350" onClick={onClearAll} />
       )}
 
-      <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.45), lineHeight: 1.5 }}>
+      <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", lineHeight: 1.5 }}>
         床/壁ラベル＋コリジョンONで、ウォークスルーの当たり判定が付き、自動マテリアルの精度も上がります。
       </Typography>
     </Box>

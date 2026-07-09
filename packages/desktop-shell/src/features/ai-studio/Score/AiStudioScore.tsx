@@ -19,13 +19,13 @@ export const AiStudioScore: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ p: { xs: 3, md: 5 }, color: '#fff', maxWidth: 1200, margin: '0 auto' }}>
+    <Box sx={{ p: { xs: 3, md: 5 }, color: 'var(--brand-fg)', maxWidth: 1200, margin: '0 auto' }}>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, letterSpacing: -0.5 }}>
             AIでの採点と評価 (AI Score)
           </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.6)', maxWidth: 600 }}>
+          <Typography variant="body1" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', maxWidth: 600 }}>
             設定されたルールと評価基準に基づき、プロジェクトに対する採点を行います。
           </Typography>
         </Box>
@@ -40,32 +40,32 @@ export const AiStudioScore: React.FC = () => {
 
       {/* Active Profile Info */}
       <Paper sx={{ p: 3, mb: 4, bgcolor: 'rgba(144, 202, 249, 0.05)', border: `1px solid rgba(144, 202, 249, 0.2)`, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-        <Avatar sx={{ bgcolor: 'rgba(144, 202, 249, 0.2)', color: '#90caf9', width: 56, height: 56 }}>
+        <Avatar sx={{ bgcolor: 'rgba(144, 202, 249, 0.2)', color: 'light-dark(#095fa5, #90caf9)', width: 56, height: 56 }}>
           <AssessmentRoundedIcon fontSize="large" />
         </Avatar>
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ color: BRAND.sub, fontSize: 13, textTransform: 'uppercase', mb: 0.5 }}>
             現在適応中の評価AI
           </Typography>
-          <Typography sx={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>
+          <Typography sx={{ color: 'var(--brand-fg)', fontSize: 20, fontWeight: 700 }}>
             {activeProfile ? activeProfile.name : 'AIが選択されていません'}
           </Typography>
         </Box>
         <Chip
           label={`${appliedKnowledge} 接続ナレッジ`}
-          sx={{ bgcolor: 'rgba(144, 202, 249, 0.1)', color: '#90caf9', fontWeight: 600 }}
+          sx={{ bgcolor: 'rgba(144, 202, 249, 0.1)', color: 'light-dark(#095fa5, #90caf9)', fontWeight: 600 }}
         />
       </Paper>
 
       {/* Score Reports Grid */}
-      <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700, mb: 2 }}>最新の採点レポート</Typography>
+      <Typography variant="h6" sx={{ color: 'var(--brand-fg)', fontWeight: 700, mb: 2 }}>最新の採点レポート</Typography>
       
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
         {scoreReports.map(report => (
           <Card key={report.id} sx={{ bgcolor: BRAND.panel, border: `1px solid ${BRAND.line}`, borderRadius: 3 }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>
+                <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 16 }}>
                   {report.name}
                 </Typography>
                 <Chip 
@@ -89,7 +89,7 @@ export const AiStudioScore: React.FC = () => {
                 <Typography sx={{ color: BRAND.sub, fontSize: 12 }}>
                   採点日: {report.date}
                 </Typography>
-                <Button size="small" sx={{ color: '#90caf9' }}>レポート詳細を見る</Button>
+                <Button size="small" sx={{ color: 'light-dark(#095fa5, #90caf9)' }}>レポート詳細を見る</Button>
               </Box>
             </CardContent>
           </Card>

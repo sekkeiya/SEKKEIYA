@@ -40,7 +40,7 @@ export const useFurnitureSetsStore = create<FurnitureSetsState>((setState, getSt
         : [set, ...s.sets];
       return { sets: next };
     });
-    // S.Models の modelSets へも同期（非ブロッキング）
+    // S.Model の modelSets へも同期（非ブロッキング）
     import('../services/furnitureSetSync').then(({ syncFurnitureSetToModelSet }) =>
       syncFurnitureSetToModelSet(uid, set),
     );
@@ -50,7 +50,7 @@ export const useFurnitureSetsStore = create<FurnitureSetsState>((setState, getSt
     const { furnitureSetsApi } = await import('../services/furnitureSetsApi');
     await furnitureSetsApi.delete(uid, id);
     setState(s => ({ sets: s.sets.filter(x => x.id !== id) }));
-    // S.Models の同期済みエントリも削除（非ブロッキング）
+    // S.Model の同期済みエントリも削除（非ブロッキング）
     import('../services/furnitureSetSync').then(({ deleteSyncedModelSet }) =>
       deleteSyncedModelSet(id),
     );

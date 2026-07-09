@@ -28,8 +28,8 @@ export default function StructurePanel() {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "auto", bgcolor: "transparent" }}>
       {/* BASE SECTION */}
-      <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600, mb: 1, textTransform: "uppercase" }}>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)" }}>
+        <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.5)", fontWeight: 600, mb: 1, textTransform: "uppercase" }}>
           Current Base
         </Typography>
         <CardActionArea
@@ -45,10 +45,10 @@ export default function StructurePanel() {
         >
           <LanguageRoundedIcon sx={{ fontSize: 20, color: "#ff9800", mr: 1.5 }} />
           <Box>
-            <Typography sx={{ color: "#fff", fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>
+            <Typography sx={{ color: "var(--brand-fg)", fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>
               {selectedBase?.name || "Untitled Base"}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
+            <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 11 }}>
               {selectedBaseId ? `ID: ${selectedBaseId.slice(0, 6)}...` : "None"}
             </Typography>
           </Box>
@@ -57,14 +57,14 @@ export default function StructurePanel() {
 
       {/* PLAN SECTION */}
       {selectedBaseId && (
-        <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)" }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-            <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600, textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.5)", fontWeight: 600, textTransform: "uppercase" }}>
               Plans
             </Typography>
             <Tooltip title="Add Plan">
               <IconButton size="small" onClick={() => createPlan(selectedBaseId)} sx={{ p: 0.5 }}>
-                <AddBoxRoundedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.5)" }} />
+                <AddBoxRoundedIcon sx={{ fontSize: 16, color: "rgb(var(--brand-fg-rgb) / 0.5)" }} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -81,11 +81,11 @@ export default function StructurePanel() {
                   bgcolor: selectedPlanId === plan.id ? "rgba(76, 175, 80, 0.15)" : "transparent",
                   display: "flex",
                   alignItems: "center",
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+                  "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)" },
                 }}
               >
-                <FolderRoundedIcon sx={{ fontSize: 18, color: selectedPlanId === plan.id ? "#4caf50" : "rgba(255,255,255,0.4)", mr: 1.5 }} />
-                <Typography sx={{ color: selectedPlanId === plan.id ? "#fff" : "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: selectedPlanId === plan.id ? 600 : 400 }}>
+                <FolderRoundedIcon sx={{ fontSize: 18, color: selectedPlanId === plan.id ? "#4caf50" : "rgb(var(--brand-fg-rgb) / 0.4)", mr: 1.5 }} />
+                <Typography sx={{ color: selectedPlanId === plan.id ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", fontSize: 13, fontWeight: selectedPlanId === plan.id ? 600 : 400 }}>
                   {plan.name || "Untitled Plan"}
                 </Typography>
               </CardActionArea>
@@ -98,12 +98,12 @@ export default function StructurePanel() {
       {selectedPlanId && (
         <Box sx={{ px: 2, py: 1.5, pb: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-            <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 600, textTransform: "uppercase" }}>
+            <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.5)", fontWeight: 600, textTransform: "uppercase" }}>
               Options (Editing)
             </Typography>
             <Tooltip title="Add Option">
               <IconButton size="small" onClick={() => createOption({ baseId: selectedBaseId, planId: selectedPlanId })} sx={{ p: 0.5 }}>
-                <AddBoxRoundedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.5)" }} />
+                <AddBoxRoundedIcon sx={{ fontSize: 16, color: "rgb(var(--brand-fg-rgb) / 0.5)" }} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -120,11 +120,11 @@ export default function StructurePanel() {
                   bgcolor: selectedOptionId === option.id ? "rgba(0, 191, 255, 0.15)" : "transparent",
                   display: "flex",
                   alignItems: "center",
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+                  "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)" },
                 }}
               >
-                <LanguageRoundedIcon sx={{ fontSize: 18, color: selectedOptionId === option.id ? "#00BFFF" : "rgba(255,255,255,0.4)", mr: 1.5 }} />
-                <Typography sx={{ color: selectedOptionId === option.id ? "#fff" : "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: selectedOptionId === option.id ? 600 : 400 }}>
+                <LanguageRoundedIcon sx={{ fontSize: 18, color: selectedOptionId === option.id ? "#00BFFF" : "rgb(var(--brand-fg-rgb) / 0.4)", mr: 1.5 }} />
+                <Typography sx={{ color: selectedOptionId === option.id ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", fontSize: 13, fontWeight: selectedOptionId === option.id ? 600 : 400 }}>
                   {option.name || "Untitled Option"}
                 </Typography>
               </CardActionArea>

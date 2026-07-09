@@ -50,7 +50,7 @@ const SERVICES = [
   {
     id: "3dss",
     category: "design",
-    title: "S.Models",
+    title: "S.Model",
     desc: "3Dモデルをブラウザ上で高速に共有し、ウォークスルーや注釈付けでレビューできるクラウド共有アプリ。",
     color: "#34A853",
     icon: icon3DSS,
@@ -114,7 +114,7 @@ const SERVICES = [
   {
     id: "3dsp",
     category: "design",
-    title: "S.Presentations",
+    title: "S.Slide",
     desc: "シネマティックなスクロール型プレゼンテーションを自動構築・配信するPresentsビルダー。",
     color: "#D2A24E",
     icon: icon3DSP,
@@ -146,10 +146,10 @@ const SERVICES = [
     seoTitle: "建材・マテリアルをライブラリ管理して3Dに適用する素材ツール",
     catchphrase: "素材を、資産として管理する。",
     longDesc:
-      "木材・金属・ファブリックといったマテリアルを「素材在庫」として一元管理。S.Layoutの空間やS.Modelsの家具にワンクリックで張り替え、どこに何を使ったかのバインディングまで記録します。仕上げ検討の記憶が、次のプロジェクトの資産になります。",
+      "木材・金属・ファブリックといったマテリアルを「素材在庫」として一元管理。S.Layoutの空間やS.Modelの家具にワンクリックで張り替え、どこに何を使ったかのバインディングまで記録します。仕上げ検討の記憶が、次のプロジェクトの資産になります。",
     features: [
       { title: "素材在庫ライブラリ", desc: "手持ちのマテリアルをカテゴリ・用途（床/壁/家具など）で整理して、いつでも引き出せる在庫に。" },
-      { title: "ワンクリック張り替え", desc: "S.Modelsの家具詳細やS.Layoutのプロパティから、部位を選んでその場で仕上げを差し替え。" },
+      { title: "ワンクリック張り替え", desc: "S.Modelの家具詳細やS.Layoutのプロパティから、部位を選んでその場で仕上げを差し替え。" },
       { title: "適用の記録（バインディング）", desc: "「どのモデルのどの部位に何を使ったか」を永続化。プロジェクトを跨いで再利用できます。" },
     ],
   },
@@ -337,8 +337,15 @@ export const ECOSYSTEM_SERVICES = SERVICES.map((s) => ({
   ...(PRODUCT_CONTENT[s.id] || {}),
 }));
 
-/** /products/:slug 用ルックアップ。旧IDでのアクセス（/3dss 等）も救済する。 */
+/** 旧スラッグ（改名前）→ 現行 id。旧URL（/products/s-models 等）を救済し canonical へ寄せる。 */
+export const LEGACY_PRODUCT_SLUGS = {
+  "s-models": "3dss",
+  "s-presentations": "3dsp",
+};
+
+/** /products/:slug 用ルックアップ。旧IDでのアクセス（/3dss 等）・旧スラッグも救済する。 */
 export function findServiceBySlug(slugOrId) {
   if (!slugOrId) return null;
-  return ECOSYSTEM_SERVICES.find((s) => s.slug === slugOrId || s.id === slugOrId) || null;
+  const key = LEGACY_PRODUCT_SLUGS[slugOrId] || slugOrId;
+  return ECOSYSTEM_SERVICES.find((s) => s.slug === key || s.id === key) || null;
 }

@@ -18,9 +18,9 @@ export default function ConfirmDialog({
       PaperProps={{
         sx: {
           borderRadius: 3,
-          background: alpha("#0b1022", 0.98),
+          background: "color-mix(in srgb, var(--brand-surface) 98%, transparent)",
           border: `1px solid ${alpha("#fff", 0.10)}`,
-          color: "#fff",
+          color: "var(--brand-fg)",
           minWidth: 420,
         },
       }}
@@ -28,7 +28,7 @@ export default function ConfirmDialog({
       <DialogTitle sx={{ fontWeight: 900 }}>{title || "Confirm"}</DialogTitle>
 
       <DialogContent>
-        <DialogContentText sx={{ color: alpha("#fff", 0.72) }}>
+        <DialogContentText sx={{ color: "color-mix(in srgb, var(--brand-fg) 72%, transparent)" }}>
           {description || "Are you sure?"}
         </DialogContentText>
       </DialogContent>
@@ -40,7 +40,7 @@ export default function ConfirmDialog({
           sx={{
             borderRadius: 999,
             fontWeight: 900,
-            color: alpha("#fff", 0.9),
+            color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
             border: `1px solid ${alpha("#fff", 0.18)}`,
           }}
         >

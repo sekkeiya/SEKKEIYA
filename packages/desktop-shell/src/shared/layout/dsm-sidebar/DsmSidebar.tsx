@@ -39,19 +39,19 @@ function ScopeItem({ icon, label, active, onClick, color }: ScopeItemProps) {
         onClick={onClick}
         sx={{
           display: 'flex', alignItems: 'center', px: 1.25, py: 0.75, borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <Box sx={{
           width: 20, height: 20, borderRadius: 1.5,
-          bgcolor: color || 'rgba(255,255,255,0.1)',
+          bgcolor: color || 'rgb(var(--brand-fg-rgb) / 0.1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0,
         }}>
-          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? '#fff' : 'rgba(255,255,255,0.7)' } })}
+          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' } })}
         </Box>
         <Typography sx={{
-          color: active ? '#ffffff' : 'rgba(255,255,255,0.7)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
           fontSize: 12, fontWeight: active ? 600 : 500,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
@@ -135,22 +135,22 @@ export const DsmSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', mb: 1.5 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', mb: 1.5 }}>
           動画編集 / S.Movie
         </Typography>
 
         <Box sx={{
           display: 'flex', alignItems: 'center',
-          bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, px: 1.5, py: 0.5,
-          border: '1px solid rgba(255,255,255,0.05)',
-          '&:focus-within': { borderColor: 'rgba(255,255,255,0.15)' },
+          bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.5, py: 0.5,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase
             placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 12, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }}
           />
         </Box>
       </Box>
@@ -181,7 +181,7 @@ export const DsmSidebar: React.FC = () => {
           />
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
         {/* Personal Scopes */}
         <Box sx={{ mb: 2 }}>
@@ -204,12 +204,12 @@ export const DsmSidebar: React.FC = () => {
         {/* My Projects */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
               My Projects
             </Typography>
             <AddRoundedIcon
               onClick={() => setIsCreateDialogOpen(true)}
-              sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', '&:hover': { color: '#fff' } }}
+              sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' } }}
             />
           </Box>
           {myProjects.map(p => (
@@ -227,7 +227,7 @@ export const DsmSidebar: React.FC = () => {
         {teamProjects.length > 0 && (
           <Box sx={{ mb: 2, minWidth: 200 }}>
             <Box sx={{ px: 2, py: 0.5 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
                 Team Projects
               </Typography>
             </Box>
@@ -246,7 +246,7 @@ export const DsmSidebar: React.FC = () => {
 
       {/* フッター: ローカル完結の明示（docs/14 §0.5） */}
       <Box sx={{ px: 2, pt: 1, borderTop: `1px solid ${BRAND.line}` }}>
-        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.6 }}>
           動画はローカル保存（LocalAssets/Movies）。クラウドへは自動アップロードされません。
         </Typography>
       </Box>
@@ -255,7 +255,7 @@ export const DsmSidebar: React.FC = () => {
       <Dialog
         open={isCreateDialogOpen}
         onClose={() => !isCreating && setIsCreateDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 400 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 400 } }}
       >
         <DialogTitle sx={{ pb: 1 }}>新規プロジェクト作成</DialogTitle>
         <DialogContent>
@@ -269,20 +269,20 @@ export const DsmSidebar: React.FC = () => {
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
             disabled={isCreating}
-            InputProps={{ style: { color: '#fff' } }}
-            InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
+            InputProps={{ style: { color: 'var(--brand-fg)' } }}
+            InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
             sx={{
               mt: 1,
               '& .MuiOutlinedInput-root': {
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
                 '&.Mui-focused fieldset': { borderColor: ACCENT },
               },
             }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          <Button onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
             キャンセル
           </Button>
           <Button onClick={handleCreateProject} disabled={isCreating || !newProjectName.trim()} variant="contained"

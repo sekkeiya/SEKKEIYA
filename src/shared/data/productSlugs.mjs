@@ -8,10 +8,10 @@
  * メニュー / LP / プリレンダ / sitemap がすべて追従する。
  */
 export const PRODUCT_SLUGS = {
-  "3dss": "s-models",
+  "3dss": "s-model",
   "3dsl": "s-layout",
   "3dsc": "s-create",
-  "3dsp": "s-presentations",
+  "3dsp": "s-slide",
   "3dsmt": "s-material",
   "3dsd": "s-diagram",
   "3dsr": "s-drawing",

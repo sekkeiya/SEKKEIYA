@@ -93,7 +93,7 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'lobby_bench', label: 'ロビーベンチ', desc: 'W1200×H450×D400', color: '#7a6a4a',
         components: [
-          { type: 'top_board', name: '天板',   dimensions: d3(1200,40,400), position: p3(0,380,0),    color: '#c8a882' },
+          { type: 'top_board', name: '天板',   dimensions: d3(1200,40,400), position: p3(0,380,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: '左前脚', dimensions: d3(50,380,50),   position: p3(-550,0,-150), color: '#a07850' },
           { type: 'leg',       name: '右前脚', dimensions: d3(50,380,50),   position: p3(550,0,-150),  color: '#a07850' },
           { type: 'leg',       name: '左後脚', dimensions: d3(50,380,50),   position: p3(-550,0,150),  color: '#a07850' },
@@ -121,7 +121,7 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'arm_chair', label: 'アームチェア', desc: 'W600×H840×D560', color: '#7a6a4a',
         components: [
-          { type: 'panel',      name: '座面',     dimensions: d3(460,30,460), position: p3(0,450,0),      color: '#c8a882' },
+          { type: 'panel',      name: '座面',     dimensions: d3(460,30,460), position: p3(0,450,0),      color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',        name: '左前脚',   dimensions: d3(40,450,40),  position: p3(-200,0,-200),  color: '#a07850' },
           { type: 'leg',        name: '右前脚',   dimensions: d3(40,450,40),  position: p3(200,0,-200),   color: '#a07850' },
           { type: 'frame',      name: '左後脚',   dimensions: d3(40,840,40),  position: p3(-200,0,200),   color: '#a07850' },
@@ -134,18 +134,18 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'armless_chair', label: 'アームレスチェア', desc: 'W450×H800×D420', color: '#7a6a4a',
         components: [
-          { type: 'panel',      name: '座面',     dimensions: d3(450,25,420), position: p3(0,415,0),    color: '#c8a882' },
+          { type: 'panel',      name: '座面',     dimensions: d3(450,25,420), position: p3(0,415,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',        name: '左前脚',   dimensions: d3(40,415,40),  position: p3(-185,0,-165), color: '#a07850' },
           { type: 'leg',        name: '右前脚',   dimensions: d3(40,415,40),  position: p3(185,0,-165),  color: '#a07850' },
           { type: 'frame',      name: '左後脚',   dimensions: d3(40,785,40),  position: p3(-185,0,165),  color: '#a07850' },
           { type: 'frame',      name: '右後脚',   dimensions: d3(40,785,40),  position: p3(185,0,165),   color: '#a07850' },
-          { type: 'back_panel', name: '背もたれ', dimensions: d3(410,350,20), position: p3(0,440,165),   color: '#c8a882' },
+          { type: 'back_panel', name: '背もたれ', dimensions: d3(410,350,20), position: p3(0,440,165),   color: 'light-dark(#785a35, #c8a882)' },
         ],
       },
       {
         key: 'counter_chair', label: 'カウンターチェア', desc: 'W430×H1050×D380', color: '#5a6a7a',
         components: [
-          { type: 'panel',      name: '座面',         dimensions: d3(380,25,350), position: p3(0,750,0),    color: '#c8a882' },
+          { type: 'panel',      name: '座面',         dimensions: d3(380,25,350), position: p3(0,750,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'frame',      name: '左前脚',       dimensions: d3(35,750,35),  position: p3(-170,0,-145), color: '#a07850' },
           { type: 'frame',      name: '右前脚',       dimensions: d3(35,750,35),  position: p3(170,0,-145),  color: '#a07850' },
           { type: 'frame',      name: '左後脚',       dimensions: d3(35,1025,35), position: p3(-170,0,145),  color: '#a07850' },
@@ -157,18 +157,18 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'stacking_chair', label: 'スタッキングチェア', desc: 'W450×H830×D480', color: '#7a7a7a',
         components: [
-          { type: 'panel',      name: '座面',     dimensions: d3(420,20,400), position: p3(0,440,0),    color: '#c0c0c0' },
-          { type: 'frame',      name: '左前脚',   dimensions: d3(20,440,20),  position: p3(-200,0,-190), color: '#909090' },
-          { type: 'frame',      name: '右前脚',   dimensions: d3(20,440,20),  position: p3(200,0,-190),  color: '#909090' },
-          { type: 'frame',      name: '左後脚',   dimensions: d3(20,830,20),  position: p3(-200,0,190),  color: '#909090' },
-          { type: 'frame',      name: '右後脚',   dimensions: d3(20,830,20),  position: p3(200,0,190),   color: '#909090' },
-          { type: 'back_panel', name: '背もたれ', dimensions: d3(380,300,15), position: p3(0,460,190),   color: '#b0b0b0' },
+          { type: 'panel',      name: '座面',     dimensions: d3(420,20,400), position: p3(0,440,0),    color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'frame',      name: '左前脚',   dimensions: d3(20,440,20),  position: p3(-200,0,-190), color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'frame',      name: '右前脚',   dimensions: d3(20,440,20),  position: p3(200,0,-190),  color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'frame',      name: '左後脚',   dimensions: d3(20,830,20),  position: p3(-200,0,190),  color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'frame',      name: '右後脚',   dimensions: d3(20,830,20),  position: p3(200,0,190),   color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'back_panel', name: '背もたれ', dimensions: d3(380,300,15), position: p3(0,460,190),   color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
         ],
       },
       {
         key: 'stool', label: 'スツール', desc: 'W400×H480×D400', color: '#7a6a4a',
         components: [
-          { type: 'top_board', name: '座面',   dimensions: d3(380,35,380), position: p3(0,440,0),    color: '#c8a882' },
+          { type: 'top_board', name: '座面',   dimensions: d3(380,35,380), position: p3(0,440,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: '左前脚', dimensions: d3(40,440,40),  position: p3(-155,0,-155), color: '#a07850' },
           { type: 'leg',       name: '右前脚', dimensions: d3(40,440,40),  position: p3(155,0,-155),  color: '#a07850' },
           { type: 'leg',       name: '左後脚', dimensions: d3(40,440,40),  position: p3(-155,0,155),  color: '#a07850' },
@@ -188,7 +188,7 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'dining_table', label: 'ダイニングテーブル', desc: 'W1400×H720×D800', color: '#7a6a4a',
         components: [
-          { type: 'top_board', name: '天板',   dimensions: d3(1400,30,800), position: p3(0,690,0),    color: '#c8a882' },
+          { type: 'top_board', name: '天板',   dimensions: d3(1400,30,800), position: p3(0,690,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: '左前脚', dimensions: d3(70,690,70),   position: p3(-620,0,-340), color: '#a07850' },
           { type: 'leg',       name: '右前脚', dimensions: d3(70,690,70),   position: p3(620,0,-340),  color: '#a07850' },
           { type: 'leg',       name: '左後脚', dimensions: d3(70,690,70),   position: p3(-620,0,340),  color: '#a07850' },
@@ -198,7 +198,7 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'low_table', label: 'ローテーブル', desc: 'W900×H350×D500', color: '#6a5a3a',
         components: [
-          { type: 'top_board', name: '天板',   dimensions: d3(900,25,500), position: p3(0,325,0),    color: '#c8a882' },
+          { type: 'top_board', name: '天板',   dimensions: d3(900,25,500), position: p3(0,325,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: '左前脚', dimensions: d3(50,325,50),  position: p3(-400,0,-200), color: '#a07850' },
           { type: 'leg',       name: '右前脚', dimensions: d3(50,325,50),  position: p3(400,0,-200),  color: '#a07850' },
           { type: 'leg',       name: '左後脚', dimensions: d3(50,325,50),  position: p3(-400,0,200),  color: '#a07850' },
@@ -208,7 +208,7 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'meeting_table', label: '会議テーブル', desc: 'W2400×H720×D1000', color: '#5a6a7a',
         components: [
-          { type: 'top_board', name: '天板',   dimensions: d3(2400,30,1000), position: p3(0,690,0),     color: '#c8a882' },
+          { type: 'top_board', name: '天板',   dimensions: d3(2400,30,1000), position: p3(0,690,0),     color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: '左前脚', dimensions: d3(80,690,80),    position: p3(-1100,0,-450), color: '#a07850' },
           { type: 'leg',       name: '右前脚', dimensions: d3(80,690,80),    position: p3(1100,0,-450),  color: '#a07850' },
           { type: 'leg',       name: '左後脚', dimensions: d3(80,690,80),    position: p3(-1100,0,450),  color: '#a07850' },
@@ -218,7 +218,7 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'reception_table', label: '応接テーブル', desc: 'W1200×H430×D600', color: '#6a5a3a',
         components: [
-          { type: 'top_board', name: '天板',   dimensions: d3(1200,30,600), position: p3(0,400,0),    color: '#c8a882' },
+          { type: 'top_board', name: '天板',   dimensions: d3(1200,30,600), position: p3(0,400,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: '左前脚', dimensions: d3(50,400,50),   position: p3(-550,0,-250), color: '#a07850' },
           { type: 'leg',       name: '右前脚', dimensions: d3(50,400,50),   position: p3(550,0,-250),  color: '#a07850' },
           { type: 'leg',       name: '左後脚', dimensions: d3(50,400,50),   position: p3(-550,0,250),  color: '#a07850' },
@@ -248,7 +248,7 @@ const TEMPLATE_CATEGORIES = [
         key: 'reception_set', label: '応接セット（ソファ+テーブル）', desc: 'W2400×H850×D1800', color: '#5a4a3a',
         components: [
           // 応接テーブル
-          { type: 'top_board', name: 'テーブル天板', dimensions: d3(1200,30,600), position: p3(0,400,0),    color: '#c8a882' },
+          { type: 'top_board', name: 'テーブル天板', dimensions: d3(1200,30,600), position: p3(0,400,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'leg',       name: 'TL左前脚',     dimensions: d3(50,400,50),   position: p3(-550,0,-250), color: '#a07850' },
           { type: 'leg',       name: 'TL右前脚',     dimensions: d3(50,400,50),   position: p3(550,0,-250),  color: '#a07850' },
           { type: 'leg',       name: 'TL左後脚',     dimensions: d3(50,400,50),   position: p3(-550,0,250),  color: '#a07850' },
@@ -273,22 +273,22 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'bookshelf', label: '本棚', desc: 'W800×H720×D300', color: '#5c8a5c',
         components: [
-          { type: 'side_panel',   name: '左側板', dimensions: d3(18,720,300),  position: p3(-391,0,0),   color: '#c8a882' },
-          { type: 'side_panel',   name: '右側板', dimensions: d3(18,720,300),  position: p3(391,0,0),    color: '#c8a882' },
-          { type: 'bottom_board', name: '底板',   dimensions: d3(764,18,300),  position: p3(0,18,0),     color: '#c8a882' },
-          { type: 'top_board',    name: '天板',   dimensions: d3(800,18,300),  position: p3(0,702,0),    color: '#c8a882' },
-          { type: 'shelf',        name: '棚板1',  dimensions: d3(764,18,300),  position: p3(0,250,0),    color: '#c8a882' },
-          { type: 'shelf',        name: '棚板2',  dimensions: d3(764,18,300),  position: p3(0,480,0),    color: '#c8a882' },
+          { type: 'side_panel',   name: '左側板', dimensions: d3(18,720,300),  position: p3(-391,0,0),   color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'side_panel',   name: '右側板', dimensions: d3(18,720,300),  position: p3(391,0,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'bottom_board', name: '底板',   dimensions: d3(764,18,300),  position: p3(0,18,0),     color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'top_board',    name: '天板',   dimensions: d3(800,18,300),  position: p3(0,702,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '棚板1',  dimensions: d3(764,18,300),  position: p3(0,250,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '棚板2',  dimensions: d3(764,18,300),  position: p3(0,480,0),    color: 'light-dark(#785a35, #c8a882)' },
         ],
       },
       {
         key: 'cabinet', label: 'キャビネット（扉付き）', desc: 'W800×H900×D400', color: '#8a5c5c',
         components: [
-          { type: 'side_panel',   name: '左側板', dimensions: d3(18,900,400),  position: p3(-391,0,0),    color: '#c8a882' },
-          { type: 'side_panel',   name: '右側板', dimensions: d3(18,900,400),  position: p3(391,0,0),     color: '#c8a882' },
-          { type: 'bottom_board', name: '底板',   dimensions: d3(764,18,400),  position: p3(0,18,0),      color: '#c8a882' },
-          { type: 'top_board',    name: '天板',   dimensions: d3(800,18,400),  position: p3(0,882,0),     color: '#c8a882' },
-          { type: 'shelf',        name: '中棚板', dimensions: d3(764,18,400),  position: p3(0,450,0),     color: '#c8a882' },
+          { type: 'side_panel',   name: '左側板', dimensions: d3(18,900,400),  position: p3(-391,0,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'side_panel',   name: '右側板', dimensions: d3(18,900,400),  position: p3(391,0,0),     color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'bottom_board', name: '底板',   dimensions: d3(764,18,400),  position: p3(0,18,0),      color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'top_board',    name: '天板',   dimensions: d3(800,18,400),  position: p3(0,882,0),     color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '中棚板', dimensions: d3(764,18,400),  position: p3(0,450,0),     color: 'light-dark(#785a35, #c8a882)' },
           { type: 'door',         name: '左扉',   dimensions: d3(382,864,18),  position: p3(-191,18,-191), color: '#b89a6e' },
           { type: 'door',         name: '右扉',   dimensions: d3(382,864,18),  position: p3(191,18,-191),  color: '#b89a6e' },
         ],
@@ -296,24 +296,24 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'open_shelf', label: 'オープンシェルフ', desc: 'W600×H1800×D300', color: '#6a5c8a',
         components: [
-          { type: 'side_panel',   name: '左側板', dimensions: d3(18,1800,300), position: p3(-291,0,0),   color: '#c8a882' },
-          { type: 'side_panel',   name: '右側板', dimensions: d3(18,1800,300), position: p3(291,0,0),    color: '#c8a882' },
-          { type: 'bottom_board', name: '底板',   dimensions: d3(564,18,300),  position: p3(0,18,0),     color: '#c8a882' },
-          { type: 'top_board',    name: '天板',   dimensions: d3(600,18,300),  position: p3(0,1782,0),   color: '#c8a882' },
-          { type: 'shelf',        name: '棚板1',  dimensions: d3(564,18,300),  position: p3(0,400,0),    color: '#c8a882' },
-          { type: 'shelf',        name: '棚板2',  dimensions: d3(564,18,300),  position: p3(0,720,0),    color: '#c8a882' },
-          { type: 'shelf',        name: '棚板3',  dimensions: d3(564,18,300),  position: p3(0,1100,0),   color: '#c8a882' },
-          { type: 'shelf',        name: '棚板4',  dimensions: d3(564,18,300),  position: p3(0,1450,0),   color: '#c8a882' },
+          { type: 'side_panel',   name: '左側板', dimensions: d3(18,1800,300), position: p3(-291,0,0),   color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'side_panel',   name: '右側板', dimensions: d3(18,1800,300), position: p3(291,0,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'bottom_board', name: '底板',   dimensions: d3(564,18,300),  position: p3(0,18,0),     color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'top_board',    name: '天板',   dimensions: d3(600,18,300),  position: p3(0,1782,0),   color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '棚板1',  dimensions: d3(564,18,300),  position: p3(0,400,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '棚板2',  dimensions: d3(564,18,300),  position: p3(0,720,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '棚板3',  dimensions: d3(564,18,300),  position: p3(0,1100,0),   color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '棚板4',  dimensions: d3(564,18,300),  position: p3(0,1450,0),   color: 'light-dark(#785a35, #c8a882)' },
         ],
       },
       {
         key: 'locker', label: 'ロッカー（2段）', desc: 'W300×H1800×D450', color: '#5a6a7a',
         components: [
-          { type: 'side_panel',   name: '左側板', dimensions: d3(18,1800,450), position: p3(-141,0,0),   color: '#c8a882' },
-          { type: 'side_panel',   name: '右側板', dimensions: d3(18,1800,450), position: p3(141,0,0),    color: '#c8a882' },
-          { type: 'bottom_board', name: '底板',   dimensions: d3(264,18,450),  position: p3(0,18,0),     color: '#c8a882' },
-          { type: 'top_board',    name: '天板',   dimensions: d3(300,18,450),  position: p3(0,1782,0),   color: '#c8a882' },
-          { type: 'shelf',        name: '中棚板', dimensions: d3(264,18,450),  position: p3(0,900,0),    color: '#c8a882' },
+          { type: 'side_panel',   name: '左側板', dimensions: d3(18,1800,450), position: p3(-141,0,0),   color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'side_panel',   name: '右側板', dimensions: d3(18,1800,450), position: p3(141,0,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'bottom_board', name: '底板',   dimensions: d3(264,18,450),  position: p3(0,18,0),     color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'top_board',    name: '天板',   dimensions: d3(300,18,450),  position: p3(0,1782,0),   color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '中棚板', dimensions: d3(264,18,450),  position: p3(0,900,0),    color: 'light-dark(#785a35, #c8a882)' },
           { type: 'door',         name: '上扉',   dimensions: d3(264,882,18),  position: p3(0,918,-216), color: '#b89a6e' },
           { type: 'door',         name: '下扉',   dimensions: d3(264,882,18),  position: p3(0,18,-216),  color: '#b89a6e' },
         ],
@@ -321,14 +321,14 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'dish_cabinet', label: '食器棚', desc: 'W900×H2000×D400', color: '#5a8a7a',
         components: [
-          { type: 'side_panel',   name: '左側板', dimensions: d3(18,2000,400), position: p3(-441,0,0),    color: '#c8a882' },
-          { type: 'side_panel',   name: '右側板', dimensions: d3(18,2000,400), position: p3(441,0,0),     color: '#c8a882' },
-          { type: 'bottom_board', name: '底板',   dimensions: d3(864,18,400),  position: p3(0,18,0),      color: '#c8a882' },
-          { type: 'top_board',    name: '天板',   dimensions: d3(900,18,400),  position: p3(0,1982,0),    color: '#c8a882' },
-          { type: 'shelf',        name: '中棚板', dimensions: d3(864,18,400),  position: p3(0,950,0),     color: '#c8a882' },
+          { type: 'side_panel',   name: '左側板', dimensions: d3(18,2000,400), position: p3(-441,0,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'side_panel',   name: '右側板', dimensions: d3(18,2000,400), position: p3(441,0,0),     color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'bottom_board', name: '底板',   dimensions: d3(864,18,400),  position: p3(0,18,0),      color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'top_board',    name: '天板',   dimensions: d3(900,18,400),  position: p3(0,1982,0),    color: 'light-dark(#785a35, #c8a882)' },
+          { type: 'shelf',        name: '中棚板', dimensions: d3(864,18,400),  position: p3(0,950,0),     color: 'light-dark(#785a35, #c8a882)' },
           { type: 'door',         name: '左下扉', dimensions: d3(432,932,18),  position: p3(-216,18,-191), color: '#b89a6e' },
           { type: 'door',         name: '右下扉', dimensions: d3(432,932,18),  position: p3(216,18,-191),  color: '#b89a6e' },
-          { type: 'shelf',        name: '上棚板', dimensions: d3(864,18,180),  position: p3(0,1600,110),  color: '#c8a882' },
+          { type: 'shelf',        name: '上棚板', dimensions: d3(864,18,180),  position: p3(0,1600,110),  color: 'light-dark(#785a35, #c8a882)' },
         ],
       },
     ],
@@ -346,7 +346,7 @@ const TEMPLATE_CATEGORIES = [
         components: [
           { type: 'panel',      name: 'ベッドフレーム', dimensions: d3(1050,200,2100), position: p3(0,0,0),      color: '#9a7850' },
           { type: 'back_panel', name: 'ヘッドボード',   dimensions: d3(1050,560,80),   position: p3(0,200,-1010), color: '#8a6840' },
-          { type: 'panel',      name: 'マットレス',     dimensions: d3(970,210,1960),  position: p3(0,200,0),    color: '#f0ebe5' },
+          { type: 'panel',      name: 'マットレス',     dimensions: d3(970,210,1960),  position: p3(0,200,0),    color: 'var(--brand-fg)' },
         ],
       },
       {
@@ -354,7 +354,7 @@ const TEMPLATE_CATEGORIES = [
         components: [
           { type: 'panel',      name: 'ベッドフレーム', dimensions: d3(1300,200,2100), position: p3(0,0,0),      color: '#9a7850' },
           { type: 'back_panel', name: 'ヘッドボード',   dimensions: d3(1300,560,80),   position: p3(0,200,-1010), color: '#8a6840' },
-          { type: 'panel',      name: 'マットレス',     dimensions: d3(1220,210,1960), position: p3(0,200,0),    color: '#f0ebe5' },
+          { type: 'panel',      name: 'マットレス',     dimensions: d3(1220,210,1960), position: p3(0,200,0),    color: 'var(--brand-fg)' },
         ],
       },
       {
@@ -362,7 +362,7 @@ const TEMPLATE_CATEGORIES = [
         components: [
           { type: 'panel',      name: 'ベッドフレーム', dimensions: d3(1600,200,2100), position: p3(0,0,0),      color: '#9a7850' },
           { type: 'back_panel', name: 'ヘッドボード',   dimensions: d3(1600,560,80),   position: p3(0,200,-1010), color: '#8a6840' },
-          { type: 'panel',      name: 'マットレス',     dimensions: d3(1520,210,1960), position: p3(0,200,0),    color: '#f0ebe5' },
+          { type: 'panel',      name: 'マットレス',     dimensions: d3(1520,210,1960), position: p3(0,200,0),    color: 'var(--brand-fg)' },
         ],
       },
       {
@@ -370,10 +370,10 @@ const TEMPLATE_CATEGORIES = [
         components: [
           // 下段
           { type: 'panel',      name: '下段フレーム',   dimensions: d3(1050,200,2100), position: p3(0,0,0),       color: '#8a6840' },
-          { type: 'panel',      name: '下段マットレス', dimensions: d3(970,180,1960),  position: p3(0,200,0),     color: '#f0ebe5' },
+          { type: 'panel',      name: '下段マットレス', dimensions: d3(970,180,1960),  position: p3(0,200,0),     color: 'var(--brand-fg)' },
           // 上段
           { type: 'panel',      name: '上段フレーム',   dimensions: d3(1050,200,2100), position: p3(0,800,0),     color: '#8a6840' },
-          { type: 'panel',      name: '上段マットレス', dimensions: d3(970,180,1960),  position: p3(0,1000,0),    color: '#f0ebe5' },
+          { type: 'panel',      name: '上段マットレス', dimensions: d3(970,180,1960),  position: p3(0,1000,0),    color: 'var(--brand-fg)' },
           // 柱・ヘッドボード
           { type: 'frame',      name: '左前柱',         dimensions: d3(60,1600,60),    position: p3(-465,0,-1020), color: '#7a5830' },
           { type: 'frame',      name: '右前柱',         dimensions: d3(60,1600,60),    position: p3(465,0,-1020),  color: '#7a5830' },
@@ -464,22 +464,22 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'kids_desk', label: '学習デスク', desc: 'W1000×H720×D500', color: '#c8843a',
         components: [
-          { type: 'top_board',  name: '天板',     dimensions: d3(1000,25,500), position: p3(0,695,0),    color: '#f0c060' },
-          { type: 'side_panel', name: '左側板',   dimensions: d3(25,700,500),  position: p3(-487,0,0),   color: '#e8b050' },
-          { type: 'side_panel', name: '右側板',   dimensions: d3(25,700,500),  position: p3(487,0,0),    color: '#e8b050' },
-          { type: 'shelf',      name: '棚板',     dimensions: d3(950,18,200),  position: p3(0,400,150),  color: '#f0c060' },
+          { type: 'top_board',  name: '天板',     dimensions: d3(1000,25,500), position: p3(0,695,0),    color: 'light-dark(#9e6f0f, #f0c060)' },
+          { type: 'side_panel', name: '左側板',   dimensions: d3(25,700,500),  position: p3(-487,0,0),   color: 'light-dark(#996814, #e8b050)' },
+          { type: 'side_panel', name: '右側板',   dimensions: d3(25,700,500),  position: p3(487,0,0),    color: 'light-dark(#996814, #e8b050)' },
+          { type: 'shelf',      name: '棚板',     dimensions: d3(950,18,200),  position: p3(0,400,150),  color: 'light-dark(#9e6f0f, #f0c060)' },
           { type: 'back_panel', name: '背板',     dimensions: d3(950,300,9),   position: p3(0,400,246),  color: '#d09040' },
         ],
       },
       {
         key: 'kids_chair', label: 'キッズチェア', desc: 'W360×H640×D340', color: '#c8543a',
         components: [
-          { type: 'panel',      name: '座面',     dimensions: d3(340,20,320), position: p3(0,340,0),    color: '#f0a050' },
+          { type: 'panel',      name: '座面',     dimensions: d3(340,20,320), position: p3(0,340,0),    color: 'light-dark(#a0570e, #f0a050)' },
           { type: 'leg',        name: '左前脚',   dimensions: d3(30,340,30),  position: p3(-145,0,-130), color: '#c07830' },
           { type: 'leg',        name: '右前脚',   dimensions: d3(30,340,30),  position: p3(145,0,-130),  color: '#c07830' },
           { type: 'frame',      name: '左後脚',   dimensions: d3(30,620,30),  position: p3(-145,0,130),  color: '#c07830' },
           { type: 'frame',      name: '右後脚',   dimensions: d3(30,620,30),  position: p3(145,0,130),   color: '#c07830' },
-          { type: 'back_panel', name: '背もたれ', dimensions: d3(280,260,15), position: p3(0,360,130),   color: '#f0a050' },
+          { type: 'back_panel', name: '背もたれ', dimensions: d3(280,260,15), position: p3(0,360,130),   color: 'light-dark(#a0570e, #f0a050)' },
         ],
       },
     ],
@@ -495,17 +495,17 @@ const TEMPLATE_CATEGORIES = [
       {
         key: 'partition', label: 'パーティション', desc: 'W900×H1500×D40', color: '#6a6a6a',
         components: [
-          { type: 'back_panel', name: 'パネル',  dimensions: d3(900,1500,40), position: p3(0,0,0),    color: '#c0b8b0' },
-          { type: 'leg',        name: '左台座',  dimensions: d3(40,80,200),   position: p3(-430,0,0), color: '#909090' },
-          { type: 'leg',        name: '右台座',  dimensions: d3(40,80,200),   position: p3(430,0,0),  color: '#909090' },
+          { type: 'back_panel', name: 'パネル',  dimensions: d3(900,1500,40), position: p3(0,0,0),    color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'leg',        name: '左台座',  dimensions: d3(40,80,200),   position: p3(-430,0,0), color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'leg',        name: '右台座',  dimensions: d3(40,80,200),   position: p3(430,0,0),  color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
         ],
       },
       {
-        key: 'hanger_rack', label: 'ハンガーラック', desc: 'W900×H1700×D500', color: '#8a8a8a',
+        key: 'hanger_rack', label: 'ハンガーラック', desc: 'W900×H1700×D500', color: 'rgb(var(--brand-fg-rgb) / 0.65)',
         components: [
-          { type: 'frame', name: '左柱',       dimensions: d3(30,1700,30), position: p3(-420,0,0),    color: '#8a8a8a' },
-          { type: 'frame', name: '右柱',       dimensions: d3(30,1700,30), position: p3(420,0,0),     color: '#8a8a8a' },
-          { type: 'panel', name: 'ハンガーバー', dimensions: d3(840,25,25), position: p3(0,1600,0),   color: '#a0a0a0' },
+          { type: 'frame', name: '左柱',       dimensions: d3(30,1700,30), position: p3(-420,0,0),    color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'frame', name: '右柱',       dimensions: d3(30,1700,30), position: p3(420,0,0),     color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'panel', name: 'ハンガーバー', dimensions: d3(840,25,25), position: p3(0,1600,0),   color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
           { type: 'leg',   name: '左前横桟',   dimensions: d3(30,30,250),  position: p3(-420,80,-110), color: '#7a7a7a' },
           { type: 'leg',   name: '右前横桟',   dimensions: d3(30,30,250),  position: p3(420,80,-110),  color: '#7a7a7a' },
           { type: 'leg',   name: '左後横桟',   dimensions: d3(30,30,250),  position: p3(-420,80,110),  color: '#7a7a7a' },
@@ -519,10 +519,10 @@ const TEMPLATE_CATEGORIES = [
           { type: 'frame', name: '右前柱', dimensions: d3(40,1800,40),  position: p3(430,0,-205),  color: '#808090' },
           { type: 'frame', name: '左後柱', dimensions: d3(40,1800,40),  position: p3(-430,0,205),  color: '#808090' },
           { type: 'frame', name: '右後柱', dimensions: d3(40,1800,40),  position: p3(430,0,205),   color: '#808090' },
-          { type: 'shelf', name: '棚板1',  dimensions: d3(820,25,410),  position: p3(0,300,0),     color: '#a0a0b0' },
-          { type: 'shelf', name: '棚板2',  dimensions: d3(820,25,410),  position: p3(0,700,0),     color: '#a0a0b0' },
-          { type: 'shelf', name: '棚板3',  dimensions: d3(820,25,410),  position: p3(0,1200,0),    color: '#a0a0b0' },
-          { type: 'shelf', name: '棚板4',  dimensions: d3(820,25,410),  position: p3(0,1700,0),    color: '#a0a0b0' },
+          { type: 'shelf', name: '棚板1',  dimensions: d3(820,25,410),  position: p3(0,300,0),     color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'shelf', name: '棚板2',  dimensions: d3(820,25,410),  position: p3(0,700,0),     color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'shelf', name: '棚板3',  dimensions: d3(820,25,410),  position: p3(0,1200,0),    color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+          { type: 'shelf', name: '棚板4',  dimensions: d3(820,25,410),  position: p3(0,1700,0),    color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
         ],
       },
     ],
@@ -584,14 +584,14 @@ const PartsTab: React.FC = () => {
       {typeLabel && (
         <Box sx={{ mb: 1.5, px: 1, py: 0.5, borderRadius: 1, bgcolor: 'rgba(255,167,38,0.08)', border: '1px solid rgba(255,167,38,0.18)', display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: ACCENT, flexShrink: 0 }} />
-          <Typography sx={{ fontSize: 10, color: 'rgba(255,167,38,0.8)', fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 10, color: 'light-dark(rgba(173,103,0,0.8), rgba(255,167,38,0.8))', fontWeight: 600 }}>
             {typeLabel}向けパーツを表示中
           </Typography>
         </Box>
       )}
       {visibleSections.map(sec => (
         <Box key={sec.label} sx={{ mb: 2 }}>
-          <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, mb: 0.75 }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase', letterSpacing: 0.8, mb: 0.75 }}>
             {sec.label}
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -602,17 +602,17 @@ const PartsTab: React.FC = () => {
                 sx={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   px: 1.25, py: 0.85, borderRadius: 1.5,
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  bgcolor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
                   cursor: 'pointer', transition: 'all 0.15s',
                   '&:hover': { borderColor: ACCENT, bgcolor: 'rgba(255,167,38,0.06)' },
                 }}
               >
                 <Box>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: 600 }}>{label}</Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{desc}</Typography>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.85)', fontSize: 12, fontWeight: 600 }}>{label}</Typography>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 10 }}>{desc}</Typography>
                 </Box>
-                <AddIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.3)' }} />
+                <AddIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
               </Box>
             ))}
           </Box>
@@ -653,7 +653,7 @@ const TemplatesTab: React.FC = () => {
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
       {/* カテゴリフィルター */}
-      <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+      <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', flexShrink: 0 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
           {catNames.map(cat => {
             const isActive = activeCat === cat;
@@ -665,8 +665,8 @@ const TemplatesTab: React.FC = () => {
                 sx={{
                   px: 0.9, py: 0.3, borderRadius: 1, cursor: 'pointer', fontSize: 10, fontWeight: 600,
                   bgcolor: isActive ? `${col}28` : 'transparent',
-                  color: isActive ? col : 'rgba(255,255,255,0.38)',
-                  border: `1px solid ${isActive ? col : 'rgba(255,255,255,0.1)'}`,
+                  color: isActive ? col : 'rgb(var(--brand-fg-rgb) / 0.38)',
+                  border: `1px solid ${isActive ? col : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
                   transition: 'all 0.15s',
                   '&:hover': { color: col, borderColor: col },
                 }}
@@ -695,19 +695,19 @@ const TemplatesTab: React.FC = () => {
                   onClick={() => handleLoad(tmpl)}
                   sx={{
                     px: 1.25, py: 0.9, borderRadius: 1.5, cursor: 'pointer',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    bgcolor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
                     transition: 'all 0.15s',
-                    '&:hover': { borderColor: catColor, bgcolor: `${catColor}14` },
+                    '&:hover': { borderColor: catColor, bgcolor: `color-mix(in srgb, ${catColor} 8%, transparent)` },
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <Box sx={{ width: 7, height: 7, borderRadius: 0.75, bgcolor: tmpl.color, flexShrink: 0 }} />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontSize: 11, fontWeight: 700, lineHeight: 1.3 }}>{tmpl.label}</Typography>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.32)', fontSize: 9 }}>{tmpl.desc}</Typography>
+                      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.88)', fontSize: 11, fontWeight: 700, lineHeight: 1.3 }}>{tmpl.label}</Typography>
+                      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.32)', fontSize: 9 }}>{tmpl.desc}</Typography>
                     </Box>
-                    <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>{tmpl.components.length}P</Typography>
+                    <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.22)', flexShrink: 0 }}>{tmpl.components.length}P</Typography>
                   </Box>
                 </Box>
               ))}
@@ -725,13 +725,13 @@ const LayersTab: React.FC = () => {
   const { components, selectedId, selectComponent, removeComponent, duplicateComponent } = useDscStore();
   return (
     <Box sx={{ flex: 1, overflowY: 'auto', p: 1.5 }}>
-      <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
+      <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1 }}>
         コンポーネント ({components.length})
       </Typography>
       {components.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
-          <ViewInArIcon sx={{ fontSize: 36, color: 'rgba(255,167,38,0.2)', mb: 1 }} />
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+          <ViewInArIcon sx={{ fontSize: 36, color: 'light-dark(rgba(173,103,0,0.2), rgba(255,167,38,0.2))', mb: 1 }} />
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.6 }}>
             パーツタブからパーツを<br />追加してください
           </Typography>
         </Box>
@@ -746,26 +746,26 @@ const LayersTab: React.FC = () => {
                 px: 1.25, py: 0.75, borderRadius: 1.5, cursor: 'pointer',
                 bgcolor: selectedId === comp.id ? 'rgba(255,167,38,0.12)' : 'transparent',
                 border: `1px solid ${selectedId === comp.id ? ACCENT : 'transparent'}`,
-                '&:hover': { bgcolor: selectedId === comp.id ? 'rgba(255,167,38,0.16)' : 'rgba(255,255,255,0.04)' },
+                '&:hover': { bgcolor: selectedId === comp.id ? 'rgba(255,167,38,0.16)' : 'rgb(var(--brand-fg-rgb) / 0.04)' },
                 '&:hover .layer-actions': { opacity: 1 },
                 transition: 'all 0.12s',
               }}
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 600, color: selectedId === comp.id ? ACCENT : 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 600, color: selectedId === comp.id ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {comp.name}
                 </Typography>
-                <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>
+                <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
                   {comp.dimensions.width}×{comp.dimensions.depth}×{comp.dimensions.height}mm
                 </Typography>
               </Box>
               <Box className="layer-actions" sx={{ display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.12s' }}>
                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicateComponent(comp.id); }}
-                  sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4, '&:hover': { color: ACCENT } }}>
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', p: 0.4, '&:hover': { color: ACCENT } }}>
                   <ContentCopyRoundedIcon sx={{ fontSize: 11 }} />
                 </IconButton>
                 <IconButton size="small" onClick={(e) => { e.stopPropagation(); removeComponent(comp.id); }}
-                  sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4, '&:hover': { color: '#ff4d4f' } }}>
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', p: 0.4, '&:hover': { color: '#ff4d4f' } }}>
                   <DeleteIcon sx={{ fontSize: 13 }} />
                 </IconButton>
               </Box>
@@ -797,7 +797,7 @@ export const DscEditorSidebar: React.FC = () => {
 
       {/* Header */}
       <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${BRAND.line}`, flexShrink: 0 }}>
-        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
           3D SHAPE CREATE
         </Typography>
         <Typography sx={{ fontSize: 12, color: ACCENT, fontWeight: 600, mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -815,9 +815,9 @@ export const DscEditorSidebar: React.FC = () => {
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               py: 0.75, cursor: 'pointer', gap: 0.3,
               borderBottom: activeTab === tab.key ? `2px solid ${ACCENT}` : '2px solid transparent',
-              color: activeTab === tab.key ? ACCENT : 'rgba(255,255,255,0.4)',
+              color: activeTab === tab.key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.4)',
               transition: 'color 0.15s, border-color 0.15s',
-              '&:hover': { color: activeTab === tab.key ? ACCENT : 'rgba(255,255,255,0.7)', bgcolor: 'rgba(255,255,255,0.03)' },
+              '&:hover': { color: activeTab === tab.key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' },
             }}
           >
             {tab.icon}

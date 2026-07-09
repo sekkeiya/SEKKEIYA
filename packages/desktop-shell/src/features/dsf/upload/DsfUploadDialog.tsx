@@ -80,7 +80,7 @@ export const DsfUploadDialog: React.FC<DsfUploadDialogProps> = ({ open, onClose,
     <Dialog
       open={open}
       onClose={() => !isUploading && onClose()}
-      PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 460 } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 460 } }}
     >
       <DialogTitle sx={{ pb: 1 }}>ポートフォリオをアップロード</DialogTitle>
       <DialogContent>
@@ -92,7 +92,7 @@ export const DsfUploadDialog: React.FC<DsfUploadDialogProps> = ({ open, onClose,
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!isUploading) acceptFile(e.dataTransfer.files?.[0]); }}
           sx={{
             mt: 1, mb: 2, p: 3, borderRadius: 2, textAlign: 'center', cursor: isUploading ? 'default' : 'pointer',
-            border: `1.5px dashed ${dragOver ? ACCENT : 'rgba(255,255,255,0.2)'}`,
+            border: `1.5px dashed ${dragOver ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.2)'}`,
             bgcolor: dragOver ? `${ACCENT}11` : 'rgba(0,0,0,0.2)',
             transition: 'border-color 0.15s, background-color 0.15s',
           }}
@@ -103,15 +103,15 @@ export const DsfUploadDialog: React.FC<DsfUploadDialogProps> = ({ open, onClose,
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
               <MenuBookRoundedIcon sx={{ fontSize: 32, color: ACCENT }} />
               <Box sx={{ textAlign: 'left' }}>
-                <Typography sx={{ fontSize: 13, color: '#fff' }}>{file.name}</Typography>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{(file.size / 1024 / 1024).toFixed(1)} MB</Typography>
+                <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)' }}>{file.name}</Typography>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{(file.size / 1024 / 1024).toFixed(1)} MB</Typography>
               </Box>
             </Box>
           ) : (
             <>
-              <CloudUploadRoundedIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.4)', mb: 0.5 }} />
-              <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>クリックまたはドラッグ＆ドロップ</Typography>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', mt: 0.5 }}>PDF（一冊の本として閲覧できます）</Typography>
+              <CloudUploadRoundedIcon sx={{ fontSize: 32, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 0.5 }} />
+              <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>クリックまたはドラッグ＆ドロップ</Typography>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 0.5 }}>PDF（一冊の本として閲覧できます）</Typography>
             </>
           )}
         </Box>
@@ -119,38 +119,38 @@ export const DsfUploadDialog: React.FC<DsfUploadDialogProps> = ({ open, onClose,
         <TextField
           margin="dense" label="タイトル" fullWidth variant="outlined"
           value={title} onChange={(e) => setTitle(e.target.value)} disabled={isUploading}
-          InputProps={{ style: { color: '#fff' } }} InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
+          InputProps={{ style: { color: 'var(--brand-fg)' } }} InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
           sx={fieldSx}
         />
 
         <TextField
           select margin="dense" label="カテゴリ" fullWidth variant="outlined"
           value={category} onChange={(e) => setCategory(e.target.value as DsfCategory)} disabled={isUploading}
-          InputProps={{ style: { color: '#fff' } }} InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
+          InputProps={{ style: { color: 'var(--brand-fg)' } }} InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
           sx={fieldSx}
         >
           {DSF_CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
 
-        {error && <Typography sx={{ color: '#ff6b6b', fontSize: 12, mt: 1 }}>{error}</Typography>}
+        {error && <Typography sx={{ color: 'light-dark(#ad0000, #ff6b6b)', fontSize: 12, mt: 1 }}>{error}</Typography>}
 
         {isUploading && (
           <Box sx={{ mt: 2 }}>
             <LinearProgress
               variant={phase === 'thumbnail' ? 'indeterminate' : 'determinate'} value={progress ?? 0}
-              sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.1)', '& .MuiLinearProgress-bar': { bgcolor: ACCENT } }}
+              sx={{ height: 6, borderRadius: 3, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', '& .MuiLinearProgress-bar': { bgcolor: ACCENT } }}
             />
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mt: 0.5, textAlign: 'right' }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: 0.5, textAlign: 'right' }}>
               {phase === 'thumbnail' ? '表紙を生成中...' : `${Math.round(progress ?? 0)}%`}
             </Typography>
           </Box>
         )}
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} disabled={isUploading} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={onClose} disabled={isUploading} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button onClick={handleUpload} disabled={!file || isUploading} variant="contained"
           startIcon={<CloudUploadRoundedIcon />}
-          sx={{ bgcolor: ACCENT, color: '#fff', '&:hover': { bgcolor: '#9575cd' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}>
+          sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: '#9575cd' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}>
           {isUploading ? 'アップロード中...' : 'アップロード'}
         </Button>
       </DialogActions>
@@ -161,9 +161,9 @@ export const DsfUploadDialog: React.FC<DsfUploadDialogProps> = ({ open, onClose,
 const fieldSx = {
   mt: 1,
   '& .MuiOutlinedInput-root': {
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+    '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+    '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
     '&.Mui-focused fieldset': { borderColor: ACCENT },
   },
-  '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+  '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
 } as const;

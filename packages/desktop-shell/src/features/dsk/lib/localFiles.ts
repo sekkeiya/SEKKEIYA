@@ -12,9 +12,10 @@ import type { LibraryEntry, KnowledgeKind } from '../types';
 /** LocalAssets のトップレベルカテゴリ名（src-tauri 側の scaffold と一致）。 */
 const DOCUMENTS_CATEGORY = 'Documents';
 
-/** 拡張子から表示用 kind を決める（実体ビューアは pdf のみ対応）。 */
+/** 文書系拡張子 → 書類（kind 'pdf'）。それ以外はメモ扱い（内蔵ビューアで開けるのは .pdf のみ）。 */
+const DOC_EXTS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']);
 function kindForExt(ext: string): KnowledgeKind {
-  return ext === 'pdf' ? 'pdf' : 'note';
+  return DOC_EXTS.has(ext.toLowerCase()) ? 'pdf' : 'note';
 }
 
 /** 拡張子を落としたファイル名をタイトルに使う。 */

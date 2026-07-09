@@ -1,12 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Box, Tooltip, Menu, MenuItem, Divider, Typography } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
-import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
-import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
-import WallpaperRoundedIcon from '@mui/icons-material/WallpaperRounded';
-import BrushRoundedIcon from '@mui/icons-material/BrushRounded';
-import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import { useAppStore } from '../../store/useAppStore';
 import { BRAND } from '../../styles/theme';
 
@@ -48,10 +42,10 @@ const MENUS = [
 ];
 
 const menuPaperSx = {
-  bgcolor: 'rgba(18,20,26,0.97)',
+  bgcolor: BRAND.glass,
   backdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255,255,255,0.1)',
-  color: '#fff',
+  border: `1px solid ${BRAND.line}`,
+  color: BRAND.text,
   minWidth: 200,
   borderRadius: 1.5,
   boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
@@ -62,52 +56,10 @@ const menuPaperSx = {
 const AIToolbar: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<{ name: string; anchor: HTMLElement } | null>(null);
 
-  const isAIDriveOpen    = useAppStore(s => s.isAIDriveOpen);
-  const isAIChatOpen     = useAppStore(s => s.isAIChatOpen);
-  const isTeamChatOpen   = useAppStore(s => s.isTeamChatOpen);
-  const isAIRenderOpen   = useAppStore(s => s.isAIRenderOpen);
-  const isAI3DCreateOpen = useAppStore(s => s.isAI3DCreateOpen);
-  const currentMainView  = useAppStore(s => s.currentMainView);
-  const isAIDriveExpanded = useAppStore(s => s.isAIDriveExpanded);
   const toggleProjectSidebar = useAppStore(s => s.toggleProjectSidebar);
 
-  // AI Studio を開く直前の画面を覚えておき、もう一度押したらそこへ戻して閉じる。
-  const prevViewBeforeStudio = useRef<typeof currentMainView>('my-site');
-
-  const aiButtons = [
-    {
-      icon: <FolderRoundedIcon sx={{ fontSize: 18 }} />, label: 'AI ドライブ', active: isAIDriveOpen,
-      onClick: () => { const s = useAppStore.getState(); s.setAIRenderOpen(false); s.setAI3DCreateOpen(false); s.toggleAIDrive(); },
-    },
-    {
-      icon: <ChatRoundedIcon sx={{ fontSize: 18 }} />, label: 'SEKKEIYA Chat', active: isAIChatOpen,
-      onClick: () => { const s = useAppStore.getState(); if (!isAIDriveExpanded) s.setAIDriveOpen(false); s.setAIRenderOpen(false); s.setAI3DCreateOpen(false); s.toggleAIChat(); },
-    },
-    {
-      icon: <ForumRoundedIcon sx={{ fontSize: 18 }} />, label: 'Project Chat（メンバー間）', active: isTeamChatOpen,
-      onClick: () => { const s = useAppStore.getState(); if (!isAIDriveExpanded) s.setAIDriveOpen(false); s.setAIRenderOpen(false); s.setAI3DCreateOpen(false); s.toggleTeamChat(); },
-    },
-    {
-      icon: <WallpaperRoundedIcon sx={{ fontSize: 18 }} />, label: 'AI Render', active: isAIRenderOpen,
-      onClick: () => { const s = useAppStore.getState(); if (!isAIDriveExpanded) s.setAIDriveOpen(false); s.setAI3DCreateOpen(false); s.toggleAIRender(); },
-    },
-    {
-      icon: <BrushRoundedIcon sx={{ fontSize: 18 }} />, label: 'AI 3D Generate', active: isAI3DCreateOpen,
-      onClick: () => { const s = useAppStore.getState(); if (!isAIDriveExpanded) s.setAIDriveOpen(false); s.setAIRenderOpen(false); s.toggleAI3DCreate(); },
-    },
-    {
-      icon: <SchoolRoundedIcon sx={{ fontSize: 18 }} />, label: 'AI Studio', active: currentMainView === 'ai-studio',
-      onClick: () => {
-        const s = useAppStore.getState();
-        if (s.currentMainView === 'ai-studio') {
-          s.setCurrentMainView(prevViewBeforeStudio.current || 'my-site');
-        } else {
-          prevViewBeforeStudio.current = s.currentMainView;
-          s.setCurrentMainView('ai-studio');
-        }
-      },
-    },
-  ];
+  // 右端の AI 機能ボタン群（Chat / Drive / Project Chat / Render / 3D Generate / AI Studio）は
+  // 右下ピルのホバーランチャー（Chat/Drive/DM/Render/3D）＋左レール（AI Studio）へ集約したため撤去。
 
   const handleMenuOpen = (name: string, e: React.MouseEvent<HTMLElement>) => {
     setOpenMenu({ name, anchor: e.currentTarget });
@@ -144,8 +96,8 @@ const AIToolbar: React.FC = () => {
             flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
-            color: 'rgba(255,255,255,0.6)',
-            '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+            color: BRAND.sub2,
+            '&:hover': { color: BRAND.text, bgcolor: BRAND.panel },
           }}
         >
           <MenuRoundedIcon sx={{ fontSize: 18 }} />
@@ -162,10 +114,10 @@ const AIToolbar: React.FC = () => {
               height: BAR_H, px: 1.5,
               display: 'flex', alignItems: 'center',
               cursor: 'pointer',
-              color: openMenu?.name === menu.name ? '#fff' : 'rgba(255,255,255,0.6)',
-              bgcolor: openMenu?.name === menu.name ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: openMenu?.name === menu.name ? BRAND.text : BRAND.sub2,
+              bgcolor: openMenu?.name === menu.name ? BRAND.panel2 : 'transparent',
               fontSize: 12, fontWeight: 500,
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+              '&:hover': { color: BRAND.text, bgcolor: BRAND.panel },
             }}
           >
             {menu.name}
@@ -179,19 +131,19 @@ const AIToolbar: React.FC = () => {
             slotProps={{ paper: { sx: menuPaperSx } }}
           >
             {menu.items.flatMap((item) => [
-              item.dividerBefore ? <Divider key={`${item.label}-divider`} sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }} /> : null,
+              item.dividerBefore ? <Divider key={`${item.label}-divider`} sx={{ borderColor: BRAND.line, my: 0.5 }} /> : null,
               <MenuItem
                 key={item.label}
                 onClick={() => handleAction(item.action)}
                 sx={{
                   fontSize: 13, py: 0.75, px: 2,
                   display: 'flex', justifyContent: 'space-between', gap: 4,
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                  '&:hover': { bgcolor: BRAND.panel },
                 }}
               >
                 <span>{item.label}</span>
                 {item.shortcut && (
-                  <Typography component="span" sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+                  <Typography component="span" sx={{ fontSize: 11, color: BRAND.sub2, flexShrink: 0 }}>
                     {item.shortcut}
                   </Typography>
                 )}
@@ -201,29 +153,8 @@ const AIToolbar: React.FC = () => {
         </React.Fragment>
       ))}
 
-      {/* ── 右端：AI ツールボタン群 ── */}
+      {/* 右端の AI 機能ボタン群は撤去（右下ピル／左レールへ集約）。 */}
       <Box sx={{ flex: 1 }} />
-      <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', borderLeft: `1px solid ${BRAND.line}` }}>
-        {aiButtons.map(({ icon, label, active, onClick }) => (
-          <Tooltip key={label} title={label} placement="bottom" arrow>
-            <Box
-              onClick={onClick}
-              sx={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: BAR_H, px: 1.5,
-                color: active ? '#3498db' : 'rgba(255,255,255,0.4)',
-                bgcolor: active ? 'rgba(52,152,219,0.12)' : 'transparent',
-                cursor: 'pointer',
-                borderRight: `1px solid ${BRAND.line}`,
-                transition: 'color 0.15s, background-color 0.15s',
-                '&:hover': { color: active ? '#3498db' : '#fff', bgcolor: active ? 'rgba(52,152,219,0.18)' : 'rgba(255,255,255,0.06)' },
-              }}
-            >
-              {icon}
-            </Box>
-          </Tooltip>
-        ))}
-      </Box>
     </Box>
   );
 };

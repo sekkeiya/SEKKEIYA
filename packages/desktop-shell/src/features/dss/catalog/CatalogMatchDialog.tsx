@@ -42,19 +42,19 @@ const SourcesSection: React.FC<{ sources: CatalogIndexMeta[] }> = ({ sources }) 
   if (!sources.length) return null;
   const totalItems = sources.reduce((s, m) => s + (m.itemCount || 0), 0);
   return (
-    <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+    <Box sx={{ mt: 2.5, pt: 2, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-        <Inventory2RoundedIcon sx={{ fontSize: 16, color: 'rgba(148,163,184,0.9)' }} />
-        <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: 'rgba(229,231,235,0.85)' }}>
+        <Inventory2RoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }} />
+        <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: 'light-dark(rgba(31,41,55,0.85), rgba(229,231,235,0.85))' }}>
           索引済みソース（{sources.length}件・商品{totalItems}点）
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         {sources.map((s) => (
-          <Box key={s.catalogEntryId} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.03)' }}>
-            <MenuBookRoundedIcon sx={{ fontSize: 15, color: '#7dd3fc', flexShrink: 0 }} />
+          <Box key={s.catalogEntryId} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' }}>
+            <MenuBookRoundedIcon sx={{ fontSize: 15, color: 'light-dark(#0474a9, #7dd3fc)', flexShrink: 0 }} />
             <Typography noWrap sx={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{s.catalogTitle}</Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.9)', flexShrink: 0 }}>{s.itemCount}点</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.9)', flexShrink: 0 }}>{s.itemCount}点</Typography>
           </Box>
         ))}
       </Box>
@@ -89,13 +89,13 @@ export const CatalogMatchDialog: React.FC<Props> = ({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      slotProps={{ paper: { sx: { bgcolor: '#0b1220', color: '#e5e7eb', border: '1px solid rgba(148,163,184,0.22)', borderRadius: 2, height: 'min(86vh, 820px)' } } }}
+      slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2, height: 'min(86vh, 820px)' } } }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2.5, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-        <MenuBookRoundedIcon sx={{ fontSize: 20, color: '#93c5fd' }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2.5, py: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', flexShrink: 0 }}>
+        <MenuBookRoundedIcon sx={{ fontSize: 20, color: 'light-dark(#0352aa, #93c5fd)' }} />
         <Typography sx={{ fontWeight: 700, fontSize: 15 }}>S.Library カタログ照合</Typography>
         <Box sx={{ flex: 1 }} />
-        <IconButton size="small" onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
           <CloseRoundedIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -106,28 +106,28 @@ export const CatalogMatchDialog: React.FC<Props> = ({
         <Box sx={{ flex: 1, minWidth: 0, p: 2.5, overflowY: 'auto' }}>
         {busy && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 4, justifyContent: 'center' }}>
-            <CircularProgress size={20} sx={{ color: '#93c5fd' }} />
-            <Typography sx={{ fontSize: 13, color: 'rgba(229,231,235,0.85)' }}>{progressText || '照合中…'}</Typography>
+            <CircularProgress size={20} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
+            <Typography sx={{ fontSize: 13, color: 'light-dark(rgba(31,41,55,0.85), rgba(229,231,235,0.85))' }}>{progressText || '照合中…'}</Typography>
           </Box>
         )}
 
         {!busy && error && (
-          <Typography sx={{ color: '#fca5a5', fontSize: 13, py: 3, textAlign: 'center', whiteSpace: 'pre-wrap' }}>{error}</Typography>
+          <Typography sx={{ color: 'light-dark(#a80606, #fca5a5)', fontSize: 13, py: 3, textAlign: 'center', whiteSpace: 'pre-wrap' }}>{error}</Typography>
         )}
 
         {!busy && !error && matches.length === 0 && (
           <Box sx={{ py: 4, textAlign: 'center' }}>
             {sources.length === 0 ? (
               <>
-                <Typography sx={{ fontSize: 13, color: 'rgba(229,231,235,0.8)' }}>まだ索引化されたソースがありません。</Typography>
-                <Typography sx={{ fontSize: 11.5, color: 'rgba(148,163,184,0.8)', mt: 0.5 }}>
+                <Typography sx={{ fontSize: 13, color: 'light-dark(rgba(31,41,55,0.8), rgba(229,231,235,0.8))' }}>まだ索引化されたソースがありません。</Typography>
+                <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--slate-ink-rgb) / 0.8)', mt: 0.5 }}>
                   S.Library でインテリアカタログ（PDF）や家具サイト（Web）を索引化すると、ここに近い商品が表示されます。
                 </Typography>
               </>
             ) : (
               <>
-                <Typography sx={{ fontSize: 13, color: 'rgba(229,231,235,0.8)' }}>このモデルに近い商品は見つかりませんでした。</Typography>
-                <Typography sx={{ fontSize: 11.5, color: 'rgba(148,163,184,0.8)', mt: 0.5 }}>
+                <Typography sx={{ fontSize: 13, color: 'light-dark(rgba(31,41,55,0.8), rgba(229,231,235,0.8))' }}>このモデルに近い商品は見つかりませんでした。</Typography>
+                <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--slate-ink-rgb) / 0.8)', mt: 0.5 }}>
                   右の索引済みソースの中に、形・素材が近い商品がなかった可能性があります。
                 </Typography>
               </>
@@ -147,28 +147,28 @@ export const CatalogMatchDialog: React.FC<Props> = ({
                 key={m.id}
                 onClick={isReg ? () => toggle(m.id) : (clickable ? () => openExternalUrl(m.productUrl!) : undefined)}
                 sx={{
-                  borderRadius: 1.5, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.03)',
-                  border: isSel ? '1.5px solid #86efac' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 1.5, overflow: 'hidden', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+                  border: isSel ? '1.5px solid #86efac' : '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                   cursor: (isReg || clickable) ? 'pointer' : 'default',
                   transition: 'border-color 0.15s',
                   '&:hover': (isReg || clickable) ? { borderColor: isSel ? '#86efac' : 'rgba(96,165,250,0.6)' } : undefined,
                 }}
               >
-                <Box sx={{ position: 'relative', aspectRatio: '1/1', bgcolor: 'rgba(0,0,0,0.3)' }}>
+                <Box sx={{ position: 'relative', aspectRatio: '1/1', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))' }}>
                   <img src={m.cropDataUrl} alt={m.label} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   {isReg && (
                     <Checkbox
                       checked={isSel}
                       size="small"
                       onClick={(e) => { e.stopPropagation(); toggle(m.id); }}
-                      sx={{ position: 'absolute', top: 2, left: 2, zIndex: 2, color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: '#86efac' }, bgcolor: 'rgba(0,0,0,0.35)', p: 0.25, borderRadius: 1 }}
+                      sx={{ position: 'absolute', top: 2, left: 2, zIndex: 2, color: 'rgb(var(--brand-fg-rgb) / 0.7)', '&.Mui-checked': { color: 'light-dark(#149944, #86efac)' }, bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', p: 0.25, borderRadius: 1 }}
                     />
                   )}
                   {clickable && (
                     <IconButton
                       size="small"
                       onClick={(e) => { e.stopPropagation(); openExternalUrl(m.productUrl!); }}
-                      sx={{ position: 'absolute', bottom: 2, right: 2, zIndex: 2, color: '#cbd5e1', bgcolor: 'rgba(0,0,0,0.4)', p: 0.4, '&:hover': { color: '#93c5fd', bgcolor: 'rgba(0,0,0,0.6)' } }}
+                      sx={{ position: 'absolute', bottom: 2, right: 2, zIndex: 2, color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.4)', p: 0.4, '&:hover': { color: 'light-dark(#0352aa, #93c5fd)', bgcolor: 'rgba(0,0,0,0.6)' } }}
                     >
                       <OpenInNewRoundedIcon sx={{ fontSize: 13 }} />
                     </IconButton>
@@ -181,11 +181,11 @@ export const CatalogMatchDialog: React.FC<Props> = ({
                   <Typography noWrap sx={{ fontSize: 11.5, fontWeight: 600 }}>{isWeb ? (m.label || m.catalogTitle) : m.catalogTitle}</Typography>
                   {isWeb ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, mt: 0.25 }}>
-                      <Typography noWrap sx={{ fontSize: 11, color: '#86efac', fontWeight: 700 }}>{m.price || ''}</Typography>
-                      {clickable && <OpenInNewRoundedIcon sx={{ fontSize: 13, color: '#93c5fd', flexShrink: 0 }} />}
+                      <Typography noWrap sx={{ fontSize: 11, color: 'light-dark(#149944, #86efac)', fontWeight: 700 }}>{m.price || ''}</Typography>
+                      {clickable && <OpenInNewRoundedIcon sx={{ fontSize: 13, color: 'light-dark(#0352aa, #93c5fd)', flexShrink: 0 }} />}
                     </Box>
                   ) : (
-                    <Typography sx={{ fontSize: 10.5, color: 'rgba(148,163,184,0.9)' }}>p.{m.page} ・ {m.label}</Typography>
+                    <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>p.{m.page} ・ {m.label}</Typography>
                   )}
                 </Box>
               </Box>
@@ -196,34 +196,34 @@ export const CatalogMatchDialog: React.FC<Props> = ({
         </Box>
 
         {/* 右: サイドバー（クエリ・登録・索引済みソース） */}
-        <Box sx={{ width: 308, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Box sx={{ width: 308, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {/* クエリ（このモデル） */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
             {queryImage && (
-              <Box sx={{ width: 56, height: 44, borderRadius: 1, overflow: 'hidden', flexShrink: 0, bgcolor: 'rgba(255,255,255,0.05)' }}>
+              <Box sx={{ width: 56, height: 44, borderRadius: 1, overflow: 'hidden', flexShrink: 0, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}>
                 <img src={queryImage} alt="query" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </Box>
             )}
             <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: 10.5, color: 'rgba(148,163,184,0.9)' }}>このモデルに近いカタログ商品</Typography>
+              <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>このモデルに近いカタログ商品</Typography>
               <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>{modelTitle || '選択中のモデル'}</Typography>
             </Box>
           </Box>
 
           {/* 登録アクション */}
           {!busy && !error && registrable.length > 0 && onRegister && (
-            <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(148,163,184,0.9)', textTransform: 'uppercase' }}>カタログ登録</Typography>
-              <Typography sx={{ fontSize: 12, color: 'rgba(229,231,235,0.85)' }}>{selected.size} 件選択中</Typography>
+            <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgb(var(--slate-ink-rgb) / 0.9)', textTransform: 'uppercase' }}>カタログ登録</Typography>
+              <Typography sx={{ fontSize: 12, color: 'light-dark(rgba(31,41,55,0.85), rgba(229,231,235,0.85))' }}>{selected.size} 件選択中</Typography>
               {!canRegister && (
-                <Typography sx={{ fontSize: 11, color: 'rgba(251,146,60,0.9)' }}>※ 自分のモデルのみ登録できます</Typography>
+                <Typography sx={{ fontSize: 11, color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))' }}>※ 自分のモデルのみ登録できます</Typography>
               )}
               <Button
                 fullWidth
                 variant="contained"
                 disabled={!canRegister || selected.size === 0 || registering}
                 onClick={() => onRegister(selectedLinks)}
-                startIcon={registering ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <BookmarkAddRoundedIcon sx={{ fontSize: 16 }} />}
+                startIcon={registering ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <BookmarkAddRoundedIcon sx={{ fontSize: 16 }} />}
                 sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#16a34a', '&:hover': { bgcolor: '#15803d' } }}
               >
                 選択を登録（{selected.size}）
@@ -234,7 +234,7 @@ export const CatalogMatchDialog: React.FC<Props> = ({
                 disabled={!canRegister || autoLinks.length === 0 || registering}
                 onClick={() => onRegister(autoLinks)}
                 startIcon={<BookmarkAddRoundedIcon sx={{ fontSize: 16 }} />}
-                sx={{ textTransform: 'none', fontSize: 13, color: '#86efac', borderColor: 'rgba(134,239,172,0.5)', '&:hover': { borderColor: '#86efac', bgcolor: 'rgba(134,239,172,0.1)' } }}
+                sx={{ textTransform: 'none', fontSize: 13, color: 'light-dark(#149944, #86efac)', borderColor: 'rgba(134,239,172,0.5)', '&:hover': { borderColor: '#86efac', bgcolor: 'rgba(134,239,172,0.1)' } }}
               >
                 上位{autoLinks.length}件を登録
               </Button>

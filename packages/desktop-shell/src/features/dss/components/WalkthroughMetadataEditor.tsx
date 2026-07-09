@@ -1,6 +1,6 @@
 // WalkthroughMetadataEditor.tsx
 //
-// Phase D: S.Models のモデル詳細で「ウォークスルー設定」を編集する。
+// Phase D: S.Model のモデル詳細で「ウォークスルー設定」を編集する。
 //   - キャラクター属性（目線高さ）
 //   - ギミック（クリックで開閉）: クリップ割当 or ヒンジ定義
 //   - GLB を解析してアニメクリップ名・ノード名・リグ有無を表示
@@ -49,14 +49,14 @@ class ProbeBoundary extends React.Component<{ onFail: () => void; children: Reac
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-const labelSx = { color: "rgba(255,255,255,0.55)", fontSize: 10, mb: 0.25 } as const;
+const labelSx = { color: "rgb(var(--brand-fg-rgb) / 0.55)", fontSize: 10, mb: 0.25 } as const;
 const boxSx = {
   display: "flex", flexDirection: "column", gap: 0.75, mt: 0.5, p: 1,
-  bgcolor: "rgba(0,0,0,0.2)", borderRadius: 1, border: "1px solid rgba(255,255,255,0.05)",
+  bgcolor: "light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))", borderRadius: 1, border: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
 } as const;
 const inputSx = {
-  "& .MuiOutlinedInput-root": { color: "#fff", fontSize: 12, bgcolor: "rgba(255,255,255,0.04)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.1)" },
+  "& .MuiOutlinedInput-root": { color: "var(--brand-fg)", fontSize: 12, bgcolor: "rgb(var(--brand-fg-rgb) / 0.04)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgb(var(--brand-fg-rgb) / 0.1)" },
 } as const;
 
 export default function WalkthroughMetadataEditor({
@@ -145,7 +145,7 @@ export default function WalkthroughMetadataEditor({
   return (
     <Box sx={{ mt: 1.5 }}>
       {!infoOnly && (
-        <Typography sx={{ color: "#fff", fontSize: 12, fontWeight: 700, mb: 0.5 }}>
+        <Typography sx={{ color: "var(--brand-fg)", fontSize: 12, fontWeight: 700, mb: 0.5 }}>
           アニメーション設定
         </Typography>
       )}
@@ -162,23 +162,23 @@ export default function WalkthroughMetadataEditor({
 
       <Box sx={boxSx}>
         <Typography sx={labelSx}>モデル解析（アニメ・ノードの検出）</Typography>
-        {!glbUrl && <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>GLB がありません</Typography>}
+        {!glbUrl && <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>GLB がありません</Typography>}
         {glbUrl && !analyze && !glbInfo && (
           <Button size="small" onClick={() => { setFailed(false); setAnalyze(true); }}
-            sx={{ alignSelf: "flex-start", fontSize: 11, color: "#9ec1ff", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1, py: 0.25 }}>
+            sx={{ alignSelf: "flex-start", fontSize: 11, color: "light-dark(#003fad, #9ec1ff)", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1, py: 0.25 }}>
             このモデルを解析
           </Button>
         )}
-        {failed && <Typography sx={{ color: "#ffb74d", fontSize: 11 }}>解析できませんでした（圧縮形式など）。手動で設定できます。</Typography>}
+        {failed && <Typography sx={{ color: "light-dark(#ad6700, #ffb74d)", fontSize: 11 }}>解析できませんでした（圧縮形式など）。手動で設定できます。</Typography>}
         {glbInfo && (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", alignItems: "center" }}>
-              <Chip size="small" label={`アニメ ${glbInfo.clips.length}`} sx={{ height: 18, fontSize: 10, bgcolor: "rgba(79,140,255,0.2)", color: "#9ec1ff" }} />
-              <Chip size="small" label={glbInfo.skinned ? `リグあり (${glbInfo.bones}ボーン)` : "リグなし"} sx={{ height: 18, fontSize: 10, bgcolor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)" }} />
-              <Chip size="small" label={`ノード ${glbInfo.nodes.length}`} sx={{ height: 18, fontSize: 10, bgcolor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)" }} />
+              <Chip size="small" label={`アニメ ${glbInfo.clips.length}`} sx={{ height: 18, fontSize: 10, bgcolor: "rgba(79,140,255,0.2)", color: "light-dark(#003fad, #9ec1ff)" }} />
+              <Chip size="small" label={glbInfo.skinned ? `リグあり (${glbInfo.bones}ボーン)` : "リグなし"} sx={{ height: 18, fontSize: 10, bgcolor: "rgb(var(--brand-fg-rgb) / 0.08)", color: "rgb(var(--brand-fg-rgb) / 0.7)" }} />
+              <Chip size="small" label={`ノード ${glbInfo.nodes.length}`} sx={{ height: 18, fontSize: 10, bgcolor: "rgb(var(--brand-fg-rgb) / 0.08)", color: "rgb(var(--brand-fg-rgb) / 0.7)" }} />
             </Box>
             {glbInfo.clips.length > 0 && (
-              <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 10 }}>
+              <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 10 }}>
                 クリップ: {glbInfo.clips.join(" / ")}
               </Typography>
             )}
@@ -186,7 +186,7 @@ export default function WalkthroughMetadataEditor({
         )}
         {glbUrl && (failed || glbInfo) && (
           <Button size="small" onClick={() => { setGlbInfo(null); setFailed(false); setAnalyze(true); }}
-            sx={{ alignSelf: "flex-start", fontSize: 10, color: "#9ec1ff", textTransform: "none", minWidth: 0, p: 0.25 }}>
+            sx={{ alignSelf: "flex-start", fontSize: 10, color: "light-dark(#003fad, #9ec1ff)", textTransform: "none", minWidth: 0, p: 0.25 }}>
             再解析
           </Button>
         )}
@@ -206,10 +206,10 @@ export default function WalkthroughMetadataEditor({
               emit({ character: Object.keys(next).length ? next : null });
             }}
             placeholder="例: 160"
-            InputProps={{ endAdornment: <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>cm</Typography> }}
+            InputProps={{ endAdornment: <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>cm</Typography> }}
             sx={inputSx}
           />
-          <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>
+          <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.35)", fontSize: 10 }}>
             未入力なら全高から自動推定（全高 − 12cm）。
           </Typography>
         </Box>
@@ -220,17 +220,17 @@ export default function WalkthroughMetadataEditor({
         <Typography sx={labelSx}>ギミック（クリックで操作・複数可）</Typography>
 
         {gimmickList.length === 0 && (
-          <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>未登録（下のボタンで追加）</Typography>
+          <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>未登録（下のボタンで追加）</Typography>
         )}
 
         {gimmickList.map((g) => (
-          <Box key={g.id} sx={{ p: 1, borderRadius: 1, bgcolor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", gap: 0.75 }}>
+          <Box key={g.id} sx={{ p: 1, borderRadius: 1, bgcolor: "rgb(var(--brand-fg-rgb) / 0.03)", border: "1px solid rgb(var(--brand-fg-rgb) / 0.07)", display: "flex", flexDirection: "column", gap: 0.75 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Chip size="small" label={g.type === "hinge" ? "ヒンジ" : g.type === "slide" ? "スライド" : "アニメ"} sx={{ height: 18, fontSize: 10, bgcolor: "rgba(79,140,255,0.2)", color: "#9ec1ff" }} />
+              <Chip size="small" label={g.type === "hinge" ? "ヒンジ" : g.type === "slide" ? "スライド" : "アニメ"} sx={{ height: 18, fontSize: 10, bgcolor: "rgba(79,140,255,0.2)", color: "light-dark(#003fad, #9ec1ff)" }} />
               <TextField size="small" disabled={disabled} value={g.label || ""}
                 onChange={(e) => updateGimmick(g.id, { label: e.target.value })}
                 placeholder="表示名（例: ドア）" sx={{ ...inputSx, flex: 1 }} />
-              <IconButton size="small" disabled={disabled} onClick={() => removeGimmick(g.id)} sx={{ color: "rgba(255,255,255,0.4)", "&:hover": { color: "#ef5350" } }}>
+              <IconButton size="small" disabled={disabled} onClick={() => removeGimmick(g.id)} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", "&:hover": { color: "#ef5350" } }}>
                 <CloseRoundedIcon sx={{ fontSize: 15 }} />
               </IconButton>
             </Box>
@@ -262,7 +262,7 @@ export default function WalkthroughMetadataEditor({
                   <Typography sx={labelSx}>回転軸</Typography>
                   <ToggleButtonGroup exclusive size="small" disabled={disabled} value={g.axis || "y"}
                     onChange={(_, v) => v && updateGimmick(g.id, { axis: v })}
-                    sx={{ "& .MuiToggleButton-root": { color: "rgba(255,255,255,0.6)", fontSize: 11, py: 0.25, px: 1.25, borderColor: "rgba(255,255,255,0.12)" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}>
+                    sx={{ "& .MuiToggleButton-root": { color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 11, py: 0.25, px: 1.25, borderColor: "rgb(var(--brand-fg-rgb) / 0.12)" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}>
                     <ToggleButton value="x">X</ToggleButton>
                     <ToggleButton value="y">Y（縦軸）</ToggleButton>
                     <ToggleButton value="z">Z</ToggleButton>
@@ -272,7 +272,7 @@ export default function WalkthroughMetadataEditor({
                   <Typography sx={labelSx}>開く角度</Typography>
                   <TextField size="small" type="number" disabled={disabled} value={g.openDeg ?? 90}
                     onChange={(e) => updateGimmick(g.id, { openDeg: Number(e.target.value) })}
-                    InputProps={{ endAdornment: <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>°</Typography> }} sx={inputSx} />
+                    InputProps={{ endAdornment: <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>°</Typography> }} sx={inputSx} />
                 </Box>
                 <Box>
                   <Typography sx={labelSx}>回転させるノード（ヒンジ）</Typography>
@@ -292,7 +292,7 @@ export default function WalkthroughMetadataEditor({
                   <Typography sx={labelSx}>移動軸</Typography>
                   <ToggleButtonGroup exclusive size="small" disabled={disabled} value={g.axis || "x"}
                     onChange={(_, v) => v && updateGimmick(g.id, { axis: v })}
-                    sx={{ "& .MuiToggleButton-root": { color: "rgba(255,255,255,0.6)", fontSize: 11, py: 0.25, px: 1.25, borderColor: "rgba(255,255,255,0.12)" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}>
+                    sx={{ "& .MuiToggleButton-root": { color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 11, py: 0.25, px: 1.25, borderColor: "rgb(var(--brand-fg-rgb) / 0.12)" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}>
                     <ToggleButton value="x">X</ToggleButton>
                     <ToggleButton value="y">Y（縦軸）</ToggleButton>
                     <ToggleButton value="z">Z</ToggleButton>
@@ -302,7 +302,7 @@ export default function WalkthroughMetadataEditor({
                   <Typography sx={labelSx}>移動量</Typography>
                   <TextField size="small" type="number" disabled={disabled} value={g.distance ?? 200}
                     onChange={(e) => updateGimmick(g.id, { distance: Number(e.target.value) })}
-                    InputProps={{ endAdornment: <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>mm</Typography> }} sx={inputSx} />
+                    InputProps={{ endAdornment: <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>mm</Typography> }} sx={inputSx} />
                 </Box>
                 <Box>
                   <Typography sx={labelSx}>動かすノード（任意・既定はモデル全体）</Typography>
@@ -319,15 +319,15 @@ export default function WalkthroughMetadataEditor({
 
         <Box sx={{ display: "flex", gap: 1, mt: 0.25 }}>
           <Button size="small" disabled={disabled} startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
-            onClick={() => addGimmick("hinge")} sx={{ fontSize: 11, color: "#9ec1ff", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1 }}>
+            onClick={() => addGimmick("hinge")} sx={{ fontSize: 11, color: "light-dark(#003fad, #9ec1ff)", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1 }}>
             ヒンジ追加
           </Button>
           <Button size="small" disabled={disabled} startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
-            onClick={() => addGimmick("clip")} sx={{ fontSize: 11, color: "#9ec1ff", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1 }}>
+            onClick={() => addGimmick("clip")} sx={{ fontSize: 11, color: "light-dark(#003fad, #9ec1ff)", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1 }}>
             アニメ追加
           </Button>
           <Button size="small" disabled={disabled} startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
-            onClick={() => addGimmick("slide")} sx={{ fontSize: 11, color: "#9ec1ff", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1 }}>
+            onClick={() => addGimmick("slide")} sx={{ fontSize: 11, color: "light-dark(#003fad, #9ec1ff)", textTransform: "none", border: "1px solid rgba(79,140,255,0.4)", px: 1 }}>
             スライド追加
           </Button>
         </Box>
@@ -340,7 +340,7 @@ export default function WalkthroughMetadataEditor({
           exclusive size="small" disabled={disabled}
           value={aType}
           onChange={(_, v) => v && setAnimType(v)}
-          sx={{ "& .MuiToggleButton-root": { color: "rgba(255,255,255,0.6)", fontSize: 11, py: 0.25, px: 1, borderColor: "rgba(255,255,255,0.12)", textTransform: "none" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}
+          sx={{ "& .MuiToggleButton-root": { color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 11, py: 0.25, px: 1, borderColor: "rgb(var(--brand-fg-rgb) / 0.12)", textTransform: "none" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}
         >
           <ToggleButton value="none">なし</ToggleButton>
           <ToggleButton value="rotate">回転</ToggleButton>
@@ -355,7 +355,7 @@ export default function WalkthroughMetadataEditor({
                 exclusive size="small" disabled={disabled}
                 value={anim?.axis || "y"}
                 onChange={(_, v) => v && emit({ anim: { ...anim, axis: v } })}
-                sx={{ "& .MuiToggleButton-root": { color: "rgba(255,255,255,0.6)", fontSize: 11, py: 0.25, px: 1.25, borderColor: "rgba(255,255,255,0.12)" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}
+                sx={{ "& .MuiToggleButton-root": { color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 11, py: 0.25, px: 1.25, borderColor: "rgb(var(--brand-fg-rgb) / 0.12)" }, "& .Mui-selected": { color: "#fff !important", bgcolor: "rgba(79,140,255,0.35) !important" } }}
               >
                 <ToggleButton value="x">X</ToggleButton>
                 <ToggleButton value="y">Y（縦軸）</ToggleButton>
@@ -368,7 +368,7 @@ export default function WalkthroughMetadataEditor({
                 <TextField size="small" type="number" disabled={disabled}
                   value={anim?.speedDeg ?? 30}
                   onChange={(e) => emit({ anim: { ...anim, type: "rotate", speedDeg: Number(e.target.value) } })}
-                  InputProps={{ endAdornment: <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>°/秒</Typography> }}
+                  InputProps={{ endAdornment: <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>°/秒</Typography> }}
                   sx={inputSx} />
               </Box>
             )}
@@ -379,7 +379,7 @@ export default function WalkthroughMetadataEditor({
                   <TextField size="small" type="number" disabled={disabled}
                     value={anim?.distance ?? 100}
                     onChange={(e) => emit({ anim: { ...anim, type: "move", distance: Number(e.target.value) } })}
-                    InputProps={{ endAdornment: <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>mm</Typography> }}
+                    InputProps={{ endAdornment: <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>mm</Typography> }}
                     sx={inputSx} />
                 </Box>
                 <Box>
@@ -387,7 +387,7 @@ export default function WalkthroughMetadataEditor({
                   <TextField size="small" type="number" disabled={disabled}
                     value={anim?.period ?? 3}
                     onChange={(e) => emit({ anim: { ...anim, type: "move", period: Number(e.target.value) } })}
-                    InputProps={{ endAdornment: <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>秒</Typography> }}
+                    InputProps={{ endAdornment: <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 11 }}>秒</Typography> }}
                     sx={inputSx} />
                 </Box>
               </>
@@ -418,14 +418,14 @@ export default function WalkthroughMetadataEditor({
               sx={{ ...inputSx, flex: 1 }} />
             <IconButton size="small" disabled={disabled}
               onClick={() => { const links = infoLinks.filter((_, j) => j !== i); emit({ info: normInfo({ links }) }); }}
-              sx={{ color: "rgba(255,255,255,0.4)", "&:hover": { color: "#ef5350" } }}>
+              sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", "&:hover": { color: "#ef5350" } }}>
               <CloseRoundedIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Box>
         ))}
         <Button size="small" disabled={disabled} startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
           onClick={() => emit({ info: normInfo({ links: [...infoLinks, { title: "", url: "" }] }) })}
-          sx={{ alignSelf: "flex-start", fontSize: 11, color: "#9ec1ff", textTransform: "none", mt: 0.25 }}>
+          sx={{ alignSelf: "flex-start", fontSize: 11, color: "light-dark(#003fad, #9ec1ff)", textTransform: "none", mt: 0.25 }}>
           リンク追加
         </Button>
       </Box>

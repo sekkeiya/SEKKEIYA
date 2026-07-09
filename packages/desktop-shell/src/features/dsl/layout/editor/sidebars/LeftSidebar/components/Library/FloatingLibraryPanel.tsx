@@ -107,7 +107,7 @@ export default function FloatingLibraryPanel({ toggleLibraryDetached, projectId,
         zIndex: 1300,
         backgroundColor: 'rgba(30, 30, 30, 0.4)',
         backdropFilter: 'blur(16px)',
-        border: `1px solid rgba(255,255,255,0.1)`,
+        border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`,
         borderRadius: 2,
         display: 'flex',
         flexDirection: 'column',
@@ -134,7 +134,7 @@ export default function FloatingLibraryPanel({ toggleLibraryDetached, projectId,
           justifyContent: 'space-between',
           p: 1,
           bgcolor: BRAND.bg,
-          borderBottom: isCollapsed ? 'none' : `1px solid rgba(255,255,255,0.05)`,
+          borderBottom: isCollapsed ? 'none' : `1px solid rgb(var(--brand-fg-rgb) / 0.05)`,
           cursor: 'grab',
           '&:active': { cursor: 'grabbing' },
         }}
@@ -144,10 +144,10 @@ export default function FloatingLibraryPanel({ toggleLibraryDetached, projectId,
           sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
           onPointerDown={(e) => e.stopPropagation()} // Prevent dragging when clicking buttons
         >
-          <IconButton size="small" onClick={() => setIsCollapsed(!isCollapsed)} sx={{ color: 'rgba(255,255,255,0.7)', padding: '2px' }} title={isCollapsed ? "Expand" : "Collapse"}>
+          <IconButton size="small" onClick={() => setIsCollapsed(!isCollapsed)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', padding: '2px' }} title={isCollapsed ? "Expand" : "Collapse"}>
             {isCollapsed ? <KeyboardArrowDownIcon sx={{ fontSize: 16 }} /> : <KeyboardArrowUpIcon sx={{ fontSize: 16 }} />}
           </IconButton>
-          <IconButton size="small" onClick={toggleLibraryDetached} sx={{ color: 'rgba(255,255,255,0.7)', padding: '2px' }} title="Attach to Sidebar">
+          <IconButton size="small" onClick={toggleLibraryDetached} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', padding: '2px' }} title="Attach to Sidebar">
             <OpenInBrowserIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Box>

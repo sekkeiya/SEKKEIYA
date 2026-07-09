@@ -31,6 +31,24 @@ export type DrawingElementData = CommonStyleData & { pathData: string; stroke: s
 
 export type ElementData = TextElementData | ImageElementData | ShapeElementData | ModelCardElementData | LineElementData | LinkElementData | DrawingElementData;
 
+/**
+ * テンプレートの「差し替え枠」。この枠を持つ要素は、テンプレ適用時に
+ * 中身(text/image)だけを外部（手動フォーム / AI）から流し込める。
+ * slot を持たない要素は固定装飾として扱い、差し替え対象にしない。
+ */
+export interface TemplateSlot {
+  /** テンプレ内で一意なキー e.g. "hero-image" */
+  id: string;
+  /** 意味づけ e.g. "project-title" / "exterior-photo"（AI/自動化のフック） */
+  role: string;
+  /** 差し替え種別。text は data.text、image は data.src を置換 */
+  kind: 'text' | 'image';
+  /** UI表示名「外観写真」など */
+  label?: string;
+  /** 空欄時のガイド文言 */
+  placeholder?: string;
+}
+
 export interface PresentationElement {
   id: string;
   type: 'text' | 'image' | 'shape' | 'modelCard' | 'line' | 'link' | 'drawing';
@@ -42,6 +60,8 @@ export interface PresentationElement {
   rotation: number;
   opacity?: number;
   data: ElementData;
+  /** テンプレート差し替え枠（任意・後方互換）。text/image 要素にのみ意味を持つ */
+  slot?: TemplateSlot;
 }
 
 export interface PresentationPage {

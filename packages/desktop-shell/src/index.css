@@ -1,3 +1,58 @@
+/* === SEKKEIYA ブランドトークン（styles/theme.ts の BRAND が参照） ===
+   既定はダーク。Global Settings > 一般 のテーマ設定で <html data-theme="light"> が
+   付与されると全体がライト配色に切り替わる（useAppTheme.ts が属性を同期）。 */
+:root {
+  --brand-bg: #0b0f16;
+  --brand-panel: rgba(255, 255, 255, 0.07);
+  --brand-panel2: rgba(255, 255, 255, 0.09);
+  --brand-line: rgba(255, 255, 255, 0.12);
+  --brand-line2: rgba(255, 255, 255, 0.18);
+  --brand-text: rgba(255, 255, 255, 0.92);
+  --brand-sub: rgba(255, 255, 255, 0.68);
+  --brand-sub2: rgba(255, 255, 255, 0.52);
+  --brand-glow: rgba(255, 255, 255, 0.14);
+  /* メニュー/ポップオーバー用の不透明寄りガラス面（backdrop-blur前提） */
+  --brand-glass: rgba(20, 20, 26, 0.92);
+  /* 不透明の持ち上がりサーフェス（チャットパネル等の側板） */
+  --brand-surface: #161b26;
+  --brand-surface2: #1a1f2b;
+  /* 前景色（テキスト/枠線の基準色）。rgba(255,255,255,α) 直書きの一括置換先。
+     使い方: rgb(var(--brand-fg-rgb) / 0.6) — αはそのまま維持される。 */
+  --brand-fg: #ffffff;
+  --brand-fg-rgb: 255 255 255;
+  /* slate系パレット（S.Model等のダッシュボードが使用）。ライトで反転。 */
+  --slate-deep-rgb: 2 6 23;      /* ヘッダー帯/タイル最深部 */
+  --slate-panel-rgb: 15 23 42;   /* 入力欄/ピル背景 */
+  --slate-800-rgb: 30 41 59;     /* パネル面 */
+  --slate-mid-rgb: 51 65 85;     /* タイル内側グラデ */
+  --slate-ink-rgb: 148 163 184;  /* テキスト/枠線 */
+  /* light-dark() 関数の判定基準。アプリ既定はダーク。 */
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --brand-bg: #f4f5f7;
+  --brand-panel: #ffffff;
+  --brand-panel2: #eef0f3;
+  --brand-line: rgba(15, 23, 42, 0.12);
+  --brand-line2: rgba(15, 23, 42, 0.2);
+  --brand-text: rgba(15, 23, 42, 0.92);
+  --brand-sub: rgba(15, 23, 42, 0.64);
+  --brand-sub2: rgba(15, 23, 42, 0.48);
+  --brand-glow: rgba(15, 23, 42, 0.1);
+  --brand-glass: rgba(252, 253, 254, 0.95);
+  --brand-surface: #ffffff;
+  --brand-surface2: #f7f8fa;
+  --brand-fg: #0f172a;
+  --brand-fg-rgb: 15 23 42;
+  --slate-deep-rgb: 255 255 255;
+  --slate-panel-rgb: 241 245 249;
+  --slate-800-rgb: 226 232 240;
+  --slate-mid-rgb: 203 213 225;
+  --slate-ink-rgb: 71 85 105;
+  color-scheme: light;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -17,7 +72,6 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;

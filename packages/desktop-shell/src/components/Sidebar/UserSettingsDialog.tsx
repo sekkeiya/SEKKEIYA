@@ -213,9 +213,9 @@ export const UserSettingsDialog: React.FC<{
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{ sx: { bgcolor: '#1e293b', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', minHeight: '600px' } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minHeight: '600px' } }}
     >
-      <DialogTitle sx={{ pb: 0, pt: 3, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+      <DialogTitle sx={{ pb: 0, pt: 3, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
         <Typography component="div" variant="h5" sx={{ fontWeight: 700, mb: 1 }}>アカウント設定</Typography>
         <Tabs
           value={tabIndex}
@@ -246,8 +246,8 @@ export const UserSettingsDialog: React.FC<{
                 {updateError && <Alert severity="error">{updateError}</Alert>}
 
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>バナー画像</Typography>
-                  <Box sx={{ width: '100%', height: '120px', borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.05)', backgroundImage: formData.bannerURL ? `url(${formData.bannerURL})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                  <Typography variant="subtitle2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1 }}>バナー画像</Typography>
+                  <Box sx={{ width: '100%', height: '120px', borderRadius: '12px', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', backgroundImage: formData.bannerURL ? `url(${formData.bannerURL})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
                     <Button component="label" variant="contained" size="small" startIcon={<PhotoCameraRoundedIcon />} sx={{ bgcolor: 'rgba(0,0,0,0.6)', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}>
                       変更
                       <input type="file" hidden accept="image/*" onChange={e => handleImageUpload(e, 'banner')} />
@@ -257,40 +257,40 @@ export const UserSettingsDialog: React.FC<{
 
                 <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start' }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)' }}>アイコン</Typography>
+                    <Typography variant="subtitle2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>アイコン</Typography>
                     <Box sx={{ position: 'relative' }}>
                       <Avatar src={formData.photoURL} sx={{ width: 80, height: 80, fontSize: '2rem' }}>
                         {(formData.displayName || 'U').charAt(0).toUpperCase()}
                       </Avatar>
                       <IconButton component="label" size="small" sx={{ position: 'absolute', bottom: -5, right: -5, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
-                        <PhotoCameraRoundedIcon fontSize="small" sx={{ color: '#fff' }} />
+                        <PhotoCameraRoundedIcon fontSize="small" sx={{ color: 'var(--brand-fg)' }} />
                         <input type="file" hidden accept="image/*" onChange={e => handleImageUpload(e, 'photo')} />
                       </IconButton>
                     </Box>
                   </Box>
 
                   <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                    <TextField label="ユーザー名" variant="outlined" size="small" fullWidth value={formData.displayName} onChange={e => setFormData({ ...formData, displayName: e.target.value })} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
-                    <TextField label="肩書き (例: 3D Environment Artist)" variant="outlined" size="small" fullWidth value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
+                    <TextField label="ユーザー名" variant="outlined" size="small" fullWidth value={formData.displayName} onChange={e => setFormData({ ...formData, displayName: e.target.value })} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
+                    <TextField label="肩書き (例: 3D Environment Artist)" variant="outlined" size="small" fullWidth value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
                   </Box>
                 </Box>
 
-                <TextField label="自己紹介" variant="outlined" size="small" fullWidth multiline rows={4} value={formData.bio} onChange={e => setFormData({ ...formData, bio: e.target.value })} placeholder="好きなモデリングソフトや、得意なジャンルなどを書いてみましょう" sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
+                <TextField label="自己紹介" variant="outlined" size="small" fullWidth multiline rows={4} value={formData.bio} onChange={e => setFormData({ ...formData, bio: e.target.value })} placeholder="好きなモデリングソフトや、得意なジャンルなどを書いてみましょう" sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
 
-                <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
 
                 <Box>
-                  <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1.5 }}>お仕事ステータス</Typography>
+                  <Typography variant="subtitle2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1.5 }}>お仕事ステータス</Typography>
                   <FormControl size="small" fullWidth sx={{ mb: 2 }}>
                     <InputLabel>ステータス</InputLabel>
-                    <Select value={formData.workStatus || 'none'} label="ステータス" onChange={e => setFormData({ ...formData, workStatus: e.target.value as WorkStatus })} sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}>
+                    <Select value={formData.workStatus || 'none'} label="ステータス" onChange={e => setFormData({ ...formData, workStatus: e.target.value as WorkStatus })} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}>
                       <MenuItem value="none">非表示</MenuItem>
                       <MenuItem value="available"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22c55e' }} />Available — フリーランス案件 歓迎</Box></MenuItem>
                       <MenuItem value="open"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#eab308' }} />Open to Work — 就職・案件 探し中</Box></MenuItem>
                       <MenuItem value="busy"><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef4444' }} />Busy — 現在は依頼受付なし</Box></MenuItem>
                     </Select>
                   </FormControl>
-                  <TextField label="お問い合わせ用メールアドレス" variant="outlined" size="small" fullWidth placeholder="contact@example.com" value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} helperText="マイページに公開されます。空欄の場合は非表示になります。" />
+                  <TextField label="お問い合わせ用メールアドレス" variant="outlined" size="small" fullWidth placeholder="contact@example.com" value={formData.contactEmail} onChange={e => setFormData({ ...formData, contactEmail: e.target.value })} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} helperText="マイページに公開されます。空欄の場合は非表示になります。" />
                 </Box>
               </Box>
             </CustomTabPanel>
@@ -298,12 +298,12 @@ export const UserSettingsDialog: React.FC<{
             {/* ── SNS・リンク ── */}
             <CustomTabPanel value={tabIndex} index={1}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>マイページに表示される各種SNSやポートフォリオサイトのリンクを設定できます。</Typography>
-                <TextField label="X (旧Twitter) Web URL" variant="outlined" size="small" fullWidth placeholder="https://x.com/username" value={formData.socials?.twitter} onChange={e => handleChangeSocial('twitter', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
-                <TextField label="Instagram Web URL" variant="outlined" size="small" fullWidth placeholder="https://instagram.com/username" value={formData.socials?.instagram} onChange={e => handleChangeSocial('instagram', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
-                <TextField label="ArtStation Profile URL" variant="outlined" size="small" fullWidth placeholder="https://www.artstation.com/username" value={formData.socials?.artstation} onChange={e => handleChangeSocial('artstation', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
-                <TextField label="GitHub Profile URL" variant="outlined" size="small" fullWidth placeholder="https://github.com/username" value={formData.socials?.github} onChange={e => handleChangeSocial('github', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
-                <TextField label="Web Site / Portfolio URL" variant="outlined" size="small" fullWidth placeholder="https://myportfolio.com" value={formData.socials?.website} onChange={e => handleChangeSocial('website', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgba(255,255,255,0.05)' } }} />
+                <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>マイページに表示される各種SNSやポートフォリオサイトのリンクを設定できます。</Typography>
+                <TextField label="X (旧Twitter) Web URL" variant="outlined" size="small" fullWidth placeholder="https://x.com/username" value={formData.socials?.twitter} onChange={e => handleChangeSocial('twitter', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
+                <TextField label="Instagram Web URL" variant="outlined" size="small" fullWidth placeholder="https://instagram.com/username" value={formData.socials?.instagram} onChange={e => handleChangeSocial('instagram', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
+                <TextField label="ArtStation Profile URL" variant="outlined" size="small" fullWidth placeholder="https://www.artstation.com/username" value={formData.socials?.artstation} onChange={e => handleChangeSocial('artstation', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
+                <TextField label="GitHub Profile URL" variant="outlined" size="small" fullWidth placeholder="https://github.com/username" value={formData.socials?.github} onChange={e => handleChangeSocial('github', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
+                <TextField label="Web Site / Portfolio URL" variant="outlined" size="small" fullWidth placeholder="https://myportfolio.com" value={formData.socials?.website} onChange={e => handleChangeSocial('website', e.target.value)} sx={{ '& .MuiInputBase-root': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }} />
               </Box>
             </CustomTabPanel>
 
@@ -316,7 +316,7 @@ export const UserSettingsDialog: React.FC<{
             <CustomTabPanel value={tabIndex} index={3}>
               <Box sx={{ p: 4, borderRadius: '12px', bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: '#ef4444', mb: 1 }}>アカウントの削除</Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mb: 3 }}>
+                <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', mb: 3 }}>
                   アカウントを削除すると、これまで作成したプロジェクトやアセットなどのすべてのデータが永久に失われます。この操作は元に戻すことができません。
                 </Typography>
                 {deleteError && <Alert severity="error" sx={{ mb: 2 }}>{deleteError}</Alert>}
@@ -335,8 +335,8 @@ export const UserSettingsDialog: React.FC<{
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+      <DialogActions sx={{ p: 2, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button variant="contained" color="primary" onClick={handleUpdateProfile} disabled={isSaveDisabled}>
           {isUpdating ? <CircularProgress size={20} color="inherit" /> : '変更を保存'}
         </Button>
@@ -393,29 +393,29 @@ function PlanTabContent({ planData }: { planData: { plan: string; monthlyCount: 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* 現在のプラン */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2.5, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)', border: `1px solid ${planColor}40` }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2.5, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: `1px solid color-mix(in srgb, ${planColor} 25%, transparent)` }}>
         <WorkspacePremiumRoundedIcon sx={{ color: planColor, fontSize: '2rem' }} />
         <Box sx={{ flex: 1 }}>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>現在のプラン</Typography>
+          <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'uppercase', letterSpacing: 1 }}>現在のプラン</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, color: planColor }}>{planLabel}</Typography>
-            <Chip label="現在" size="small" sx={{ bgcolor: `${planColor}20`, color: planColor, fontWeight: 600, fontSize: '0.65rem' }} />
+            <Chip label="現在" size="small" sx={{ bgcolor: `color-mix(in srgb, ${planColor} 13%, transparent)`, color: planColor, fontWeight: 600, fontSize: '0.65rem' }} />
           </Box>
         </Box>
       </Box>
 
       {/* 今月の使用状況 */}
       <Box>
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1.5 }}>今月の使用状況</Typography>
-        <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <Typography variant="subtitle2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1.5 }}>今月の使用状況</Typography>
+        <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)' }}>AI 3D生成</Typography>
-            <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>
+            <Typography sx={{ fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>AI 3D生成</Typography>
+            <Typography sx={{ fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontWeight: 600 }}>
               {isUnlimited ? `${used3d} 件 / 無制限` : `${used3d} / ${limit3d} 件`}
             </Typography>
           </Box>
           {monthlyCredits != null && (
-            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', mb: 1 }}>
+            <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 1 }}>
               月次クレジット {monthlyCredits} cr（3D化 約{quota}個・1個=10cr）
             </Typography>
           )}
@@ -424,7 +424,7 @@ function PlanTabContent({ planData }: { planData: { plan: string; monthlyCount: 
             value={Math.min(progress3d, 100)}
             sx={{
               height: 6, borderRadius: 3,
-              bgcolor: 'rgba(255,255,255,0.08)',
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)',
               '& .MuiLinearProgress-bar': { bgcolor: progress3d >= 100 ? '#ff7043' : planColor, borderRadius: 3 },
             }}
           />
@@ -439,23 +439,23 @@ function PlanTabContent({ planData }: { planData: { plan: string; monthlyCount: 
 
       {/* プラン比較 */}
       <Box>
-        <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1.5 }}>プラン比較</Typography>
-        <Box sx={{ overflowX: 'auto', borderRadius: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <Typography variant="subtitle2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1.5 }}>プラン比較</Typography>
+        <Box sx={{ overflowX: 'auto', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
           <Box sx={{ minWidth: 560 }}>
             {/* ヘッダー */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1.2fr repeat(5, 1fr)', bgcolor: 'rgba(255,255,255,0.06)' }}>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)', p: 1.25, borderRight: '1px solid rgba(255,255,255,0.06)' }}>機能</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1.2fr repeat(5, 1fr)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' }}>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.5)', p: 1.25, borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>機能</Typography>
               {PLAN_ORDER.map((p, i) => (
-                <Typography key={p} sx={{ fontSize: '0.7rem', fontWeight: 700, color: PLANS[p].color, p: 1.25, textAlign: 'center', borderRight: i < PLAN_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                <Typography key={p} sx={{ fontSize: '0.7rem', fontWeight: 700, color: PLANS[p].color, p: 1.25, textAlign: 'center', borderRight: i < PLAN_ORDER.length - 1 ? '1px solid rgb(var(--brand-fg-rgb) / 0.06)' : 'none' }}>
                   {PLANS[p].label}{plan === p && <CheckCircleRoundedIcon sx={{ fontSize: '0.75rem', ml: 0.4, verticalAlign: 'middle' }} />}
                 </Typography>
               ))}
             </Box>
             {COMPARE_ROWS.map((row, ri) => (
-              <Box key={row.label} sx={{ display: 'grid', gridTemplateColumns: '1.2fr repeat(5, 1fr)', borderTop: '1px solid rgba(255,255,255,0.06)', bgcolor: ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', p: 1.25, borderRight: '1px solid rgba(255,255,255,0.06)' }}>{row.label}</Typography>
+              <Box key={row.label} sx={{ display: 'grid', gridTemplateColumns: '1.2fr repeat(5, 1fr)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: ri % 2 === 0 ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.02)' }}>
+                <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)', p: 1.25, borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>{row.label}</Typography>
                 {PLAN_ORDER.map((p, i) => (
-                  <Typography key={p} sx={{ fontSize: '0.7rem', color: plan === p ? PLANS[p].color : 'rgba(255,255,255,0.5)', fontWeight: plan === p ? 600 : 400, p: 1.25, textAlign: 'center', borderRight: i < PLAN_ORDER.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                  <Typography key={p} sx={{ fontSize: '0.7rem', color: plan === p ? PLANS[p].color : 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: plan === p ? 600 : 400, p: 1.25, textAlign: 'center', borderRight: i < PLAN_ORDER.length - 1 ? '1px solid rgb(var(--brand-fg-rgb) / 0.06)' : 'none' }}>
                     {row.render(p)}
                   </Typography>
                 ))}
@@ -463,7 +463,7 @@ function PlanTabContent({ planData }: { planData: { plan: string; monthlyCount: 
             ))}
           </Box>
         </Box>
-        <Typography sx={{ fontSize: '0.66rem', color: 'rgba(255,255,255,0.4)', mt: 1 }}>
+        <Typography sx={{ fontSize: '0.66rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>
           Cyclesレンダはローカルのお使いの GPU で実行されるため、全プランで無制限です。
         </Typography>
       </Box>
@@ -472,13 +472,13 @@ function PlanTabContent({ planData }: { planData: { plan: string; monthlyCount: 
       {(plan === 'free' || plan === 'standard' || plan === 'premium') && (
         <Box sx={{ p: 2.5, borderRadius: 2, bgcolor: 'rgba(66,165,245,0.06)', border: '1px solid rgba(66,165,245,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
           <Box>
-            <Typography variant="subtitle2" sx={{ color: '#42a5f5', fontWeight: 600 }}>プランをアップグレード</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>より多くのAI生成枠やストレージをご利用いただけます</Typography>
+            <Typography variant="subtitle2" sx={{ color: 'light-dark(#095fa5, #42a5f5)', fontWeight: 600 }}>プランをアップグレード</Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>より多くのAI生成枠やストレージをご利用いただけます</Typography>
           </Box>
           <Button
             variant="outlined"
             size="small"
-            sx={{ flexShrink: 0, borderColor: '#42a5f5', color: '#42a5f5', '&:hover': { bgcolor: 'rgba(66,165,245,0.1)', borderColor: '#42a5f5' } }}
+            sx={{ flexShrink: 0, borderColor: '#42a5f5', color: 'light-dark(#095fa5, #42a5f5)', '&:hover': { bgcolor: 'rgba(66,165,245,0.1)', borderColor: '#42a5f5' } }}
             onClick={() => window.open('mailto:sekkeiyanosagyoubeya@gmail.com?subject=プランアップグレードのお問い合わせ', '_blank')}
           >
             お問い合わせ

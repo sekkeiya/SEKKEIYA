@@ -116,7 +116,7 @@ const TeamSettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ 
                   </Button>
                 )}
               </Box>
-              <Box sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, border: `1px solid ${BRAND.line}`, px: 2 }}>
+              <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 2, border: `1px solid ${BRAND.line}`, px: 2 }}>
                 {team.memberIds.map(uid => (
                   <MemberRow key={uid} uid={uid} isOwner={uid === team.ownerId}
                     canRemove={isOwner && uid !== team.ownerId && uid !== currentUser?.uid}
@@ -142,7 +142,7 @@ const TeamSettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ 
               </FormControl>
               {isOwner && (
                 <Button variant="contained" onClick={handleSave} disabled={saving || !editName.trim()}
-                  sx={{ alignSelf: 'flex-start', bgcolor: '#3498db', color: '#fff', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}>
+                  sx={{ alignSelf: 'flex-start', bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}>
                   {saving ? <CircularProgress size={16} color="inherit" /> : '保存する'}
                 </Button>
               )}
@@ -290,7 +290,7 @@ export const TeamHomePage: React.FC = () => {
                 : <LockRoundedIcon sx={{ fontSize: '13px !important' }} />}
               label={team.visibility === 'public' ? '公開' : '非公開'}
               size="small"
-              sx={{ fontSize: 11, bgcolor: 'rgba(255,255,255,0.08)', color: BRAND.sub, '& .MuiChip-icon': { color: BRAND.sub } }}
+              sx={{ fontSize: 11, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: BRAND.sub, '& .MuiChip-icon': { color: BRAND.sub } }}
             />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.75 }}>
@@ -305,7 +305,7 @@ export const TeamHomePage: React.FC = () => {
         </Box>
 
         <Tooltip title="チーム設定">
-          <IconButton onClick={() => setSettingsOpen(true)} sx={{ color: BRAND.sub, '&:hover': { color: BRAND.text, bgcolor: 'rgba(255,255,255,0.06)' } }}>
+          <IconButton onClick={() => setSettingsOpen(true)} sx={{ color: BRAND.sub, '&:hover': { color: BRAND.text, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
             <SettingsRoundedIcon />
           </IconButton>
         </Tooltip>
@@ -362,8 +362,8 @@ export const TeamHomePage: React.FC = () => {
         ) : teamProjects.length === 0 ? (
           <Box sx={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            py: 8, borderRadius: 3, border: `1px dashed rgba(255,255,255,0.12)`,
-            bgcolor: 'rgba(255,255,255,0.02)',
+            py: 8, borderRadius: 3, border: `1px dashed rgb(var(--brand-fg-rgb) / 0.12)`,
+            bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
           }}>
             <FolderOpenRoundedIcon sx={{ fontSize: 48, color: BRAND.sub2, mb: 1.5 }} />
             <Typography sx={{ fontSize: 14, fontWeight: 600, color: BRAND.sub, mb: 0.5 }}>
@@ -375,7 +375,7 @@ export const TeamHomePage: React.FC = () => {
             <Button
               variant="contained" size="small" startIcon={<AddRoundedIcon />}
               onClick={() => { setNewProjectName(''); setAddProjectOpen(true); }}
-              sx={{ bgcolor: '#3498db', color: '#fff', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}
+              sx={{ bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}
             >
               最初のプロジェクトを作成
             </Button>
@@ -390,9 +390,9 @@ export const TeamHomePage: React.FC = () => {
                   onClick={() => handleOpenProject(proj.id)}
                   sx={{
                     borderRadius: 2.5, border: `1px solid ${BRAND.line}`,
-                    bgcolor: 'rgba(255,255,255,0.03)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
                     p: 2, display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)' },
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
                   }}
                 >
                   <Box sx={{
@@ -400,7 +400,7 @@ export const TeamHomePage: React.FC = () => {
                     bgcolor: `hsl(${hue}, 50%, 35%)`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5,
                   }}>
-                    <FolderRoundedIcon sx={{ fontSize: 18, color: '#fff' }} />
+                    <FolderRoundedIcon sx={{ fontSize: 18, color: 'var(--brand-fg)' }} />
                   </Box>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: BRAND.text, lineHeight: 1.3 }}>
                     {proj.name}
@@ -437,7 +437,7 @@ export const TeamHomePage: React.FC = () => {
           <Button onClick={() => setAddProjectOpen(false)} disabled={addingProject} sx={{ color: BRAND.sub, textTransform: 'none' }}>キャンセル</Button>
           <Button
             onClick={handleAddProject} disabled={!newProjectName.trim() || addingProject} variant="contained"
-            sx={{ bgcolor: '#3498db', color: '#fff', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}
+            sx={{ bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#2980b9' } }}
           >
             {addingProject ? <CircularProgress size={16} color="inherit" /> : '作成'}
           </Button>

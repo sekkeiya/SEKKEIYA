@@ -1,5 +1,5 @@
 /**
- * バッチ生成完了済みモデルを S.Models のアップロードダイアログへ渡す共有ユーティリティ。
+ * バッチ生成完了済みモデルを S.Model のアップロードダイアログへ渡す共有ユーティリティ。
  * FloatingBatchGenPanel とデスクトップ通知ハンドラの両方から呼ぶ。
  */
 import type { BatchItem } from './useBatchGenStore';

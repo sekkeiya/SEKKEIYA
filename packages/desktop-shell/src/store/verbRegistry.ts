@@ -7,9 +7,15 @@
 
 import type { VerbDef } from './verb/verbTypes';
 import { layoutVerbs } from '../features/dsl/layout/chat/layoutVerbs';
+import { researchVerbs } from '../features/projects/chat/researchVerbs';
+import { presentationVerbs } from '../features/dsp/chat/presentationVerbs';
+import { driveVerbs } from '../features/drive/chat/driveVerbs';
 
 export const ALL_VERBS: VerbDef[] = [
   ...layoutVerbs,
+  ...researchVerbs,
+  ...presentationVerbs,
+  ...driveVerbs,
 ];
 
 export const VERB_MAP: Map<string, VerbDef> = new Map(ALL_VERBS.map(v => [v.name, v]));

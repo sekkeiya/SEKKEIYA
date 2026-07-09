@@ -8,7 +8,7 @@ export default function ProtectedRoute({ children }) {
 
   if (isLoading) {
     const appInfo = APPS_CATALOG.find(a => a.key === "presents");
-    return <AppInitSkeleton appName={appInfo?.label || "S.Presentations"} icon={appInfo?.icon} message="認証情報を確認しています..." />;
+    return <AppInitSkeleton appName={appInfo?.label || "S.Slide"} icon={appInfo?.icon} message="認証情報を確認しています..." />;
   }
   if (!isAuthed) return <Navigate to="/" replace />;
   return children;

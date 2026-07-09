@@ -89,7 +89,7 @@ function getCategoryStyle(category: string): CategoryStyle {
     };
   return {
     gradient: 'linear-gradient(145deg, #0d1118 0%, #151e2e 100%)',
-    iconColor: 'rgba(255,255,255,0.4)',
+    iconColor: 'rgb(var(--brand-fg-rgb) / 0.4)',
     icon: <ViewInArRoundedIcon sx={{ fontSize: 40 }} />,
     label: '3D',
   };
@@ -193,8 +193,8 @@ export const TemplateThumbnail: React.FC<Props> = ({ tmpl }) => {
       <Box sx={{
         position: 'absolute', inset: 0,
         backgroundImage: `
-          linear-gradient(${catStyle.iconColor}14 1px, transparent 1px),
-          linear-gradient(90deg, ${catStyle.iconColor}14 1px, transparent 1px)
+          linear-gradient(color-mix(in srgb, ${catStyle.iconColor} 8%, transparent) 1px, transparent 1px),
+          linear-gradient(90deg, color-mix(in srgb, ${catStyle.iconColor} 8%, transparent) 1px, transparent 1px)
         `,
         backgroundSize: '20px 20px',
         opacity: 0.6,

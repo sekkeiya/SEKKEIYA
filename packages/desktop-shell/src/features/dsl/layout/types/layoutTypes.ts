@@ -33,7 +33,7 @@ export interface LayoutSceneObject {
   dimensionSource?: string | null;
   pinnedVersion?: number;
 
-  // ウォークスルーのギミック定義（ドア開閉など）。S.Models の extendedMetadata 由来。
+  // ウォークスルーのギミック定義（ドア開閉など）。S.Model の extendedMetadata 由来。
   gimmick?: {
     type: 'clip' | 'hinge';
     label?: string;

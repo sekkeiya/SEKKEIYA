@@ -53,23 +53,23 @@ const EditDialog: React.FC<EditDialogProps> = ({ entry, onClose, onSave }) => {
 
   return (
     <Dialog open={!!entry} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { bgcolor: '#131920', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, color: '#fff' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, color: 'var(--brand-fg)' } }}>
       <DialogTitle sx={{ fontWeight: 800, fontSize: '0.95rem', pb: 1 }}>メモを編集</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
         <TextField label="タイトル" value={title} onChange={e => setTitle(e.target.value)} fullWidth size="small"
-          InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)', '&.Mui-focused': { color: '#00BFFF' } } }}
-          InputProps={{ sx: { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' } } }}
+          InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-focused': { color: '#00BFFF' } } }}
+          InputProps={{ sx: { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } }}
           sx={{ '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: '#00BFFF' } }}/>
         <TextField label="内容 *" value={content} onChange={e => setContent(e.target.value)} fullWidth multiline minRows={5} size="small"
-          InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)', '&.Mui-focused': { color: '#00BFFF' } } }}
-          InputProps={{ sx: { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' } } }}
+          InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-focused': { color: '#00BFFF' } } }}
+          InputProps={{ sx: { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } }}
           sx={{ '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: '#00BFFF' } }}/>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>キャンセル</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>キャンセル</Button>
         <Button onClick={handleSave} disabled={!content.trim() || saving} variant="contained"
           sx={{ bgcolor: '#00BFFF', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2,
-            '&:hover': { bgcolor: '#4facfe' }, '&:disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' } }}>
+            '&:hover': { bgcolor: '#4facfe' }, '&:disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
           {saving ? '保存中...' : '保存'}
         </Button>
       </DialogActions>
@@ -172,8 +172,8 @@ export const AccountMemoTab: React.FC = () => {
   if (!projects.length) {
     return (
       <Box sx={{ py: 8, textAlign: 'center' }}>
-        <FolderRoundedIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.12)', mb: 1.5 }}/>
-        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem' }}>
+        <FolderRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.12)', mb: 1.5 }}/>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.875rem' }}>
           プロジェクトがありません
         </Typography>
       </Box>
@@ -187,16 +187,16 @@ export const AccountMemoTab: React.FC = () => {
 
       {/* ── プロジェクトフィルター ─────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3, alignItems: 'center' }}>
-        <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700, mr: 0.5, letterSpacing: 0.5 }}>
+        <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 700, mr: 0.5, letterSpacing: 0.5 }}>
           表示
         </Typography>
         {[{ id: 'all', name: 'すべて' }, ...projects.map(p => ({ id: p.id, name: p.name }))].map(p => (
           <Chip key={p.id} label={p.name} size="small" onClick={() => setFilterProjectId(p.id)}
             sx={{ height: 24, fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
-              bgcolor: filterProjectId === p.id ? 'rgba(0,191,255,0.14)' : 'rgba(255,255,255,0.06)',
-              color:   filterProjectId === p.id ? '#00BFFF' : 'rgba(255,255,255,0.55)',
+              bgcolor: filterProjectId === p.id ? 'rgba(0,191,255,0.14)' : 'rgb(var(--brand-fg-rgb) / 0.06)',
+              color:   filterProjectId === p.id ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.55)',
               border:  `1px solid ${filterProjectId === p.id ? 'rgba(0,191,255,0.4)' : 'transparent'}`,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' } }}/>
+              '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' } }}/>
         ))}
       </Box>
 
@@ -205,13 +205,13 @@ export const AccountMemoTab: React.FC = () => {
         <Box sx={{ width: '100%', maxWidth: 640 }}>
           <Paper elevation={isFocused ? 4 : 1}
             sx={{ display: 'flex', flexDirection: 'column', p: '8px 16px',
-              bgcolor: '#202124', border: '1px solid', borderRadius: 3,
+              bgcolor: 'var(--brand-surface2)', border: '1px solid', borderRadius: 3,
               borderColor: isFocused ? '#8ab4f8' : '#5f6368',
               boxShadow: isFocused ? '0 1px 2px 0 rgba(0,0,0,0.6), 0 2px 6px 2px rgba(0,0,0,0.3)' : '0 1px 2px 0 rgba(0,0,0,0.6)',
               transition: 'all 0.2s' }}>
             {(isFocused || composerText.length > 0) && (
               <InputBase
-                sx={{ width: '100%', color: '#e8eaed', py: 0.5, fontSize: 15, fontWeight: 600, mb: 1, borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                sx={{ width: '100%', color: 'var(--brand-fg)', py: 0.5, fontSize: 15, fontWeight: 600, mb: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}
                 placeholder="タイトル（任意）"
                 value={composerTitle}
                 onChange={e => setComposerTitle(e.target.value)}
@@ -221,7 +221,7 @@ export const AccountMemoTab: React.FC = () => {
               multiline
               minRows={isFocused || composerText.length > 0 ? 3 : 1}
               maxRows={10}
-              sx={{ flex: 1, color: '#e8eaed', py: 1, fontSize: 15 }}
+              sx={{ flex: 1, color: 'var(--brand-fg)', py: 1, fontSize: 15 }}
               placeholder="メモを書く... (Shift+Enter で保存)"
               onFocus={() => setIsFocused(true)}
               value={composerText}
@@ -230,19 +230,19 @@ export const AccountMemoTab: React.FC = () => {
             />
             {(isFocused || composerText.length > 0) && (
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1,
-                borderTop: '1px solid rgba(255,255,255,0.08)', pt: 1 }}>
+                borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pt: 1 }}>
                 {/* Project selector */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <FolderRoundedIcon sx={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}/>
+                  <FolderRoundedIcon sx={{ fontSize: 14, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}/>
                   <Select
                     value={composerProjectId}
                     onChange={e => setComposerProjectId(e.target.value)}
                     size="small" variant="standard" disableUnderline
-                    sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)',
-                      '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.35)', fontSize: 16 } }}
-                    MenuProps={{ PaperProps: { sx: { bgcolor: '#1a2030', color: '#fff' } } }}>
+                    sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.7)',
+                      '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 16 } }}
+                    MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } }}>
                     {projects.map(p => (
-                      <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                      <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8rem', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                         {p.name}
                       </MenuItem>
                     ))}
@@ -250,14 +250,14 @@ export const AccountMemoTab: React.FC = () => {
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Button size="small" onClick={() => { setIsFocused(false); setComposerText(''); setComposerTitle(''); }}
-                    sx={{ textTransform: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>
+                    sx={{ textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.75rem' }}>
                     キャンセル
                   </Button>
                   <Button size="small" variant="contained" disabled={!composerText.trim() || isSubmitting}
                     onClick={handleSubmit}
                     sx={{ textTransform: 'none', borderRadius: 2, height: 28, fontSize: '0.75rem',
                       bgcolor: '#00BFFF', color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#4facfe' },
-                      '&:disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' } }}>
+                      '&:disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
                     {isSubmitting ? '保存中...' : '保存'}
                   </Button>
                 </Box>
@@ -274,8 +274,8 @@ export const AccountMemoTab: React.FC = () => {
         </Box>
       ) : entries.length === 0 ? (
         <Box sx={{ py: 6, textAlign: 'center' }}>
-          <MenuBookRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.1)', mb: 1.5 }}/>
-          <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.875rem' }}>
+          <MenuBookRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.1)', mb: 1.5 }}/>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: '0.875rem' }}>
             {filterProjectId === 'all' ? 'まだメモがありません' : 'このプロジェクトにメモがありません'}
           </Typography>
         </Box>
@@ -289,7 +289,7 @@ export const AccountMemoTab: React.FC = () => {
             {entries.map(entry => (
               <Box key={entry.id} component={motion.div}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                sx={{ bgcolor: '#202124', borderRadius: 2, border: '1px solid #5f6368', p: 2,
+                sx={{ bgcolor: 'var(--brand-surface2)', borderRadius: 2, border: '1px solid #5f6368', p: 2,
                   cursor: 'pointer', position: 'relative', transition: 'border-color 0.2s, box-shadow 0.2s',
                   '&:hover': { borderColor: '#8ab4f8', boxShadow: '0 1px 6px rgba(0,0,0,0.4)', '& .memo-act': { opacity: 1 } } }}>
 
@@ -298,11 +298,11 @@ export const AccountMemoTab: React.FC = () => {
                   transition: 'opacity 0.15s', display: 'flex', gap: 0.25,
                   bgcolor: 'rgba(32,33,36,0.9)', borderRadius: 1 }}>
                   <IconButton size="small" onClick={e => { e.stopPropagation(); setEditTarget(entry); }}
-                    sx={{ p: '3px', color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#00BFFF' } }}>
+                    sx={{ p: '3px', color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#00BFFF' } }}>
                     <EditRoundedIcon sx={{ fontSize: 13 }}/>
                   </IconButton>
                   <IconButton size="small" onClick={e => { e.stopPropagation(); handleDelete(entry); }}
-                    sx={{ p: '3px', color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fa709a' } }}>
+                    sx={{ p: '3px', color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' } }}>
                     <DeleteRoundedIcon sx={{ fontSize: 13 }}/>
                   </IconButton>
                 </Box>
@@ -311,22 +311,22 @@ export const AccountMemoTab: React.FC = () => {
                 {filterProjectId === 'all' && entry.projectName && (
                   <Chip label={entry.projectName} size="small"
                     sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, mb: 1,
-                      color: 'rgba(255,255,255,0.55)', bgcolor: 'rgba(255,255,255,0.06)' }}/>
+                      color: 'rgb(var(--brand-fg-rgb) / 0.55)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' }}/>
                 )}
 
                 {entry.title && (
-                  <Typography sx={{ color: '#e8eaed', fontWeight: 600, fontSize: '0.9rem', mb: 0.75, pr: 3, wordBreak: 'break-word' }}>
+                  <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: '0.9rem', mb: 0.75, pr: 3, wordBreak: 'break-word' }}>
                     {entry.title}
                   </Typography>
                 )}
 
-                <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem', lineHeight: 1.55,
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontSize: '0.8rem', lineHeight: 1.55,
                   display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                   wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
                   {entry.content}
                 </Typography>
 
-                <Typography sx={{ mt: 1.25, fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', textAlign: 'right' }}>
+                <Typography sx={{ mt: 1.25, fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', textAlign: 'right' }}>
                   {formatDate(entry.createdAt)}
                 </Typography>
               </Box>

@@ -37,8 +37,6 @@ import NearMeRoundedIcon from "@mui/icons-material/NearMeRounded";
 
 
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
-import { keyframes } from "@mui/material/styles";
 
 import CommandBar from "../../../canvas/toolbar/CommandBar.jsx";
 import ModeToolbar from "./toolbars/ModeToolbar.jsx";
@@ -90,7 +88,6 @@ export default function TopBar({
   saving = false,
   onSave,
   layoutItems = [],
-  onClickPreview,
   onClickProductionPreview,
   onClickShare,
 }) {
@@ -299,25 +296,9 @@ export default function TopBar({
 
   const statusLabel = saving ? "Saving..." : dirty ? "Unsaved" : "Saved";
 
-  const shine = useMemo(
-    () =>
-      keyframes`
-        0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
-        15% { opacity: 0.55; }
-        45% { opacity: 0.25; }
-        100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
-      `,
-    []
-  );
-
   const openPreviewByCurrentUrl = useCallback(() => {
     window.open(window.location.href, "_blank", "noopener,noreferrer");
   }, []);
-
-  const handlePreview = useCallback(() => {
-    if (typeof onClickPreview === "function") return onClickPreview();
-    openPreviewByCurrentUrl();
-  }, [onClickPreview, openPreviewByCurrentUrl]);
 
   const handleProductionPreview = useCallback(() => {
     if (typeof onClickProductionPreview === "function") return onClickProductionPreview();
@@ -371,18 +352,6 @@ export default function TopBar({
     },
   };
 
-  const previewShineSx = {
-    position: "absolute",
-    top: -10,
-    left: -40,
-    width: 60,
-    height: 60,
-    background: `linear-gradient(90deg, transparent 0%, ${alpha("#fff", 0.30)} 45%, transparent 100%)`,
-    filter: "blur(0.4px)",
-    opacity: 0,
-    pointerEvents: "none",
-  };
-
   return (
     <Box sx={{ 
       display: "flex", 
@@ -409,7 +378,7 @@ export default function TopBar({
             startIcon={<ArrowBackRoundedIcon fontSize="small" />}
             onClick={() => setPanelSelection("layout", null)}
             sx={{
-              color: "rgba(255,255,255,0.5)",
+              color: "rgb(var(--brand-fg-rgb) / 0.5)",
               minWidth: "auto",
               px: 1,
               textTransform: "none",
@@ -417,8 +386,8 @@ export default function TopBar({
               fontWeight: 600,
               borderRadius: 1.5,
               "&:hover": {
-                color: "#fff",
-                bgcolor: "rgba(255,255,255,0.06)",
+                color: "var(--brand-fg)",
+                bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)",
               },
             }}
           >
@@ -442,7 +411,7 @@ export default function TopBar({
                   borderRadius: 1.5,
                   textTransform: "none",
                   fontWeight: 700,
-                  color: alpha("#fff", 0.82),
+                  color: "color-mix(in srgb, var(--brand-fg) 82%, transparent)",
                   bgcolor: alpha("#fff", 0.05),
                   border: `1px solid ${alpha("#fff", 0.12)}`,
                   px: 1.2,
@@ -460,7 +429,7 @@ export default function TopBar({
                 sx={{
                   height: 24, fontSize: 12, fontWeight: 700,
                   bgcolor: saving ? alpha("#fff", 0.12) : dirty ? alpha("#ff9800", 0.2) : alpha("#4caf50", 0.15),
-                  color: saving ? "#fff" : dirty ? "#ff9800" : "#4caf50",
+                  color: saving ? "var(--brand-fg)" : dirty ? "#ff9800" : "#4caf50",
                   border: `1px solid ${saving ? alpha("#fff", 0.2) : dirty ? alpha("#ff9800", 0.4) : alpha("#4caf50", 0.3)}`,
                 }} 
                 label={saving ? "Saving..." : dirty ? "Unsaved" : "Saved"} 
@@ -499,55 +468,27 @@ export default function TopBar({
             </Tooltip>
           )}
 
-          {/* Preview Button — ウォークスルー中は「終了」ボタンとして機能 */}
-          <Tooltip title={mode === "walkthrough" ? "Exit Walkthrough" : "Walkthrough Preview"}>
+          {/* Preview Button — 客先向けビューワ（内観ウォークスルー入り）を開く */}
+          <Tooltip title="プレビュー：客先向けビューワを開く（内観でウォークスルー）">
             <Button
-              onClick={handlePreview}
-              startIcon={<VisibilityRoundedIcon fontSize="small" sx={{ opacity: 0.88 }} />}
-              endIcon={mode !== "walkthrough" ? <OpenInNewRoundedIcon fontSize="small" sx={{ opacity: 0.88 }} /> : null}
+              onClick={handleProductionPreview}
+              startIcon={<VisibilityRoundedIcon fontSize="small" sx={{ opacity: 0.9 }} />}
               sx={{
                 ...previewBtnSx,
-                ...(mode === "walkthrough" && {
-                  background: `linear-gradient(180deg, ${alpha("#4f8cff", 0.55)} 0%, ${alpha("#2c5fff", 0.4)} 100%)`,
-                  border: `1px solid ${alpha("#4f8cff", 0.5)}`,
-                }),
+                background: `linear-gradient(180deg, ${alpha("#34d399", 0.5)} 0%, ${alpha("#059669", 0.4)} 100%)`,
+                border: `1px solid ${alpha("#34d399", 0.5)}`,
+                "&:hover": {
+                  transform: "translateY(-0.5px)",
+                  borderColor: alpha("#34d399", 0.7),
+                  background: `linear-gradient(180deg, ${alpha("#34d399", 0.62)} 0%, ${alpha("#059669", 0.5)} 100%)`,
+                },
               }}
             >
-              <Box
-                sx={{
-                  ...previewShineSx,
-                  animation: mode !== "walkthrough" ? `${shine} 1.9s ease-in-out infinite` : "none",
-                }}
-              />
               <Typography component="span" sx={{ fontSize: 12.5, lineHeight: 1, mt: "1px" }}>
-                {mode === "walkthrough" ? "終了" : "TestPreview"}
+                プレビュー
               </Typography>
             </Button>
           </Tooltip>
-
-          {/* Production Preview Button — 本番ビューワを別タブで開く */}
-          {mode !== "walkthrough" && (
-            <Tooltip title="本番プレビュー：公開ビューワを別タブで開く">
-              <Button
-                onClick={handleProductionPreview}
-                startIcon={<OpenInNewRoundedIcon fontSize="small" sx={{ opacity: 0.9 }} />}
-                sx={{
-                  ...previewBtnSx,
-                  background: `linear-gradient(180deg, ${alpha("#34d399", 0.5)} 0%, ${alpha("#059669", 0.4)} 100%)`,
-                  border: `1px solid ${alpha("#34d399", 0.5)}`,
-                  "&:hover": {
-                    transform: "translateY(-0.5px)",
-                    borderColor: alpha("#34d399", 0.7),
-                    background: `linear-gradient(180deg, ${alpha("#34d399", 0.62)} 0%, ${alpha("#059669", 0.5)} 100%)`,
-                  },
-                }}
-              >
-                <Typography component="span" sx={{ fontSize: 12.5, lineHeight: 1, mt: "1px" }}>
-                  本番プレビュー
-                </Typography>
-              </Button>
-            </Tooltip>
-          )}
 
         </Box>
       </Box>
@@ -561,7 +502,7 @@ export default function TopBar({
         overflow: "hidden", 
         height: 40, 
         gap: 1, /* 8px gap */
-        background: alpha("#050815", 0.72), 
+        background: "color-mix(in srgb, var(--brand-bg) 72%, transparent)", 
         px: 1, 
         borderRadius: 1,
         border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`
@@ -586,16 +527,16 @@ export default function TopBar({
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: alpha("#0b1022", 0.98),
+            background: "color-mix(in srgb, var(--brand-surface) 98%, transparent)",
             border: `1px solid ${alpha("#fff", 0.10)}`,
-            color: "#fff",
+            color: "var(--brand-fg)",
             minWidth: 320,
           },
         }}
       >
         <DialogTitle sx={{ fontWeight: 900, fontSize: 16 }}>確認</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: alpha("#fff", 0.72), fontSize: 14 }}>
+          <DialogContentText sx={{ color: "color-mix(in srgb, var(--brand-fg) 72%, transparent)", fontSize: 14 }}>
             {alertInfo.message}
           </DialogContentText>
         </DialogContent>

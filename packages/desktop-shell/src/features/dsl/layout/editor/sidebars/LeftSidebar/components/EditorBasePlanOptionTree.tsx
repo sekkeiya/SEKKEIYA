@@ -133,7 +133,7 @@ export default function EditorBasePlanOptionTree() {
             <ListItemButton
               onClick={() => goToDashboard && goToDashboard()}
               disableRipple
-              sx={{ p: 0, '&:hover': { bgcolor: 'transparent', '& .project-name': { color: '#fff', textDecoration: 'underline' } }, width: 'auto', flexGrow: 0 }}
+              sx={{ p: 0, '&:hover': { bgcolor: 'transparent', '& .project-name': { color: 'var(--brand-fg)', textDecoration: 'underline' } }, width: 'auto', flexGrow: 0 }}
             >
               <Typography className="project-name" variant="subtitle2" sx={{ opacity: 0.9, fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2, transition: 'color 0.15s' }}>
                 {activeProjectName || "Project"}
@@ -212,7 +212,7 @@ export default function EditorBasePlanOptionTree() {
                               <IconButton
                                 size="small"
                                 onClick={() => togglePlanExpanded(p.id)}
-                                sx={{ p: 0.25, color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" } }}
+                                sx={{ p: 0.25, color: "rgb(var(--brand-fg-rgb) / 0.5)", "&:hover": { color: "var(--brand-fg)" } }}
                               >
                                 {optionsExpanded ? (
                                   <ExpandMoreRoundedIcon sx={{ fontSize: 16 }} />
@@ -318,18 +318,18 @@ export default function EditorBasePlanOptionTree() {
         >
           <Box
             onClick={(e) => e.stopPropagation()}
-            sx={{ width: 400, bgcolor: "#1a1e27", p: 4, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }}
+            sx={{ width: 400, bgcolor: "var(--brand-surface2)", p: 4, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }}
           >
-            <Typography variant="h6" sx={{ color: "#fff", mb: 2, fontWeight: 700 }}>
+            <Typography variant="h6" sx={{ color: "var(--brand-fg)", mb: 2, fontWeight: 700 }}>
               {confirm.title || "削除の確認"}
             </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: 3, fontSize: 14 }}>
+            <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", mb: 3, fontSize: 14 }}>
               {confirm.description}
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
               <Typography
                 onClick={() => !deleting && closeConfirm?.()}
-                sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: "pointer", py: 1, "&:hover": { color: "#fff" } }}
+                sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 13, cursor: "pointer", py: 1, "&:hover": { color: "var(--brand-fg)" } }}
               >
                 キャンセル
               </Typography>

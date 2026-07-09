@@ -14,6 +14,8 @@ export interface BlogDialogueMsg {
   choices?: string[];
   /** 'summary' = 題材記事の日本語要約カード（議論ファーストの冒頭に表示） */
   kind?: 'summary';
+  /** AIが取り上げた記事内の箇所（リーダーの抽出ブロックの index）。クリックでその箇所へスクロール。 */
+  refs?: number[];
 }
 
 /**
@@ -39,6 +41,68 @@ export const BLOG_STYLE_PRESETS: Record<BlogStyle['preset'], { label: string; de
 export const DEFAULT_BLOG_STYLE: BlogStyle = {
   preset: 'magazine', accent: '#e57373', brandLabel: '', visuals: 'slides', customNote: '',
 };
+
+/**
+ * 「AIと議論して書く」のインタビュー往復回数の目安。記事ごとに設定できる。
+ * 0 = 無制限（AIは収束を急がない）。未設定は DEFAULT_DIALOGUE_ROUNDS。
+ * AIへのガイドであり厳密な打ち切りではない（目安到達後も続けられる）。
+ */
+export const DIALOGUE_ROUND_OPTIONS: { value: number; label: string; desc: string }[] = [
+  { value: 5,  label: '5往復',  desc: 'サクッと（要点だけ聞いて生成）' },
+  { value: 10, label: '10往復', desc: 'しっかり（論点を複数掘り下げ）' },
+  { value: 18, label: '18往復', desc: '標準（経験談まで引き出す・おすすめ）' },
+  { value: 25, label: '25往復', desc: '深掘り（長編・特集向け）' },
+  { value: 0,  label: '無制限', desc: '目安なし（納得いくまで議論）' },
+];
+export const DEFAULT_DIALOGUE_ROUNDS = 18;
+
+/**
+ * 「AIと議論して書く」のインタビュアー人格。記事ごとに選べる（BlogArticle.interviewerId）。
+ * prompt はそのまま CF `blogDialogue`（mode:'turn'）のシステムプロンプトへ注入される。
+ */
+export interface BlogInterviewer {
+  id: string;
+  emoji: string;
+  label: string;
+  desc: string;    // 選択UI用の一言
+  prompt: string;  // CFへ送る人格指示
+}
+
+export const INTERVIEWER_PRESETS: BlogInterviewer[] = [
+  {
+    id: 'listener',
+    emoji: '🎤',
+    label: '聞き手',
+    desc: '質問多め。相づちと深掘りであなたの経験・考えをとことん引き出す',
+    prompt: 'あなたは聞き上手なインタビュアーです。自分の意見は控えめにし、短い相づちと質問を中心に進めてください。1ターンの質問は1つに絞ること。抽象的な答えには「具体的には？」「例えば実際の案件では？」と踏み込み、ユーザー自身の経験・エピソード・数字を引き出すことを最優先にしてください。',
+  },
+  {
+    id: 'editor',
+    emoji: '🧭',
+    label: '編集者',
+    desc: '自分の考えや仮説も出しながら、記事の完成形へリードしてくれる',
+    prompt: 'あなたは経験豊富な編集者型のインタビュアーです。記事の完成形（結論・根拠・事例）を常に意識し、自分の考え・仮説・業界の文脈も適度に提示しながら議論をリードしてください。「私はこの記事を○○と読みましたが、あなたの現場感覚ではどうですか？」のように、先に視点を出してからユーザーの立場を確認し、足りない要素（結論の一言・根拠・具体例）を順に埋めるよう導いてください。',
+  },
+  {
+    id: 'debater',
+    emoji: '⚔️',
+    label: '論客',
+    desc: 'あえて異論・別視点をぶつけて、主張の説得力を鍛える壁打ち相手',
+    prompt: 'あなたは知的で誠実な論客です。ユーザーの主張に対して、あえて反対意見・別の視点・読者から想定される批判をぶつけてください。ただし攻撃的にはならず、敬意とユーモアを保つこと。「その見方には○○という反論がありそうです。どう答えますか？」のように主張の弱点を突き、ユーザー自身の言葉で補強させることで、記事の説得力を鍛えるのが目的です。相手が答えに詰まったら助け舟（反論への答え方の例）を出してください。',
+  },
+];
+export const DEFAULT_INTERVIEWER_ID = 'editor';
+
+/**
+ * リーダー（題材記事）と議論パネルの橋渡し用の軽量ブロック。
+ * リーダーが抽出した本文段落・見出し・画像を、議論パネルがインタビューの素材として
+ * 参照できるよう共有する（本体の ReaderBlock を議論側でも扱える最小形にしたもの）。
+ */
+export interface ReaderBlockLite {
+  t: 'p' | 'h' | 'img' | 'video';
+  text?: string;   // p / h の本文
+  src?: string;    // img / video のURL
+}
 
 /** 記事の題材にしたWeb記事（出典）。 */
 export interface BlogSourceRef {
@@ -133,9 +197,13 @@ export interface BlogArticle {
   libraryEntryId?: string | null;    // S.Library に登録した LibraryEntry の localId（再公開時の更新・重複防止）
   views?: number | null;             // 累計閲覧数（公開サイトの計測連携で更新／未計測は null）
   aiDialogue?: BlogDialogueMsg[] | null; // 「AIと対話して書く」の議論ログ（途中再開・反映に使用）
+  dialogueRounds?: number | null;        // インタビュー往復回数の目安（記事ごと。0=無制限 / 未設定=既定値）
+  interviewerId?: string | null;         // インタビュアー人格（INTERVIEWER_PRESETS の id。記事ごと）
   sourceRefs?: BlogSourceRef[] | null;   // 題材にしたWeb記事（出典。議論・仕上げの文脈にも使用）
   audioUrl?: string | null;              // 🎙 記事の音声版（AI音声で全文合成したMP3。公開ページでも再生）
   audioDurationSec?: number | null;      // 音声版の長さ（秒）
+  /** 「✨デザイン」適用前のスナップショット。存在する間は「元に戻す」で復元できる（永続化されリロード後も有効）。 */
+  designBackup?: { bodyMarkdown: string; excerpt: string; ts: string } | null;
   publishedAt?: string | null;       // ISO（公開時に確定）
   createdAt: string;                 // ISO
   updatedAt: string;                 // ISO
@@ -157,6 +225,90 @@ export interface BlogSchedule {
   articleId?: string | null;     // 紐付けた記事（任意）
   createdAt: string;             // ISO
   updatedAt: string;             // ISO
+}
+
+/**
+ * ホーム絞り込み用: 著名な設計者・デザイナー・企業の辞書（日英エイリアス）。
+ * フィードのタイトルと照合し、記事が存在する人物・会社だけをチップとして表示する。
+ * ユーザーは自分のウォッチ名（カスタム）も追加できる（blogSettings.nameFilters）。
+ */
+export interface NotableName {
+  label: string;                          // 表示名（チップ）
+  aliases: string[];                      // タイトル照合用（label 自身も含める）
+  kind: '設計者' | 'デザイナー' | '企業';
+}
+
+export const NOTABLE_NAMES: NotableName[] = [
+  // 設計者・建築家
+  { label: '隈研吾',    aliases: ['隈研吾', 'Kengo Kuma'],            kind: '設計者' },
+  { label: '安藤忠雄',  aliases: ['安藤忠雄', 'Tadao Ando'],          kind: '設計者' },
+  { label: '坂茂',      aliases: ['坂茂', 'Shigeru Ban'],             kind: '設計者' },
+  { label: '藤本壮介',  aliases: ['藤本壮介', 'Sou Fujimoto'],        kind: '設計者' },
+  { label: 'SANAA',     aliases: ['SANAA', '妹島和世', 'Kazuyo Sejima', '西沢立衛', 'Ryue Nishizawa'], kind: '設計者' },
+  { label: '伊東豊雄',  aliases: ['伊東豊雄', 'Toyo Ito'],            kind: '設計者' },
+  { label: '石上純也',  aliases: ['石上純也', 'Junya Ishigami'],      kind: '設計者' },
+  { label: '田根剛',    aliases: ['田根剛', 'Tsuyoshi Tane'],         kind: '設計者' },
+  { label: 'Zaha Hadid', aliases: ['Zaha Hadid', 'ザハ・ハディド', 'ザハ'], kind: '設計者' },
+  { label: 'BIG',       aliases: ['BIG', 'Bjarke Ingels', 'ビャルケ・インゲルス'], kind: '設計者' },
+  { label: 'OMA',       aliases: ['OMA', 'Rem Koolhaas', 'レム・コールハース'],   kind: '設計者' },
+  { label: 'Foster + Partners', aliases: ['Foster + Partners', 'Norman Foster', 'ノーマン・フォスター'], kind: '設計者' },
+  { label: 'Herzog & de Meuron', aliases: ['Herzog', 'ヘルツォーク'], kind: '設計者' },
+  { label: 'MVRDV',     aliases: ['MVRDV'],                           kind: '設計者' },
+  { label: 'Snøhetta',  aliases: ['Snøhetta', 'Snohetta', 'スノヘッタ'], kind: '設計者' },
+  { label: 'Heatherwick', aliases: ['Heatherwick', 'ヘザウィック'],   kind: '設計者' },
+  { label: 'David Chipperfield', aliases: ['Chipperfield', 'チッパーフィールド'], kind: '設計者' },
+  { label: 'Renzo Piano', aliases: ['Renzo Piano', 'レンゾ・ピアノ'], kind: '設計者' },
+  { label: 'Jean Nouvel', aliases: ['Jean Nouvel', 'ジャン・ヌーヴェル'], kind: '設計者' },
+  // デザイナー
+  { label: 'nendo',     aliases: ['nendo', '佐藤オオキ', 'Oki Sato'], kind: 'デザイナー' },
+  { label: '深澤直人',  aliases: ['深澤直人', 'Naoto Fukasawa'],      kind: 'デザイナー' },
+  { label: '原研哉',    aliases: ['原研哉', 'Kenya Hara'],            kind: 'デザイナー' },
+  { label: '吉岡徳仁',  aliases: ['吉岡徳仁', 'Tokujin Yoshioka'],    kind: 'デザイナー' },
+  { label: '倉俣史朗',  aliases: ['倉俣史朗', 'Shiro Kuramata'],      kind: 'デザイナー' },
+  { label: 'Philippe Starck', aliases: ['Starck', 'スタルク'],        kind: 'デザイナー' },
+  { label: 'Patricia Urquiola', aliases: ['Urquiola', 'ウルキオラ'],  kind: 'デザイナー' },
+  { label: 'Dieter Rams', aliases: ['Dieter Rams', 'ディーター・ラムス'], kind: 'デザイナー' },
+  // 企業・組織
+  { label: '日建設計',  aliases: ['日建設計', 'Nikken Sekkei'],       kind: '企業' },
+  { label: '竹中工務店', aliases: ['竹中工務店', 'Takenaka'],         kind: '企業' },
+  { label: '鹿島建設',  aliases: ['鹿島建設', 'Kajima'],              kind: '企業' },
+  { label: '大林組',    aliases: ['大林組', 'Obayashi'],              kind: '企業' },
+  { label: '清水建設',  aliases: ['清水建設'],                        kind: '企業' },
+  { label: '無印良品',  aliases: ['無印良品', 'MUJI'],                kind: '企業' },
+  { label: 'IKEA',      aliases: ['IKEA', 'イケア'],                  kind: '企業' },
+  { label: 'ニトリ',    aliases: ['ニトリ', 'Nitori'],                kind: '企業' },
+  { label: 'Vitra',     aliases: ['Vitra', 'ヴィトラ'],               kind: '企業' },
+  { label: 'Herman Miller', aliases: ['Herman Miller', 'ハーマンミラー'], kind: '企業' },
+  { label: 'カリモク',  aliases: ['カリモク', 'Karimoku'],            kind: '企業' },
+  { label: 'LIXIL',     aliases: ['LIXIL', 'リクシル'],               kind: '企業' },
+  { label: 'Panasonic', aliases: ['Panasonic', 'パナソニック'],       kind: '企業' },
+];
+
+/**
+ * タイトルにエイリアスが含まれるか。
+ * - 日本語（CJK含む）: 単純な部分一致
+ * - 英字: 単語境界つき一致（"Roma" が "OMA" に誤ヒットしない）。
+ *   さらに 2〜4文字の全大文字略称（BIG/OMA等）は大文字小文字を区別（一般語 "big" を除外）。
+ */
+export function titleMatchesAlias(title: string, alias: string): boolean {
+  if (!alias) return false;
+  if (/[　-ヿ一-鿿]/.test(alias)) return title.includes(alias);
+  const esc = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const flags = /^[A-Z]{2,4}$/.test(alias) ? '' : 'i';
+  return new RegExp(`(^|[^A-Za-z])${esc}([^A-Za-z]|$)`, flags).test(title);
+}
+
+/**
+ * ブログの運営戦略・目標（AIと議論して決める）。planBlogContent（投稿計画）が最優先材料に使う。
+ * account=users/{uid}/blogSettings/main.strategy / official=config/official.strategy。
+ */
+export interface BlogStrategy {
+  summary: string;        // 戦略の要約（誰に何を届け、どう差別化し、何を優先するか）
+  audience?: string;      // 主な読者像
+  goals?: string;         // 達成したい目標
+  focus?: string[];       // 重視するテーマ
+  tone?: string;          // 文体・トーン
+  updatedAt?: string;     // ISO
 }
 
 export const BLOG_CATEGORIES = [

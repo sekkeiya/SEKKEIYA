@@ -28,14 +28,14 @@ const ChatHistoryDialog: React.FC<ChatHistoryDialogProps> = ({ open, onClose }) 
   if (!projectId) return null;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1a1f2b', color: '#fff', borderRadius: 2 } }}>
-      <DialogTitle sx={{ borderBottom: '1px solid rgba(255,255,255,0.1)', pb: 2 }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', borderRadius: 2 } }}>
+      <DialogTitle sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', pb: 2 }}>
         <Typography component="span" variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>Chat History</Typography>
       </DialogTitle>
       <DialogContent sx={{ p: 0 }}>
         {sessions.length === 0 ? (
           <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>No past chats found for this project.</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.8rem' }}>No past chats found for this project.</Typography>
           </Box>
         ) : (
           <List sx={{ pt: 0 }}>
@@ -44,11 +44,11 @@ const ChatHistoryDialog: React.FC<ChatHistoryDialogProps> = ({ open, onClose }) 
                 key={session.id} 
                 disablePadding 
                 secondaryAction={
-                  <IconButton edge="end" aria-label="delete" onClick={() => deleteSession(session.id)} sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#f44336' } }}>
+                  <IconButton edge="end" aria-label="delete" onClick={() => deleteSession(session.id)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: '#f44336' } }}>
                     <DeleteOutlineIcon sx={{ fontSize: '1.2rem' }} />
                   </IconButton>
                 }
-                sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}
               >
                 <ListItemButton 
                   selected={session.id === activeSessionId}
@@ -65,8 +65,8 @@ const ChatHistoryDialog: React.FC<ChatHistoryDialogProps> = ({ open, onClose }) 
                   <ListItemText 
                     primary={session.title} 
                     secondary={new Date(session.updatedAt).toLocaleString()}
-                    primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 500, color: session.id === activeSessionId ? '#8ab4f8' : 'rgba(255,255,255,0.9)' } }}
-                    secondaryTypographyProps={{ sx: { fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' } }}
+                    primaryTypographyProps={{ sx: { fontSize: '0.85rem', fontWeight: 500, color: session.id === activeSessionId ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.9)' } }}
+                    secondaryTypographyProps={{ sx: { fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
                   />
                 </ListItemButton>
               </ListItem>
@@ -74,8 +74,8 @@ const ChatHistoryDialog: React.FC<ChatHistoryDialogProps> = ({ open, onClose }) 
           </List>
         )}
       </DialogContent>
-      <DialogActions sx={{ borderTop: '1px solid rgba(255,255,255,0.1)', p: 1.5 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: '0.8rem' }}>Close</Button>
+      <DialogActions sx={{ borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', p: 1.5 }}>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: '0.8rem' }}>Close</Button>
       </DialogActions>
     </Dialog>
   );

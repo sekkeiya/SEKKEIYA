@@ -368,8 +368,8 @@ function QuickStartCarousel({ workFiles, getDownloadUrl }) {
 /* ─── Extra-section placeholder ────────────────────────────── */
 function ExtraTabPlaceholder({ activeTab, projectId, navigate }) {
   const labels = {
-    models: "S.Models", drawings: "S.Layout",
-    slides: "S.Presentations", movies: "S.Presentations",
+    models: "S.Model", drawings: "S.Layout",
+    slides: "S.Slide", movies: "S.Slide",
     renders: "Renders", articles: "Articles", create: "Create",
   };
   return (

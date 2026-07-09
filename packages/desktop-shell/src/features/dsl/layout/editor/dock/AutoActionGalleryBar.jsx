@@ -15,15 +15,15 @@ import { runAiPipeline } from "../../services/aiOrchestrator";
 const GALLERY_KINDS = ["autoAI", "autoZone", "autoSelect", "autoLayout", "autoReplace", "autoMaterial", "autoFurMat", "autoLighting", "autoLabel"];
 
 const META = {
-  autoAI:       { label: "AI実行（おまかせ）", color: "#c084fc" },
+  autoAI:       { label: "AI実行（おまかせ）", color: "light-dark(#5704a9, #c084fc)" },
   autoZone:     { label: "自動ゾーニング",     color: "#2dd4bf" },
-  autoSelect:   { label: "自動家具選定",       color: "#38bdf8" },
-  autoLayout:   { label: "自動レイアウト",     color: "#c084fc" },
-  autoReplace:  { label: "自動家具差し替え",   color: "#fb923c" },
+  autoSelect:   { label: "自動家具選定",       color: "light-dark(#0676a8, #38bdf8)" },
+  autoLayout:   { label: "自動レイアウト",     color: "light-dark(#5704a9, #c084fc)" },
+  autoReplace:  { label: "自動家具差し替え",   color: "light-dark(#aa4e03, #fb923c)" },
   autoMaterial: { label: "自動マテリアル",     color: "#34d399" },
-  autoFurMat:   { label: "自動家具マテリアル", color: "#a78bfa" },
-  autoLighting: { label: "自動ライティング",   color: "#fbbf24" },
-  autoLabel:    { label: "自動ラベル",         color: "#22d3ee" },
+  autoFurMat:   { label: "自動家具マテリアル", color: "light-dark(#2f07a6, #a78bfa)" },
+  autoLighting: { label: "自動ライティング",   color: "light-dark(#aa7c03, #fbbf24)" },
+  autoLabel:    { label: "自動ラベル",         color: "light-dark(#0c8da1, #22d3ee)" },
 };
 
 // 自動レイアウトの「スタイル」= 建物タイプ別のゾーン用途プリセット（AutoLayoutSidePanel と同じ）。
@@ -192,13 +192,13 @@ export default function AutoActionGalleryBar() {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11, fontWeight: 800, color: alphaHex(meta.color, 1), letterSpacing: 0.5 }}>
         <span>{kind === "autoLabel" ? "自動ラベル" : kind === "autoZone" ? "自動ゾーニング" : kind === "autoSelect" ? "選定する範囲を選ぶ" : kind === "autoAI" ? "AI実行：テイストを選ぶ" : `${meta.label}のスタイルを選ぶ`}</span>
-        <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: "rgb(var(--brand-fg-rgb) / 0.5)" }}>
           {kind === "autoLabel" || kind === "autoZone" ? "Enter で実行" : "← → で移動 ・ Space で選択 ・ Enter で実行"}
         </span>
         <span
           onClick={handleClose}
           title="閉じる"
-          style={{ marginLeft: 4, cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1, fontWeight: 700 }}
+          style={{ marginLeft: 4, cursor: "pointer", color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 14, lineHeight: 1, fontWeight: 700 }}
         >
           ✕
         </span>
@@ -224,11 +224,11 @@ export default function AutoActionGalleryBar() {
                   position: "relative",
                   width: 72, height: 56, borderRadius: 12,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  background: lit ? alphaHex(meta.color, 0.2) : "rgba(255,255,255,0.06)",
-                  border: lit ? `2px solid ${meta.color}` : "1px solid rgba(255,255,255,0.18)",
+                  background: lit ? alphaHex(meta.color, 0.2) : "rgb(var(--brand-fg-rgb) / 0.06)",
+                  border: lit ? `2px solid ${meta.color}` : "1px solid rgb(var(--brand-fg-rgb) / 0.18)",
                   boxShadow: active ? `0 6px 18px ${alphaHex(meta.color, 0.45)}, 0 0 0 3px ${alphaHex(meta.color, 0.3)}` : "none",
                   transform: active ? "scale(1.14)" : "scale(1)",
-                  color: lit ? "#fff" : alphaHex(meta.color, 0.9),
+                  color: lit ? "var(--brand-fg)" : alphaHex(meta.color, 0.9),
                 }}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor" /></svg>
@@ -241,7 +241,7 @@ export default function AutoActionGalleryBar() {
                   </div>
                 )}
               </div>
-              <div style={{ fontSize: 10.5, fontWeight: lit ? 800 : 600, color: lit ? "#fff" : "rgba(255,255,255,0.65)", maxWidth: 96, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 10.5, fontWeight: lit ? 800 : 600, color: lit ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.65)", maxWidth: 96, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {it.label}
               </div>
             </div>

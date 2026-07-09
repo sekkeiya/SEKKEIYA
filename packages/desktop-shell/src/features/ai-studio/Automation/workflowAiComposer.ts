@@ -97,7 +97,9 @@ export async function composeWorkflowWithAI(
   ].join('\n');
 
   const callable = httpsCallable(functions, 'agentTurn');
-  const res: any = await callable({ messages: [{ role: 'user', content: prompt }] });
+  // 定型JSONの生成（ツール不使用・構成の整形のみ）なので低コストな Haiku で十分。
+  // agentTurn はサーバー側で model を尊重する（model || DEFAULT_MODEL）。
+  const res: any = await callable({ messages: [{ role: 'user', content: prompt }], model: 'claude-haiku-4-5-20251001' });
   const text: string = res?.data?.result?.text || '';
   if (!text) throw new Error('AIが応答を返しませんでした。時間をおいて再試行してください。');
 

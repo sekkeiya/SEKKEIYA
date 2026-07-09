@@ -171,7 +171,7 @@ export default function PropertiesModelPanel({
     () => ({
       borderRadius: 2,
       p: 1,
-      background: alpha("#000", 0.14),
+      background: "color-mix(in srgb, var(--brand-bg) 14%, transparent)",
       border: `1px solid ${alpha("#fff", 0.10)}`,
     }),
     []
@@ -182,9 +182,9 @@ export default function PropertiesModelPanel({
       "& .MuiInputBase-root": {
         height: 34,
         borderRadius: 1.6,
-        background: alpha("#000", 0.18),
+        background: "color-mix(in srgb, var(--brand-bg) 18%, transparent)",
         border: `1px solid ${alpha("#fff", 0.10)}`,
-        color: alpha("#fff", 0.92),
+        color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)",
       },
       "& input": { fontSize: 12.5, padding: "8px 10px" },
       "& .MuiOutlinedInput-notchedOutline": { border: "none" },
@@ -265,30 +265,30 @@ export default function PropertiesModelPanel({
             <Typography sx={sectionTitleSx}>Item Info</Typography>
             {assetSyncing && !globalAsset && (
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <CircularProgress size={10} sx={{ color: alpha("#fff", 0.5) }} />
-                <Typography sx={{ fontSize: 9, color: alpha("#fff", 0.5), fontWeight: 700 }}>SYNCING</Typography>
+                <CircularProgress size={10} sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }} />
+                <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", fontWeight: 700 }}>SYNCING</Typography>
               </Stack>
             )}
           </Box>
           <Box sx={{ ...boxSx, mb: 1.25, display: "flex", gap: 1 }}>
             {displayItem.thumbUrl ? (
-              <Box sx={{ width: 64, height: 64, borderRadius: 1, overflow: "hidden", bgcolor: alpha("#000", 0.2), flexShrink: 0 }}>
+              <Box sx={{ width: 64, height: 64, borderRadius: 1, overflow: "hidden", bgcolor: "color-mix(in srgb, var(--brand-bg) 20%, transparent)", flexShrink: 0 }}>
                 <img src={displayItem.thumbUrl} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="thumb" />
               </Box>
             ) : (
-              <Box sx={{ width: 64, height: 64, borderRadius: 1, bgcolor: alpha("#000", 0.2), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Box sx={{ width: 64, height: 64, borderRadius: 1, bgcolor: "color-mix(in srgb, var(--brand-bg) 20%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Inventory2RoundedIcon sx={{ opacity: 0.3 }} />
               </Box>
             )}
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#fff", lineHeight: 1.2, mb: 0.5, wordBreak: "break-all" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 800, color: "var(--brand-fg)", lineHeight: 1.2, mb: 0.5, wordBreak: "break-all" }}>
                 {displayItem.title || "Unnamed Model"}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.6) }}>
+              <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>
                 {displayItem.brand || ""}{displayItem.ownerHandle ? ` @${displayItem.ownerHandle}` : ""}
               </Typography>
               {displayItem.dimensionsMm && (
-                <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.4), mt: 0.5 }}>
+                <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mt: 0.5 }}>
                   W{displayItem.dimensionsMm.width} D{displayItem.dimensionsMm.depth} H{displayItem.dimensionsMm.height}
                 </Typography>
               )}
@@ -307,8 +307,8 @@ export default function PropertiesModelPanel({
               fontSize: 11.5, fontWeight: 900, borderRadius: 1,
               background: alpha("#4fc3f7", 0.14),
               border: `1px solid ${alpha("#4fc3f7", 0.38)}`,
-              color: alpha("#cbeafe", 0.95),
-              "& .MuiChip-icon": { color: "#4fc3f7" },
+              color: "color-mix(in srgb, var(--brand-fg) 95%, transparent)",
+              "& .MuiChip-icon": { color: "light-dark(#0875a6, #4fc3f7)" },
               "&:hover": { background: alpha("#4fc3f7", 0.24) },
             }}
           />
@@ -351,7 +351,7 @@ export default function PropertiesModelPanel({
               sx={{
                 height: 20, fontSize: 10.5, fontWeight: 900, borderRadius: 999,
                 background: alpha("#fff", 0.06), border: `1px solid ${alpha("#fff", 0.10)}`,
-                color: alpha("#fff", 0.92), "&:hover": { background: alpha("#fff", 0.08) },
+                color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)", "&:hover": { background: alpha("#fff", 0.08) },
               }}
             />
           </Stack>
@@ -385,7 +385,7 @@ export default function PropertiesModelPanel({
               sx={{
                 height: 20, fontSize: 10.5, fontWeight: 900, borderRadius: 999,
                 background: alpha("#fff", 0.06), border: `1px solid ${alpha("#fff", 0.10)}`,
-                color: alpha("#fff", 0.92), "&:hover": { background: alpha("#fff", 0.08) },
+                color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)", "&:hover": { background: alpha("#fff", 0.08) },
               }}
             />
           </Stack>

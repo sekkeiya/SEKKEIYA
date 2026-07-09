@@ -88,61 +88,61 @@ const ProjectMembersDialog: React.FC<{ open: boolean; onClose: () => void; proje
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth
-      PaperProps={{ sx: { bgcolor: '#1a1f2b', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2 } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.95rem', fontWeight: 600, pb: 1 }}>
-        <PersonAddAltRoundedIcon sx={{ fontSize: '1.2rem', color: '#8ab4f8' }} />
+        <PersonAddAltRoundedIcon sx={{ fontSize: '1.2rem', color: 'light-dark(#0a45a4, #8ab4f8)' }} />
         メンバー
         <Box sx={{ flex: 1 }} />
-        <IconButton size="small" onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
       <DialogContent sx={{ pt: 0 }}>
-        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', mb: 1.5 }}>
+        <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 1.5 }}>
           「{projectName}」の共同チャットに参加するメンバー。AI（SEKKEIYA）は常駐します。
         </Typography>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={20} sx={{ color: 'rgba(255,255,255,0.4)' }} /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={20} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} /></Box>
         ) : (
           <>
             {/* 現在のメンバー */}
-            <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, mb: 0.5 }}>
+            <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, mb: 0.5 }}>
               現在のメンバー（{members.length}）
             </Typography>
             {members.map(m => (
               <Box key={m.uid} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
                 <Avatar src={m.photoURL || undefined} sx={{ width: 28, height: 28, fontSize: 12, bgcolor: '#3498db' }}>{m.displayName.slice(0, 1)}</Avatar>
                 <Typography sx={{ fontSize: '0.78rem', flex: 1 }} noWrap>{m.displayName}</Typography>
-                {ownerId === m.uid && <Chip size="small" icon={<StarRoundedIcon sx={{ fontSize: '0.8rem !important' }} />} label="オーナー" sx={{ height: 20, fontSize: '0.6rem', bgcolor: 'rgba(255,215,64,0.12)', color: '#ffd740', border: '1px solid rgba(255,215,64,0.3)' }} />}
+                {ownerId === m.uid && <Chip size="small" icon={<StarRoundedIcon sx={{ fontSize: '0.8rem !important' }} />} label="オーナー" sx={{ height: 20, fontSize: '0.6rem', bgcolor: 'rgba(255,215,64,0.12)', color: 'light-dark(#ad8900, #ffd740)', border: '1px solid rgba(255,215,64,0.3)' }} />}
               </Box>
             ))}
 
-            <Divider sx={{ my: 1.5, borderColor: 'rgba(255,255,255,0.08)' }} />
+            <Divider sx={{ my: 1.5, borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
 
             {!teamId ? (
-              <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, py: 1 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.6, py: 1 }}>
                 これは個人（MY）プロジェクトのため、メンバーを追加できません。<br />
                 複数人で進めるにはチームプロジェクトに昇格してください。
               </Typography>
             ) : !isOwner ? (
-              <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, py: 1 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.6, py: 1 }}>
                 メンバーの招待はオーナーのみ可能です。
               </Typography>
             ) : (
               <>
-                <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, mb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, mb: 0.5 }}>
                   招待できる人（相互フォロー）
                 </Typography>
                 {candidates.length === 0 ? (
-                  <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', py: 1 }}>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', py: 1 }}>
                     招待できる相互フォローのユーザーがいません。
                   </Typography>
                 ) : candidates.map(c => {
                   const pending = pendingUids.has(c.uid) || justInvited.has(c.uid);
                   return (
                     <Box key={c.uid} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                      <Avatar src={c.photoURL || undefined} sx={{ width: 28, height: 28, fontSize: 12, bgcolor: 'rgba(255,255,255,0.12)' }}>{c.displayName.slice(0, 1)}</Avatar>
+                      <Avatar src={c.photoURL || undefined} sx={{ width: 28, height: 28, fontSize: 12, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)' }}>{c.displayName.slice(0, 1)}</Avatar>
                       <Typography sx={{ fontSize: '0.78rem', flex: 1 }} noWrap>{c.displayName}</Typography>
                       {pending ? (
                         <Chip size="small" icon={<CheckRoundedIcon sx={{ fontSize: '0.8rem !important' }} />} label="招待済み" sx={{ height: 22, fontSize: '0.62rem', bgcolor: 'rgba(102,187,106,0.12)', color: '#66bb6a', border: '1px solid rgba(102,187,106,0.3)' }} />
@@ -153,7 +153,7 @@ const ProjectMembersDialog: React.FC<{ open: boolean; onClose: () => void; proje
                           disabled={inviting === c.uid}
                           onClick={() => invite(c)}
                           startIcon={inviting === c.uid ? <CircularProgress size={12} sx={{ color: 'inherit' }} /> : <PersonAddAltRoundedIcon sx={{ fontSize: '0.9rem' }} />}
-                          sx={{ fontSize: '0.65rem', py: 0.25, borderColor: 'rgba(138,180,248,0.4)', color: '#8ab4f8', '&:hover': { borderColor: '#8ab4f8', bgcolor: 'rgba(138,180,248,0.08)' } }}
+                          sx={{ fontSize: '0.65rem', py: 0.25, borderColor: 'rgba(138,180,248,0.4)', color: 'light-dark(#0a45a4, #8ab4f8)', '&:hover': { borderColor: '#8ab4f8', bgcolor: 'rgba(138,180,248,0.08)' } }}
                         >
                           招待
                         </Button>
@@ -161,7 +161,7 @@ const ProjectMembersDialog: React.FC<{ open: boolean; onClose: () => void; proje
                     </Box>
                   );
                 })}
-                <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.35)', mt: 1.5, lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', mt: 1.5, lineHeight: 1.5 }}>
                   招待された相手が承諾すると、チーム（{teamName}）とそのプロジェクトのメンバーに加わります。
                 </Typography>
               </>

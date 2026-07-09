@@ -24,21 +24,21 @@ export const RecentActivityMock: React.FC<RecentActivityListProps> = ({
   if (loading) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>Loading activities...</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>Loading activities...</Typography>
       </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h6" color="#fff" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
-        <History size={20} color="rgba(255,255,255,0.6)" />
+      <Typography variant="h6" color="var(--brand-fg)" sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+        <History size={20} style={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }} />
         Recent Activity
       </Typography>
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.05)", mt: 1, mb: 3 }} />
+      <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.05)", mt: 1, mb: 3 }} />
       
       {activities.length === 0 ? (
-        <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No recent activity.</Typography>
+        <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 14 }}>No recent activity.</Typography>
       ) : (
         <Stack spacing={2}>
           {activities.map(activity => (
@@ -47,20 +47,20 @@ export const RecentActivityMock: React.FC<RecentActivityListProps> = ({
               onClick={() => onActivityClick?.(activity)}
               sx={{ 
                 display: "flex", gap: 3, p: 2, 
-                bgcolor: "rgba(255,255,255,0.02)", 
+                bgcolor: "rgb(var(--brand-fg-rgb) / 0.02)", 
                 borderRadius: 3, 
-                border: "1px solid rgba(255,255,255,0.05)",
+                border: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
                 cursor: "pointer",
                 transition: "0.2s",
                 "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.04)",
-                  borderColor: "rgba(255,255,255,0.15)"
+                  bgcolor: "rgb(var(--brand-fg-rgb) / 0.04)",
+                  borderColor: "rgb(var(--brand-fg-rgb) / 0.15)"
                 }
               }}
             >
               <Box sx={{ 
                 width: 40, height: 40, borderRadius: 2, 
-                bgcolor: "rgba(0,0,0,0.3)", 
+                bgcolor: "light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))", 
                 display: "flex", alignItems: "center", justifyContent: "center" 
               }}>
                 {activity.type === '3d-viewer' && <Layers size={20} color="#aa3bff" />}
@@ -68,10 +68,10 @@ export const RecentActivityMock: React.FC<RecentActivityListProps> = ({
                 {activity.type === 'editor' && <ExternalLink size={20} color="#10b981" />}
               </Box>
               <Box sx={{ flex: 1 }}>
-                <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{activity.title}</Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13, mt: 0.5 }}>{activity.description}</Typography>
+                <Typography sx={{ color: "var(--brand-fg)", fontWeight: 600, fontSize: 14 }}>{activity.title}</Typography>
+                <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 13, mt: 0.5 }}>{activity.description}</Typography>
               </Box>
-              <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+              <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 12 }}>
                 {activity.timestamp}
               </Typography>
             </Box>

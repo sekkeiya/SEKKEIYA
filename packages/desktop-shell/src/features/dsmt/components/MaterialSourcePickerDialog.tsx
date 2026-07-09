@@ -181,7 +181,7 @@ export const MaterialSourcePickerDialog: React.FC<MaterialSourcePickerDialogProp
   };
 
   const sectionLabel = (text: string) => (
-    <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: 0.8, mb: 0.5, mt: 1.5, textTransform: 'uppercase' }}>
+    <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.45)', letterSpacing: 0.8, mb: 0.5, mt: 1.5, textTransform: 'uppercase' }}>
       {text}
     </Typography>
   );
@@ -190,9 +190,9 @@ export const MaterialSourcePickerDialog: React.FC<MaterialSourcePickerDialogProp
     <Dialog
       open={open}
       onClose={onClose}
-      PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 440, maxWidth: 580 } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 440, maxWidth: 580 } }}
     >
-      <DialogTitle sx={{ fontWeight: 700, fontSize: 16, color: '#fff', pb: 0.5 }}>
+      <DialogTitle sx={{ fontWeight: 700, fontSize: 16, color: 'var(--brand-fg)', pb: 0.5 }}>
         テクスチャのソースと保存先を選択
       </DialogTitle>
 
@@ -203,31 +203,31 @@ export const MaterialSourcePickerDialog: React.FC<MaterialSourcePickerDialogProp
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
           <FormControlLabel
             control={<Checkbox checked={selectedTypes.has('current_project')} onChange={() => toggleType('current_project')}
-              sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
             label={<Typography sx={{ fontSize: 14 }}>このプロジェクトのS.Image</Typography>}
           />
           <FormControlLabel
             disabled={!isTauriEnv}
             control={<Checkbox checked={selectedTypes.has('local')} onChange={() => toggleType('local')} disabled={!isTauriEnv}
-              sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
             label={
-              <Typography sx={{ fontSize: 14, color: isTauriEnv ? '#fff' : 'rgba(255,255,255,0.35)' }}>
+              <Typography sx={{ fontSize: 14, color: isTauriEnv ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
                 ローカル素材 (LocalAssets/Images/テクスチャ/)
-                {!isTauriEnv && <Typography component="span" sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', ml: 1 }}>デスクトップ専用</Typography>}
+                {!isTauriEnv && <Typography component="span" sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', ml: 1 }}>デスクトップ専用</Typography>}
               </Typography>
             }
           />
           <FormControlLabel
             control={<Checkbox checked={selectedTypes.has('other_project')} onChange={() => toggleType('other_project')}
-              sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
             label={<Typography sx={{ fontSize: 14 }}>別のプロジェクトのS.Image</Typography>}
           />
           {selectedTypes.has('other_project') && (
-            <Box sx={{ ml: 4, maxHeight: 160, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+            <Box sx={{ ml: 4, maxHeight: 160, overflowY: 'auto', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1 }}>
               {loadingProjects ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress size={20} sx={{ color: ACCENT }} /></Box>
               ) : projects.filter(p => p.id !== currentProjectId).length === 0 ? (
-                <Typography sx={{ p: 1.5, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>他にプロジェクトが見つかりません</Typography>
+                <Typography sx={{ p: 1.5, fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>他にプロジェクトが見つかりません</Typography>
               ) : (
                 projects.filter(p => p.id !== currentProjectId).map((p) => {
                   const isSel = selectedProjectIds.has(p.id);
@@ -235,10 +235,10 @@ export const MaterialSourcePickerDialog: React.FC<MaterialSourcePickerDialogProp
                     <Box key={p.id} onClick={() => toggleProject(p.id)}
                       sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 0.75, cursor: 'pointer',
                         bgcolor: isSel ? 'rgba(236,64,122,0.12)' : 'transparent',
-                        borderBottom: '1px solid rgba(255,255,255,0.05)', '&:last-child': { borderBottom: 'none' },
-                        '&:hover': { bgcolor: isSel ? 'rgba(236,64,122,0.18)' : 'rgba(255,255,255,0.05)' } }}>
+                        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', '&:last-child': { borderBottom: 'none' },
+                        '&:hover': { bgcolor: isSel ? 'rgba(236,64,122,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                       <Checkbox checked={isSel} size="small" readOnly
-                        sx={{ p: 0, color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />
+                        sx={{ p: 0, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />
                       <Typography sx={{ fontSize: 12 }}>{p.name}</Typography>
                     </Box>
                   );
@@ -248,52 +248,52 @@ export const MaterialSourcePickerDialog: React.FC<MaterialSourcePickerDialogProp
           )}
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 1.5 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 1.5 }} />
 
         {/* ── 保存先 ── */}
         {sectionLabel('保存先')}
         <FormControl>
           <RadioGroup value={destRadio} onChange={(e) => setDestRadio(e.target.value as DestRadioValue)}>
             <FormControlLabel value="current_private"
-              control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+              control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
               label={
                 <Box>
                   <Typography sx={{ fontSize: 14 }}>Private Material</Typography>
-                  <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>現在のプロジェクト・非公開</Typography>
+                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>現在のプロジェクト・非公開</Typography>
                 </Box>
               }
             />
             <FormControlLabel value="current_public"
-              control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+              control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
               label={
                 <Box>
                   <Typography sx={{ fontSize: 14 }}>Public Material</Typography>
-                  <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>現在のプロジェクト・公開</Typography>
+                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>現在のプロジェクト・公開</Typography>
                 </Box>
               }
             />
             <FormControlLabel value="other_project"
-              control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+              control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
               label={<Typography sx={{ fontSize: 14 }}>別のプロジェクトに保存（非公開）</Typography>}
             />
           </RadioGroup>
         </FormControl>
 
         {destRadio === 'other_project' && (
-          <Box sx={{ ml: 4, mt: 0.5, maxHeight: 160, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1 }}>
+          <Box sx={{ ml: 4, mt: 0.5, maxHeight: 160, overflowY: 'auto', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1 }}>
             {loadingDestProjects ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}><CircularProgress size={20} sx={{ color: ACCENT }} /></Box>
             ) : destProjects.length === 0 ? (
-              <Typography sx={{ p: 1.5, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>プロジェクトが見つかりません</Typography>
+              <Typography sx={{ p: 1.5, fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>プロジェクトが見つかりません</Typography>
             ) : (
               destProjects.map((p) => (
                 <Box key={p.id} onClick={() => setDestProjectId(p.id)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 0.75, cursor: 'pointer',
                     bgcolor: destProjectId === p.id ? 'rgba(236,64,122,0.12)' : 'transparent',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)', '&:last-child': { borderBottom: 'none' },
-                    '&:hover': { bgcolor: destProjectId === p.id ? 'rgba(236,64,122,0.18)' : 'rgba(255,255,255,0.05)' } }}>
+                    borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', '&:last-child': { borderBottom: 'none' },
+                    '&:hover': { bgcolor: destProjectId === p.id ? 'rgba(236,64,122,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                   <Radio checked={destProjectId === p.id} size="small" readOnly
-                    sx={{ p: 0, color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />
+                    sx={{ p: 0, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />
                   <Typography sx={{ fontSize: 12 }}>{p.name}</Typography>
                 </Box>
               ))
@@ -301,16 +301,16 @@ export const MaterialSourcePickerDialog: React.FC<MaterialSourcePickerDialogProp
           </Box>
         )}
 
-        <Typography sx={{ mt: 1.5, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+        <Typography sx={{ mt: 1.5, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
           既存マテリアルと重複するテクスチャはスキップします
         </Typography>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
         <Button variant="contained" disabled={!hasValid} onClick={handleConfirm}
           sx={{ bgcolor: ACCENT, textTransform: 'none', '&:hover': { bgcolor: '#f06292' },
-            '&.Mui-disabled': { bgcolor: 'rgba(236,64,122,0.3)', color: 'rgba(255,255,255,0.4)' } }}>
+            '&.Mui-disabled': { bgcolor: 'rgba(236,64,122,0.3)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}>
           生成
         </Button>
       </DialogActions>

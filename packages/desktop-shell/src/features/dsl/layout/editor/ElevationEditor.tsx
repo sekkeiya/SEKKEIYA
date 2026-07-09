@@ -24,8 +24,8 @@ const ML = 36, MT = 10, MR = 14, MB = 28;
 const pillSx = {
   display: "flex", alignItems: "center", justifyContent: "center",
   minWidth: 22, height: 22, px: 0.5, borderRadius: 999, cursor: "pointer",
-  fontSize: 12, fontWeight: 700, color: "#fff", userSelect: "none",
-  bgcolor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+  fontSize: 12, fontWeight: 700, color: "var(--brand-fg)", userSelect: "none",
+  bgcolor: "rgb(var(--brand-fg-rgb) / 0.08)", border: "1px solid rgb(var(--brand-fg-rgb) / 0.15)",
   "&:hover": { bgcolor: "rgba(236,64,122,0.3)", borderColor: ACCENT },
 } as const;
 
@@ -127,12 +127,12 @@ export default function ElevationEditor() {
   // Material モードだが面未選択 → プレースホルダのカラム
   if (!surface || !view) {
     return (
-      <Box sx={{ width: ELEVATION_WIDTH, flexShrink: 0, height: "100%", bgcolor: "#0d0f16", borderLeft: "1px solid rgba(255,255,255,0.1)", display: "flex", flexDirection: "column" }}>
-        <Box sx={{ px: 3, py: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>展開図</Typography>
+      <Box sx={{ width: ELEVATION_WIDTH, flexShrink: 0, height: "100%", bgcolor: "var(--brand-bg)", borderLeft: "1px solid rgb(var(--brand-fg-rgb) / 0.1)", display: "flex", flexDirection: "column" }}>
+        <Box sx={{ px: 3, py: 1.5, borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.08)" }}>
+          <Typography sx={{ fontSize: 15, fontWeight: 700, color: "var(--brand-fg)" }}>展開図</Typography>
         </Box>
         <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", p: 3 }}>
-          <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center", lineHeight: 1.7 }}>
+          <Typography sx={{ fontSize: 13, color: "rgb(var(--brand-fg-rgb) / 0.5)", textAlign: "center", lineHeight: 1.7 }}>
             左の3Dで床・壁・天井をクリックすると<br />その面の展開図がここに表示されます。
           </Typography>
         </Box>
@@ -331,28 +331,28 @@ export default function ElevationEditor() {
     <Box sx={{
       // 実レイアウトのカラム（メインが縮む可変レイアウト）。右端の Properties サイドバーは別。
       width: ELEVATION_WIDTH, flexShrink: 0, height: "100%",
-      bgcolor: "#0d0f16", borderLeft: "1px solid rgba(255,255,255,0.1)",
+      bgcolor: "var(--brand-bg)", borderLeft: "1px solid rgb(var(--brand-fg-rgb) / 0.1)",
       display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
       {/* ヘッダー */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 3, py: 1.5, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>展開図 — {surfaceType === "floor" ? "床" : surfaceType === "ceiling" ? "天井" : "壁"}</Typography>
-        <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 3, py: 1.5, borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.08)" }}>
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: "var(--brand-fg)" }}>展開図 — {surfaceType === "floor" ? "床" : surfaceType === "ceiling" ? "天井" : "壁"}</Typography>
+        <Typography sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.5)" }}>
           {(view.W / unitsPerMeter).toFixed(2)} m × {(view.H / unitsPerMeter).toFixed(2)} m
         </Typography>
         <Box sx={{ flex: 1 }} />
-        <Typography sx={{ fontSize: 12, color: activeMat ? ACCENT : "rgba(255,255,255,0.5)" }}>
+        <Typography sx={{ fontSize: 12, color: activeMat ? ACCENT : "rgb(var(--brand-fg-rgb) / 0.5)" }}>
           {activeMat ? `「${activeMat.title}」を範囲ドラッグで貼る` : "下から素材を選んでください"}
         </Typography>
       </Box>
 
       {/* 選択中リージョンの調整バー（拡縮・ランダム） */}
       {selFinish && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 3, py: 0.75, borderBottom: "1px solid rgba(255,255,255,0.08)", bgcolor: "rgba(236,64,122,0.08)" }}>
-          <Box sx={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, background: albedoOf(selFinish) ? `center/cover url(${albedoOf(selFinish)})` : (selFinish.material?.params?.baseColor || "#888"), border: "1px solid rgba(255,255,255,0.25)" }} />
-          <Typography sx={{ fontSize: 11.5, color: "#fff", maxWidth: 120 }} noWrap>{selFinish.material?.title || "素材"}</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 3, py: 0.75, borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.08)", bgcolor: "rgba(236,64,122,0.08)" }}>
+          <Box sx={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, background: albedoOf(selFinish) ? `center/cover url(${albedoOf(selFinish)})` : (selFinish.material?.params?.baseColor || "#888"), border: "1px solid rgb(var(--brand-fg-rgb) / 0.25)" }} />
+          <Typography sx={{ fontSize: 11.5, color: "var(--brand-fg)", maxWidth: 120 }} noWrap>{selFinish.material?.title || "素材"}</Typography>
           <Box sx={{ flex: 1 }} />
-          <Typography sx={{ fontSize: 10.5, color: "rgba(255,255,255,0.55)" }}>拡縮</Typography>
+          <Typography sx={{ fontSize: 10.5, color: "rgb(var(--brand-fg-rgb) / 0.55)" }}>拡縮</Typography>
           <Box onClick={() => adjustScale(1 / 1.25)} sx={pillSx}>−</Box>
           <Box
             component="input"
@@ -368,17 +368,17 @@ export default function ElevationEditor() {
             }}
             onBlur={(e: React.FocusEvent<HTMLInputElement>) => commitScale(e.target.value)}
             sx={{
-              width: 46, height: 22, textAlign: "center", fontSize: 11, fontWeight: 700, color: "#fff",
-              bgcolor: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 1,
+              width: 46, height: 22, textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--brand-fg)",
+              bgcolor: "light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))", border: "1px solid rgb(var(--brand-fg-rgb) / 0.2)", borderRadius: 1,
               outline: "none", MozAppearance: "textfield",
               "&:focus": { borderColor: ACCENT },
               "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": { WebkitAppearance: "none", margin: 0 },
             }}
           />
-          <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>×</Typography>
+          <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.7)" }}>×</Typography>
           <Box onClick={() => adjustScale(1.25)} sx={pillSx}>＋</Box>
           <Box onClick={randomizeFinish} sx={{ ...pillSx, px: 1.25, width: "auto" }}>ランダム</Box>
-          <Box onClick={() => setSelKey(null)} sx={{ ...pillSx, color: "rgba(255,255,255,0.6)" }}>×</Box>
+          <Box onClick={() => setSelKey(null)} sx={{ ...pillSx, color: "rgb(var(--brand-fg-rgb) / 0.6)" }}>×</Box>
         </Box>
       )}
 
@@ -410,33 +410,33 @@ export default function ElevationEditor() {
           </defs>
 
           {/* 面の背景 */}
-          <rect x={ML} y={MT} width={view.pxW} height={view.pxH} fill="#3a3d42" stroke="rgba(255,255,255,0.2)" rx={4} />
+          <rect x={ML} y={MT} width={view.pxW} height={view.pxH} fill="#3a3d42" stroke="rgb(var(--brand-fg-rgb) / 0.2)" rx={4} />
 
           {/* グリッド（1m） */}
           {Array.from({ length: meterTicksW }).map((_, i) => {
             const x = ML + ((i + 1) * unitsPerMeter / view.W) * view.pxW;
-            return <line key={`gx${i}`} x1={x} y1={MT} x2={x} y2={MT + view.pxH} stroke="rgba(255,255,255,0.08)" />;
+            return <line key={`gx${i}`} x1={x} y1={MT} x2={x} y2={MT + view.pxH} stroke="rgb(var(--brand-fg-rgb) / 0.08)" />;
           })}
           {Array.from({ length: meterTicksH }).map((_, i) => {
             const y = MT + ((i + 1) * unitsPerMeter / view.H) * view.pxH;
-            return <line key={`gy${i}`} x1={ML} y1={y} x2={ML + view.pxW} y2={y} stroke="rgba(255,255,255,0.08)" />;
+            return <line key={`gy${i}`} x1={ML} y1={y} x2={ML + view.pxW} y2={y} stroke="rgb(var(--brand-fg-rgb) / 0.08)" />;
           })}
 
           {/* 寸法目盛（下=幅, 左=高さ） */}
           {Array.from({ length: meterTicksW + 1 }).map((_, i) => {
             const x = ML + (i * unitsPerMeter / view.W) * view.pxW;
-            return <text key={`tw${i}`} x={x} y={MT + view.pxH + 14} fill="rgba(255,255,255,0.5)" fontSize={9} textAnchor="middle">{i}</text>;
+            return <text key={`tw${i}`} x={x} y={MT + view.pxH + 14} fill="rgb(var(--brand-fg-rgb) / 0.5)" fontSize={9} textAnchor="middle">{i}</text>;
           })}
           {Array.from({ length: meterTicksH + 1 }).map((_, i) => {
             // 下からの高さ（v=-H/2 が床）。i m を下から
             const y = MT + view.pxH - (i * unitsPerMeter / view.H) * view.pxH;
-            return <text key={`th${i}`} x={ML - 6} y={y + 3} fill="rgba(255,255,255,0.5)" fontSize={9} textAnchor="end">{i}</text>;
+            return <text key={`th${i}`} x={ML - 6} y={y + 3} fill="rgb(var(--brand-fg-rgb) / 0.5)" fontSize={9} textAnchor="end">{i}</text>;
           })}
           {/* 総寸法 */}
-          <text x={ML + view.pxW / 2} y={MT + view.pxH + 25} fill="rgba(255,255,255,0.85)" fontSize={11} fontWeight={700} textAnchor="middle">
+          <text x={ML + view.pxW / 2} y={MT + view.pxH + 25} fill="rgb(var(--brand-fg-rgb) / 0.85)" fontSize={11} fontWeight={700} textAnchor="middle">
             {(view.W / unitsPerMeter).toFixed(2)} m
           </text>
-          <text x={11} y={MT + view.pxH / 2} fill="rgba(255,255,255,0.85)" fontSize={11} fontWeight={700} textAnchor="middle" transform={`rotate(-90, 11, ${MT + view.pxH / 2})`}>
+          <text x={11} y={MT + view.pxH / 2} fill="rgb(var(--brand-fg-rgb) / 0.85)" fontSize={11} fontWeight={700} textAnchor="middle" transform={`rotate(-90, 11, ${MT + view.pxH / 2})`}>
             {(view.H / unitsPerMeter).toFixed(2)} m
           </text>
 
@@ -484,7 +484,7 @@ export default function ElevationEditor() {
                       textAnchor="middle" stroke="rgba(0,0,0,0.65)" strokeWidth={3.5} strokeLinejoin="round">
                       {f.material?.title || "素材"}
                     </text>
-                    <text x={bcx} y={bcy + 12} fill="rgba(255,255,255,0.92)" fontSize={9.5}
+                    <text x={bcx} y={bcy + 12} fill="rgb(var(--brand-fg-rgb) / 0.92)" fontSize={9.5}
                       textAnchor="middle" stroke="rgba(0,0,0,0.65)" strokeWidth={3} strokeLinejoin="round">
                       {areaM2.toFixed(2)} ㎡
                     </text>
@@ -527,7 +527,7 @@ export default function ElevationEditor() {
                 {/* グループ削除（和集合の右上） */}
                 <foreignObject x={ubBR.x - 22} y={ubTL.y + 2} width={20} height={20}>
                   <div onPointerDown={(e) => { e.stopPropagation(); removeFinish(f.key); if (selKey === f.key) setSelKey(null); }}
-                    style={{ cursor: "pointer", color: "#fff", background: "rgba(0,0,0,0.5)", borderRadius: 4, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>×</div>
+                    style={{ cursor: "pointer", color: "var(--brand-fg)", background: "rgba(0,0,0,0.5)", borderRadius: 4, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>×</div>
                 </foreignObject>
               </g>
             );
@@ -543,7 +543,7 @@ export default function ElevationEditor() {
       </Box>
 
       {/* 素材ピッカー（上端ドラッグで高さ可変・縦スクロールグリッド） */}
-      <Box sx={{ flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.1)", bgcolor: "rgba(0,0,0,0.28)" }}>
+      <Box sx={{ flexShrink: 0, borderTop: "1px solid rgb(var(--brand-fg-rgb) / 0.1)", bgcolor: "light-dark(rgba(15,23,42,0.09), rgba(0,0,0,0.28))" }}>
         {/* リサイズハンドル */}
         <Box
           onPointerDown={startPickerResize}
@@ -553,20 +553,20 @@ export default function ElevationEditor() {
             "&:hover .grip": { background: ACCENT },
           }}
         >
-          <Box className="grip" sx={{ width: 42, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.28)", transition: "background 0.12s" }} />
+          <Box className="grip" sx={{ width: 42, height: 4, borderRadius: 999, background: "rgb(var(--brand-fg-rgb) / 0.28)", transition: "background 0.12s" }} />
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 2, pb: 0.75 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>素材を選ぶ</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "rgb(var(--brand-fg-rgb) / 0.85)" }}>素材を選ぶ</Typography>
           <Box sx={{ flex: 1 }} />
           {activeMat ? (
             <Box onClick={() => setActiveMat(null)}
               sx={{ display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.25, borderRadius: 999, bgcolor: "rgba(236,64,122,0.18)", border: `1px solid ${ACCENT}`, cursor: "pointer" }}>
               <Box sx={{ width: 12, height: 12, borderRadius: "50%", background: activeMat.thumbnailUrl ? `center/cover url(${activeMat.thumbnailUrl})` : activeMat.params?.baseColor || "#888" }} />
-              <Typography sx={{ fontSize: 10.5, color: "#fff", maxWidth: 120 }} noWrap>{activeMat.title}</Typography>
-              <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>×</Typography>
+              <Typography sx={{ fontSize: 10.5, color: "var(--brand-fg)", maxWidth: 120 }} noWrap>{activeMat.title}</Typography>
+              <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.7)" }}>×</Typography>
             </Box>
           ) : (
-            <Typography sx={{ fontSize: 10.5, color: "rgba(255,255,255,0.4)" }}>選んで展開図にドラッグ＝部分／下部で面全体</Typography>
+            <Typography sx={{ fontSize: 10.5, color: "rgb(var(--brand-fg-rgb) / 0.4)" }}>選んで展開図にドラッグ＝部分／下部で面全体</Typography>
           )}
         </Box>
         <Box sx={{
@@ -574,9 +574,9 @@ export default function ElevationEditor() {
           alignContent: "start", gridAutoRows: "min-content",
           px: 2, pb: 1.5, height: pickerHeight, overflowY: "auto",
           "&::-webkit-scrollbar": { width: 8 },
-          "&::-webkit-scrollbar-thumb": { background: "rgba(255,255,255,0.12)", borderRadius: 8 },
+          "&::-webkit-scrollbar-thumb": { background: "rgb(var(--brand-fg-rgb) / 0.12)", borderRadius: 8 },
         }}>
-          {materials.length === 0 && <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.4)", gridColumn: "1 / -1" }}>このプロジェクトに素材がありません。S.Material で作成してください。</Typography>}
+          {materials.length === 0 && <Typography sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.4)", gridColumn: "1 / -1" }}>このプロジェクトに素材がありません。S.Material で作成してください。</Typography>}
           {materials.map((m) => {
             const sel = activeMat?.id === m.id;
             const used = usedMatIds.has(m.id); // この面で使用中
@@ -585,21 +585,21 @@ export default function ElevationEditor() {
                 sx={{
                   position: "relative",
                   textAlign: "center", cursor: "pointer", p: 0.75, borderRadius: 2,
-                  border: `1px solid ${sel ? ACCENT : "rgba(255,255,255,0.06)"}`,
-                  bgcolor: sel ? "rgba(236,64,122,0.14)" : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${sel ? ACCENT : "rgb(var(--brand-fg-rgb) / 0.06)"}`,
+                  bgcolor: sel ? "rgba(236,64,122,0.14)" : "rgb(var(--brand-fg-rgb) / 0.03)",
                   transition: "all 0.12s",
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.08)", transform: "translateY(-1px)" },
+                  "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.08)", transform: "translateY(-1px)" },
                 }}>
                 {used && (
                   <Box sx={{
                     position: "absolute", top: 2, right: 2, zIndex: 1,
                     width: 17, height: 17, borderRadius: "50%", bgcolor: "#22c55e",
-                    color: "#fff", fontSize: 11, fontWeight: 900, lineHeight: "17px",
+                    color: "var(--brand-fg)", fontSize: 11, fontWeight: 900, lineHeight: "17px",
                     border: "1.5px solid #0d0f16", boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
                   }}>✓</Box>
                 )}
-                <Box sx={{ width: 52, height: 52, mx: "auto", borderRadius: "50%", background: m.thumbnailUrl ? `center/cover url(${m.thumbnailUrl})` : `radial-gradient(circle at 33% 30%, #fff, ${m.params?.baseColor || "#888"} 62%, #111 92%)`, border: `1px solid ${used ? "#22c55e" : "rgba(255,255,255,0.18)"}`, boxShadow: sel ? `0 0 0 2px ${ACCENT}` : "0 2px 5px rgba(0,0,0,0.35)" }} />
-                <Typography sx={{ fontSize: 10, color: sel ? "#fff" : "rgba(255,255,255,0.7)", mt: 0.5, fontWeight: sel ? 700 : 400 }} noWrap>{m.title}</Typography>
+                <Box sx={{ width: 52, height: 52, mx: "auto", borderRadius: "50%", background: m.thumbnailUrl ? `center/cover url(${m.thumbnailUrl})` : `radial-gradient(circle at 33% 30%, #fff, ${m.params?.baseColor || "#888"} 62%, #111 92%)`, border: `1px solid ${used ? "#22c55e" : "rgb(var(--brand-fg-rgb) / 0.18)"}`, boxShadow: sel ? `0 0 0 2px ${ACCENT}` : "0 2px 5px rgba(0,0,0,0.35)" }} />
+                <Typography sx={{ fontSize: 10, color: sel ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", mt: 0.5, fontWeight: sel ? 700 : 400 }} noWrap>{m.title}</Typography>
               </Box>
             );
           })}

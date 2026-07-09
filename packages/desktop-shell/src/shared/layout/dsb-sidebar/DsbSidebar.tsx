@@ -58,26 +58,26 @@ function ScopeItem({ icon, label, count, active, onClick, color }: ScopeItemProp
         onClick={onClick}
         sx={{
           display: 'flex', alignItems: 'center', px: 1.25, py: 0.75, borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <Box sx={{
           width: 20, height: 20, borderRadius: 1.5,
-          bgcolor: color || 'rgba(255,255,255,0.1)',
+          bgcolor: color || 'rgb(var(--brand-fg-rgb) / 0.1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0,
         }}>
-          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: '#fff' } })}
+          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: 'var(--brand-fg)' } })}
         </Box>
         <Typography sx={{
-          color: active ? '#ffffff' : 'rgba(255,255,255,0.7)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
           fontSize: 12, fontWeight: active ? 600 : 500, flex: 1,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {label}
         </Typography>
         {typeof count === 'number' && (
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{count}</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{count}</Typography>
         )}
       </CardActionArea>
     </Box>
@@ -97,7 +97,7 @@ function ArticleChild({ article, active, onClick }: { article: BlogArticle; acti
         display: 'flex', alignItems: 'center', gap: 0.75,
         bgcolor: active ? `${ACCENT}26` : 'transparent',
         boxShadow: active ? `inset 2px 0 0 ${ACCENT}` : 'none',
-        '&:hover': { bgcolor: active ? `${ACCENT}33` : 'rgba(255,255,255,0.06)' },
+        '&:hover': { bgcolor: active ? `${ACCENT}33` : 'rgb(var(--brand-fg-rgb) / 0.06)' },
       }}
     >
       {published
@@ -105,7 +105,7 @@ function ArticleChild({ article, active, onClick }: { article: BlogArticle; acti
         : <EditNoteRoundedIcon sx={{ fontSize: 13, color, flexShrink: 0 }} />}
       <Typography sx={{
         flex: 1, minWidth: 0, fontSize: 11.5,
-        color: published ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.5)',
+        color: published ? 'rgb(var(--brand-fg-rgb) / 0.78)' : 'rgb(var(--brand-fg-rgb) / 0.5)',
         fontStyle: published ? 'normal' : 'italic',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
@@ -149,7 +149,7 @@ function SortableCategoryRow(p: CategoryRowProps) {
           mx: 1.5, my: 0.25, pr: 0.75, py: 0.5, borderRadius: 2,
           display: 'flex', alignItems: 'center',
           bgcolor: p.active ? `${ACCENT}1f` : 'transparent',
-          '&:hover': { bgcolor: p.active ? `${ACCENT}26` : 'rgba(255,255,255,0.06)' },
+          '&:hover': { bgcolor: p.active ? `${ACCENT}26` : 'rgb(var(--brand-fg-rgb) / 0.06)' },
           '&:hover .cat-actions': { opacity: 1 },
         }}
       >
@@ -157,7 +157,7 @@ function SortableCategoryRow(p: CategoryRowProps) {
         <IconButton
           size="small" {...attributes} {...listeners}
           onClick={(e) => e.stopPropagation()}
-          sx={{ p: 0.25, color: 'rgba(255,255,255,0.28)', cursor: 'grab', '&:active': { cursor: 'grabbing' }, '&:hover': { color: 'rgba(255,255,255,0.7)' }, flexShrink: 0 }}
+          sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.28)', cursor: 'grab', '&:active': { cursor: 'grabbing' }, '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.7)' }, flexShrink: 0 }}
         >
           <DragIndicatorRoundedIcon sx={{ fontSize: 15 }} />
         </IconButton>
@@ -168,7 +168,7 @@ function SortableCategoryRow(p: CategoryRowProps) {
             onKeyDown={(e) => { if (e.key === 'Enter') p.onEditCommit(); if (e.key === 'Escape') p.onEditCancel(); }}
             onBlur={p.onEditCommit}
             size="small" variant="standard"
-            InputProps={{ disableUnderline: false, sx: { color: '#fff', fontSize: 12, '&:before': { borderColor: 'rgba(255,255,255,0.2)' }, '&:after': { borderColor: ACCENT } } }}
+            InputProps={{ disableUnderline: false, sx: { color: 'var(--brand-fg)', fontSize: 12, '&:before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&:after': { borderColor: ACCENT } } }}
             sx={{ flex: 1, mx: 0.5 }}
           />
         ) : (
@@ -176,11 +176,11 @@ function SortableCategoryRow(p: CategoryRowProps) {
             {/* クリックで展開＋絞り込み */}
             <Box onClick={p.onClick} sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}>
               {p.expanded
-                ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', mr: 0.25, flexShrink: 0 }} />
-                : <KeyboardArrowRightRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', mr: 0.25, flexShrink: 0 }} />}
+                ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mr: 0.25, flexShrink: 0 }} />
+                : <KeyboardArrowRightRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mr: 0.25, flexShrink: 0 }} />}
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', mr: 1, flexShrink: 0, bgcolor: `hsl(${hueOf(p.name)},65%,62%)` }} />
               <Typography sx={{
-                color: p.active ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: p.active ? 700 : 500,
+                color: p.active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 12, fontWeight: p.active ? 700 : 500,
                 flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {p.name}
@@ -188,10 +188,10 @@ function SortableCategoryRow(p: CategoryRowProps) {
             </Box>
             {/* ホバーで改名・削除 */}
             <Box className="cat-actions" sx={{ display: 'flex', alignItems: 'center', opacity: 0, transition: 'opacity 0.12s', flexShrink: 0 }}>
-              <Tooltip title="名前を変更"><IconButton size="small" onClick={(e) => { e.stopPropagation(); p.onStartRename(); }} sx={{ p: 0.25, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}><EditRoundedIcon sx={{ fontSize: 13 }} /></IconButton></Tooltip>
-              <Tooltip title="削除"><IconButton size="small" onClick={(e) => { e.stopPropagation(); p.onDelete(); }} sx={{ p: 0.25, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fa9bb4' } }}><DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} /></IconButton></Tooltip>
+              <Tooltip title="名前を変更"><IconButton size="small" onClick={(e) => { e.stopPropagation(); p.onStartRename(); }} sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}><EditRoundedIcon sx={{ fontSize: 13 }} /></IconButton></Tooltip>
+              <Tooltip title="削除"><IconButton size="small" onClick={(e) => { e.stopPropagation(); p.onDelete(); }} sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'light-dark(#a50832, #fa9bb4)' } }}><DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} /></IconButton></Tooltip>
             </Box>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', ml: 0.5, flexShrink: 0 }}>{p.items.length}</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', ml: 0.5, flexShrink: 0 }}>{p.items.length}</Typography>
           </>
         )}
       </Box>
@@ -218,11 +218,33 @@ export const DsbSidebar: React.FC = () => {
   // 非管理者が万一 official のまま残らないよう、権限が無ければ account に戻す。
   useEffect(() => { if (!admin && blogScope !== 'account') setBlogScope('account'); }, [admin, blogScope, setBlogScope]);
 
-  // 公式モード用（ナビのハイライト・件数）。account モードでも購読は無害。
+  // 公式モード用（ナビのハイライト・件数・カテゴリ節）。account モードでも購読は無害。
   const officialMode = useOfficialBlogStore((s) => s.mode);
   const officialView = useOfficialBlogStore((s) => s.view);
-  const officialCount = useOfficialBlogStore((s) => s.articles.length);
+  const officialArticles = useOfficialBlogStore((s) => s.articles);
+  const officialCategoryFilter = useOfficialBlogStore((s) => s.categoryFilter);
+  const officialDraftId = useOfficialBlogStore((s) => s.draft?.id ?? null);
   const setOfficialView = useOfficialBlogStore((s) => s.setView);
+  const setOfficialCategoryFilter = useOfficialBlogStore((s) => s.setCategoryFilter);
+  const officialStartEdit = useOfficialBlogStore((s) => s.startEdit);
+  const officialCount = officialArticles.length;
+
+  // 公式記事をカテゴリ名でグルーピング（サイドバーのカテゴリ節。account と同じ「ネスト展開」体験）。
+  const officialCategoryRows = useMemo(() => {
+    const byCat = new Map<string, typeof officialArticles>();
+    for (const a of officialArticles) {
+      const c = (a.category?.name || '').trim();
+      if (!c) continue;
+      (byCat.get(c) ?? byCat.set(c, [] as typeof officialArticles).get(c)!).push(a);
+    }
+    for (const list of byCat.values()) {
+      list.sort((a, b) => {
+        if (a.status !== b.status) return a.status === 'published' ? -1 : 1;
+        return String(a.title || '').localeCompare(String(b.title || ''), 'ja');
+      });
+    }
+    return [...byCat.keys()].sort((a, b) => a.localeCompare(b, 'ja')).map((name) => ({ name, items: byCat.get(name) ?? [] }));
+  }, [officialArticles]);
 
   // エディタで開いている記事（左サイドバーのハイライト対象）。
   const activeArticleId = mode === 'edit' ? (draft?.id ?? null) : null;
@@ -236,6 +258,9 @@ export const DsbSidebar: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const [newCat, setNewCat] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [officialExpanded, setOfficialExpanded] = useState<Set<string>>(new Set());
+  const toggleOfficialExpand = (name: string) =>
+    setOfficialExpanded((prev) => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
   const [editingName, setEditingName] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ name: string; count: number } | null>(null);
@@ -311,26 +336,26 @@ export const DsbSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
           ブログ / S.Blog
         </Typography>
       </Box>
 
       {/* 管理者のみ: 自分のブログ ⇄ 公式ブログ の切替（Admin トグル）。 */}
       {admin && (
-        <Box sx={{ mx: 1.5, mb: 1, display: 'flex', gap: 0.5, p: 0.4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <Box sx={{ mx: 1.5, mb: 1, display: 'flex', gap: 0.5, p: 0.4, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
           {([
             { key: 'account' as const, label: '自分のブログ', color: ACCENT },
-            { key: 'official' as const, label: '公式ブログ', color: '#38bdf8' },
+            { key: 'official' as const, label: '公式ブログ', color: 'light-dark(#0676a8, #38bdf8)' },
           ]).map((opt) => {
             const on = blogScope === opt.key;
             return (
               <Box key={opt.key} onClick={() => setBlogScope(opt.key)}
                 sx={{ flex: 1, textAlign: 'center', cursor: 'pointer', py: 0.6, borderRadius: 1.5,
-                  bgcolor: on ? `${opt.color}22` : 'transparent',
-                  boxShadow: on ? `inset 0 0 0 1px ${opt.color}66` : 'none',
-                  '&:hover': { bgcolor: on ? `${opt.color}2e` : 'rgba(255,255,255,0.05)' } }}>
-                <Typography sx={{ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? opt.color : 'rgba(255,255,255,0.6)' }}>
+                  bgcolor: on ? `color-mix(in srgb, ${opt.color} 13%, transparent)` : 'transparent',
+                  boxShadow: on ? `inset 0 0 0 1px color-mix(in srgb, ${opt.color} 40%, transparent)` : 'none',
+                  '&:hover': { bgcolor: on ? `color-mix(in srgb, ${opt.color} 18%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
+                <Typography sx={{ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? opt.color : 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
                   {opt.label}
                 </Typography>
               </Box>
@@ -339,24 +364,105 @@ export const DsbSidebar: React.FC = () => {
         </Box>
       )}
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
       <Box sx={{ flex: 1 }}>
         {blogScope === 'official' ? (
-          /* ── 公式ブログモードのナビ（記事一覧 / Content Strategy / カテゴリ） ── */
+          /* ── 公式ブログモードのナビ（アカウントブログと項目を揃える） ── */
           <>
+            {/* ホーム = ニュースフィード（公式は閲覧/インスピレーション用） */}
+            <ScopeItem
+              icon={<NewspaperRoundedIcon />} label="ホーム"
+              active={officialMode !== 'edit' && officialView === 'feed'} onClick={() => setOfficialView('feed')} color={ACCENT}
+            />
+            {/* 概要・分析・戦略 */}
+            <ScopeItem
+              icon={<InsightsRoundedIcon />} label="概要・分析・戦略"
+              active={officialMode !== 'edit' && officialView === 'overview'} onClick={() => setOfficialView('overview')} color="#ff8a65"
+            />
+            {/* スケジュール = プロジェクトの Schedules & Tasks（SEKKEIYA Content） */}
+            <ScopeItem
+              icon={<EventNoteRoundedIcon />} label="スケジュール"
+              active={officialMode !== 'edit' && officialView === 'schedule'} onClick={() => setOfficialView('schedule')} color="#5c9ce6"
+            />
+            {/* コンテンツ戦略は「概要・分析・戦略」に集約したためサイドバー項目を廃止 */}
+            {/* 記事一覧 */}
             <ScopeItem
               icon={<ArticleRoundedIcon />} label="記事一覧" count={officialCount}
-              active={officialView === 'articles' && officialMode !== 'edit'} onClick={() => setOfficialView('articles')} color="#38bdf8"
+              active={officialMode !== 'edit' && officialView === 'articles' && !officialCategoryFilter} onClick={() => setOfficialView('articles')} color="#607d8b"
             />
-            <ScopeItem
-              icon={<EventNoteRoundedIcon />} label="Content Strategy"
-              active={officialView === 'strategy'} onClick={() => setOfficialView('strategy')} color="#c084fc"
-            />
+            {/* カテゴリ = カテゴリ管理 */}
             <ScopeItem
               icon={<CategoryRoundedIcon />} label="カテゴリ"
-              active={officialView === 'categories'} onClick={() => setOfficialView('categories')} color="#8e7cc3"
+              active={officialMode !== 'edit' && officialView === 'categories'} onClick={() => setOfficialView('categories')} color="#8e7cc3"
             />
+
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
+
+            {/* カテゴリ（記事のカテゴリ名でグルーピング。クリックで絞り込み＋ネスト展開）。
+                作成・改名・削除・並べ替えは「カテゴリ」管理ビューで行う（公式カテゴリは階層型の別システム）。 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.25, mb: 0.5 }}>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.8, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
+                カテゴリ
+              </Typography>
+              <Tooltip title="カテゴリを管理（追加・編集）">
+                <IconButton size="small" onClick={() => setOfficialView('categories')} sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.45)', '&:hover': { color: '#38bdf8' } }}>
+                  <AddRoundedIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            {officialCategoryRows.length === 0 ? (
+              <Typography sx={{ px: 2.5, py: 0.5, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.6 }}>
+                記事にカテゴリを設定すると、ここにまとまって表示されます。
+              </Typography>
+            ) : officialCategoryRows.map((c) => {
+              const active = officialView === 'articles' && officialCategoryFilter === c.name;
+              const isExpanded = officialExpanded.has(c.name);
+              return (
+                <Box key={c.name}>
+                  <Box
+                    sx={{ mx: 1.5, my: 0.25, pr: 0.75, py: 0.5, borderRadius: 2, display: 'flex', alignItems: 'center', cursor: 'pointer',
+                      bgcolor: active ? 'rgba(56,189,248,0.14)' : 'transparent',
+                      '&:hover': { bgcolor: active ? 'rgba(56,189,248,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.06)' } }}
+                    onClick={() => { toggleOfficialExpand(c.name); setOfficialCategoryFilter(c.name); }}
+                  >
+                    {isExpanded
+                      ? <KeyboardArrowDownRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mr: 0.25, flexShrink: 0 }} />
+                      : <KeyboardArrowRightRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mr: 0.25, flexShrink: 0 }} />}
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', mr: 1, flexShrink: 0, bgcolor: `hsl(${hueOf(c.name)},65%,62%)` }} />
+                    <Typography sx={{ color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 12, fontWeight: active ? 700 : 500,
+                      flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', ml: 0.5, flexShrink: 0 }}>{c.items.length}</Typography>
+                  </Box>
+                  {isExpanded && c.items.map((a) => {
+                    const published = a.status === 'published';
+                    const col = published ? '#81c784' : '#ffb74d';
+                    const activeArt = a.id === officialDraftId;
+                    return (
+                      <Box key={a.id} onClick={() => void officialStartEdit(a.id)}
+                        sx={{ mx: 1.5, my: 0.1, pl: 4.5, pr: 1.25, py: 0.5, borderRadius: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 0.75,
+                          bgcolor: activeArt ? 'rgba(56,189,248,0.18)' : 'transparent',
+                          boxShadow: activeArt ? 'inset 2px 0 0 #38bdf8' : 'none',
+                          '&:hover': { bgcolor: activeArt ? 'rgba(56,189,248,0.24)' : 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
+                        {published
+                          ? <PublicRoundedIcon sx={{ fontSize: 13, color: col, flexShrink: 0 }} />
+                          : <EditNoteRoundedIcon sx={{ fontSize: 13, color: col, flexShrink: 0 }} />}
+                        <Typography sx={{ flex: 1, minWidth: 0, fontSize: 11.5, color: published ? 'rgb(var(--brand-fg-rgb) / 0.78)' : 'rgb(var(--brand-fg-rgb) / 0.5)',
+                          fontStyle: published ? 'normal' : 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {a.title || '(無題)'}
+                        </Typography>
+                        <Typography sx={{ fontSize: 9.5, fontWeight: 700, color: col, flexShrink: 0, opacity: 0.9 }}>
+                          {published ? '公開' : '下書き'}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              );
+            })}
           </>
         ) : (
         <>
@@ -365,15 +471,15 @@ export const DsbSidebar: React.FC = () => {
           icon={<NewspaperRoundedIcon />} label="ホーム"
           active={mode !== 'edit' && view === 'feed'} onClick={() => navAway(() => setView('feed'))} color={ACCENT}
         />
-        {/* 概要（データ管理ダッシュボード）。記事編集中でも押せば保存して切り替わる。 */}
+        {/* 概要・分析・戦略（データ管理＋運営戦略）。記事編集中でも押せば保存して切り替わる。 */}
         <ScopeItem
-          icon={<InsightsRoundedIcon />} label="概要・分析"
+          icon={<InsightsRoundedIcon />} label="概要・分析・戦略"
           active={mode !== 'edit' && view === 'overview'} onClick={() => navAway(() => setView('overview'))} color="#ff8a65"
         />
-        {/* スケジュール = 投稿計画（コンテンツカレンダー） */}
+        {/* スケジュール = 投稿カレンダー（月/リスト・AI投稿計画。タスクなし） */}
         <ScopeItem
           icon={<EventNoteRoundedIcon />} label="スケジュール"
-          active={mode !== 'edit' && view === 'schedule'} onClick={() => navAway(() => setView('schedule'))} color="#5c9ce6"
+          active={mode !== 'edit' && (view === 'schedule' || view === 'plan')} onClick={() => navAway(() => setView('schedule'))} color="#5c9ce6"
         />
         {/* 記事一覧 = 自分の全記事（下書き/公開済みは本体の状況タブで把握） */}
         <ScopeItem
@@ -386,15 +492,15 @@ export const DsbSidebar: React.FC = () => {
           active={mode !== 'edit' && view === 'categories'} onClick={() => navAway(() => setView('categories'))} color="#8e7cc3"
         />
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
         {/* カテゴリ */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.25, mb: 0.5 }}>
-          <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.8, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+          <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.8, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
             カテゴリ
           </Typography>
           <Tooltip title="カテゴリを追加">
-            <IconButton size="small" onClick={() => setAdding((v) => !v)} sx={{ p: 0.25, color: adding ? ACCENT : 'rgba(255,255,255,0.45)', '&:hover': { color: ACCENT } }}>
+            <IconButton size="small" onClick={() => setAdding((v) => !v)} sx={{ p: 0.25, color: adding ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)', '&:hover': { color: ACCENT } }}>
               <AddRoundedIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
@@ -407,14 +513,14 @@ export const DsbSidebar: React.FC = () => {
               onKeyDown={(e) => { if (e.key === 'Enter') submitNewCat(); if (e.key === 'Escape') { setAdding(false); setNewCat(''); } }}
               onBlur={() => { if (newCat.trim()) submitNewCat(); else { setAdding(false); } }}
               placeholder="新しいカテゴリ名…" size="small" fullWidth variant="outlined"
-              InputProps={{ sx: { color: '#fff', fontSize: 12, bgcolor: 'rgba(0,0,0,0.25)' } }}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, '& fieldset': { borderColor: 'rgba(255,255,255,0.14)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
+              InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 12, bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))' } }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5, '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.14)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
             />
           </Box>
         )}
 
         {categoryRows.length === 0 && !adding ? (
-          <Typography sx={{ px: 2.5, py: 0.5, fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+          <Typography sx={{ px: 2.5, py: 0.5, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.6 }}>
             ＋ でカテゴリを作成し、テーマごとに記事を書き溜めましょう。
           </Typography>
         ) : (
@@ -448,19 +554,19 @@ export const DsbSidebar: React.FC = () => {
       <Box sx={{ px: 2, pt: 1, borderTop: `1px solid ${BRAND.line}` }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
           <ArticleRoundedIcon sx={{ fontSize: 13, color: ACCENT }} />
-          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>S.Blog</Typography>
+          <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600 }}>S.Blog</Typography>
         </Box>
-        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', lineHeight: 1.6 }}>
           記事は公開サイトと SEKKEIYA 検索に連携予定（後続フェーズ）。
         </Typography>
       </Box>
 
       {/* カテゴリ削除の確認 */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#0e121c', color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 380, borderRadius: 3, backgroundImage: 'none' } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 380, borderRadius: 3, backgroundImage: 'none' } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>カテゴリを削除</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+          <DialogContentText sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.9rem' }}>
             「{deleteTarget?.name}」を削除します。
             {deleteTarget && deleteTarget.count > 0
               ? `配下の ${deleteTarget.count} 件の記事は未分類（カテゴリなし）になります（記事自体は削除されません）。`
@@ -468,9 +574,9 @@ export const DsbSidebar: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setDeleteTarget(null)} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setDeleteTarget(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={() => { if (uid && deleteTarget) removeCategory(uid, deleteTarget.name); setDeleteTarget(null); }}
-            variant="contained" sx={{ bgcolor: '#ef4444', color: '#fff', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>削除する</Button>
+            variant="contained" sx={{ bgcolor: '#ef4444', color: 'var(--brand-fg)', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>削除する</Button>
         </DialogActions>
       </Dialog>
     </Box>

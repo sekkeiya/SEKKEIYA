@@ -16,6 +16,11 @@ interface DskStoreState {
   view: 'library' | 'brain' | 'products' | 'registry';
   setView: (v: 'library' | 'brain' | 'products' | 'registry') => void;
 
+  /** registry ビューの焦点（all=全おすすめソース / catalog=メーカー電子カタログのみ）。
+   *  サイドバーの「カタログ」導線で 'catalog' に絞り込む。 */
+  registryFocus: 'all' | 'catalog';
+  setRegistryFocus: (f: 'all' | 'catalog') => void;
+
   /** kind フィルタ（すべて / 書籍 / PDF / Web / メモ） */
   kindFilter: KindFilter;
   setKindFilter: (f: KindFilter) => void;
@@ -72,17 +77,21 @@ export const useDskStore = create<DskStoreState>((set, get) => ({
   view: 'library',
   setView: (view) => set({ view }),
 
+  registryFocus: 'all',
+  setRegistryFocus: (registryFocus) => set({ registryFocus }),
+
+  // サイドバーは単一選択：どれか1つを選ぶと他のフィルタ軸はリセットする
   kindFilter: 'all',
-  setKindFilter: (kindFilter) => set({ kindFilter, view: 'library' }),
+  setKindFilter: (kindFilter) => set({ kindFilter, view: 'library', categoryFilter: 'all', projectFilter: null }),
 
   categoryFilter: 'all',
-  setCategoryFilter: (categoryFilter) => set({ categoryFilter }),
+  setCategoryFilter: (categoryFilter) => set({ categoryFilter, view: 'library', kindFilter: 'all', projectFilter: null }),
 
   search: '',
   setSearch: (search) => set({ search }),
 
   projectFilter: null,
-  setProjectFilter: (projectFilter) => set({ projectFilter }),
+  setProjectFilter: (projectFilter) => set({ projectFilter, view: 'library', kindFilter: 'all', categoryFilter: 'all' }),
 
   selectedId: null,
   setSelectedId: (selectedId) => set({ selectedId }),

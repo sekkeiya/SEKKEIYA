@@ -4,6 +4,7 @@
 // 著作権配慮のため text は要約のために一時送信されるのみ（ユーザー承認済の方針）。
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../../lib/firebase/client';
+import { getTaskModel } from '../../../store/useAiSettingsStore';
 import type { LibraryEntry } from '../types';
 import { fetchUrlContent } from '../api/knowledgeApi';
 import { extractPdfText } from './pdfText';
@@ -37,10 +38,11 @@ export async function summarizeEntry(entry: LibraryEntry): Promise<SummarizeResu
   if (!text.trim()) {
     throw new Error('要約対象のテキストを取得できませんでした。');
   }
-  const fn = httpsCallable<{ kind: string; title: string; text: string }, SummarizeResult>(
+  const fn = httpsCallable<{ kind: string; title: string; text: string; model: string }, SummarizeResult>(
     functions,
     'summarizeKnowledge',
   );
-  const res = await fn({ kind: entry.kind, title: entry.title, text });
+  // 用途別モデル設定（サーバー対応まではサーバー側で無視）
+  const res = await fn({ kind: entry.kind, title: entry.title, text, model: getTaskModel('summarize') });
   return res.data;
 }

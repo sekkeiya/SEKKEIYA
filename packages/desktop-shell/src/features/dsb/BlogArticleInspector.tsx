@@ -21,12 +21,12 @@ const ACCENT = '#e57373';
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
-    color: '#fff',
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.35)' },
+    color: 'var(--brand-fg)',
+    '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.18)' },
+    '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.35)' },
     '&.Mui-focused fieldset': { borderColor: ACCENT },
   },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.55)' },
+  '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.55)' },
   '& .MuiInputLabel-root.Mui-focused': { color: ACCENT },
 };
 
@@ -34,11 +34,11 @@ const selectMenuProps = {
   MenuProps: {
     PaperProps: {
       sx: {
-        bgcolor: '#1a1c22', backgroundImage: 'none', color: '#fff',
-        border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)',
+        border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
         '& .MuiMenuItem-root': {
           fontSize: 14,
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
           '&.Mui-selected': { bgcolor: `${ACCENT}44` },
           '&.Mui-selected:hover': { bgcolor: `${ACCENT}55` },
         },
@@ -104,15 +104,15 @@ export const BlogArticleInspector: React.FC<Props> = ({ article, uid, onClose, o
   return (
     <Box sx={{
       width: 340, flexShrink: 0, height: '100%',
-      borderLeft: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(10,15,25,0.6)',
+      borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(255,255,255,0.75), rgba(10,15,25,0.6))',
       overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5, px: 2.5, py: 2.5,
     }}>
       {/* ヘッダ */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
           記事の設定
         </Typography>
-        <Tooltip title="閉じる"><IconButton size="small" onClick={() => { flushText(); onClose(); }} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}><CloseRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+        <Tooltip title="閉じる"><IconButton size="small" onClick={() => { flushText(); onClose(); }} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}><CloseRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       </Box>
 
       {/* タイトル */}
@@ -125,11 +125,11 @@ export const BlogArticleInspector: React.FC<Props> = ({ article, uid, onClose, o
 
       {/* 状況 */}
       <Box>
-        <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, mb: 0.75 }}>状況</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.55)', fontSize: 11, mb: 0.75 }}>状況</Typography>
         <ToggleButtonGroup
           size="small" exclusive value={local.status}
           onChange={(_e, v) => v && commit({ status: v as BlogStatus })}
-          sx={{ '& .MuiToggleButton-root': { color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)', textTransform: 'none', fontSize: 12, px: 1.75 }, '& .Mui-selected': { color: '#fff !important', bgcolor: `${ACCENT}55 !important` } }}
+          sx={{ '& .MuiToggleButton-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', textTransform: 'none', fontSize: 12, px: 1.75 }, '& .Mui-selected': { color: '#fff !important', bgcolor: `${ACCENT}55 !important` } }}
         >
           <ToggleButton value="draft">下書き</ToggleButton>
           <ToggleButton value="published">公開</ToggleButton>
@@ -142,7 +142,7 @@ export const BlogArticleInspector: React.FC<Props> = ({ article, uid, onClose, o
         onBlur={flushText}
         placeholder={slugify(local.title) || 'my-first-post'}
         fullWidth size="small" sx={fieldSx}
-        InputProps={{ startAdornment: <InputAdornment position="start" sx={{ color: 'rgba(255,255,255,0.4)', '& p': { fontSize: 13 } }}>/blog/</InputAdornment> }}
+        InputProps={{ startAdornment: <InputAdornment position="start" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '& p': { fontSize: 13 } }}>/blog/</InputAdornment> }}
       />
 
       <TextField
@@ -158,14 +158,14 @@ export const BlogArticleInspector: React.FC<Props> = ({ article, uid, onClose, o
         onChange={(e) => handleTargetChange(e.target.value)}
         fullWidth size="small" sx={fieldSx}
         helperText="既定はアカウントサイト（記事のホーム）"
-        FormHelperTextProps={{ sx: { color: 'rgba(255,255,255,0.4)', mx: 0 } }}
+        FormHelperTextProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.4)', mx: 0 } }}
         SelectProps={selectMenuProps}
       >
         <MenuItem value="account">アカウントサイト</MenuItem>
         {projects.map((p) => <MenuItem key={p.id} value={p.id}>プロジェクト: {p.name}</MenuItem>)}
       </TextField>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
 
       <TextField
         label="抜粋 (meta description / OGP)" value={local.excerpt}
@@ -187,7 +187,7 @@ export const BlogArticleInspector: React.FC<Props> = ({ article, uid, onClose, o
             {local.tags.map((t) => (
               <Chip key={t} label={t} size="small"
                 onDelete={() => commit({ tags: local.tags.filter((x) => x !== t) })}
-                sx={{ bgcolor: `${ACCENT}33`, color: '#fff', '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.6)' } }} />
+                sx={{ bgcolor: `${ACCENT}33`, color: 'var(--brand-fg)', '& .MuiChip-deleteIcon': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' } }} />
             ))}
           </Box>
         )}
@@ -201,7 +201,7 @@ export const BlogArticleInspector: React.FC<Props> = ({ article, uid, onClose, o
       >
         本文を編集
       </Button>
-      <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)', lineHeight: 1.6 }}>
         変更は自動保存されます。本文の執筆は「本文を編集」から。
       </Typography>
     </Box>

@@ -87,29 +87,29 @@ export const MaterialPickerDialog: React.FC<Props> = ({ open, onClose, usedPaths
       onClose={onClose}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { bgcolor: '#1c1a17', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2 } }}
     >
-      <DialogTitle sx={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
+      <DialogTitle sx={{ color: 'var(--brand-fg)', display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
         <MovieRoundedIcon sx={{ color: ACCENT }} />
         クリップを追加
         <Box sx={{ flex: 1 }} />
-        <IconButton size="small" onClick={loadAssets} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+        <IconButton size="small" onClick={loadAssets} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
           <RefreshRoundedIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </DialogTitle>
       <DialogContent>
         <Box sx={{
           display: 'flex', alignItems: 'center', mb: 2,
-          bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 2, px: 1.5, py: 0.5,
-          border: '1px solid rgba(255,255,255,0.08)',
+          bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 2, px: 1.5, py: 0.5,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           '&:focus-within': { borderColor: ACCENT },
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase
             placeholder="LocalAssets/Movies を検索..."
             value={query}
             onChange={e => setQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 13, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 13, flex: 1 }}
           />
         </Box>
 
@@ -118,7 +118,7 @@ export const MaterialPickerDialog: React.FC<Props> = ({ open, onClose, usedPaths
             <CircularProgress size={24} sx={{ color: ACCENT }} />
           </Box>
         ) : filtered.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 6, color: 'rgba(255,255,255,0.4)' }}>
+          <Box sx={{ textAlign: 'center', py: 6, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             <MovieRoundedIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
             <Typography variant="body2">
               SEKKEIYA/LocalAssets/Movies に動画がありません。<br />
@@ -135,12 +135,12 @@ export const MaterialPickerDialog: React.FC<Props> = ({ open, onClose, usedPaths
                   onClick={() => onAdd({ path: a.path, name: a.name.replace(/\.[^.]+$/, ''), durationSec: a.durationSec ?? 0 })}
                   sx={{
                     borderRadius: 2, overflow: 'hidden', cursor: 'pointer', position: 'relative',
-                    border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
                     transition: 'all 0.15s',
                     '&:hover': { borderColor: ACCENT, transform: 'translateY(-2px)', boxShadow: `0 8px 24px ${ACCENT}33` },
                   }}
                 >
-                  <Box sx={{ height: 96, bgcolor: '#0d0c0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box sx={{ height: 96, bgcolor: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <video
                       src={a.src}
                       muted
@@ -159,7 +159,7 @@ export const MaterialPickerDialog: React.FC<Props> = ({ open, onClose, usedPaths
                     </Box>
                   )}
                   <Box sx={{ p: 1 }}>
-                    <Typography noWrap sx={{ color: '#fff', fontSize: 12, fontWeight: 500 }}>{a.name}</Typography>
+                    <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 12, fontWeight: 500 }}>{a.name}</Typography>
                     <Typography sx={{ color: BLUEPRINT, fontSize: 10, fontFamily: MONO }}>
                       {a.durationSec != null ? fmtSec(a.durationSec) : '…'}
                     </Typography>
@@ -178,7 +178,7 @@ export const MaterialPickerDialog: React.FC<Props> = ({ open, onClose, usedPaths
         >
           ファイルから追加…
         </Button>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)' }}>閉じる</Button>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>閉じる</Button>
       </DialogActions>
     </Dialog>
   );

@@ -135,7 +135,7 @@ export default function WalkthroughGalleryBar() {
   const loadCatThumbs = useWalkthroughCatalogStore((s) => s.loadThumbs);
   const activeRef = useRef(null);
 
-  // カタログ表示時に S.Library 索引からサムネ補完マップを読み込む（S.Models と同じ画像）。
+  // カタログ表示時に S.Library 索引からサムネ補完マップを読み込む（S.Model と同じ画像）。
   useEffect(() => {
     if (panel?.category === "catalog") loadCatThumbs();
   }, [panel, loadCatThumbs]);

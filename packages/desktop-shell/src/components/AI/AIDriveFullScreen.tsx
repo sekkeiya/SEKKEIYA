@@ -42,6 +42,11 @@ import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';
 import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import SlideshowRoundedIcon from '@mui/icons-material/SlideshowRounded';
+import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
+import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
+import PptxPreview from './PptxPreview';
 
 // Inspector Icons
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -52,12 +57,36 @@ import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
 const mockPalette = ['#E53935', '#FB8C00', '#FDD835', '#43A047', '#1E88E5', '#8E24AA', '#E0E0E0', '#424242'];
 
 const getFileIcon = (type: string) => {
-  switch (type) {
-    case 'image': return <ImageRoundedIcon sx={{ color: '#E1BEE7', fontSize: 48 }} />;
-    case 'model': return <ViewInArRoundedIcon sx={{ color: '#81D4FA', fontSize: 48 }} />;
-    case 'pdf': return <PictureAsPdfRoundedIcon sx={{ color: '#FFCDD2', fontSize: 48 }} />;
-    default: return <InsertDriveFileRoundedIcon sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 48 }} />;
+  switch ((type || '').toLowerCase()) {
+    case 'image': case 'render': case 'screenshot': case 'cover': return <ImageRoundedIcon sx={{ color: 'var(--brand-fg)', fontSize: 48 }} />;
+    case 'model': case '3d-model': return <ViewInArRoundedIcon sx={{ color: 'light-dark(#0774a7, #81D4FA)', fontSize: 48 }} />;
+    case 'pdf': return <PictureAsPdfRoundedIcon sx={{ color: 'light-dark(#c62828, #ef9a9a)', fontSize: 48 }} />;
+    case 'presentation': return <SlideshowRoundedIcon sx={{ color: 'light-dark(#c2410c, #fdba74)', fontSize: 48 }} />;
+    case 'video': return <MovieRoundedIcon sx={{ color: 'light-dark(#6d28d9, #c4b5fd)', fontSize: 48 }} />;
+    case 'document': return <DescriptionRoundedIcon sx={{ color: 'light-dark(#1d4ed8, #93c5fd)', fontSize: 48 }} />;
+    case 'spreadsheet': return <TableChartRoundedIcon sx={{ color: 'light-dark(#15803d, #86efac)', fontSize: 48 }} />;
+    default: return <InsertDriveFileRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 48 }} />;
   }
+};
+
+// カードに <img> で出せる画像URLを返す。無ければ null（→ getFileIcon にフォールバック）。
+// 明示サムネ（抽出/生成された画像）と、画像系タイプ／画像拡張子の storageUrl のみを画像扱いにする。
+// ★重要: ストアの global_assets リスナーは thumbnailUrl を「… || data.storageUrl」で埋めるため、
+//   サムネ未設定の pptx/pdf でも thumbnailUrl に本体URLが入る。それを <img> に出すと壊れ画像になる。
+//   → thumbnailUrl が「本体と同一URL」または「非画像拡張子」のときは画像扱いしない。
+const IMG_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg|avif|tiff?)($|\?)/i;
+const NON_IMG_EXT_RE = /\.(pptx?|ppsx?|potx?|key|docx?|xlsx?|csv|tsv|pdf|glb|gltf|3dm|fbx|obj|stl|blend|usdz?|zip|txt|md)($|\?)/i;
+const imageDisplayUrl = (a: { type?: string; storageUrl?: string; thumbnailUrl?: string }): string | null => {
+  const t = (a.type || '').toLowerCase();
+  const isImgType = t === 'image' || t === 'render' || t === 'screenshot' || t === 'cover';
+  const thumb = a.thumbnailUrl;
+  // 抽出/生成された本物のサムネ（本体と別URL・非画像拡張子でない）だけ信頼して使う。
+  if (thumb && thumb !== a.storageUrl && !NON_IMG_EXT_RE.test(thumb)) return thumb;
+  // 画像系タイプは本体URLをそのまま画像として表示できる。
+  if (isImgType && a.storageUrl) return a.storageUrl;
+  // 画像拡張子の本体URL（サムネ無しの生画像など）。
+  if (a.storageUrl && IMG_EXT_RE.test(a.storageUrl) && !NON_IMG_EXT_RE.test(a.storageUrl)) return a.storageUrl;
+  return null;
 };
 
 const SidebarNavItem: React.FC<{ icon: React.ReactNode, label: string, count?: number, active?: boolean }> = ({ icon, label, count, active }) => (
@@ -66,18 +95,18 @@ const SidebarNavItem: React.FC<{ icon: React.ReactNode, label: string, count?: n
       sx={{ 
         py: 0.5, px: 2, borderRadius: 1.5, mx: 1,
         bgcolor: active ? 'rgba(0,191,255,0.15)' : 'transparent',
-        '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgba(255,255,255,0.05)' }
+        '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.05)' }
       }}
     >
-      <ListItemIcon sx={{ minWidth: 32, color: active ? '#00BFFF' : 'rgba(255,255,255,0.6)', '& svg': { fontSize: 18 } }}>
+      <ListItemIcon sx={{ minWidth: 32, color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.6)', '& svg': { fontSize: 18 } }}>
         {icon}
       </ListItemIcon>
       <ListItemText 
         primary={label} 
-        primaryTypographyProps={{ fontSize: 13, fontWeight: active ? 600 : 500, color: active ? '#00BFFF' : 'rgba(255,255,255,0.8)' }} 
+        primaryTypographyProps={{ fontSize: 13, fontWeight: active ? 600 : 500, color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.8)' }} 
       />
       {count !== undefined && (
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+        <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11 }}>
           {count}
         </Typography>
       )}
@@ -92,21 +121,21 @@ const FolderItem: React.FC<{ label: string, count?: number, depth?: number, hasC
       sx={{ 
         py: 0.25, pr: 2, pl: 2 + depth * 1.5, borderRadius: 1.5, mx: 1,
         bgcolor: active ? 'rgba(0,191,255,0.15)' : 'transparent',
-        '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgba(255,255,255,0.05)' }
+        '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.05)' }
       }}
     >
-      <ListItemIcon sx={{ minWidth: 24, color: active ? '#00BFFF' : 'rgba(255,255,255,0.4)', '& svg': { fontSize: 16 } }}>
+      <ListItemIcon sx={{ minWidth: 24, color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.4)', '& svg': { fontSize: 16 } }}>
         {hasChildren ? <KeyboardArrowDownRoundedIcon /> : <ChevronRightRoundedIcon opacity={0}/>}
       </ListItemIcon>
-      <ListItemIcon sx={{ minWidth: 28, color: active ? '#00BFFF' : 'rgba(255,255,255,0.6)', '& svg': { fontSize: 18 } }}>
+      <ListItemIcon sx={{ minWidth: 28, color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.6)', '& svg': { fontSize: 18 } }}>
         <FolderRoundedIcon />
       </ListItemIcon>
       <ListItemText 
         primary={label} 
-        primaryTypographyProps={{ fontSize: 13, fontWeight: active ? 600 : 500, color: active ? '#00BFFF' : 'rgba(255,255,255,0.8)' }} 
+        primaryTypographyProps={{ fontSize: 13, fontWeight: active ? 600 : 500, color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.8)' }} 
       />
       {count !== undefined && (
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
+        <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11 }}>
           {count}
         </Typography>
       )}
@@ -120,7 +149,7 @@ const SemanticTagChip: React.FC<{ tag: string, onDelete?: () => void, size?: 'ti
   
   let label = tag;
   let icon = undefined;
-  let colorTheme = { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.1)' };
+  let colorTheme = { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', border: 'rgb(var(--brand-fg-rgb) / 0.1)' };
   
   if (isAITag) {
     label = tag.replace('AI: ', '').replace('AI:', '');
@@ -165,9 +194,11 @@ interface AIDriveFullScreenProps {
   isPickerMode?: boolean;
   onPickAsset?: (asset: any) => void;
   onClosePicker?: () => void;
+  /** 独立ネイティブ窓（DriveWindow）で開いたとき、閉じる操作をパネル格納ではなく窓のクローズへ振り替える。 */
+  onRequestClose?: () => void;
 }
 
-const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onPickAsset, onClosePicker }) => {
+const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onPickAsset, onClosePicker, onRequestClose }) => {
   const { setAIDriveExpanded, activeProjectId, projects } = useAppStore();
   const { assets, selectedAssetIds, setSelectedAssetIds, activeScope, setActiveScope, subscribeToAssets, updateAsset, deleteAsset, moveOrCopyAssets, uploadImageToDrive } = useAIDriveStore();
   const { isDragging, startDrag, updateDrag, endDrag, pointerPosition, draggingAssets, pendingDropAsset, consumeDropAsset, isCopyMode } = useAIDriveDragStore();
@@ -513,20 +544,20 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
   const expandedAsset = baseAssets.find(a => a.id === expandedAssetId);
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'row', bgcolor: '#141518', position: 'relative', color: '#fff' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'row', bgcolor: 'var(--brand-surface)', position: 'relative', color: 'var(--brand-fg)' }}>
       
       {/* 1. LEFT SIDEBAR */}
       <Box sx={{ 
-        width: 240, flexShrink: 0, bgcolor: '#1B1C20', borderRight: '1px solid rgba(255,255,255,0.06)', 
+        width: 240, flexShrink: 0, bgcolor: 'var(--brand-surface2)', borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', 
         display: 'flex', flexDirection: 'column', height: '100%' 
       }}>
         {/* Brand / Close Header */}
         <Box sx={{ px: 2, py: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <AutoAwesomeRoundedIcon sx={{ color: '#00BFFF', fontSize: 24 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: 15 }}>AI Drive</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: 15 }}>SEKKEIYA Drive</Typography>
           </Box>
-          <IconButton onClick={() => isPickerMode && onClosePicker ? onClosePicker() : setAIDriveExpanded(false)} size="small" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+          <IconButton onClick={() => { if (isPickerMode && onClosePicker) { onClosePicker(); } else if (onRequestClose) { onRequestClose(); } else { setAIDriveExpanded(false); } }} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
             <CloseRoundedIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -549,7 +580,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             <Box onClick={() => setActiveScope('team_library')}>
               <SidebarNavItem icon={<GroupsRoundedIcon />} label="Team Folder" count={activeScope === 'team_library' ? totalCount : undefined} active={activeScope === 'team_library'} />
             </Box>
-            <Divider sx={{ my: 1, borderColor: 'rgba(255,255,255,0.06)', mx: 2 }} />
+            <Divider sx={{ my: 1, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)', mx: 2 }} />
             <Box onClick={() => setActiveScope('unorganized')}>
               <SidebarNavItem icon={<ErrorOutlineRoundedIcon />} label="未整理" count={activeScope === 'unorganized' ? totalCount : undefined} active={activeScope === 'unorganized'} />
             </Box>
@@ -559,8 +590,8 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
           </List>
 
           <Box sx={{ mt: 3, px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 }}>プロジェクト</Typography>
-            <AddRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', '&:hover': { color: '#fff' } }} />
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.5 }}>プロジェクト</Typography>
+            <AddRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' } }} />
           </Box>
           
           <List disablePadding>
@@ -577,7 +608,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
 
           {/* ── 絞り込み（種類 / カテゴリ） ── */}
           <Box sx={{ mt: 3, px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 }}>絞り込み</Typography>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.5 }}>絞り込み</Typography>
             {activeTags.length > 0 && (
               <Typography onClick={() => setActiveTags([])} sx={{ fontSize: 10, color: '#00BFFF', cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>
                 クリア
@@ -588,7 +619,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
           {/* カテゴリ（タグ） */}
           {categoryFacets.length > 0 && (
             <Box sx={{ px: 2, mb: 2 }}>
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', mb: 0.75 }}>カテゴリ</Typography>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 0.75 }}>カテゴリ</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {categoryFacets.map(([tag, cnt]) => {
                   const active = activeTags.includes(tag);
@@ -600,10 +631,10 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                       onClick={() => setActiveTags(active ? activeTags.filter(t => t !== tag) : [...activeTags, tag])}
                       sx={{
                         height: 22, fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                        bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgba(255,255,255,0.05)',
-                        color: active ? '#00BFFF' : 'rgba(255,255,255,0.7)',
+                        bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                        color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.7)',
                         border: `1px solid ${active ? 'rgba(0,191,255,0.5)' : 'transparent'}`,
-                        '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.28)' : 'rgba(255,255,255,0.1)' },
+                        '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.28)' : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                       }}
                     />
                   );
@@ -620,7 +651,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
         {/* Topbar Toolbar */}
         <Box sx={{ 
           flexShrink: 0, 
-          borderBottom: '1px solid rgba(255,255,255,0.06)', 
+          borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', 
           display: 'flex', 
           flexDirection: 'column', 
           px: 4, 
@@ -639,13 +670,13 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                activeScope === 'trash' ? 'ゴミ箱' :
                activeScope.startsWith('project_') ? projects.find(p => p.id === activeScope.split('_')[1])?.name || 'プロジェクト' :
                'すべてのプロジェクト'}
-               <Typography component="span" sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', ml: 1.5, fontWeight: 500, bgcolor: 'rgba(255,255,255,0.05)', px: 1, py: 0.25, borderRadius: 1 }}>{filteredAssets.length}</Typography>
+               <Typography component="span" sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)', ml: 1.5, fontWeight: 500, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', px: 1, py: 0.25, borderRadius: 1 }}>{filteredAssets.length}</Typography>
             </Typography>
 
             {/* AI Smart Search Bar */}
             <Box sx={{ 
               flexGrow: 1, display: 'flex', alignItems: 'center', 
-              bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, px: 2, py: 0.75, 
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 2, px: 2, py: 0.75, 
               border: `1px solid rgba(0,191,255,0.15)`,
               transition: 'all 0.2s',
               '&:focus-within': {
@@ -656,27 +687,27 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             }}>
               <SearchRoundedIcon sx={{ color: '#00BFFF', mr: 1, fontSize: 18 }} />
               <TextField 
-                placeholder="AI Drive内を検索... (例: 木材の家具、タグが無いアイテム)"
+                placeholder="SEKKEIYA Drive内を検索... (例: 木材の家具、タグが無いアイテム)"
                 variant="standard"
                 fullWidth
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{ disableUnderline: true, sx: { color: '#fff', fontSize: '14px', fontWeight: 500 } }}
+                InputProps={{ disableUnderline: true, sx: { color: 'var(--brand-fg)', fontSize: '14px', fontWeight: 500 } }}
               />
-              <AutoFixHighRoundedIcon sx={{ color: 'rgba(255,255,255,0.3)', ml: 1, fontSize: 18 }} />
+              <AutoFixHighRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', ml: 1, fontSize: 18 }} />
             </Box>
 
             {/* Controls */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                <Box sx={{ display: 'flex', alignItems: 'center', mx: 1 }}>
-                 <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', mr: 1, letterSpacing: '0.05em' }}>Density</Typography>
-                 <Box sx={{ display: 'flex', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2, p: 0.5, border: '1px solid rgba(255,255,255,0.05)' }}>
-                   <Button size="small" onClick={() => setDensityKey('compact')} sx={{ minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', color: densityKey === 'compact' ? '#fff' : 'rgba(255,255,255,0.4)', bgcolor: densityKey === 'compact' ? '#00BFFF' : 'transparent', '&:hover': { bgcolor: densityKey === 'compact' ? '#00BFFF' : 'rgba(255,255,255,0.05)' }}}>Compact</Button>
-                   <Button size="small" onClick={() => setDensityKey('default')} sx={{ minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', color: densityKey === 'default' ? '#fff' : 'rgba(255,255,255,0.4)', bgcolor: densityKey === 'default' ? '#00BFFF' : 'transparent', '&:hover': { bgcolor: densityKey === 'default' ? '#00BFFF' : 'rgba(255,255,255,0.05)' }}}>Default</Button>
-                   <Button size="small" onClick={() => setDensityKey('large')} sx={{ minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', color: densityKey === 'large' ? '#fff' : 'rgba(255,255,255,0.4)', bgcolor: densityKey === 'large' ? '#00BFFF' : 'transparent', '&:hover': { bgcolor: densityKey === 'large' ? '#00BFFF' : 'rgba(255,255,255,0.05)' }}}>Large</Button>
+                 <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mr: 1, letterSpacing: '0.05em' }}>Density</Typography>
+                 <Box sx={{ display: 'flex', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2, p: 0.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
+                   <Button size="small" onClick={() => setDensityKey('compact')} sx={{ minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', color: densityKey === 'compact' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: densityKey === 'compact' ? '#00BFFF' : 'transparent', '&:hover': { bgcolor: densityKey === 'compact' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.05)' }}}>Compact</Button>
+                   <Button size="small" onClick={() => setDensityKey('default')} sx={{ minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', color: densityKey === 'default' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: densityKey === 'default' ? '#00BFFF' : 'transparent', '&:hover': { bgcolor: densityKey === 'default' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.05)' }}}>Default</Button>
+                   <Button size="small" onClick={() => setDensityKey('large')} sx={{ minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', color: densityKey === 'large' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: densityKey === 'large' ? '#00BFFF' : 'transparent', '&:hover': { bgcolor: densityKey === 'large' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.05)' }}}>Large</Button>
                  </Box>
                </Box>
-               <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.5)' }}><SortRoundedIcon fontSize="small" /></IconButton>
+               <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}><SortRoundedIcon fontSize="small" /></IconButton>
             </Box>
           </Box>
 
@@ -685,7 +716,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
             {/* 粒度セグメント（資産 / 作業ファイル / すべて） */}
-            <Box sx={{ display: 'flex', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2, p: 0.5, border: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+            <Box sx={{ display: 'flex', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2, p: 0.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
               {([['assets', '資産', assetCount], ['artifacts', '作業ファイル', artifactCount], ['all', 'すべて', totalCount]] as const).map(([key, label, cnt]) => (
                 <Button
                   key={key}
@@ -693,9 +724,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                   onClick={() => setGranularity(key)}
                   sx={{
                     minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none',
-                    color: granularity === key ? '#fff' : 'rgba(255,255,255,0.4)',
+                    color: granularity === key ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                     bgcolor: granularity === key ? '#00BFFF' : 'transparent',
-                    '&:hover': { bgcolor: granularity === key ? '#00BFFF' : 'rgba(255,255,255,0.05)' },
+                    '&:hover': { bgcolor: granularity === key ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
                   }}
                 >
                   {label}<Box component="span" sx={{ ml: 0.5, opacity: 0.7, fontSize: '0.65rem' }}>{cnt}</Box>
@@ -710,24 +741,24 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                    <SemanticTagChip key={tag} tag={tag} onDelete={() => setActiveTags(activeTags.filter(t => t !== tag))} />
                  ))
                ) : (
-                 <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>フィルターなし</Typography>
+                 <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>フィルターなし</Typography>
                )}
-               <IconButton size="small" onClick={(e) => setFilterMenuAnchor(e.currentTarget)} sx={{ color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.02)',border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 1.5, p: 0.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}>
+               <IconButton size="small" onClick={(e) => setFilterMenuAnchor(e.currentTarget)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 1.5, p: 0.5, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' } }}>
                  <FilterAltRoundedIcon sx={{ fontSize: 16 }} />
                </IconButton>
                <Menu
                  anchorEl={filterMenuAnchor}
                  open={Boolean(filterMenuAnchor)}
                  onClose={() => setFilterMenuAnchor(null)}
-                 PaperProps={{ sx: { bgcolor: '#1E1E24', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', mt: 1 } }}
+                 PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', mt: 1 } }}
                >
                  <MenuItem onClick={() => { setActiveTags([...new Set([...activeTags, '種類: 3Dモデル'])]); setFilterMenuAnchor(null); }}>
-                    <ViewInArRoundedIcon sx={{ fontSize: 16, mr: 1, color: 'rgba(255,255,255,0.5)' }} /> 種類: 3Dモデル
+                    <ViewInArRoundedIcon sx={{ fontSize: 16, mr: 1, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} /> 種類: 3Dモデル
                  </MenuItem>
                  <MenuItem onClick={() => { setActiveTags([...new Set([...activeTags, '種類: 画像'])]); setFilterMenuAnchor(null); }}>
-                    <ImageRoundedIcon sx={{ fontSize: 16, mr: 1, color: 'rgba(255,255,255,0.5)' }} /> 種類: 画像
+                    <ImageRoundedIcon sx={{ fontSize: 16, mr: 1, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} /> 種類: 画像
                  </MenuItem>
-                 <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+                 <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
                  <MenuItem onClick={() => { setActiveTags([...new Set([...activeTags, 'AI: 家具'])]); setFilterMenuAnchor(null); }}>
                     <AutoAwesomeRoundedIcon sx={{ fontSize: 16, mr: 1, color: '#00BFFF' }} /> AI Suggestion: 家具
                  </MenuItem>
@@ -751,7 +782,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 const untaggedCount = assets.filter(a => !a.tags || a.tags.length === 0).length;
                 if (untaggedCount === 0) return null;
                 return (
-                  <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <ErrorOutlineRoundedIcon sx={{ fontSize: 14, color: '#FF9800' }} />
                     <span style={{ color: '#FF9800', fontWeight: 600 }}>未整理:</span> {untaggedCount}件
                   </Typography>
@@ -764,12 +795,12 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 disabled={isUploading}
                 startIcon={isUploading ? <CircularProgress size={12} color="inherit" /> : <FileUploadRoundedIcon sx={{ fontSize: 14 }} />}
                 sx={{
-                  bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.8)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'rgb(var(--brand-fg-rgb) / 0.8)',
                   textTransform: 'none', borderRadius: 1.5, px: 2, py: 0.5,
                   fontSize: 12, fontWeight: 600,
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                  '&.Mui-disabled': { color: 'rgba(255,255,255,0.4)', opacity: 0.8 }
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                  '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', opacity: 0.8 }
                 }}
               >
                 {isUploading ? 'アップロード中...' : '画像をアップロード'}
@@ -828,15 +859,15 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                     sx={{
                       flexShrink: 0, display: 'flex', alignItems: 'center', gap: 0.5,
                       px: 1.25, py: 0.5, borderRadius: 2, cursor: 'pointer',
-                      bgcolor: active ? '#00BFFF' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${active ? '#00BFFF' : 'rgba(255,255,255,0.08)'}`,
+                      bgcolor: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                      border: `1px solid ${active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                       opacity: empty ? 0.4 : 1,
                       transition: 'all 0.12s',
-                      '&:hover': { bgcolor: active ? '#00BFFF' : 'rgba(255,255,255,0.1)', opacity: 1 },
+                      '&:hover': { bgcolor: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.1)', opacity: 1 },
                     }}
                   >
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: active ? '#06222e' : 'rgba(255,255,255,0.8)' }}>{label}</Typography>
-                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: active ? 'rgba(6,34,46,0.7)' : 'rgba(255,255,255,0.4)' }}>{cnt}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: active ? '#06222e' : 'rgb(var(--brand-fg-rgb) / 0.8)' }}>{label}</Typography>
+                    <Typography sx={{ fontSize: 11, fontWeight: 600, color: active ? 'rgba(6,34,46,0.7)' : 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{cnt}</Typography>
                   </Box>
                 );
               })}
@@ -885,12 +916,12 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             </Box>
           )}
           {activeScope === 'local' && !localLoading && !isTauri() && (
-            <Box sx={{ textAlign: 'center', py: 8, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ textAlign: 'center', py: 8, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <Typography sx={{ fontSize: 14 }}>ローカル素材はデスクトップ版でのみ表示されます。</Typography>
             </Box>
           )}
           {!(activeScope === 'local' && localLoading) && !(activeScope === 'all_public' && galleryFeed.loading) && filteredAssets.length === 0 && !searchQuery && activeTags.length === 0 && !(activeScope === 'local' && !isTauri()) && (
-            <Box sx={{ textAlign: 'center', py: 8, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ textAlign: 'center', py: 8, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <Typography sx={{ fontSize: 14 }}>
                 {activeScope === 'all_public'
                   ? '公開データがまだありません。'
@@ -938,7 +969,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                         startDrag(asset, dragAssets, e.clientX, e.clientY, e.altKey || e.metaKey);
                       }}
                       sx={{ 
-                        bgcolor: isSelected ? '#1E2430' : '#1A1C20',
+                        bgcolor: isSelected ? 'var(--brand-surface2)' : 'var(--brand-surface2)',
                         borderRadius: 1.5,
                         overflow: 'hidden',
                         cursor: 'grab',
@@ -952,7 +983,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                         transition: 'background-color 0.2s', // Removed transform from transition since framer-motion layout handles it
                         transform: isAnalyzing ? 'scale(1.02)' : 'none',
                         '&:hover': {
-                          bgcolor: '#1E2024',
+                          bgcolor: 'var(--brand-surface2)',
                         }
                       }}
                     >
@@ -969,7 +1000,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                             }}>
                             <CircularProgress size={28} thickness={5} sx={{ color: '#00BFFF', mb: 1.5 }} />
-                            <Typography sx={{ color: '#fff', fontSize: 12, fontWeight: 800, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>AI 解析・分類中...</Typography>
+                            <Typography sx={{ color: 'var(--brand-fg)', fontSize: 12, fontWeight: 800, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>AI 解析・分類中...</Typography>
                           </Box>
                         )}
                       </AnimatePresence>
@@ -978,14 +1009,13 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                         width: '100%', 
                         aspectRatio: '16/10',
                         display: 'flex', justifyContent: 'center', alignItems: 'center',
-                        bgcolor: '#111214',
+                        bgcolor: 'var(--brand-surface)',
                         position: 'relative',
                         overflow: 'hidden'
                       }}>
                         {(() => {
-                          const displayImgUrl = asset.thumbnailUrl || 
-                            (asset.storageUrl && !asset.storageUrl.match(/\.(glb|3dm|blend|fbx|obj)($|\?)/i) ? asset.storageUrl : null);
-                          
+                          const displayImgUrl = imageDisplayUrl(asset);
+
                           const is3DModel = asset.type === 'model' || asset.type === '3d-model';
                           
                           return displayImgUrl ? (
@@ -1006,8 +1036,8 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                       {/* テクスチャ等のセット件数バッジ（S.Material 同様にセット表示） */}
                       {asset.childCount && asset.childCount > 1 ? (
                         <Box sx={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', alignItems: 'center', gap: 0.5, px: 0.75, py: 0.25, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-                          <StyleRoundedIcon sx={{ fontSize: 12, color: '#fff' }} />
-                          <Typography sx={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{asset.childCount}</Typography>
+                          <StyleRoundedIcon sx={{ fontSize: 12, color: 'var(--brand-fg)' }} />
+                          <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'var(--brand-fg)' }}>{asset.childCount}</Typography>
                         </Box>
                       ) : null}
                       {isSelected && (
@@ -1037,22 +1067,22 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                         sx={{
                           position: 'absolute', top: 8, left: 8,
                           width: 24, height: 24, borderRadius: 1,
-                          bgcolor: 'rgba(255,255,255,0.1)',
+                          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           cursor: 'grab', backdropFilter: 'blur(4px)',
                           opacity: 0, transition: 'opacity 0.2s',
                           '.MuiPaper-root:hover &': { opacity: 1 },
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' }
                         }}
                         title="外部アプリ（Rhino等）へドラッグして配置"
                       >
-                        <InsertDriveFileRoundedIcon sx={{ fontSize: 14, color: '#fff' }} />
+                        <InsertDriveFileRoundedIcon sx={{ fontSize: 14, color: 'var(--brand-fg)' }} />
                       </Box>
                     </Box>
                     <Box sx={{ p: 1.5, textAlign: 'center' }}>
                       <Typography noWrap sx={{ 
                         fontSize: 12, 
-                        color: isSelected ? '#fff' : 'rgba(255,255,255,0.8)', 
+                        color: isSelected ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.8)', 
                         fontWeight: isSelected ? 600 : 400 
                       }}>
                         {asset.name}
@@ -1105,7 +1135,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
         >
           <Box sx={{ 
             bgcolor: 'rgba(0,191,255,0.9)', 
-            color: '#fff', 
+            color: 'var(--brand-fg)', 
             px: 2, py: 1, 
             borderRadius: 2, 
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
@@ -1122,7 +1152,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
       {/* 3. RIGHT INSPECTOR (Conditional or persistent) */}
       {!isPickerMode && (
         <Box sx={{  
-          width: 280, flexShrink: 0, bgcolor: '#1B1C20', borderLeft: '1px solid rgba(255,255,255,0.06)', 
+          width: 280, flexShrink: 0, bgcolor: 'var(--brand-surface2)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', 
           display: 'flex', flexDirection: 'column', height: '100%' 
         }}>
         {selectedAssetIds.length > 1 ? (
@@ -1131,7 +1161,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               <CheckCircleRoundedIcon sx={{ color: '#00BFFF' }} />
               {selectedAssetIds.length}件選択中
             </Typography>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 4 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 4 }}>
               複数アイテムに対する一括操作を設定・実行します。
             </Typography>
 
@@ -1170,9 +1200,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               {isAITagging ? '解析実行中...' : '一括AI自動整理・タグ付け'}
             </Button>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mb: 3 }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', mb: 3 }} />
 
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)', mb: 1.5 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 1.5 }}>
               システム操作
             </Typography>
 
@@ -1180,7 +1210,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               variant="text" 
               startIcon={<StyleRoundedIcon />}
               onClick={() => applyTagToAssets(selectedAssetIds, 'User: 一括追加')}
-              sx={{ justifyContent: 'flex-start', color: '#fff', mb: 1, py: 1 }}
+              sx={{ justifyContent: 'flex-start', color: 'var(--brand-fg)', mb: 1, py: 1 }}
             >
               一括タグ追加
             </Button>
@@ -1189,7 +1219,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               variant="text" 
               startIcon={<FolderRoundedIcon />}
               onClick={(e) => setProjectMenuAnchor(e.currentTarget)}
-              sx={{ justifyContent: 'flex-start', color: '#fff', mb: 1, py: 1 }}
+              sx={{ justifyContent: 'flex-start', color: 'var(--brand-fg)', mb: 1, py: 1 }}
             >
               一括フォルダ配置
             </Button>
@@ -1198,7 +1228,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               variant="text" 
               startIcon={<FileUploadRoundedIcon />}
               onClick={() => console.log('Mock export', selectedAssetIds)}
-              sx={{ justifyContent: 'flex-start', color: '#fff', mb: 1, py: 1 }}
+              sx={{ justifyContent: 'flex-start', color: 'var(--brand-fg)', mb: 1, py: 1 }}
             >
               一括エクスポート
             </Button>
@@ -1214,10 +1244,10 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 if (hasDeletableAssets) {
                   setDeleteDialogOpen(true);
                 } else {
-                  alert('3DモデルはAI Driveから削除できません。');
+                  alert('3DモデルはSEKKEIYA Driveから削除できません。');
                 }
               }}
-              sx={{ justifyContent: 'flex-start', color: '#fa709a', mb: 1, py: 1 }}
+              sx={{ justifyContent: 'flex-start', color: 'light-dark(#a80637, #fa709a)', mb: 1, py: 1 }}
             >
               {activeScope === 'trash' ? '完全に削除' : 'ゴミ箱へ移動'}
             </Button>
@@ -1227,7 +1257,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 fullWidth
                 variant="text" 
                 onClick={() => setSelectedAssetIds([])}
-                sx={{ color: 'rgba(255,255,255,0.5)' }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}
               >
                 選択解除
               </Button>
@@ -1236,10 +1266,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
         ) : selectedAssetIds.length === 1 && selectedAsset ? (
           <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
              {/* Inspector Thumbnail */}
-            <Box sx={{ width: '100%', aspectRatio: '16/10', bgcolor: '#111214', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ width: '100%', aspectRatio: '16/10', bgcolor: 'var(--brand-surface)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                {(() => {
-                  const displayImgUrl = selectedAsset.thumbnailUrl || 
-                    (selectedAsset.storageUrl && !selectedAsset.storageUrl.match(/\.(glb|3dm|blend|fbx|obj)($|\?)/i) ? selectedAsset.storageUrl : null);
+                  const displayImgUrl = imageDisplayUrl(selectedAsset);
                   return displayImgUrl ? (
                     <img src={displayImgUrl} alt={selectedAsset.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
@@ -1247,7 +1276,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                   );
                })()}
                <IconButton size="small" sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}>
-                 <OpenInFullRoundedIcon fontSize="small" sx={{ color: '#fff' }} />
+                 <OpenInFullRoundedIcon fontSize="small" sx={{ color: 'var(--brand-fg)' }} />
                </IconButton>
             </Box>
 
@@ -1306,10 +1335,10 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 fullWidth
                 InputProps={{ 
                   disableUnderline: true, 
-                  sx: { fontSize: 15, fontWeight: 700, color: '#fff', mb: 0.5 }
+                  sx: { fontSize: 15, fontWeight: 700, color: 'var(--brand-fg)', mb: 0.5 }
                 }}
               />
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 3 }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 3 }}>
                 作成: {selectedAsset.createdAt ? new Date(selectedAsset.createdAt).toLocaleString() : 'Unknown'}
                 {selectedAsset.updatedAt && selectedAsset.updatedAt !== selectedAsset.createdAt && (
                   <span style={{ marginLeft: 8 }}>/ 更新: {new Date(selectedAsset.updatedAt).toLocaleString()}</span>
@@ -1319,17 +1348,17 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               {/* セット内容（テクスチャ等）: 束ねている各マップを一覧表示 */}
               {selectedAsset.setMembers && selectedAsset.setMembers.length > 0 && (
                 <Box sx={{ mb: 3 }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', mb: 1 }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1 }}>
                     セット内容（{selectedAsset.setMembers.length}枚）
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                     {selectedAsset.setMembers.map((m, i) => (
-                      <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <Box sx={{ width: 36, height: 36, borderRadius: 0.75, overflow: 'hidden', flexShrink: 0, bgcolor: '#111214' }}>
+                      <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+                        <Box sx={{ width: 36, height: 36, borderRadius: 0.75, overflow: 'hidden', flexShrink: 0, bgcolor: 'var(--brand-surface)' }}>
                           {m.url ? <img src={m.url} alt={m.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography noWrap sx={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>{m.name}</Typography>
+                          <Typography noWrap sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>{m.name}</Typography>
                           {m.slot && <Typography sx={{ fontSize: 9, color: '#00BFFF', fontWeight: 700, textTransform: 'uppercase' }}>{m.slot}</Typography>}
                         </Box>
                       </Box>
@@ -1340,9 +1369,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
 
               {/* 3. Tags */}
               <Box sx={{ mb: 3 }}>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   タグ
-                  <IconButton size="small" sx={{ p: 0.25, color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fff' } }}>
+                  <IconButton size="small" sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'var(--brand-fg)' } }}>
                     <AddRoundedIcon sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Typography>
@@ -1361,11 +1390,11 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
 
               {/* 4. Folders */}
               <Box sx={{ mb: 3 }}>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 1 }}>フォルダ / コレクション</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1 }}>フォルダ / コレクション</Typography>
                 <Box 
                   onClick={(e) => setProjectMenuAnchor(e.currentTarget)}
-                  sx={{ border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 1.5, p: 1, textAlign: 'center', cursor: 'pointer', '&:hover': { borderColor: 'rgba(255,255,255,0.4)', bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                  <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                  sx={{ border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 1.5, p: 1, textAlign: 'center', cursor: 'pointer', '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)' } }}>
+                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
                     <AddRoundedIcon fontSize="small" /> プロジェクト/フォルダへ追加
                   </Typography>
                 </Box>
@@ -1373,7 +1402,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
 
               {/* 5. Memo & Link */}
               <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: -0.5 }}>メモとURL</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: -0.5 }}>メモとURL</Typography>
                 <TextField 
                   placeholder="アセットに関するメモ..." 
                   size="small" 
@@ -1382,7 +1411,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                   minRows={2}
                   value={selectedAsset.memo || ''}
                   onChange={(e) => handleUpdateSelectedAsset({ memo: e.target.value })}
-                  InputProps={{ sx: { bgcolor: 'rgba(0,0,0,0.2)', color: '#fff', fontSize: 13, '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' } } }} 
+                  InputProps={{ sx: { bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', color: 'var(--brand-fg)', fontSize: 13, '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } } }} 
                 />
                 <TextField 
                   placeholder="https://" 
@@ -1390,15 +1419,15 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                   fullWidth 
                   value={selectedAsset.sourceUrl || ''}
                   onChange={(e) => handleUpdateSelectedAsset({ sourceUrl: e.target.value })}
-                  InputProps={{ sx: { bgcolor: 'rgba(0,0,0,0.2)', color: '#fff', fontSize: 13, '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' } } }} 
+                  InputProps={{ sx: { bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', color: 'var(--brand-fg)', fontSize: 13, '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } } }} 
                 />
               </Box>
 
-              <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.06)' }} />
+              <Divider sx={{ my: 3, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
               {/* 6. Information Table & Color Palette */}
               <Box>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 2 }}>システムインフォメーション</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 2 }}>システムインフォメーション</Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
                   {[
                     ['ファイルサイズ', selectedAsset.size || 'Unknown'],
@@ -1406,17 +1435,17 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                     ['解像度/詳細', '1920 × 1082']
                   ].map(([label, value], idx) => (
                     <Box key={idx} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{label}</Typography>
-                      <Typography sx={{ fontSize: 11, color: '#fff' }}>{value}</Typography>
+                      <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{label}</Typography>
+                      <Typography sx={{ fontSize: 11, color: 'var(--brand-fg)' }}>{value}</Typography>
                     </Box>
                   ))}
                 </Box>
 
                 {/* Color Palette (Mock) as visual context at the bottom */}
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 1 }}>抽出カラー</Typography>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1 }}>抽出カラー</Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {mockPalette.map(color => (
-                    <Box key={color} sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: color, border: '1px solid rgba(255,255,255,0.1)' }} />
+                    <Box key={color} sx={{ width: 24, height: 24, borderRadius: '50%', bgcolor: color, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }} />
                   ))}
                 </Box>
               </Box>
@@ -1427,18 +1456,18 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             <Box sx={{ p: 2, pt: 0, display: 'flex', gap: 1 }}>
               <Box sx={{ 
                 flex: 1,
-                bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1.5, p: 1.5, textAlign: 'center', 
-                cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                border: '1px solid rgba(255,255,255,0.1)'
+                bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 1.5, p: 1.5, textAlign: 'center', 
+                cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)'
               }}>
-                <Typography sx={{ fontSize: 13, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                   <FileUploadRoundedIcon fontSize="small" /> エクスポート
                 </Typography>
               </Box>
               <Box 
                 onClick={() => {
                    if (selectedAsset.type === '3d-model' || selectedAsset.type === 'model') {
-                     alert('3DモデルはAI Driveから削除できません。');
+                     alert('3DモデルはSEKKEIYA Driveから削除できません。');
                    } else {
                      setDeleteDialogOpen(true);
                    }
@@ -1449,7 +1478,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 cursor: 'pointer', '&:hover': { bgcolor: 'rgba(250,112,154,0.1)' },
                 border: '1px solid rgba(250,112,154,0.2)'
               }}>
-                <Typography sx={{ fontSize: 13, color: '#fa709a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <Typography sx={{ fontSize: 13, color: 'light-dark(#a80637, #fa709a)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                   <DeleteRoundedIcon fontSize="small" /> {activeScope === 'trash' ? '完全に削除' : 'ゴミ箱へ移動'}
                 </Typography>
               </Box>
@@ -1458,7 +1487,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
           </Box>
         ) : (
           <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4, textAlign: 'center', gap: 2 }}>
-            <Typography sx={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600 }}>
               {activeScope === 'all' && 'すべてのデータ'}
               {activeScope === 'unorganized' && '未整理'}
               {activeScope === 'my_library' && 'マイライブラリ'}
@@ -1466,7 +1495,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               {activeScope === 'trash' && 'ゴミ箱'}
               {activeScope.startsWith('project_') && (projects.find(p => p.id === activeScope.split('_')[1])?.name || 'プロジェクト')}
             </Typography>
-            <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+            <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.6 }}>
               {activeScope === 'all' && '自分が作成・所有しているすべてのデータと自分がアクセス可能な、他のユーザーが作成したデータが表示されています。'}
               {activeScope === 'unorganized' && 'プロジェクトに属していない、未整理のデータが表示されています。'}
               {activeScope === 'my_library' && '自分が作成・所有しているすべてのデータが表示されています。'}
@@ -1474,7 +1503,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               {activeScope === 'trash' && 'ゴミ箱に移動したアイテムが表示されています。'}
               {activeScope.startsWith('project_') && 'このプロジェクトに属するすべてのデータが表示されています。'}
             </Typography>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', mt: 2 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mt: 2 }}>
               アイテムを選択すると<br/>ここにプロパティが表示されます
             </Typography>
           </Box>
@@ -1495,22 +1524,53 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
         >
           {/* Lightbox Toolbar */}
           <Box sx={{ height: 60, display: 'flex', alignItems: 'center', px: 3, justifyContent: 'space-between' }}>
-            <Typography sx={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>{expandedAsset.name}</Typography>
-            <IconButton onClick={() => setExpandedAssetId(null)} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+            <Typography sx={{ color: 'var(--brand-fg)', fontSize: 16, fontWeight: 600 }}>{expandedAsset.name}</Typography>
+            <IconButton onClick={() => setExpandedAssetId(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
               <CloseRoundedIcon />
             </IconButton>
           </Box>
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
-            {expandedAsset.storageUrl ? (
-              <img 
-                src={expandedAsset.storageUrl} 
-                alt={expandedAsset.name} 
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }} 
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-                getFileIcon(expandedAsset.type)
-            )}
+          <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+            {(() => {
+              const t = (expandedAsset.type || '').toLowerCase();
+              const name = expandedAsset.name || '';
+              const isPptx = t === 'presentation' || /\.(pptx?|ppsx?|potx?)$/i.test(name);
+              const isVideo = t === 'video' || /\.(mp4|mov|webm|avi|mkv|m4v)($|\?)/i.test(expandedAsset.storageUrl || name);
+              const imgUrl = imageDisplayUrl(expandedAsset);
+              // pptx → スライドをめくれる Quick Look ビューア
+              if (isPptx && expandedAsset.storageUrl) {
+                return <PptxPreview url={expandedAsset.storageUrl} name={name} />;
+              }
+              // 動画 → インラインプレイヤー
+              if (isVideo && expandedAsset.storageUrl) {
+                return (
+                  <video
+                    src={expandedAsset.storageUrl}
+                    controls
+                    autoPlay
+                    style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8 }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                );
+              }
+              // 画像 → そのまま拡大
+              if (imgUrl) {
+                return (
+                  <img
+                    src={imgUrl}
+                    alt={name}
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8 }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                );
+              }
+              // それ以外 → アイコン＋プレビュー非対応
+              return (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }} onClick={(e) => e.stopPropagation()}>
+                  {getFileIcon(expandedAsset.type)}
+                  <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>このファイル形式はプレビュー未対応です</Typography>
+                </Box>
+              );
+            })()}
           </Box>
         </Box>
       )}

@@ -11,7 +11,7 @@ export default function LayoutTaskPanelShell() {
 
   return (
     <Box sx={{ p: 1, display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%', overflowY: 'auto' }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', ml: 0.5, mb: 0.5 }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase', ml: 0.5, mb: 0.5 }}>
         Layout Tasks
       </Typography>
 
@@ -23,7 +23,7 @@ export default function LayoutTaskPanelShell() {
         let status = 'TODO';
         let statusColor = "#94a3b8"; // Slate 400 for TODO
         let statusText = "未着手";
-        let statusBg = "rgba(148, 163, 184, 0.1)";
+        let statusBg = "rgb(var(--slate-ink-rgb) / 0.1)";
         let statusBorder = "transparent";
         
         if (actualSeats >= targetSeats) {
@@ -57,24 +57,24 @@ export default function LayoutTaskPanelShell() {
               textAlign: 'left',
               p: 1.25, // Densify (was 1.5)
               borderRadius: 1, // Slightly sharper corners
-              bgcolor: isActive ? 'rgba(56,189,248,0.06)' : 'rgba(255,255,255,0.02)', // More subtle
-              border: `1px solid ${isActive ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.06)'}`,
-              borderLeft: isActive ? '3px solid #38bdf8' : '1px solid rgba(255,255,255,0.06)', // Less thick
+              bgcolor: isActive ? 'rgba(56,189,248,0.06)' : 'rgb(var(--brand-fg-rgb) / 0.02)', // More subtle
+              border: `1px solid ${isActive ? 'rgba(56,189,248,0.4)' : 'rgb(var(--brand-fg-rgb) / 0.06)'}`,
+              borderLeft: isActive ? '3px solid #38bdf8' : '1px solid rgb(var(--brand-fg-rgb) / 0.06)', // Less thick
               boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.2)' : 'none', // Remove neon glow, use shadow focus
               transition: 'all 0.15s ease-in-out',
               opacity: (status === 'DONE' && !isActive) ? 0.6 : 1, // Dim done tasks slightly to focus on remaining
               '&:hover': {
-                bgcolor: isActive ? 'rgba(56,189,248,0.08)' : 'rgba(255,255,255,0.06)',
+                bgcolor: isActive ? 'rgba(56,189,248,0.08)' : 'rgb(var(--brand-fg-rgb) / 0.06)',
                 opacity: 1,
               }
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, width: '100%' }}>
               <Box>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: isActive ? '#38bdf8' : '#e2e8f0', mb: 0.25 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: isActive ? 'light-dark(#0676a8, #38bdf8)' : 'var(--brand-fg)', mb: 0.25 }}>
                   {zone.name}
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: isActive ? 'rgba(56,189,248,0.8)' : 'rgba(255,255,255,0.5)', fontWeight: isActive ? 600 : 400 }}>
+                <Typography sx={{ fontSize: 11, color: isActive ? 'light-dark(rgba(6,118,168,0.8), rgba(56,189,248,0.8))' : 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: isActive ? 600 : 400 }}>
                   {status === 'DONE' ? '目標座席数クリア🎉' : `あと ${Math.max(0, seatDelta)} 席必要`}
                 </Typography>
               </Box>
@@ -104,7 +104,7 @@ export default function LayoutTaskPanelShell() {
                   flex: 1,
                   height: 4, // Thinner progress bar (was 6)
                   borderRadius: 2,
-                  bgcolor: 'rgba(255,255,255,0.06)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)',
                   overflow: 'hidden',
                   '& .MuiLinearProgress-bar': {
                     bgcolor: statusColor,
@@ -112,7 +112,7 @@ export default function LayoutTaskPanelShell() {
                   }
                 }}
               />
-              <Typography sx={{ fontSize: 11, fontWeight: status === 'DONE' ? 700 : 500, color: status === 'DONE' ? statusColor : 'rgba(255,255,255,0.7)', fontFamily: 'monospace', minWidth: 42, textAlign: 'right' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: status === 'DONE' ? 700 : 500, color: status === 'DONE' ? statusColor : 'rgb(var(--brand-fg-rgb) / 0.7)', fontFamily: 'monospace', minWidth: 42, textAlign: 'right' }}>
                 {actualSeats} / {targetSeats} 席
               </Typography>
             </Box>

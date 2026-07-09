@@ -295,7 +295,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
           {exportMenuOpen && (
             <Box sx={{
               position: 'absolute', top: '110%', right: 0, zIndex: 100,
-              bgcolor: '#1a1c22', border: `1px solid ${BRAND.line}`,
+              bgcolor: 'var(--brand-surface2)', border: `1px solid ${BRAND.line}`,
               borderRadius: 1.5, overflow: 'hidden', minWidth: 220,
               boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             }}>
@@ -306,7 +306,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
               </Box>
               {EXPORT_PNG.map(fmt => (
                 <Box key={fmt.label} onClick={() => handleExportPng(fmt.w, fmt.h)}
-                  sx={{ px: 2, py: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}>
+                  sx={{ px: 2, py: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' } }}>
                   <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem', color: BRAND.text }}>
                     {fmt.label}  ({fmt.w}×{fmt.h})
                   </Typography>
@@ -336,7 +336,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
                         px: 1.25, py: 0.3, borderRadius: 1, cursor: 'pointer',
                         fontSize: '0.72rem', fontWeight: gifDurationSec === d ? 700 : 400,
                         bgcolor: gifDurationSec === d ? `${ACCENT}22` : 'transparent',
-                        border: `1px solid ${gifDurationSec === d ? ACCENT : 'rgba(255,255,255,0.15)'}`,
+                        border: `1px solid ${gifDurationSec === d ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.15)'}`,
                         color: gifDurationSec === d ? ACCENT : BRAND.sub,
                         transition: 'all 0.12s',
                         '&:hover': { borderColor: ACCENT, color: ACCENT },
@@ -358,7 +358,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
                   sx={{
                     px: 2, py: 0.9,
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
                   }}>
                   <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.78rem', color: BRAND.text }}>
                     {fmt.label}  ({fmt.w}×{fmt.h})
@@ -376,7 +376,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
         sx={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden', position: 'relative',
-          bgcolor: style === 'dark' ? '#0b0f16' : style === 'bold' ? '#0d1b3e' : '#e8e9ec',
+          bgcolor: style === 'dark' ? 'var(--brand-bg)' : style === 'bold' ? 'var(--brand-surface2)' : '#e8e9ec',
         }}
         onClick={() => { if (exportMenuOpen) setExportMenuOpen(false); }}
       >
@@ -390,7 +390,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
           bgcolor: 'rgba(18,20,26,0.82)',
           backdropFilter: 'blur(12px)',
           borderRadius: 2.5,
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
           zIndex: 10,
         }}>
@@ -400,8 +400,8 @@ export const EnvironmentDiagramEditor: React.FC = () => {
               sx={{
                 width: 32, height: 32,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 1.5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', color: '#fff' },
+                borderRadius: 1.5, cursor: 'pointer', color: 'rgb(var(--brand-fg-rgb) / 0.4)',
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'var(--brand-fg)' },
                 transition: 'all 0.15s',
               }}
             >
@@ -409,7 +409,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
             </Box>
           </Tooltip>
 
-          <Divider sx={{ width: '70%', borderColor: 'rgba(255,255,255,0.1)', my: 0.25 }} />
+          <Divider sx={{ width: '70%', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', my: 0.25 }} />
 
           {DOCK_TABS.map(t => (
             <Tooltip key={t.key} title={t.label} placement="right">
@@ -420,7 +420,7 @@ export const EnvironmentDiagramEditor: React.FC = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 1.5, cursor: 'pointer',
                   bgcolor: envEditorTab === t.key ? `${ACCENT}33` : 'transparent',
-                  color: envEditorTab === t.key ? ACCENT : 'rgba(255,255,255,0.45)',
+                  color: envEditorTab === t.key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   border: envEditorTab === t.key ? `1px solid ${ACCENT}66` : '1px solid transparent',
                   transition: 'all 0.15s',
                   '&:hover': { bgcolor: `${ACCENT}20`, color: ACCENT },

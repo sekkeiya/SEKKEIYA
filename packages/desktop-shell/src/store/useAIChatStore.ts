@@ -13,9 +13,11 @@ export type ChatUi =
       choices: { id: string; label: string; description?: string }[];
       /**
        * 特別な決定論ハンドラへ委譲する分岐。未指定＝通常の propose_choices（LLM 再開）。
-       * 'furniture_source' = 家具ソース選択（S.Models 自動/手動）を LLM でなくオーケストレーターで直接処理。
+       * 'furniture_source' = 家具ソース選択（S.Model 自動/手動）を LLM でなくオーケストレーターで直接処理。
+       * 'board_type' = 「ボード」種別（Research & Memo / S.Slide）の確認を LLM に投げず
+       *               クライアントで決定論的に処理（曖昧なまま推測させない原則）。
        */
-      intent?: 'furniture_source';
+      intent?: 'furniture_source' | 'board_type';
       /** intent ハンドラに渡す文脈（projectId/planId 等）。 */
       context?: Record<string, any>;
       resolved?: { ids: string[]; text?: string }; // 選択済み（text = 「その他」自由入力）

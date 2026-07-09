@@ -160,7 +160,7 @@ export const CaptureOverlay: React.FC = () => {
       }}>
         {/* Helper Text */}
         {!isDragging && (
-          <Box sx={{ position: 'absolute', top: 40, left: '50%', transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,0.7)', px: 3, py: 1.5, borderRadius: 2, color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Box sx={{ position: 'absolute', top: 40, left: '50%', transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,0.7)', px: 3, py: 1.5, borderRadius: 2, color: 'var(--brand-fg)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Typography variant="body1" fontWeight="bold">画面をドラッグしてキャプチャ</Typography>
             <Typography variant="caption">クリックで全画面 / ESC・右クリックでキャンセル</Typography>
           </Box>

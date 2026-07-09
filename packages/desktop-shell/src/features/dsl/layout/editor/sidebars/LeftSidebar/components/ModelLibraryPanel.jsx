@@ -429,12 +429,12 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
       justifyContent: "center",
       borderRadius: "50%",
       background: active ? alpha(theme.palette.primary.main, 0.8) : "transparent",
-      color: active ? "#fff" : alpha("#fff", 0.4),
+      color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
       cursor: "pointer",
       transition: "all 0.15s ease",
       "&:hover": {
         background: active ? alpha(theme.palette.primary.main, 1) : alpha("#fff", 0.1),
-        color: "#fff",
+        color: "var(--brand-fg)",
       },
     }),
     [theme]
@@ -449,12 +449,12 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
       justifyContent: "center",
       borderRadius: 1.5,
       background: active ? alpha("#fff", 0.15) : "transparent",
-      color: active ? "#fff" : alpha("#fff", 0.4),
+      color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
       cursor: "pointer",
       transition: "all 0.15s ease",
       "&:hover": {
         background: active ? alpha("#fff", 0.2) : alpha("#fff", 0.08),
-        color: "#fff",
+        color: "var(--brand-fg)",
       },
     }),
     []
@@ -471,14 +471,14 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
       justifyContent: "center",
       background: active ? alpha(theme.palette.primary.main, 0.2) : alpha("#000", 0.2),
       border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.4) : alpha("#fff", 0.05)}`,
-      color: active ? "#fff" : alpha("#fff", 0.5),
+      color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
       cursor: "pointer",
       transition: "all 0.15s ease",
       "&:hover": {
         background: active ? alpha(theme.palette.primary.main, 0.3) : alpha("#000", 0.4),
         borderColor: active ? theme.palette.primary.main : alpha("#fff", 0.15),
         transform: "scale(1.05)",
-        color: "#fff",
+        color: "var(--brand-fg)",
       },
     }),
     [theme]
@@ -493,12 +493,12 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
       borderRadius: 999,
       background: active ? alpha(theme.palette.primary.main, 0.2) : "transparent",
       border: `1px solid ${active ? alpha(theme.palette.primary.main, 0.4) : alpha("#fff", 0.1)}`,
-      color: active ? "#fff" : alpha("#fff", 0.5),
+      color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
       cursor: "pointer",
       transition: "all 0.15s ease",
       "&:hover": {
         borderColor: alpha("#fff", 0.3),
-        color: "#fff",
+        color: "var(--brand-fg)",
       },
     }),
     [theme]
@@ -548,7 +548,7 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.4) }} />
+                    <SearchRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }} />
                   </InputAdornment>
                 ),
               }}
@@ -556,15 +556,15 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
                 "& .MuiOutlinedInput-root": {
                   height: 32,
                   fontSize: 12,
-                  color: "#fff",
-                  background: alpha("#000", 0.3),
+                  color: "var(--brand-fg)",
+                  background: "color-mix(in srgb, var(--brand-bg) 30%, transparent)",
                   borderRadius: 2,
                   "& fieldset": { border: "none" },
                   "&:hover fieldset": { border: "none" },
                   "&.Mui-focused fieldset": { border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}` },
                 },
                 "& .MuiInputBase-input::placeholder": {
-                  color: alpha("#fff", 0.3),
+                  color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)",
                   opacity: 1,
                 },
               }}
@@ -576,7 +576,7 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
               spacing={0.25}
               sx={{
                 p: 0.25,
-                background: alpha("#000", 0.3),
+                background: "color-mix(in srgb, var(--brand-bg) 30%, transparent)",
                 borderRadius: 999,
               }}
             >
@@ -612,7 +612,7 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
             spacing={0.5}
             sx={{
               p: 0.5,
-              background: alpha("#000", 0.2),
+              background: "color-mix(in srgb, var(--brand-bg) 20%, transparent)",
               borderRadius: 2,
             }}
           >
@@ -714,7 +714,7 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
       <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden", px: 1, py: 1 }}>
         {loadingAny ? (
           <Box display="flex" justifyContent="center" py={4}>
-            <CircularProgress size={24} sx={{ color: alpha("#fff", 0.3) }} />
+            <CircularProgress size={24} sx={{ color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }} />
           </Box>
         ) : filtered.length === 0 ? (
           // 空状態も文字を極力減らし、アイコンと薄いテキストのみ
@@ -803,7 +803,7 @@ export default function ModelLibraryPanel({ projectId, workspaceId, planId }) {
                         top: 4,
                         left: 4,
                         bgcolor: theme.palette.primary.main,
-                        color: "#fff",
+                        color: "var(--brand-fg)",
                         width: 24,
                         height: 24,
                         borderRadius: "50%",

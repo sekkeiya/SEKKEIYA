@@ -161,7 +161,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
         justifyContent: "space-between",
         gap: 1,
         background:
-          "linear-gradient(to top, rgba(15,23,42,0.96), rgba(15,23,42,0.75), rgba(15,23,42,0))",
+          "linear-gradient(to top, rgb(var(--slate-panel-rgb) / 0.96), rgb(var(--slate-panel-rgb) / 0.75), rgb(var(--slate-panel-rgb) / 0))",
         backdropFilter: "blur(6px)",
         zIndex: 12,
       }}
@@ -178,7 +178,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
           variant="subtitle2"
           noWrap
           sx={{
-            color: "#f9fafb",
+            color: "var(--brand-fg)",
             fontWeight: 600,
             fontSize: 13,
           }}
@@ -209,7 +209,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
               height: 16,
               fontSize: 10,
               bgcolor: "primary.main",
-              color: "#fff",
+              color: "var(--brand-fg)",
             }}
             src={avatarUrl}
           >
@@ -218,7 +218,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
           <Typography
             variant="caption"
             noWrap
-            sx={{ color: "rgba(148,163,184,0.95)", fontSize: 11 }}
+            sx={{ color: "rgb(var(--slate-ink-rgb) / 0.95)", fontSize: 11 }}
           >
             {author}
           </Typography>
@@ -244,7 +244,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
                   "& .fav-count": {
                     ml: 0.3,
                     fontSize: 10,
-                    color: "#e5e7eb",
+                    color: "var(--brand-fg)",
                   },
                 }}
               >
@@ -254,7 +254,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
                   />
                 ) : (
                   <FavoriteBorderRoundedIcon
-                    sx={{ fontSize: 16, color: "#e5e7eb" }}
+                    sx={{ fontSize: 16, color: "var(--brand-fg)" }}
                   />
                 )}
                 <span className="fav-count">{favoriteCount}</span>
@@ -273,7 +273,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
                 sx={{ p: 0.5 }}
               >
                 <BookmarkAddRoundedIcon
-                  sx={{ fontSize: 16, color: "#e5e7eb" }}
+                  sx={{ fontSize: 16, color: "var(--brand-fg)" }}
                 />
               </IconButton>
             </span>
@@ -290,7 +290,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
                 sx={{ p: 0.5 }}
               >
                 <ContentCopyRoundedIcon
-                  sx={{ fontSize: 16, color: "#e5e7eb" }}
+                  sx={{ fontSize: 16, color: "var(--brand-fg)" }}
                 />
               </IconButton>
             </span>
@@ -306,7 +306,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
                 disabled={isBusy}
                 sx={{ p: 0.5 }}
               >
-                <ShareRoundedIcon sx={{ fontSize: 16, color: "#e5e7eb" }} />
+                <ShareRoundedIcon sx={{ fontSize: 16, color: "var(--brand-fg)" }} />
               </IconButton>
             </span>
           </Tooltip>

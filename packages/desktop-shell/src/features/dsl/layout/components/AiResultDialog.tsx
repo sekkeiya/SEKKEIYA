@@ -31,14 +31,14 @@ export interface AiLayoutFeedback {
 function statusIcon(status: AiResultStatus) {
   switch (status) {
     case "success": return <CheckCircleRoundedIcon sx={{ fontSize: 18, color: "#34d399" }} />;
-    case "warning": return <WarningAmberRoundedIcon sx={{ fontSize: 18, color: "#fbbf24" }} />;
-    case "skip":    return <RemoveCircleOutlineRoundedIcon sx={{ fontSize: 18, color: alpha("#fff", 0.4) }} />;
-    default:        return <InfoRoundedIcon sx={{ fontSize: 18, color: "#60a5fa" }} />;
+    case "warning": return <WarningAmberRoundedIcon sx={{ fontSize: 18, color: "light-dark(#aa7c03, #fbbf24)" }} />;
+    case "skip":    return <RemoveCircleOutlineRoundedIcon sx={{ fontSize: 18, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }} />;
+    default:        return <InfoRoundedIcon sx={{ fontSize: 18, color: "light-dark(#054ea8, #60a5fa)" }} />;
   }
 }
 
 const sectionLabel = (text: string) => (
-  <Typography sx={{ fontSize: "0.66rem", fontWeight: 800, letterSpacing: 0.5, color: alpha("#fff", 0.5), mt: 1.5, mb: 0.75 }}>
+  <Typography sx={{ fontSize: "0.66rem", fontWeight: 800, letterSpacing: 0.5, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mt: 1.5, mb: 0.75 }}>
     {text}
   </Typography>
 );
@@ -72,7 +72,7 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { bgcolor: "#0b1020", color: "#fff", borderRadius: 2, border: `1px solid ${alpha(ACCENT, 0.4)}`, backgroundImage: "none" },
+        sx: { bgcolor: "var(--brand-surface)", color: "var(--brand-fg)", borderRadius: 2, border: `1px solid ${alpha(ACCENT, 0.4)}`, backgroundImage: "none" },
       }}
     >
       <DialogTitle sx={{ p: 2, pb: 1.5 }}>
@@ -82,11 +82,11 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
             <Typography sx={{ fontSize: "0.95rem", fontWeight: 800 }}>
               AIおまかせ {hadError ? "完了（一部スキップ）" : "完了"}
             </Typography>
-            <Typography sx={{ fontSize: "0.68rem", color: alpha("#fff", 0.55) }}>
+            <Typography sx={{ fontSize: "0.68rem", color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
               {styleLabel ? `テイスト: ${styleLabel}・` : ""}{okCount}/{results.length} 工程が完了
             </Typography>
           </Box>
-          <IconButton onClick={close} size="small" sx={{ color: alpha("#fff", 0.6) }}>
+          <IconButton onClick={close} size="small" sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>
             <CloseRoundedIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Stack>
@@ -97,7 +97,7 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
       <DialogContent sx={{ p: 1.5 }}>
         {/* 工程サマリ */}
         {results.length === 0 ? (
-          <Typography sx={{ fontSize: "0.78rem", color: alpha("#fff", 0.6), p: 1 }}>
+          <Typography sx={{ fontSize: "0.78rem", color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", p: 1 }}>
             実行された工程はありませんでした。
           </Typography>
         ) : (
@@ -109,7 +109,7 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontSize: "0.78rem", fontWeight: 700 }}>{r.label}</Typography>
                   {r.detail && (
-                    <Typography sx={{ fontSize: "0.7rem", color: alpha("#fff", 0.6), lineHeight: 1.4 }}>{r.detail}</Typography>
+                    <Typography sx={{ fontSize: "0.7rem", color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", lineHeight: 1.4 }}>{r.detail}</Typography>
                   )}
                 </Box>
               </Stack>
@@ -126,8 +126,8 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
                 <Box key={`p${i}`} sx={tileSx} title={p.name}>
                   {p.thumbnail
                     ? <Box component="img" src={p.thumbnail} alt={p.name} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <Box sx={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: alpha("#fff", 0.4) }}>パース</Box>}
-                  <Chip label="パース" size="small" sx={{ position: "absolute", left: 4, bottom: 4, height: 16, fontSize: "0.55rem", bgcolor: alpha("#000", 0.6), color: "#fff" }} />
+                    : <Box sx={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>パース</Box>}
+                  <Chip label="パース" size="small" sx={{ position: "absolute", left: 4, bottom: 4, height: 16, fontSize: "0.55rem", bgcolor: "color-mix(in srgb, var(--brand-bg) 60%, transparent)", color: "var(--brand-fg)" }} />
                 </Box>
               ))}
               {videos.map((v, i) => (
@@ -135,12 +135,12 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
                   {v.poster
                     ? <Box component="img" src={v.poster} alt={v.name} sx={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.7 }} />
                     : <Box sx={{ width: "100%", height: "100%", background: alpha(ACCENT, 0.1) }} />}
-                  <PlayCircleFilledRoundedIcon sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 26, color: alpha("#fff", 0.85) }} />
-                  <Chip label={`動画・${v.status}`} size="small" sx={{ position: "absolute", left: 4, bottom: 4, height: 16, fontSize: "0.55rem", bgcolor: alpha(ACCENT, 0.7), color: "#fff" }} />
+                  <PlayCircleFilledRoundedIcon sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", fontSize: 26, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)" }} />
+                  <Chip label={`動画・${v.status}`} size="small" sx={{ position: "absolute", left: 4, bottom: 4, height: 16, fontSize: "0.55rem", bgcolor: alpha(ACCENT, 0.7), color: "var(--brand-fg)" }} />
                 </Box>
               ))}
             </Box>
-            <Typography sx={{ fontSize: "0.6rem", color: alpha("#fff", 0.4), mt: 0.5 }}>
+            <Typography sx={{ fontSize: "0.6rem", color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mt: 0.5 }}>
               パースは History（生成履歴）、動画は完了後に履歴へ保存されます。
             </Typography>
           </>
@@ -152,14 +152,14 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
             {sectionLabel("自動レイアウトの評価")}
             <Stack direction="row" alignItems="center" spacing={1.5}
               sx={{ px: 1, py: 1, borderRadius: 1.5, background: alpha(ACCENT, 0.08), border: `1px solid ${alpha(ACCENT, 0.25)}` }}>
-              <Typography sx={{ fontSize: "0.74rem", color: alpha("#fff", 0.85) }}>このレイアウトの満足度</Typography>
+              <Typography sx={{ fontSize: "0.74rem", color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)" }}>このレイアウトの満足度</Typography>
               <Rating
                 value={layoutFeedback?.rating ?? null}
                 onChange={(_e, v) => layoutFeedback?.onRate(v)}
                 size="small"
               />
             </Stack>
-            <Typography sx={{ fontSize: "0.6rem", color: alpha("#fff", 0.4), mt: 0.5 }}>
+            <Typography sx={{ fontSize: "0.6rem", color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mt: 0.5 }}>
               「採用する」で評価を記録し、使用したセット家具の採用率に反映します。
             </Typography>
           </>
@@ -172,7 +172,7 @@ export default function AiResultDialog({ layoutFeedback }: { layoutFeedback?: Ai
             <Button
               onClick={() => { layoutFeedback?.onDismiss(); close(); }}
               variant="outlined"
-              sx={{ textTransform: "none", color: alpha("#fff", 0.75), borderColor: alpha("#fff", 0.2) }}
+              sx={{ textTransform: "none", color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)", borderColor: alpha("#fff", 0.2) }}
             >
               あとで
             </Button>

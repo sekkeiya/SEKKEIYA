@@ -53,7 +53,7 @@ export const DsrDrawingGrid: React.FC<DsrDrawingGridProps> = ({ drawings, sets, 
 
   if (isEmpty) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.4)', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgb(var(--brand-fg-rgb) / 0.4)', gap: 1.5 }}>
         <DescriptionRoundedIcon sx={{ fontSize: 48, opacity: 0.5 }} />
         <Typography sx={{ fontSize: 14 }}>
           {openSetId ? 'このセットには図面がありません' : '図面がまだありません'}

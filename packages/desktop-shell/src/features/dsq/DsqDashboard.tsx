@@ -42,7 +42,7 @@ const CourseCard: React.FC<{ course: any; onClick?: () => void }> = ({ course, o
       onClick={onClick}
       sx={{
         borderRadius: 2, overflow: 'hidden', textAlign: 'left',
-        bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+        bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
         transition: 'border-color 0.15s, transform 0.15s',
         '&:hover': { borderColor: ACCENT, transform: 'translateY(-2px)' },
       }}
@@ -58,18 +58,18 @@ const CourseCard: React.FC<{ course: any; onClick?: () => void }> = ({ course, o
       </Box>
       {/* Body */}
       <Box sx={{ p: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, color: 'rgba(255,255,255,0.55)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)' }}>
           {formatIcon(course)}
           <Typography sx={{ fontSize: 11 }}>{lessonCount} レッスン</Typography>
           {course?.level && (
             <Chip label={LEVEL_LABELS[course.level] || course.level} size="small"
-              sx={{ height: 18, fontSize: 10, ml: 'auto', bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }} />
+              sx={{ height: 18, fontSize: 10, ml: 'auto', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
           )}
         </Box>
-        <Typography sx={{ color: '#fff', fontSize: 14, fontWeight: 700, lineHeight: 1.3, mb: 0.5 }} noWrap>
+        <Typography sx={{ color: 'var(--brand-fg)', fontSize: 14, fontWeight: 700, lineHeight: 1.3, mb: 0.5 }} noWrap>
           {course?.title || course?.name || '無題のコース'}
         </Typography>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12,
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 12,
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {course?.description || ''}
         </Typography>
@@ -96,11 +96,11 @@ export const DsqDashboard: React.FC<DsqDashboardProps> = ({ courses, projects = 
     <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default' }}>
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
             S.Quest — Learning
           </Typography>
-          <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25, mb: 1.5 }}>
+          <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25, mb: 1.5 }}>
             {isProjectsMode ? '公開プロジェクト' : '学習コース'}
           </Typography>
 
@@ -114,10 +114,10 @@ export const DsqDashboard: React.FC<DsqDashboardProps> = ({ courses, projects = 
                     onClick={() => setCategoryFilter(tab.key)}
                     sx={{
                       px: 1.5, py: 0.5, borderRadius: 1.5, cursor: 'pointer', fontSize: 12, fontWeight: active ? 600 : 500,
-                      color: active ? '#fff' : 'rgba(255,255,255,0.7)',
-                      bgcolor: active ? ACCENT : 'rgba(255,255,255,0.05)',
+                      color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                      bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
                       transition: 'background-color 0.15s',
-                      '&:hover': { bgcolor: active ? ACCENT : 'rgba(255,255,255,0.1)' },
+                      '&:hover': { bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                     }}
                   >
                     {tab.label}
@@ -139,24 +139,24 @@ export const DsqDashboard: React.FC<DsqDashboardProps> = ({ courses, projects = 
               {(projects || []).map((p: any) => (
                 <Box key={p.id} onClick={() => onOpenProject?.(p)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderRadius: 2, cursor: 'pointer',
-                    bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                     transition: 'border-color 0.15s, transform 0.15s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' } }}>
+                    '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', transform: 'translateY(-2px)' } }}>
                   <FolderSpecialRoundedIcon sx={{ fontSize: 28, color: ACCENT }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography noWrap sx={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
-                    <Typography noWrap sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
+                    <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
+                    <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
                   </Box>
                 </Box>
               ))}
               {(projects || []).length === 0 && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
                   公開プロジェクトがありません
                 </Typography>
               )}
             </Box>
           ) : visibleCourses.length === 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <SchoolRoundedIcon sx={{ fontSize: 48, opacity: 0.4 }} />
               <Typography sx={{ fontSize: 14 }}>まだコースがありません</Typography>
               <Typography sx={{ fontSize: 12, opacity: 0.7 }}>建築・インテリアの学習コースがここに表示されます</Typography>

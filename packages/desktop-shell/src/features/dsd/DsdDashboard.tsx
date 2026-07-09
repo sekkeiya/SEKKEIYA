@@ -34,7 +34,7 @@ const TEMPLATES: TemplateDef[] = [
     icon: <WbSunnyRoundedIcon sx={{ fontSize: 22 }} />,
     label: 'なぜこの環境か？',
     desc: '日照・日影・光の差し込み方をアニメーションで可視化',
-    color: '#aed581',
+    color: 'light-dark(#5a822b, #aed581)',
     isMvp: true,
   },
   {
@@ -42,42 +42,42 @@ const TEMPLATES: TemplateDef[] = [
     icon: <PlaceRoundedIcon sx={{ fontSize: 22 }} />,
     label: 'なぜこの場所に？',
     desc: '敷地・周辺環境・アクセスの文脈を図化',
-    color: '#4dd0e1',
+    color: 'light-dark(#198694, #4dd0e1)',
   },
   {
     id: 'layout',
     icon: <RouteRoundedIcon sx={{ fontSize: 22 }} />,
     label: 'なぜこの配置に？',
     desc: '動線・ゾーニング・空間の構成を可視化',
-    color: '#ffb74d',
+    color: 'light-dark(#ad6700, #ffb74d)',
   },
   {
     id: null,
     icon: <AccessTimeRoundedIcon sx={{ fontSize: 22 }} />,
     label: '時間の流れは？',
     desc: '朝・昼・夜・季節による空間の変化を示す',
-    color: '#ba68c8',
+    color: 'light-dark(#732e7f, #ba68c8)',
   },
   {
     id: null,
     icon: <SentimentSatisfiedRoundedIcon sx={{ fontSize: 22 }} />,
     label: '人はどう動く？',
     desc: '動線・ペルソナ・生活シナリオを図式化',
-    color: '#f06292',
+    color: 'light-dark(#9e0f40, #f06292)',
   },
   {
     id: null,
     icon: <VisibilityRoundedIcon sx={{ fontSize: 22 }} />,
     label: '何が見えるか？',
     desc: '視線・プライバシー・眺望の関係を描く',
-    color: '#4fc3f7',
+    color: 'light-dark(#0875a6, #4fc3f7)',
   },
   {
     id: 'env',
     icon: <AirRoundedIcon sx={{ fontSize: 22 }} />,
     label: '環境はどうか？',
     desc: '風・音・温熱環境のフローを視覚化',
-    color: '#80cbc4',
+    color: 'light-dark(#327b74, #80cbc4)',
   },
 ];
 
@@ -109,12 +109,12 @@ const NewDiagramDialog: React.FC<{
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#181c28', backgroundImage: 'none',
-          borderRadius: 2.5, border: '1px solid rgba(255,255,255,0.1)',
+          bgcolor: 'var(--brand-surface2)', backgroundImage: 'none',
+          borderRadius: 2.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
         },
       }}
     >
-      <DialogTitle sx={{ color: '#fff', fontWeight: 700, pb: 0.5 }}>
+      <DialogTitle sx={{ color: 'var(--brand-fg)', fontWeight: 700, pb: 0.5 }}>
         新しいダイアグラムを作成
       </DialogTitle>
 
@@ -131,8 +131,8 @@ const NewDiagramDialog: React.FC<{
                 onClick={isAvailable ? () => setSelectedId(t.id as DsdTemplate) : undefined}
                 sx={{
                   borderRadius: 2,
-                  border: `1.5px solid ${isActive ? accent : 'rgba(255,255,255,0.08)'}`,
-                  bgcolor: isActive ? `${accent}18` : 'rgba(255,255,255,0.03)',
+                  border: `1.5px solid ${isActive ? accent : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
+                  bgcolor: isActive ? `${accent}18` : 'rgb(var(--brand-fg-rgb) / 0.03)',
                   display: 'flex', alignItems: 'center', gap: 1.5,
                   px: 1.5, py: 1.25,
                   cursor: isAvailable ? 'pointer' : 'default',
@@ -140,8 +140,8 @@ const NewDiagramDialog: React.FC<{
                   transition: 'all 0.15s',
                   position: 'relative', overflow: 'hidden',
                   '&:hover': isAvailable ? {
-                    bgcolor: isActive ? `${accent}22` : 'rgba(255,255,255,0.07)',
-                    borderColor: isActive ? accent : 'rgba(255,255,255,0.2)',
+                    bgcolor: isActive ? `${accent}22` : 'rgb(var(--brand-fg-rgb) / 0.07)',
+                    borderColor: isActive ? accent : 'rgb(var(--brand-fg-rgb) / 0.2)',
                   } : {},
                 }}
               >
@@ -149,21 +149,21 @@ const NewDiagramDialog: React.FC<{
                 <Box sx={{
                   width: 40, height: 40, borderRadius: 1.5, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  bgcolor: isActive ? `${accent}30` : 'rgba(255,255,255,0.06)',
-                  color: isActive ? accent : (isAvailable ? t.color : 'rgba(255,255,255,0.3)'),
+                  bgcolor: isActive ? `${accent}30` : 'rgb(var(--brand-fg-rgb) / 0.06)',
+                  color: isActive ? accent : (isAvailable ? t.color : 'rgb(var(--brand-fg-rgb) / 0.3)'),
                 }}>
                   {t.icon}
                 </Box>
                 {/* Text */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{
-                    color: isActive ? accent : 'rgba(255,255,255,0.85)',
+                    color: isActive ? accent : 'rgb(var(--brand-fg-rgb) / 0.85)',
                     fontSize: 12, fontWeight: 700, lineHeight: 1.35,
                   }}>
                     {t.label}
                   </Typography>
                   {!isAvailable && (
-                    <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 600, mt: 0.25 }}>
+                    <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 10, fontWeight: 600, mt: 0.25 }}>
                       近日公開
                     </Typography>
                   )}
@@ -190,17 +190,17 @@ const NewDiagramDialog: React.FC<{
         {/* Selected template description */}
         <Box sx={{
           p: 1.5, borderRadius: 1.5,
-          bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
           display: 'flex', alignItems: 'flex-start', gap: 1,
         }}>
           <Box sx={{ color: selectedTpl.color, mt: 0.25, flexShrink: 0 }}>
             {selectedTpl.icon}
           </Box>
           <Box>
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600, mb: 0.25 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 12, fontWeight: 600, mb: 0.25 }}>
               {selectedTpl.label}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 1.6 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 12, lineHeight: 1.6 }}>
               {selectedTpl.desc}
             </Typography>
           </Box>
@@ -208,7 +208,7 @@ const NewDiagramDialog: React.FC<{
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3, pt: 1.5, gap: 1 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>
           キャンセル
         </Button>
         <Button
@@ -315,7 +315,7 @@ export const DsdDashboard: React.FC<DsdDashboardProps> = ({
             border: '1px solid rgba(174,213,129,0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <WbSunnyRoundedIcon sx={{ fontSize: 18, color: '#aed581' }} />
+            <WbSunnyRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#5a822b, #aed581)' }} />
           </Box>
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: BRAND.text, lineHeight: 1.2 }}>

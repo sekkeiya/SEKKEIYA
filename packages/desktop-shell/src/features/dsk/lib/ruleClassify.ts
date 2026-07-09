@@ -1,6 +1,6 @@
 // S.Library (3DSK) — ルールベースの自動カテゴライズ（完全ローカル・クラウド送信なし）。
 //
-// S.Models の smartCategoryEngine と同じ思想で、ファイル名＋（PDF なら先頭ページの）
+// S.Model の smartCategoryEngine と同じ思想で、ファイル名＋（PDF なら先頭ページの）
 // 抽出テキストからキーワードを照合し、建築・設計ドメインの知識カテゴリ
 // （法規 / 構造 / 意匠 / 設備 / 環境 / 積算 / その他）と候補タグを推定する。
 // AI 分類（クラウド）はあくまで任意ボタン。これはその前段の即時分類。
@@ -74,6 +74,30 @@ function tokenSet(text: string): Set<string> {
       .split(/[^a-z0-9]+/)
       .filter((t) => t.length >= 2),
   );
+}
+
+/**
+ * 書籍（通読する出版物）らしさのシグナル。2つ以上当たったら書籍と判定する
+ * （「発行」等はカタログにも出るため、単発ヒットでは昇格させない）。
+ */
+const BOOK_SIGNALS: RegExp[] = [
+  /isbn/i, /奥付/, /出版社/, /発行所/, /第\s*\d+\s*刷/, /第\s*\d+\s*版/,
+  /文庫/, /新書/, /単行本/, /叢書/, /著(?:者|\s*[:：])/, /監修/, /訳(?:者|\s*[:：])/,
+  /目次/, /まえがき/, /はじめに/, /あとがき/,
+];
+
+/**
+ * ファイル名＋抽出テキストから「書籍」（kind 'book'）らしいかを推定する。
+ * 登録ダイアログの自動補正用: 既定の「書類」のまま書籍PDFを選んだときだけ書籍へ昇格させる。
+ */
+export function looksLikeBook(input: { fileName?: string; text?: string }): boolean {
+  const hay = `${input.fileName || ''} ${input.text || ''}`;
+  let hits = 0;
+  for (const re of BOOK_SIGNALS) {
+    if (re.test(hay)) hits += 1;
+    if (hits >= 2) return true;
+  }
+  return false;
 }
 
 export interface RuleClassifyResult {

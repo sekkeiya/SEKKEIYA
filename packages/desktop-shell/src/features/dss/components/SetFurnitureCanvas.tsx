@@ -63,7 +63,7 @@ function dimLabel(color: string, bg = 'rgba(8,11,18,0.88)'): React.CSSProperties
     font: '600 10px/1 ui-monospace, SFMono-Regular, monospace',
     padding: '2px 5px', borderRadius: 3,
     whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none',
-    border: `1px solid ${color}55`,
+    border: `1px solid color-mix(in srgb, ${color} 33%, transparent)`,
   };
 }
 

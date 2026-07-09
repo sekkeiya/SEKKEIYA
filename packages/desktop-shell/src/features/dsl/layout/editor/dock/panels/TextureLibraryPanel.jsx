@@ -55,7 +55,7 @@ export default function TextureLibraryPanel({ onClose }) {
             fontSize: 11,
             background: alpha("#fff", 0.08),
             border: `1px solid ${alpha("#fff", 0.10)}`,
-            color: alpha("#fff", 0.9),
+            color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
             mr: 1
           }}
         />
@@ -85,8 +85,8 @@ export default function TextureLibraryPanel({ onClose }) {
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 999,
-                background: alpha("#000", 0.18),
-                color: "#fff",
+                background: "color-mix(in srgb, var(--brand-bg) 18%, transparent)",
+                color: "var(--brand-fg)",
                 "& fieldset": { borderColor: alpha("#fff", 0.12) },
                 "&:hover fieldset": { borderColor: alpha("#fff", 0.18) },
               },
@@ -98,7 +98,7 @@ export default function TextureLibraryPanel({ onClose }) {
             mt: 0.5,
             borderRadius: 2,
             border: `1px solid ${alpha("#fff", 0.10)}`,
-            background: alpha("#000", 0.14),
+            background: "color-mix(in srgb, var(--brand-bg) 14%, transparent)",
             p: 1,
           }}
         >
@@ -121,11 +121,11 @@ export default function TextureLibraryPanel({ onClose }) {
                     overflow: "hidden",
                     border: `1px solid ${alpha("#fff", 0.12)}`,
                     cursor: "pointer",
-                    background: alpha("#000", 0.18),
+                    background: "color-mix(in srgb, var(--brand-bg) 18%, transparent)",
                     "&:hover": { borderColor: alpha("#fff", 0.22) },
                   }}
                 >
-                  <Box sx={{ aspectRatio: "1 / 1", background: alpha("#000", 0.25) }}>
+                  <Box sx={{ aspectRatio: "1 / 1", background: "color-mix(in srgb, var(--brand-bg) 25%, transparent)" }}>
                     {t.thumbUrl ? (
                       <img
                         src={t.thumbUrl}

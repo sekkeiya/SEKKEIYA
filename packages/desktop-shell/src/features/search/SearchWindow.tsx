@@ -11,7 +11,7 @@ export const SearchWindow: React.FC = () => {
       .catch(() => {});
   };
   return (
-    <Box sx={{ width: '100vw', height: '100vh', bgcolor: '#0a0d16', overflow: 'hidden' }}>
+    <Box sx={{ width: '100vw', height: '100vh', bgcolor: 'var(--brand-bg)', overflow: 'hidden' }}>
       <GlobalSearchDialog open embedded onClose={handleClose} />
     </Box>
   );

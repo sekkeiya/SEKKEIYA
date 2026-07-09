@@ -26,14 +26,14 @@ const S = {
   root: {
     flex: 1, height: '100%',
     display: 'flex', flexDirection: 'column' as const,
-    bgcolor: '#020617', overflow: 'hidden',
+    bgcolor: 'var(--brand-bg)', overflow: 'hidden',
   },
   stickyHeader: {
     position: 'sticky' as const,
     top: 0, zIndex: 20,
-    background: 'rgba(2,6,23,0.92)',
+    background: 'rgb(var(--slate-deep-rgb) / 0.92)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(148,163,184,0.18)',
+    borderBottom: '1px solid rgb(var(--slate-ink-rgb) / 0.18)',
     flexShrink: 0,
   },
   topBar: {
@@ -44,35 +44,35 @@ const S = {
     minWidth: 200, display: 'flex', flexDirection: 'column' as const, gap: '2px',
   },
   breadcrumb: {
-    fontSize: 11, color: 'rgba(148,163,184,0.85)',
+    fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)',
     lineHeight: 1.2, whiteSpace: 'nowrap' as const,
   },
   pageTitle: {
     fontSize: 18, fontWeight: 760,
-    letterSpacing: 0.2, lineHeight: 1.2, color: '#e2e8f0',
+    letterSpacing: 0.2, lineHeight: 1.2, color: 'var(--brand-fg)',
   },
   searchWrap: {
     display: 'flex', alignItems: 'center', gap: 1,
     padding: '7px 10px', borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.30)',
-    background: 'rgba(15,23,42,0.62)',
+    border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.62)',
     width: 'min(480px, 100%)', minWidth: 180,
   },
   searchInput: {
     width: '100%', minWidth: 0,
     border: 'none', outline: 'none',
     background: 'transparent',
-    color: '#e5e7eb', fontSize: 12,
+    color: 'var(--brand-fg)', fontSize: 12,
   } as React.CSSProperties,
   viewBlock: {
     display: 'flex', flexDirection: 'column' as const,
     alignItems: 'flex-end', gap: '4px',
   },
-  miniLabel: { fontSize: 11, color: 'rgba(148,163,184,0.85)' },
-  densityGroup: { '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgba(148,163,184,0.22)' } },
+  miniLabel: { fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)' },
+  densityGroup: { '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)' } },
   densityBtn: {
-    color: 'rgba(229,231,235,0.9)', background: 'rgba(15,23,42,0.32)',
-    borderColor: 'rgba(148,163,184,0.22)', padding: '3px 10px', fontSize: 11,
+    color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))', background: 'rgb(var(--slate-panel-rgb) / 0.32)',
+    borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)', padding: '3px 10px', fontSize: 11,
   },
   densityBtnActive: {
     color: '#0b1220', background: 'rgba(96,165,250,0.9)',
@@ -87,9 +87,9 @@ const S = {
     textTransform: 'none' as const, fontSize: 11, px: 1.5, py: 0,
     borderRadius: 0, height: 28, minWidth: 0,
     bgcolor: active ? `${accent}26` : 'transparent',
-    color: active ? accent : 'rgba(148,163,184,0.7)',
-    borderRight: '1px solid rgba(148,163,184,0.15)',
-    '&:hover': { bgcolor: active ? `${accent}33` : 'rgba(255,255,255,0.04)' },
+    color: active ? accent : 'rgb(var(--slate-ink-rgb) / 0.7)',
+    borderRight: '1px solid rgb(var(--slate-ink-rgb) / 0.15)',
+    '&:hover': { bgcolor: active ? `${accent}33` : 'rgb(var(--brand-fg-rgb) / 0.04)' },
   }),
   scrollArea: {
     flex: 1, minHeight: 0, overflowY: 'auto' as const,
@@ -106,18 +106,18 @@ const DENSITY_PRESETS = [
 // ─── Template / filter metadata ───────────────────────────────────────────────
 
 const TEMPLATE_TABS = [
-  { key: 'all',    label: 'ALL',       icon: null, color: '#aed581' },
-  { key: 'sun',    label: '日照・日影', icon: <WbSunnyRoundedIcon sx={{ fontSize: 13 }} />, color: '#aed581' },
-  { key: 'site',   label: '敷地・周辺', icon: <PlaceRoundedIcon   sx={{ fontSize: 13 }} />, color: '#4dd0e1' },
-  { key: 'layout', label: 'ゾーニング', icon: <RouteRoundedIcon   sx={{ fontSize: 13 }} />, color: '#ffb74d' },
-  { key: 'env',    label: '環境・風・音',icon: <AirRoundedIcon    sx={{ fontSize: 13 }} />, color: '#80cbc4' },
+  { key: 'all',    label: 'ALL',       icon: null, color: 'light-dark(#5a822b, #aed581)' },
+  { key: 'sun',    label: '日照・日影', icon: <WbSunnyRoundedIcon sx={{ fontSize: 13 }} />, color: 'light-dark(#5a822b, #aed581)' },
+  { key: 'site',   label: '敷地・周辺', icon: <PlaceRoundedIcon   sx={{ fontSize: 13 }} />, color: 'light-dark(#198694, #4dd0e1)' },
+  { key: 'layout', label: 'ゾーニング', icon: <RouteRoundedIcon   sx={{ fontSize: 13 }} />, color: 'light-dark(#ad6700, #ffb74d)' },
+  { key: 'env',    label: '環境・風・音',icon: <AirRoundedIcon    sx={{ fontSize: 13 }} />, color: 'light-dark(#327b74, #80cbc4)' },
 ];
 
 const TEMPLATE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: '#aed581' },
-  site:   { label: '敷地・周辺',   icon: <PlaceRoundedIcon   sx={{ fontSize: 14 }} />, color: '#4dd0e1' },
-  layout: { label: 'ゾーニング',   icon: <RouteRoundedIcon   sx={{ fontSize: 14 }} />, color: '#ffb74d' },
-  env:    { label: '環境・風・音', icon: <AirRoundedIcon     sx={{ fontSize: 14 }} />, color: '#80cbc4' },
+  sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: 'light-dark(#5a822b, #aed581)' },
+  site:   { label: '敷地・周辺',   icon: <PlaceRoundedIcon   sx={{ fontSize: 14 }} />, color: 'light-dark(#198694, #4dd0e1)' },
+  layout: { label: 'ゾーニング',   icon: <RouteRoundedIcon   sx={{ fontSize: 14 }} />, color: 'light-dark(#ad6700, #ffb74d)' },
+  env:    { label: '環境・風・音', icon: <AirRoundedIcon     sx={{ fontSize: 14 }} />, color: 'light-dark(#327b74, #80cbc4)' },
 };
 
 function formatDate(ts: any): string {
@@ -165,16 +165,16 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
       onClick={handleClick}
       sx={{
         borderRadius: '8px',
-        border: `1px solid rgba(148,163,184,0.13)`,
-        background: 'rgba(15,23,42,0.62)',
+        border: `1px solid rgb(var(--slate-ink-rgb) / 0.13)`,
+        background: 'rgb(var(--slate-panel-rgb) / 0.62)',
         overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
         transition: 'all 0.18s ease',
         cursor: 'pointer',
         '&:hover': {
-          border: `1px solid ${meta.color}66`,
+          border: `1px solid color-mix(in srgb, ${meta.color} 40%, transparent)`,
           boxShadow: `0 4px 20px rgba(0,0,0,0.4)`,
-          background: 'rgba(15,23,42,0.82)',
+          background: 'rgb(var(--slate-panel-rgb) / 0.82)',
           '& .card-actions': { opacity: 1 },
         },
       }}
@@ -183,7 +183,7 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
       <Box sx={{
         position: 'relative',
         aspectRatio: '16/9',
-        bgcolor: `${meta.color}12`,
+        bgcolor: `color-mix(in srgb, ${meta.color} 7%, transparent)`,
         overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexDirection: 'column', gap: 0.5,
@@ -215,8 +215,8 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
         {/* Visibility badge */}
         <Box sx={{ position: 'absolute', top: 5, left: 5 }}>
           {item.visibility === 'public'
-            ? <PublicRoundedIcon sx={{ fontSize: 13, color: 'rgba(174,213,129,0.7)' }} />
-            : <LockRoundedIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }} />
+            ? <PublicRoundedIcon sx={{ fontSize: 13, color: 'light-dark(rgba(90,130,43,0.7), rgba(174,213,129,0.7))' }} />
+            : <LockRoundedIcon sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }} />
           }
         </Box>
 
@@ -235,7 +235,7 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
                   if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
                   onOpen?.(item);
                 }}
-                sx={{ bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', width: 24, height: 24, '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
+                sx={{ bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)', width: 24, height: 24, '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
               >
                 <EditRoundedIcon sx={{ fontSize: 14 }} />
               </IconButton>
@@ -244,7 +244,7 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
               <IconButton
                 size="small"
                 onClick={(e) => { e.stopPropagation(); setMenuAnchor(e.currentTarget); }}
-                sx={{ bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', width: 24, height: 24, '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
+                sx={{ bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)', width: 24, height: 24, '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
               >
                 <MoreVertRoundedIcon sx={{ fontSize: 14 }} />
               </IconButton>
@@ -257,7 +257,7 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
       <Box sx={{ p: '10px 12px 12px' }}>
         <Typography sx={{
           fontSize: Math.max(11, cardSize * 0.055),
-          fontWeight: 600, color: '#e2e8f0',
+          fontWeight: 600, color: 'var(--brand-fg)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           mb: 0.75,
         }}>
@@ -270,19 +270,19 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
             size="small"
             sx={{
               height: 18, fontSize: '0.6rem', fontWeight: 600,
-              bgcolor: `${meta.color}18`, color: meta.color,
-              border: `1px solid ${meta.color}33`,
+              bgcolor: `color-mix(in srgb, ${meta.color} 9%, transparent)`, color: meta.color,
+              border: `1px solid color-mix(in srgb, ${meta.color} 20%, transparent)`,
               '& .MuiChip-icon': { color: meta.color, ml: 0.5 },
             }}
           />
           {updatedAt && (
-            <Typography sx={{ fontSize: '0.6rem', color: 'rgba(148,163,184,0.7)', ml: 'auto' }}>
+            <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--slate-ink-rgb) / 0.7)', ml: 'auto' }}>
               {formatDate(updatedAt)}
             </Typography>
           )}
         </Box>
         {item.category && cardSize >= 200 && (
-          <Typography sx={{ fontSize: '0.6rem', color: 'rgba(148,163,184,0.55)', mt: 0.5 }}>
+          <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--slate-ink-rgb) / 0.55)', mt: 0.5 }}>
             {item.category}
           </Typography>
         )}
@@ -294,7 +294,7 @@ const DiagramCard: React.FC<DiagramCardProps> = ({ item, cardSize, isOwn, onOpen
           anchorEl={menuAnchor}
           open={Boolean(menuAnchor)}
           onClose={(e: any) => { e?.stopPropagation?.(); setMenuAnchor(null); }}
-          PaperProps={{ sx: { bgcolor: '#0f172a', border: '1px solid rgba(148,163,184,0.15)', minWidth: 140 } }}
+          PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.15)', minWidth: 140 } }}
         >
           {onDelete && (
             <MenuItem onClick={(e) => { e.stopPropagation(); onDelete(item); setMenuAnchor(null); }} sx={{ color: '#ef5350' }}>
@@ -319,14 +319,14 @@ const ProjectCard: React.FC<{ project: any; onClick: () => void }> = ({ project,
       onClick={onClick}
       sx={{
         borderRadius: '8px',
-        border: '1px solid rgba(148,163,184,0.13)',
-        background: 'rgba(15,23,42,0.62)',
+        border: '1px solid rgb(var(--slate-ink-rgb) / 0.13)',
+        background: 'rgb(var(--slate-panel-rgb) / 0.62)',
         overflow: 'hidden', cursor: 'pointer',
         transition: 'all 0.18s ease',
         '&:hover': {
           border: '1px solid rgba(52,152,219,0.5)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-          background: 'rgba(15,23,42,0.82)',
+          background: 'rgb(var(--slate-panel-rgb) / 0.82)',
         },
       }}
     >
@@ -341,11 +341,11 @@ const ProjectCard: React.FC<{ project: any; onClick: () => void }> = ({ project,
         )}
       </Box>
       <Box sx={{ p: '10px 12px 12px' }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', mb: 0.5 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', mb: 0.5 }}>
           {name}
         </Typography>
         {project.ownerName && (
-          <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.65)' }}>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.65)' }}>
             {project.ownerName}
           </Typography>
         )}
@@ -386,9 +386,9 @@ const ProjectDiagramsPanel: React.FC<{
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Sub-header */}
-      <Box sx={{ ...S.stickyHeader, borderTop: '1px solid rgba(148,163,184,0.10)' }}>
+      <Box sx={{ ...S.stickyHeader, borderTop: '1px solid rgb(var(--slate-ink-rgb) / 0.10)' }}>
         <Box sx={{ ...S.topBar, minHeight: 48 }}>
-          <IconButton size="small" onClick={onBack} sx={{ color: 'rgba(148,163,184,0.7)', '&:hover': { color: '#fff' }, mr: 0.5 }}>
+          <IconButton size="small" onClick={onBack} sx={{ color: 'rgb(var(--slate-ink-rgb) / 0.7)', '&:hover': { color: 'var(--brand-fg)' }, mr: 0.5 }}>
             <ArrowBackRoundedIcon sx={{ fontSize: 18 }} />
           </IconButton>
           <Box sx={S.titleBlock}>
@@ -400,7 +400,7 @@ const ProjectDiagramsPanel: React.FC<{
           </Box>
           <Box sx={{ flex: 1 }} />
           {!loading && (
-            <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.65)' }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.65)' }}>
               {items.length} 件
             </Typography>
           )}
@@ -414,7 +414,7 @@ const ProjectDiagramsPanel: React.FC<{
           </Box>
         ) : items.length === 0 ? (
           <EmptyState
-            icon={<WbSunnyRoundedIcon sx={{ fontSize: 40, color: 'rgba(148,163,184,0.2)' }} />}
+            icon={<WbSunnyRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--slate-ink-rgb) / 0.2)' }} />}
             message="このプロジェクトにはまだ公開ダイアグラムがありません。"
           />
         ) : (
@@ -434,7 +434,7 @@ const ProjectDiagramsPanel: React.FC<{
 const EmptyState: React.FC<{ icon: React.ReactNode; message: string }> = ({ icon, message }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 10, gap: 2 }}>
     {icon}
-    <Typography sx={{ fontSize: 13, color: 'rgba(148,163,184,0.55)', textAlign: 'center', maxWidth: 300, lineHeight: 1.7 }}>
+    <Typography sx={{ fontSize: 13, color: 'rgb(var(--slate-ink-rgb) / 0.55)', textAlign: 'center', maxWidth: 300, lineHeight: 1.7 }}>
       {message}
     </Typography>
   </Box>
@@ -525,16 +525,16 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
         <Box sx={S.stickyHeader}>
           <Box sx={{ ...S.topBar, minHeight: 40, padding: '6px 16px' }}>
             <Box sx={S.breadcrumb} component="span">Global Diagram Hub</Box>
-            <Box component="span" sx={{ mx: 0.75, color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>/</Box>
+            <Box component="span" sx={{ mx: 0.75, color: 'rgb(var(--slate-ink-rgb) / 0.4)', fontSize: 11 }}>/</Box>
             <Box
               component="span"
               onClick={() => setSelectedProject(null)}
-              sx={{ ...S.breadcrumb, cursor: 'pointer', '&:hover': { color: '#fff' } }}
+              sx={{ ...S.breadcrumb, cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' } }}
             >
               Public Projects
             </Box>
-            <Box component="span" sx={{ mx: 0.75, color: 'rgba(148,163,184,0.4)', fontSize: 11 }}>/</Box>
-            <Box component="span" sx={{ ...S.breadcrumb, color: '#e2e8f0' }}>
+            <Box component="span" sx={{ mx: 0.75, color: 'rgb(var(--slate-ink-rgb) / 0.4)', fontSize: 11 }}>/</Box>
+            <Box component="span" sx={{ ...S.breadcrumb, color: 'var(--brand-fg)' }}>
               {selectedProject.name || selectedProject.title}
             </Box>
           </Box>
@@ -569,9 +569,9 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
                   onPointerDown={(e) => { e.stopPropagation(); setDsdGlobalFilter('all'); }}
                   sx={{
                     ...S.pageTitle, fontSize: 22, cursor: 'pointer',
-                    color: dsdGlobalFilter === 'all' ? '#fff' : 'rgba(255,255,255,0.3)',
+                    color: dsdGlobalFilter === 'all' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.3)',
                     transition: 'color 0.2s',
-                    '&:hover': { color: dsdGlobalFilter === 'all' ? '#fff' : 'rgba(255,255,255,0.6)' },
+                    '&:hover': { color: dsdGlobalFilter === 'all' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)' },
                   }}
                 >
                   Explore
@@ -580,9 +580,9 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
                   onPointerDown={(e) => { e.stopPropagation(); setDsdGlobalFilter('following'); }}
                   sx={{
                     ...S.pageTitle, fontSize: 22, cursor: 'pointer',
-                    color: dsdGlobalFilter === 'following' ? '#fff' : 'rgba(255,255,255,0.3)',
+                    color: dsdGlobalFilter === 'following' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.3)',
                     transition: 'color 0.2s',
-                    '&:hover': { color: dsdGlobalFilter === 'following' ? '#fff' : 'rgba(255,255,255,0.6)' },
+                    '&:hover': { color: dsdGlobalFilter === 'following' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)' },
                   }}
                 >
                   Following
@@ -597,7 +597,7 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
 
           {/* Search */}
           <Box sx={S.searchWrap} onPointerDown={e => e.stopPropagation()}>
-            <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgba(148,163,184,0.9)', flexShrink: 0 }} />
+            <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--slate-ink-rgb) / 0.9)', flexShrink: 0 }} />
             <input
               type="text"
               placeholder={isProjectsScope ? 'Search projects...' : 'Search diagrams...'}
@@ -612,7 +612,7 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
           {/* Density + count */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             {!isInitializing && (
-              <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', whiteSpace: 'nowrap' }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.6)', whiteSpace: 'nowrap' }}>
                 {displayCount} 件
               </Typography>
             )}
@@ -638,7 +638,7 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
           <Box sx={S.filterRow}>
             <Box sx={{
               display: 'flex', borderRadius: '6px', overflow: 'hidden',
-              border: '1px solid rgba(148,163,184,0.15)', flexShrink: 0,
+              border: '1px solid rgb(var(--slate-ink-rgb) / 0.15)', flexShrink: 0,
             }}>
               {TEMPLATE_TABS.map((tab, i) => (
                 <Button
@@ -647,12 +647,12 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
                   onClick={() => setTemplateFilter(tab.key)}
                   sx={{
                     ...S.tabBtn(templateFilter === tab.key, tab.color),
-                    borderRight: i < TEMPLATE_TABS.length - 1 ? '1px solid rgba(148,163,184,0.15)' : 'none',
+                    borderRight: i < TEMPLATE_TABS.length - 1 ? '1px solid rgb(var(--slate-ink-rgb) / 0.15)' : 'none',
                     gap: 0.5,
                   }}
                 >
                   {tab.icon && React.cloneElement(tab.icon as React.ReactElement, {
-                    sx: { fontSize: 12, color: templateFilter === tab.key ? tab.color : 'rgba(148,163,184,0.5)' },
+                    sx: { fontSize: 12, color: templateFilter === tab.key ? tab.color : 'rgb(var(--slate-ink-rgb) / 0.5)' },
                   })}
                   {tab.label}
                 </Button>
@@ -669,9 +669,9 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
                   onDelete={() => setTemplateFilter('all')}
                   sx={{
                     height: 22, fontSize: 11,
-                    bgcolor: `${t.color}18`, color: t.color,
-                    border: `1px solid ${t.color}33`,
-                    '& .MuiChip-deleteIcon': { color: `${t.color}99`, fontSize: 14 },
+                    bgcolor: `color-mix(in srgb, ${t.color} 9%, transparent)`, color: t.color,
+                    border: `1px solid color-mix(in srgb, ${t.color} 20%, transparent)`,
+                    '& .MuiChip-deleteIcon': { color: `color-mix(in srgb, ${t.color} 60%, transparent)`, fontSize: 14 },
                   }}
                 />
               ) : null;
@@ -684,11 +684,11 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
       <Box sx={S.scrollArea}>
         {isInitializing ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-            <CircularProgress size={28} sx={{ color: '#aed581' }} />
+            <CircularProgress size={28} sx={{ color: 'light-dark(#5a822b, #aed581)' }} />
           </Box>
         ) : isProjectsScope ? (
           filteredProjects.length === 0 ? (
-            <EmptyState icon={<FolderRoundedIcon sx={{ fontSize: 40, color: 'rgba(148,163,184,0.2)' }} />} message="公開プロジェクトが見つかりませんでした。" />
+            <EmptyState icon={<FolderRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--slate-ink-rgb) / 0.2)' }} />} message="公開プロジェクトが見つかりませんでした。" />
           ) : (
             <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${cardSize}px, 1fr))`, gap: '12px' }}>
               {filteredProjects.map(p => (
@@ -699,7 +699,7 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
         ) : (
           filteredDiagrams.length === 0 ? (
             <EmptyState
-              icon={<WbSunnyRoundedIcon sx={{ fontSize: 40, color: 'rgba(148,163,184,0.2)' }} />}
+              icon={<WbSunnyRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--slate-ink-rgb) / 0.2)' }} />}
               message={
                 dsdGlobalFilter === 'following' && isGlobalDiagramsScope
                   ? 'フォロー中のユーザーの公開ダイアグラムがありません。'

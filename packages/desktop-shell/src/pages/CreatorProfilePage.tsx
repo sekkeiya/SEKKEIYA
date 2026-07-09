@@ -118,9 +118,9 @@ const StatBox = ({ value, label, onClick }: { value: number | null; label: strin
     }}
   >
     {value === null
-      ? <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.4)', mb: 0.5 }} />
+      ? <CircularProgress size={14} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 0.5 }} />
       : <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1 }}>{value}</Typography>}
-    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>{label}</Typography>
+    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{label}</Typography>
   </Box>
 );
 
@@ -148,8 +148,8 @@ const FeaturedCard = ({
       position: 'relative',
       borderRadius: '14px',
       overflow: 'hidden',
-      bgcolor: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
+      border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
       aspectRatio: '4 / 3',
       flexShrink: 0,
       width: 280,
@@ -162,17 +162,17 @@ const FeaturedCard = ({
         sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     ) : (
       <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ViewInArRoundedIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.15)' }} />
+        <ViewInArRoundedIcon sx={{ fontSize: 48, color: 'rgb(var(--brand-fg-rgb) / 0.15)' }} />
       </Box>
     )}
 
     {/* Featured star badge */}
     <Box sx={{ position: 'absolute', top: 8, left: 8 }}>
       <Chip
-        icon={<StarRoundedIcon sx={{ fontSize: '14px !important', color: '#fbbf24 !important' }} />}
+        icon={<StarRoundedIcon sx={{ fontSize: '14px !important', color: 'light-dark(#aa7c03, #fbbf24) !important' }} />}
         label="Featured"
         size="small"
-        sx={{ bgcolor: 'rgba(0,0,0,0.65)', color: '#fbbf24', fontWeight: 700, fontSize: 11, backdropFilter: 'blur(6px)' }}
+        sx={{ bgcolor: 'rgba(0,0,0,0.65)', color: 'light-dark(#aa7c03, #fbbf24)', fontWeight: 700, fontSize: 11, backdropFilter: 'blur(6px)' }}
       />
     </Box>
 
@@ -182,7 +182,7 @@ const FeaturedCard = ({
         <IconButton
           size="small"
           onClick={() => onToggleFeatured(asset.id, false)}
-          sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'rgba(0,0,0,0.55)', color: '#fbbf24', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
+          sx={{ position: 'absolute', top: 6, right: 6, bgcolor: 'rgba(0,0,0,0.55)', color: 'light-dark(#aa7c03, #fbbf24)', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}
         >
           <StarRoundedIcon fontSize="small" />
         </IconButton>
@@ -193,7 +193,7 @@ const FeaturedCard = ({
       position: 'absolute', bottom: 0, left: 0, right: 0, p: 1.5, pt: 3,
       background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
     }}>
-      <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <Typography variant="body2" sx={{ color: 'var(--brand-fg)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {asset.name || '無題'}
       </Typography>
     </Box>
@@ -209,8 +209,8 @@ const ModelCard = ({
       position: 'relative',
       borderRadius: '10px',
       overflow: 'hidden',
-      bgcolor: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.07)',
+      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
+      border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
       aspectRatio: '1 / 1',
       cursor: 'pointer',
       transition: 'transform 0.18s, box-shadow 0.18s',
@@ -223,7 +223,7 @@ const ModelCard = ({
         sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     ) : (
       <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ViewInArRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.2)' }} />
+        <ViewInArRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
       </Box>
     )}
 
@@ -236,9 +236,9 @@ const ModelCard = ({
           onClick={() => onToggleFeatured(asset.id, true)}
           sx={{
             position: 'absolute', top: 6, right: 6,
-            bgcolor: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.7)',
+            bgcolor: 'rgba(0,0,0,0.55)', color: 'rgb(var(--brand-fg-rgb) / 0.7)',
             opacity: 0, transition: 'opacity 0.15s',
-            '&:hover': { bgcolor: 'rgba(0,0,0,0.8)', color: '#fbbf24' },
+            '&:hover': { bgcolor: 'rgba(0,0,0,0.8)', color: 'light-dark(#aa7c03, #fbbf24)' },
           }}
         >
           <StarBorderRoundedIcon fontSize="small" />
@@ -250,7 +250,7 @@ const ModelCard = ({
       position: 'absolute', bottom: 0, left: 0, right: 0, p: 1, pt: 2,
       background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)',
     }}>
-      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontWeight: 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {asset.name || '無題'}
       </Typography>
     </Box>
@@ -517,15 +517,15 @@ const CreatorProfilePage: React.FC = () => {
       <Box sx={{ position: 'relative', width: '100%' }}>
         <Box sx={{
           width: '100%', height: BANNER_HEIGHT,
-          bgcolor: 'rgba(255,255,255,0.04)',
+          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
           backgroundImage: profile?.bannerURL ? `url(${profile.bannerURL})` : 'none',
           backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative',
         }}>
-          <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.6) 100%)' }} />
+          <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.05)) 0%, rgba(0,0,0,0.6) 100%)' }} />
           {!isOwn && (
             <IconButton onClick={handleBack} sx={{
               position: 'absolute', top: 16, left: 16,
-              bgcolor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: '#fff',
+              bgcolor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: 'var(--brand-fg)',
               '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
             }}>
               <ArrowBackRoundedIcon />
@@ -535,13 +535,13 @@ const CreatorProfilePage: React.FC = () => {
             <Tooltip title="通知">
               <IconButton onClick={(e) => setNotifAnchor(e.currentTarget)} sx={{
                 position: 'absolute', top: 16, right: 64,
-                bgcolor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: '#fff',
+                bgcolor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: 'var(--brand-fg)',
                 '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
               }}>
                 <Badge
                   badgeContent={unreadCount}
                   max={99}
-                  sx={{ '& .MuiBadge-badge': { bgcolor: '#3498db', color: '#fff', fontSize: 10, fontWeight: 700, minWidth: 16, height: 16 } }}
+                  sx={{ '& .MuiBadge-badge': { bgcolor: '#3498db', color: 'var(--brand-fg)', fontSize: 10, fontWeight: 700, minWidth: 16, height: 16 } }}
                 >
                   <NotificationsRoundedIcon />
                 </Badge>
@@ -551,7 +551,7 @@ const CreatorProfilePage: React.FC = () => {
           {isOwn && (
             <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} sx={{
               position: 'absolute', top: 16, right: 16,
-              bgcolor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: '#fff',
+              bgcolor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)', color: 'var(--brand-fg)',
               '&:hover': { bgcolor: 'rgba(0,0,0,0.65)' },
             }}>
               <MoreVertRoundedIcon />
@@ -574,7 +574,7 @@ const CreatorProfilePage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
           <Box>
             {isLoadingProfile
-              ? <CircularProgress size={20} sx={{ color: 'rgba(255,255,255,0.4)' }} />
+              ? <CircularProgress size={20} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
               : <>
                   <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.2 }}>{displayName}</Typography>
                   {profile?.title && (
@@ -602,7 +602,7 @@ const CreatorProfilePage: React.FC = () => {
               <Tooltip title="アカウント設定">
                 <IconButton
                   onClick={() => setAccountSettingsOpen(true)}
-                  sx={{ color: 'rgba(255,255,255,0.7)', bgcolor: 'rgba(255,255,255,0.07)', borderRadius: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.12)', color: '#fff' } }}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', borderRadius: 2, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'var(--brand-fg)' } }}
                 >
                   <ManageAccountsRoundedIcon />
                 </IconButton>
@@ -630,14 +630,14 @@ const CreatorProfilePage: React.FC = () => {
               icon={<Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: workStatusCfg.dot, ml: '10px !important' }} />}
               label={workStatusCfg.label}
               size="small"
-              sx={{ bgcolor: workStatusCfg.bg, color: workStatusCfg.color, fontWeight: 700, fontSize: 12, border: `1px solid ${workStatusCfg.color}40`, px: 0.5 }}
+              sx={{ bgcolor: workStatusCfg.bg, color: workStatusCfg.color, fontWeight: 700, fontSize: 12, border: `1px solid color-mix(in srgb, ${workStatusCfg.color} 25%, transparent)`, px: 0.5 }}
             />
           </Box>
         )}
 
         {/* Bio */}
         {profile?.bio && (
-          <Typography variant="body2" sx={{ mt: 2, color: 'rgba(255,255,255,0.8)', whiteSpace: 'pre-wrap', lineHeight: 1.7, maxWidth: 640 }}>
+          <Typography variant="body2" sx={{ mt: 2, color: 'rgb(var(--brand-fg-rgb) / 0.8)', whiteSpace: 'pre-wrap', lineHeight: 1.7, maxWidth: 640 }}>
             {profile.bio}
           </Typography>
         )}
@@ -651,12 +651,12 @@ const CreatorProfilePage: React.FC = () => {
           {/* Contact email */}
           {profile?.contactEmail && (
             <>
-              <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+              <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
               <Tooltip title={`メールを送る: ${profile.contactEmail}`}>
                 <IconButton
                   size="small"
                   onClick={() => window.open(`mailto:${profile?.contactEmail}`, '_blank')}
-                  sx={{ color: 'rgba(255,255,255,0.7)', bgcolor: 'rgba(255,255,255,0.07)', '&:hover': { color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.1)' } }}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', '&:hover': { color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.1)' } }}
                 >
                   <EmailRoundedIcon fontSize="small" />
                 </IconButton>
@@ -666,12 +666,12 @@ const CreatorProfilePage: React.FC = () => {
 
           {profile?.socials && Object.values(profile.socials).some(Boolean) && (
             <>
-              <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+              <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <SocialButton show={profile.socials.twitter} href={profile.socials.twitter!} icon={<TwitterIcon />} color="#1DA1F2" bg="rgba(29,161,242,0.12)" label="X (Twitter)" />
                 <SocialButton show={profile.socials.instagram} href={profile.socials.instagram!} icon={<InstagramIcon />} color="#E1306C" bg="rgba(225,48,108,0.12)" label="Instagram" />
                 <SocialButton show={profile.socials.artstation} href={profile.socials.artstation!} icon={<BrushRoundedIcon />} color="#13AFF0" bg="rgba(19,175,240,0.12)" label="ArtStation" />
-                <SocialButton show={profile.socials.github} href={profile.socials.github!} icon={<GitHubIcon />} color="#fff" bg="rgba(255,255,255,0.1)" label="GitHub" />
+                <SocialButton show={profile.socials.github} href={profile.socials.github!} icon={<GitHubIcon />} color="var(--brand-fg)" bg="rgb(var(--brand-fg-rgb) / 0.1)" label="GitHub" />
                 <SocialButton show={profile.socials.website} href={profile.socials.website!} icon={<LanguageRoundedIcon />} color="#00BFFF" bg="rgba(0,191,255,0.12)" label="Website" />
               </Box>
             </>
@@ -681,13 +681,13 @@ const CreatorProfilePage: React.FC = () => {
         {/* Skill tags (auto-aggregated) */}
         {!isLoadingAssets && skillTags.length > 0 && (
           <Box sx={{ mt: 3 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', mb: 1.5 }}>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', display: 'block', mb: 1.5 }}>
               得意ジャンル
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxWidth: 360 }}>
               {skillTags.map(({ label, count }) => (
                 <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', minWidth: 100, fontWeight: 600 }}>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.75)', minWidth: 100, fontWeight: 600 }}>
                     {label}
                   </Typography>
                   <LinearProgress
@@ -695,11 +695,11 @@ const CreatorProfilePage: React.FC = () => {
                     value={(count / skillTags[0].count) * 100}
                     sx={{
                       flex: 1, height: 6, borderRadius: 3,
-                      bgcolor: 'rgba(255,255,255,0.07)',
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)',
                       '& .MuiLinearProgress-bar': { bgcolor: 'primary.main', borderRadius: 3 },
                     }}
                   />
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', minWidth: 28, textAlign: 'right' }}>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', minWidth: 28, textAlign: 'right' }}>
                     {count}
                   </Typography>
                 </Box>
@@ -709,14 +709,14 @@ const CreatorProfilePage: React.FC = () => {
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mx: SIDE_PAD, my: 2 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', mx: SIDE_PAD, my: 2 }} />
 
       {/* ── FEATURED SECTION (highlight strip) ── */}
       {!isLoadingAssets && featuredAssets.length > 0 && (
         <Box sx={{ px: SIDE_PAD, mb: 4 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <StarRoundedIcon sx={{ color: '#fbbf24', fontSize: 18 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+            <StarRoundedIcon sx={{ color: 'light-dark(#aa7c03, #fbbf24)', fontSize: 18 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.9)' }}>
               代表作
             </Typography>
           </Box>
@@ -731,8 +731,8 @@ const CreatorProfilePage: React.FC = () => {
       {/* ── CONTENT TABS ── */}
       <Box sx={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
         position: 'sticky', top: 0, bgcolor: BRAND.bg, zIndex: 5,
       }}>
         {([
@@ -749,7 +749,7 @@ const CreatorProfilePage: React.FC = () => {
               sx={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75,
                 py: 1.5, border: 'none', bgcolor: 'transparent', cursor: 'pointer',
-                color: active ? BRAND.text : 'rgba(255,255,255,0.45)',
+                color: active ? BRAND.text : 'rgb(var(--brand-fg-rgb) / 0.45)',
                 borderTop: active ? '2px solid #fff' : '2px solid transparent', mt: '-1px',
               }}
             >
@@ -765,7 +765,7 @@ const CreatorProfilePage: React.FC = () => {
         {activeTab === 'models' && (
           <>
             {isOwn && regularAssets.length > 0 && (
-              <Typography variant="caption" sx={{ display: 'block', mb: 1.5, color: 'rgba(255,255,255,0.35)' }}>
+              <Typography variant="caption" sx={{ display: 'block', mb: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
                 ★ アイコンにカーソルを当てると代表作に設定できます
               </Typography>
             )}
@@ -774,7 +774,7 @@ const CreatorProfilePage: React.FC = () => {
                 <CircularProgress sx={{ color: 'primary.main' }} />
               </Box>
             ) : regularAssets.length === 0 && featuredAssets.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 10, color: 'rgba(255,255,255,0.3)' }}>
+              <Box sx={{ textAlign: 'center', py: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                 <ViewInArRoundedIcon sx={{ fontSize: 56, mb: 2, display: 'block', mx: 'auto' }} />
                 <Typography variant="body1">まだモデルが投稿されていません</Typography>
               </Box>
@@ -793,12 +793,12 @@ const CreatorProfilePage: React.FC = () => {
         )}
 
         {(activeTab === 'likes' || activeTab === 'saved') && (
-          <Box sx={{ textAlign: 'center', py: 10, color: 'rgba(255,255,255,0.3)' }}>
+          <Box sx={{ textAlign: 'center', py: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
             {activeTab === 'likes'
               ? <FavoriteBorderRoundedIcon sx={{ fontSize: 56, mb: 2, display: 'block', mx: 'auto' }} />
               : <BookmarkBorderRoundedIcon sx={{ fontSize: 56, mb: 2, display: 'block', mx: 'auto' }} />}
             <Typography variant="body1">近日公開</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.25)' }}>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
               {activeTab === 'likes' ? 'いいねしたモデルがここに表示されます' : '保存したモデルがここに表示されます'}
             </Typography>
           </Box>
@@ -812,21 +812,21 @@ const CreatorProfilePage: React.FC = () => {
         onClose={() => setMenuAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { bgcolor: '#1a1f28', color: BRAND.text, border: '1px solid rgba(255,255,255,0.12)', minWidth: 200 } } }}
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface2)', color: BRAND.text, border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', minWidth: 200 } } }}
       >
         <MenuItem onClick={() => { setMenuAnchor(null); handleEdit(); }}>
-          <ListItemIcon><EditRoundedIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.7)' }} /></ListItemIcon>
+          <ListItemIcon><EditRoundedIcon fontSize="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} /></ListItemIcon>
           プロフィールを編集
         </MenuItem>
         <MenuItem onClick={handleShare}>
-          <ListItemIcon><IosShareRoundedIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.7)' }} /></ListItemIcon>
+          <ListItemIcon><IosShareRoundedIcon fontSize="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} /></ListItemIcon>
           プロフィールを共有
         </MenuItem>
         <MenuItem onClick={handleOpenSettings}>
-          <ListItemIcon><SettingsRoundedIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.7)' }} /></ListItemIcon>
+          <ListItemIcon><SettingsRoundedIcon fontSize="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} /></ListItemIcon>
           設定
         </MenuItem>
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
         <MenuItem onClick={handleLogout} sx={{ color: '#ef4444' }}>
           <ListItemIcon><LogoutRoundedIcon fontSize="small" sx={{ color: '#ef4444' }} /></ListItemIcon>
           ログアウト

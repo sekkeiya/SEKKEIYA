@@ -20,6 +20,9 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { BUILT_IN_DECK_TEMPLATES, type BuiltInDeckTemplate } from '../templates/builtInDeckTemplates';
 import { dspTemplateRepository, type PresentationTemplate } from '../api/dspTemplateRepository';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { renderPresentationThumbnail } from '../utils/dspThumbnailService';
+import { collectSlots, fillSlots, hasSlots, type CollectedSlot } from '../lib/templateSlots';
+import { useDspStore } from '../store/useDspStore';
 import type { PresentationContent } from '../types/dsp.types';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -59,7 +62,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ previewBg, emoji, name, slideCount,
     onClick={onClick}
     sx={{
       borderRadius: 2,
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
       overflow: 'hidden',
       cursor: 'pointer',
       transition: 'all 0.15s',
@@ -85,17 +88,17 @@ const DeckCard: React.FC<DeckCardProps> = ({ previewBg, emoji, name, slideCount,
       )}
     </Box>
     {/* Info area */}
-    <Box sx={{ p: 0.75, bgcolor: 'rgba(255,255,255,0.03)' }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <Box sx={{ p: 0.75, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-fg)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {name}
       </Typography>
       {slideCount !== undefined && (
-        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', mt: 0.25 }}>
+        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mt: 0.25 }}>
           {slideCount} スライド
         </Typography>
       )}
       {byline && (
-        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', mt: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {byline}
         </Typography>
       )}
@@ -124,7 +127,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ previewBg, emoji, name, slideCount,
 
 // ─── Section header ─────────────────────────────────────────────────────────────
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1, mt: 0.5 }}>
+  <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', letterSpacing: 0.8, mb: 1, mt: 0.5 }}>
     {children}
   </Typography>
 );
@@ -137,6 +140,8 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
   onApplyTemplate,
 }) => {
   const currentUser = useAuthStore(s => s.currentUser);
+  const pendingSaveTemplate = useDspStore(s => s.pendingSaveTemplate);
+  const setPendingSaveTemplate = useDspStore(s => s.setPendingSaveTemplate);
 
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [publicTemplates, setPublicTemplates] = useState<PresentationTemplate[]>([]);
@@ -147,8 +152,18 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
   // Apply confirm dialog
   const [applyTarget, setApplyTarget] = useState<BuiltInDeckTemplate | PresentationTemplate | null>(null);
 
+  // Slot fill step (テンプレに差し替え枠があるとき、適用前に中身を入力)
+  const [slotFill, setSlotFill] = useState<{
+    content: PresentationContent;
+    mode: 'replace' | 'append';
+    slots: CollectedSlot[];
+    values: Record<string, string>;
+  } | null>(null);
+
   // Save template dialog
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveMode, setSaveMode] = useState<'new' | 'overwrite'>('new');
+  const [overwriteTargetId, setOverwriteTargetId] = useState<string>('');
   const [saveForm, setSaveForm] = useState({
     name: '',
     description: '',
@@ -197,6 +212,16 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryFilter]);
 
+  // 上部バー等からの「テンプレートとして保存」リクエストを受けてダイアログを開く
+  useEffect(() => {
+    if (pendingSaveTemplate) {
+      setSaveMode('new');
+      setShowSaveDialog(true);
+      setPendingSaveTemplate(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSaveTemplate]);
+
   // ── Filtered built-ins ────────────────────────────────────────────────────
   const filteredBuiltIn = BUILT_IN_DECK_TEMPLATES.filter(
     t => categoryFilter === 'all' || t.category === categoryFilter,
@@ -221,8 +246,23 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
       }
     }
 
-    onApplyTemplate(content, mode);
     setApplyTarget(null);
+
+    // 差し替え枠があるテンプレは、中身入力ステップを挟む
+    if (hasSlots(content)) {
+      setSlotFill({ content, mode, slots: collectSlots(content), values: {} });
+      return;
+    }
+
+    onApplyTemplate(content, mode);
+  };
+
+  // ── Slot fill commit ──────────────────────────────────────────────────────
+  const handleSlotFillCommit = () => {
+    if (!slotFill) return;
+    const filled = fillSlots(slotFill.content, slotFill.values);
+    onApplyTemplate(filled, slotFill.mode);
+    setSlotFill(null);
   };
 
   // ── Delete my template ────────────────────────────────────────────────────
@@ -237,24 +277,44 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
 
   // ── Save current presentation as template ─────────────────────────────────
   const handleSave = async () => {
-    if (!currentUser || !presentation || !saveForm.name.trim()) return;
+    if (!currentUser || !presentation) return;
+    if (saveMode === 'new' && !saveForm.name.trim()) return;
+    if (saveMode === 'overwrite' && !overwriteTargetId) return;
     setIsSaving(true);
     try {
-      const now = new Date().toISOString();
-      await dspTemplateRepository.createTemplate({
-        name: saveForm.name.trim(),
-        description: saveForm.description.trim(),
-        category: saveForm.category,
-        visibility: saveForm.visibility,
-        createdBy: currentUser.uid,
-        createdByName: currentUser.displayName || '匿名',
-        createdAt: now,
-        updatedAt: now,
-        content: presentation,
-        slideCount: presentation.pages.length,
-        canvasSize: presentation.canvasSize,
-      });
+      // 1枚目のサムネイルを生成（失敗しても保存自体は継続）
+      let thumbBlob: Blob | null = null;
+      try { thumbBlob = await renderPresentationThumbnail(presentation); } catch { /* non-fatal */ }
+
+      if (saveMode === 'overwrite') {
+        await dspTemplateRepository.updateTemplateContent(
+          overwriteTargetId,
+          presentation,
+          presentation.pages.length,
+          currentUser.uid,
+        );
+        if (thumbBlob) await dspTemplateRepository.uploadTemplateThumbnail(overwriteTargetId, thumbBlob);
+      } else {
+        const now = new Date().toISOString();
+        const newId = await dspTemplateRepository.createTemplate({
+          name: saveForm.name.trim(),
+          description: saveForm.description.trim(),
+          category: saveForm.category,
+          visibility: saveForm.visibility,
+          createdBy: currentUser.uid,
+          createdByName: currentUser.displayName || '匿名',
+          createdAt: now,
+          updatedAt: now,
+          content: presentation,
+          slideCount: presentation.pages.length,
+          canvasSize: presentation.canvasSize,
+        });
+        if (thumbBlob) await dspTemplateRepository.uploadTemplateThumbnail(newId, thumbBlob);
+      }
+
       setShowSaveDialog(false);
+      setSaveMode('new');
+      setOverwriteTargetId('');
       setSaveForm({ name: '', description: '', category: 'proposal', visibility: 'private' });
       await fetchMy();
     } catch (e) {
@@ -292,11 +352,11 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
               sx={{
                 fontSize: 11,
                 height: 24,
-                bgcolor: categoryFilter === c.key ? ACCENT : 'rgba(255,255,255,0.08)',
-                color: categoryFilter === c.key ? '#000' : 'rgba(255,255,255,0.65)',
+                bgcolor: categoryFilter === c.key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.08)',
+                color: categoryFilter === c.key ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.65)',
                 fontWeight: categoryFilter === c.key ? 700 : 400,
                 cursor: 'pointer',
-                '&:hover': { bgcolor: categoryFilter === c.key ? ACCENT : 'rgba(255,255,255,0.14)' },
+                '&:hover': { bgcolor: categoryFilter === c.key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.14)' },
               }}
             />
           ))}
@@ -306,7 +366,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
         <Box>
           <SectionHeader>組み込みテンプレート</SectionHeader>
           {filteredBuiltIn.length === 0 ? (
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center', py: 2 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textAlign: 'center', py: 2 }}>
               このカテゴリのテンプレートはありません
             </Typography>
           ) : (
@@ -333,7 +393,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
               <CircularProgress size={24} sx={{ color: ACCENT }} />
             </Box>
           ) : publicTemplates.length === 0 ? (
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center', py: 2 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textAlign: 'center', py: 2 }}>
               まだテンプレートがありません
             </Typography>
           ) : (
@@ -360,7 +420,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
               <CircularProgress size={24} sx={{ color: ACCENT }} />
             </Box>
           ) : myTemplates.length === 0 ? (
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textAlign: 'center', py: 2 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textAlign: 'center', py: 2 }}>
               保存済みテンプレートはありません
             </Typography>
           ) : (
@@ -392,7 +452,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
             color: ACCENT,
             borderColor: `${ACCENT}66`,
             '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}11` },
-            '&.Mui-disabled': { color: 'rgba(255,255,255,0.25)', borderColor: 'rgba(255,255,255,0.1)' },
+            '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.25)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
           }}
         >
           このプレゼンをテンプレートとして保存
@@ -406,7 +466,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
       <Dialog
         open={!!applyTarget}
         onClose={() => setApplyTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#1a1f2e', color: '#fff', minWidth: 360, borderRadius: 2 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', minWidth: 360, borderRadius: 2 } }}
       >
         <DialogTitle sx={{ fontSize: 16, fontWeight: 700, pb: 1 }}>
           テンプレートを適用
@@ -416,7 +476,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
             {applyTarget?.name}
           </Typography>
           {applyTargetDesc && (
-            <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', mb: 1, lineHeight: 1.6 }}>
+            <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.65)', mb: 1, lineHeight: 1.6 }}>
               {applyTargetDesc}
             </Typography>
           )}
@@ -431,7 +491,7 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
           <Button
             onClick={() => setApplyTarget(null)}
             size="small"
-            sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 12 }}
           >
             キャンセル
           </Button>
@@ -455,78 +515,171 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
       </Dialog>
 
       {/* ────────────────────────────────────────────────────────────────────────
+          Slot fill dialog（差し替え枠に中身を流し込む）
+      ─────────────────────────────────────────────────────────────────────── */}
+      <Dialog
+        open={!!slotFill}
+        onClose={() => setSlotFill(null)}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', minWidth: 420, maxWidth: 480, borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 700, pb: 0.5 }}>
+          テンプレートの中身を入力
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.55)', lineHeight: 1.6 }}>
+            このテンプレートには差し替え枠があります。埋めた枠だけが差し替わり、空欄はテンプレートの元の内容のままになります。
+          </Typography>
+          {slotFill?.slots.map(slot => (
+            <TextField
+              key={slot.id}
+              label={slot.label || slot.role || (slot.kind === 'image' ? '画像' : 'テキスト')}
+              size="small"
+              fullWidth
+              multiline={slot.kind === 'text'}
+              minRows={slot.kind === 'text' ? 2 : undefined}
+              placeholder={slot.kind === 'image' ? (slot.placeholder || '画像URLを貼り付け') : (slot.placeholder || slot.currentValue)}
+              value={slotFill.values[slot.id] ?? ''}
+              onChange={e => setSlotFill(s => s ? { ...s, values: { ...s.values, [slot.id]: e.target.value } } : s)}
+              helperText={slot.kind === 'image' ? '画像URL（適用後にSEKKEIYA Driveから差し替えも可）' : undefined}
+              FormHelperTextProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10 } }}
+              InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }}
+              InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+              sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
+            />
+          ))}
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+          <Button onClick={() => setSlotFill(null)} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 12 }}>
+            キャンセル
+          </Button>
+          <Button
+            onClick={handleSlotFillCommit}
+            size="small"
+            variant="contained"
+            sx={{ fontSize: 12, bgcolor: ACCENT, color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#1aa9e0' } }}
+          >
+            この内容で適用
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ────────────────────────────────────────────────────────────────────────
           Save template dialog
       ─────────────────────────────────────────────────────────────────────── */}
       <Dialog
         open={showSaveDialog}
         onClose={() => setShowSaveDialog(false)}
-        PaperProps={{ sx: { bgcolor: '#1a1f2e', color: '#fff', minWidth: 400, borderRadius: 2 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', minWidth: 400, borderRadius: 2 } }}
       >
         <DialogTitle sx={{ fontSize: 16, fontWeight: 700, pb: 1 }}>
           テンプレートとして保存
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
-          <TextField
-            label="テンプレート名 *"
-            size="small"
+          {/* 新規保存 / 既存を上書き */}
+          <ToggleButtonGroup
+            value={saveMode}
+            exclusive
             fullWidth
-            value={saveForm.name}
-            onChange={e => setSaveForm(f => ({ ...f, name: e.target.value }))}
-            InputProps={{ sx: { color: '#fff', fontSize: 13 } }}
-            InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
-            sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
-          />
-          <TextField
-            label="説明"
+            onChange={(_, v) => { if (v) setSaveMode(v); }}
             size="small"
-            fullWidth
-            multiline
-            rows={3}
-            value={saveForm.description}
-            onChange={e => setSaveForm(f => ({ ...f, description: e.target.value }))}
-            InputProps={{ sx: { color: '#fff', fontSize: 13 } }}
-            InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
-            sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
-          />
-          <Select
-            size="small"
-            value={saveForm.category}
-            onChange={e => setSaveForm(f => ({ ...f, category: e.target.value as typeof f.category }))}
-            sx={{ color: '#fff', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' }, '.MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' } }}
-            MenuProps={{ PaperProps: { sx: { bgcolor: '#232b3b', color: '#fff' } } }}
+            sx={{
+              '& .MuiToggleButton-root': {
+                color: 'rgb(var(--brand-fg-rgb) / 0.5)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                fontSize: 12,
+                '&.Mui-selected': { color: '#000', bgcolor: ACCENT, borderColor: ACCENT },
+                '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+              },
+            }}
           >
-            <MenuItem value="proposal">提案</MenuItem>
-            <MenuItem value="list">リスト</MenuItem>
-            <MenuItem value="report">報告</MenuItem>
-            <MenuItem value="portfolio">ポートフォリオ</MenuItem>
-            <MenuItem value="other">その他</MenuItem>
-          </Select>
-          <Box>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 0.5 }}>公開設定</Typography>
-            <ToggleButtonGroup
-              value={saveForm.visibility}
-              exclusive
-              onChange={(_, v) => { if (v) setSaveForm(f => ({ ...f, visibility: v })); }}
-              size="small"
-              sx={{
-                '& .MuiToggleButton-root': {
-                  color: 'rgba(255,255,255,0.5)',
-                  borderColor: 'rgba(255,255,255,0.2)',
-                  fontSize: 12,
-                  '&.Mui-selected': { color: '#000', bgcolor: ACCENT, borderColor: ACCENT },
-                },
-              }}
-            >
-              <ToggleButton value="private">非公開</ToggleButton>
-              <ToggleButton value="public">公開</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
+            <ToggleButton value="new">新規保存</ToggleButton>
+            <ToggleButton value="overwrite" disabled={myTemplates.length === 0}>既存を上書き</ToggleButton>
+          </ToggleButtonGroup>
+
+          {saveMode === 'overwrite' ? (
+            <>
+              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
+                現在のスライド内容で、選択したマイテンプレートを上書きします。
+              </Typography>
+              <Select
+                size="small"
+                displayEmpty
+                value={overwriteTargetId}
+                onChange={e => setOverwriteTargetId(e.target.value)}
+                sx={{ color: 'var(--brand-fg)', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '.MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } }}
+              >
+                <MenuItem value="" disabled>上書きするテンプレートを選択</MenuItem>
+                {myTemplates.map(t => (
+                  <MenuItem key={t.id} value={t.id}>{t.name}（{t.slideCount}スライド）</MenuItem>
+                ))}
+              </Select>
+            </>
+          ) : (
+            <>
+              <TextField
+                label="テンプレート名 *"
+                size="small"
+                fullWidth
+                value={saveForm.name}
+                onChange={e => setSaveForm(f => ({ ...f, name: e.target.value }))}
+                InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }}
+                InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
+              />
+              <TextField
+                label="説明"
+                size="small"
+                fullWidth
+                multiline
+                rows={3}
+                value={saveForm.description}
+                onChange={e => setSaveForm(f => ({ ...f, description: e.target.value }))}
+                InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }}
+                InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
+              />
+              <Select
+                size="small"
+                value={saveForm.category}
+                onChange={e => setSaveForm(f => ({ ...f, category: e.target.value as typeof f.category }))}
+                sx={{ color: 'var(--brand-fg)', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '.MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } }}
+              >
+                <MenuItem value="proposal">提案</MenuItem>
+                <MenuItem value="list">リスト</MenuItem>
+                <MenuItem value="report">報告</MenuItem>
+                <MenuItem value="portfolio">ポートフォリオ</MenuItem>
+                <MenuItem value="other">その他</MenuItem>
+              </Select>
+              <Box>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.5 }}>公開設定</Typography>
+                <ToggleButtonGroup
+                  value={saveForm.visibility}
+                  exclusive
+                  onChange={(_, v) => { if (v) setSaveForm(f => ({ ...f, visibility: v })); }}
+                  size="small"
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      color: 'rgb(var(--brand-fg-rgb) / 0.5)',
+                      borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
+                      fontSize: 12,
+                      '&.Mui-selected': { color: '#000', bgcolor: ACCENT, borderColor: ACCENT },
+                    },
+                  }}
+                >
+                  <ToggleButton value="private">非公開</ToggleButton>
+                  <ToggleButton value="public">公開</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+            </>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
           <Button
             onClick={() => setShowSaveDialog(false)}
             size="small"
-            sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 12 }}
           >
             キャンセル
           </Button>
@@ -534,10 +687,10 @@ export const DeckTemplatePanel: React.FC<DeckTemplatePanelProps> = ({
             onClick={handleSave}
             size="small"
             variant="contained"
-            disabled={!saveForm.name.trim() || isSaving}
+            disabled={isSaving || (saveMode === 'new' ? !saveForm.name.trim() : !overwriteTargetId)}
             sx={{ fontSize: 12, bgcolor: ACCENT, color: '#000', fontWeight: 700, '&:hover': { bgcolor: '#1aa9e0' } }}
           >
-            {isSaving ? <CircularProgress size={16} sx={{ color: '#000' }} /> : '保存'}
+            {isSaving ? <CircularProgress size={16} sx={{ color: '#000' }} /> : (saveMode === 'overwrite' ? '上書き保存' : '保存')}
           </Button>
         </DialogActions>
       </Dialog>

@@ -42,6 +42,8 @@ const RHINO_NOTIF_ACTION_TYPE = 'rhino-local-save';
 import { AiStudioShell } from './features/ai-studio/AiStudioShell';
 import { handleToastAction } from './store/useAiTaskNotifier';
 import { installBookmarkBridge } from './features/dsk/lib/bookmarkBridge';
+import { installAltDictation } from './lib/altDictation';
+import { installTextPolish } from './lib/textPolish';
 import { installInboxDrain } from './features/dsk/lib/inboxDrain';
 import { installDiscussBridge } from './features/dsb/lib/discussBridge';
 import { DccSetupModal } from './shared/components/dcc/DccSetupModal';
@@ -55,11 +57,29 @@ import { UnsavedOnExitDialog } from './components/UnsavedOnExitDialog';
 import { SetupGate } from './components/SetupGate';
 import { GlobalSettingsShell } from './features/global-settings/GlobalSettingsShell';
 import { StandaloneWorkspace } from './pages/StandaloneWorkspace';
+import { ChatWindow } from './pages/ChatWindow';
+import { DriveWindow } from './pages/DriveWindow';
+import { openDriveWindow } from './utils/openDriveWindow';
+import { openSearchWindow } from './utils/openSearchWindow';
+import { openReaderHome } from './features/dsb/lib/openReader';
 import { TeamHomePage } from './features/teams/TeamHomePage';
 import { TeamsManagementPage } from './features/teams/TeamsManagementPage';
 import { useTeamsStore } from './store/useTeamsStore';
+import { OPEN_VIEW_EVENT, applyOpenView, type OpenViewPayload } from './shared/navigation/openMainView';
+import { syncChatPoppedOutState, openChatWindow } from './utils/openChatWindow';
+import { useAppPreferencesStore } from './store/useAppPreferencesStore';
+import { isTauri } from './lib/platform';
 
 const isStandalone = new URLSearchParams(window.location.search).has('standalone');
+// SEKKEIYA Chat をポップアウトした独立ウィンドウ（/?chatWindow=true）。
+const isChatWindow = new URLSearchParams(window.location.search).has('chatWindow');
+// SEKKEIYA Drive（旧 AI Drive）をポップアウトした独立ウィンドウ（/?driveWindow=true）。
+const isDriveWindow = new URLSearchParams(window.location.search).has('driveWindow');
+// 本体以外の子ウィンドウ全般（本体専用の常駐処理はこれらで無効化する）。
+const isChildWindow = isStandalone || isChatWindow || isDriveWindow;
+
+// 起動時の SEKKEIYA OS ウィンドウ自動オープンをプロセスに1回だけにするためのガード。
+let didAutoOpenOsWindow = false;
 
 const TeamsView = () => {
   const activeTeamId = useTeamsStore(s => s.activeTeamId);
@@ -87,6 +107,18 @@ const MainAppInitGate = ({ children }: { children: ReactNode }) => {
         });
     }
   }, [currentUser, isInitialized, setProjects]);
+
+  // 起動時に SEKKEIYA OS（対話）を独立ウィンドウで自動的に開く（デスクトップのみ・プロセスに1回）。
+  // SEKKEIYA の操作の中心＝別ウィンドウのチャットという方針の既定挙動。設定でOFFにできる。
+  // ユーザーがその後ウィンドウを閉じた場合は再オープンしない（プロセス単位のガード）。
+  useEffect(() => {
+    if (isChildWindow || !isTauri()) return;
+    if (didAutoOpenOsWindow) return;
+    if (!currentUser || !isInitialized) return;
+    if (!useAppPreferencesStore.getState().autoOpenOsWindow) return;
+    didAutoOpenOsWindow = true;
+    openChatWindow(useAppStore.getState().activeProjectId ?? null).catch(() => {});
+  }, [currentUser, isInitialized]);
 
   if (!isInitialized) {
     return (
@@ -138,7 +170,7 @@ export const GlobalModals = () => {
   const allowCloseRef = useRef(false);
 
   useEffect(() => {
-    if (isStandalone) return; // 子ウィンドウは対象外
+    if (isChildWindow) return; // 子ウィンドウは対象外
     let unlisten: (() => void) | undefined;
     (async () => {
       try {
@@ -176,7 +208,7 @@ export const GlobalModals = () => {
   // localhost 直結（アプリ起動中の即時受信）＋クラウド受信箱ドレイン（アプリ未起動時に
   // 拡張→Web で積まれた分を起動後に回収）の二系統。どちらも Desktop のみで動く。
   useEffect(() => {
-    if (isStandalone) return; // 子ウィンドウは対象外（メインのみで購読）
+    if (isChildWindow) return; // 子ウィンドウは対象外（メインのみで購読）
     let unlistenBridge: (() => void) | undefined;
     installBookmarkBridge().then((fn) => { unlistenBridge = fn; });
     const unlistenDrain = installInboxDrain();
@@ -507,8 +539,8 @@ export const GlobalModals = () => {
         sx={{ zIndex: (theme) => theme.zIndex.modal + 9999 }}
         PaperProps={{
             sx: {
-                bgcolor: '#191A1D', // Eagle風のダークトーン
-                color: '#fff',
+                bgcolor: 'var(--brand-surface)', // Eagle風のダークトーン
+                color: 'var(--brand-fg)',
                 minWidth: '800px', // 600pxから拡大し、テキストを1行で収まりやすくする
                 borderRadius: '16px',
                 boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
@@ -531,7 +563,7 @@ export const GlobalModals = () => {
             <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: '0.5px' }}>
               キャプチャ画像の用途を選択
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 1 }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: 1 }}>
               画像を送信先ツールのベース画像として登録します
             </Typography>
           </Box>
@@ -542,7 +574,7 @@ export const GlobalModals = () => {
               sx={{ 
                 width: '100%', 
                 height: '340px', 
-                bgcolor: '#0E0E10', 
+                bgcolor: 'var(--brand-bg)', 
                 borderRadius: '12px',
                 p: 2,
                 display: 'flex',
@@ -574,8 +606,8 @@ export const GlobalModals = () => {
               onClick={() => handleSelectTarget('render')}
               sx={{
                 flex: 1,
-                bgcolor: '#202124',
-                border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: 'var(--brand-surface2)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                 borderRadius: '12px',
                 p: 4,
                 cursor: 'pointer',
@@ -593,7 +625,7 @@ export const GlobalModals = () => {
               }}
             >
               <Typography variant="h5" sx={{ fontWeight: 600, color: '#00BFFF' }}>AI Render</Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.6 }}>
+              <Typography variant="body1" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textAlign: 'center', lineHeight: 1.6 }}>
                 プロンプトベースの画像生成やコントロール用に使用します
               </Typography>
             </Box>
@@ -605,8 +637,8 @@ export const GlobalModals = () => {
               onClick={() => handleSelectTarget('create')}
               sx={{
                 flex: 1,
-                bgcolor: '#202124',
-                border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: 'var(--brand-surface2)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                 borderRadius: '12px',
                 p: 4,
                 cursor: 'pointer',
@@ -624,7 +656,7 @@ export const GlobalModals = () => {
               }}
             >
               <Typography variant="h5" sx={{ fontWeight: 600, color: '#8A2BE2' }}>AI 3D Generate</Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.6 }}>
+              <Typography variant="body1" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textAlign: 'center', lineHeight: 1.6 }}>
                 TripoSRを用いて単一画像から3Dモデルを生成します
               </Typography>
             </Box>
@@ -636,8 +668,8 @@ export const GlobalModals = () => {
               onClick={() => handleSelectTarget('drive')}
               sx={{
                 flex: 1,
-                bgcolor: '#202124',
-                border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: 'var(--brand-surface2)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                 borderRadius: '12px',
                 p: 4,
                 cursor: 'pointer',
@@ -654,9 +686,9 @@ export const GlobalModals = () => {
                 }
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 600, color: '#00BFFF' }}>AI Driveに保存</Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.6 }}>
-                生成元の資産としてプロジェクトのAI Driveに保管します
+              <Typography variant="h5" sx={{ fontWeight: 600, color: '#00BFFF' }}>SEKKEIYA Driveに保存</Typography>
+              <Typography variant="body1" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textAlign: 'center', lineHeight: 1.6 }}>
+                生成元の資産としてプロジェクトのSEKKEIYA Driveに保管します
               </Typography>
             </Box>
           </Stack>
@@ -707,7 +739,7 @@ export const GlobalLoader = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
             variant="h5" 
-            sx={{ color: "#fff", fontWeight: 800, letterSpacing: 2 }}
+            sx={{ color: "var(--brand-fg)", fontWeight: 800, letterSpacing: 2 }}
           >
             {globalLoadingMessage || '読み込み中...'}
           </Typography>
@@ -726,7 +758,57 @@ function App() {
     });
   }, []);
 
+  // Alt+S → Windows 音声入力（Win+H 相当）／ Alt+Shift+S → 入力欄の整文。
+  // キャプチャ用の透明オーバーレイウィンドウでは無効（テキスト入力欄が無いため）。
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('capture')) return;
+    const uninstallDictation = installAltDictation();
+    const uninstallPolish = installTextPolish();
+    return () => {
+      uninstallDictation();
+      uninstallPolish();
+    };
+  }, []);
+
+  // ポップアウトした SEKKEIYA OS 窓（リモコン）からの「メインビューを開く」要求を、
+  // 現在どのビューを表示中かに関わらず常駐で受ける（WorkspaceTabBar は workspace 表示中しか
+  // マウントされないため、常時マウントの本体（App）側で購読する）。子ウィンドウでは無効。
+  useEffect(() => {
+    if (isChildWindow) return;
+    // リロード後などに、既にポップアウト窓が開いていれば本体内チャットを開かせないよう同期する。
+    syncChatPoppedOutState();
+    let unlisten: UnlistenFn | undefined;
+    let unlistenPresent: UnlistenFn | undefined;
+    const bringToFront = async () => {
+      try {
+        const win = getCurrentWindow();
+        await win.unminimize().catch(() => {});
+        await win.show().catch(() => {});
+        await win.setFocus().catch(() => {});
+      } catch { /* noop */ }
+    };
+    (async () => {
+      unlisten = await listen<OpenViewPayload>(OPEN_VIEW_EVENT, async (e) => {
+        if (!e.payload) return;
+        applyOpenView(e.payload);
+        await bringToFront();
+      });
+      // Drive ポップアウトの「S.Slideで開く」→ 本体でエディタを開いて前面化。
+      const { OPEN_PRESENTATION_EVENT, applyOpenPresentation } = await import('./features/dsp/lib/openPresentation');
+      unlistenPresent = await listen<any>(OPEN_PRESENTATION_EVENT, async (e) => {
+        if (!e.payload) return;
+        applyOpenPresentation(e.payload);
+        await bringToFront();
+      });
+    })();
+    return () => { if (unlisten) unlisten(); if (unlistenPresent) unlistenPresent(); };
+  }, []);
+
+  useEffect(() => {
+    // 子ウィンドウ（ポップアウトChat等）は本体専用の常駐処理を持たない。
+    // 特にプロジェクト変更ブロードキャストの購読者を子側でも走らせると、
+    // 受信→setState→再emit の反響ループになるため必ず除外する。
+    if (isChildWindow) return;
     if (isShortcutSetup) return;
     isShortcutSetup = true;
 
@@ -794,6 +876,27 @@ function App() {
             startCaptureWindow('ask');
           }
         });
+
+        // Ctrl+Alt+○ → 各サブアプリを独立窓で開くグローバルショートカット（D=Drive が起点）。
+        // 各機能は既存の「ポップアウト窓を開く」ユーティリティへ委譲する（窓は1枚を使い回す）。
+        //   D = Drive / C = Chat(SEKKEIYA OS) / F = Search(Find; S はスクショで使用済) / R = Reader
+        // registerSafe とは別枠で登録する（registerSafe は1ショットに絞られているため）。
+        const registerAppShortcut = async (accel: string, label: string, open: () => Promise<unknown>) => {
+          try {
+            await unregister(accel).catch(() => {});
+            await register(accel, (e: any) => {
+              if (e.state === 'Pressed') { void open().catch(() => {}); }
+            });
+            console.log(`Registered ${accel} (open ${label})`);
+          } catch (err) {
+            console.error(`Failed to register ${accel}:`, err);
+          }
+        };
+
+        await registerAppShortcut('CommandOrControl+Alt+D', 'SEKKEIYA Drive', () => openDriveWindow());
+        await registerAppShortcut('CommandOrControl+Alt+C', 'SEKKEIYA OS (Chat)', () => openChatWindow(useAppStore.getState().activeProjectId ?? null));
+        await registerAppShortcut('CommandOrControl+Alt+F', 'SEKKEIYA Search', () => openSearchWindow());
+        await registerAppShortcut('CommandOrControl+Alt+R', 'SEKKEIYA Reader', () => openReaderHome());
 
         // 拡張メニュー「スクショを保存」→ localhost /capture → Rust emit。
         // Ctrl+Alt+S と同じく ask モードでキャプチャウィンドウを起動する。
@@ -903,6 +1006,10 @@ function App() {
               <SetupGate>
             {isStandalone ? (
               <StandaloneWorkspace />
+            ) : isChatWindow ? (
+              <ChatWindow />
+            ) : isDriveWindow ? (
+              <DriveWindow />
             ) : (
               <MainAppInitGate>
                 <WorkspaceProvider>

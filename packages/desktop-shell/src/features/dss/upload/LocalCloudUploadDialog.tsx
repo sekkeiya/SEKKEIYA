@@ -48,23 +48,23 @@ export const LocalCloudUploadDialog: React.FC<{
 
   const fieldSx = {
     '& .MuiOutlinedInput-root': {
-      color: '#fff',
-      '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+      color: 'var(--brand-fg)',
+      '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+      '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
       '&.Mui-focused fieldset': { borderColor: '#7c3aed' },
     },
-    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
+    '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
   };
 
   return (
     <Dialog
       open={open}
       onClose={() => !uploading && onClose()}
-      PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 440 } }}
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 440 } }}
     >
       <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>クラウドへ保存</DialogTitle>
       <DialogContent>
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', mb: 2 }}>
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 2 }}>
           ファイル名から自動でカテゴリ・タグを推定しました。必要に応じて調整してください。
         </Typography>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -81,18 +81,18 @@ export const LocalCloudUploadDialog: React.FC<{
             onChange={(_, v) => setTags(v as string[])}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
-                <Chip variant="outlined" label={option} size="small" {...getTagProps({ index })} key={option} sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }} />
+                <Chip variant="outlined" label={option} size="small" {...getTagProps({ index })} key={option} sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
               ))
             }
             renderInput={(params) => <TextField {...params} label="タグ" sx={fieldSx} />}
           />
 
           <Box>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 0.75 }}>公開設定</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.75 }}>公開設定</Typography>
             <ToggleButtonGroup
               exclusive size="small" value={visibility}
               onChange={(_, v) => v && setVisibility(v)}
-              sx={{ width: '100%', '& .MuiToggleButton-root': { flex: 1, color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.2)' } }}
+              sx={{ width: '100%', '& .MuiToggleButton-root': { flex: 1, color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
             >
               <ToggleButton value="public" sx={{ '&.Mui-selected': { bgcolor: 'rgba(124,58,237,0.3) !important', color: '#fff !important' } }}>
                 <PublicRoundedIcon sx={{ fontSize: 16, mr: 0.5 }} /> 公開
@@ -105,7 +105,7 @@ export const LocalCloudUploadDialog: React.FC<{
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} disabled={uploading} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={onClose} disabled={uploading} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button
           onClick={handleConfirm} disabled={uploading || !title.trim()} variant="contained"
           startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : undefined}

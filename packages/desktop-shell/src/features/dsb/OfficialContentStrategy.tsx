@@ -1,11 +1,12 @@
 // 公式ブログの Content Strategy（Web admin AdminStrategyPage の移植）。
 // 投稿トピックキュー・専門AI記者・AI記者トリガー（Cloud Functions）・AIモデル設定・4週間カレンダー。
-// データ: topicQueue / officialArticles / reporters / config/aiModels（Web と同一コレクション）。
+// データ: topicQueue / officialArticles / config/aiModels（Web と同一コレクション）。
+// ※「専門AI記者」は運営フロー（戦略→投稿計画→執筆）への一本化に伴い撤去済み。
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box, Typography, Button, TextField, Chip, IconButton, CircularProgress,
   Drawer, MenuItem, Tooltip, Stack, Snackbar, Alert, Dialog, DialogTitle,
-  DialogContent, DialogContentText, DialogActions,
+  DialogContent, DialogContentText, DialogActions, Collapse,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -14,9 +15,13 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
+import BuildRoundedIcon from '@mui/icons-material/BuildRounded';
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, getDocs, orderBy, query, serverTimestamp,
 } from 'firebase/firestore';
@@ -29,15 +34,15 @@ const ACCENT = '#38bdf8';
 type Sev = 'success' | 'error' | 'info';
 
 const TOPIC_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  queued: { label: '待機中', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' },
-  generating: { label: 'AI生成中', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-  interview: { label: '取材待ち', color: '#fb923c', bg: 'rgba(251,146,60,0.12)' },
-  review: { label: 'レビュー待ち', color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
+  queued: { label: '待機中', color: 'rgb(var(--brand-fg-rgb) / 0.65)', bg: 'rgb(var(--slate-ink-rgb) / 0.1)' },
+  generating: { label: 'AI生成中', color: 'light-dark(#054ea8, #60a5fa)', bg: 'rgba(96,165,250,0.12)' },
+  interview: { label: '取材待ち', color: 'light-dark(#aa4e03, #fb923c)', bg: 'rgba(251,146,60,0.12)' },
+  review: { label: 'レビュー待ち', color: 'light-dark(#5704a9, #c084fc)', bg: 'rgba(192,132,252,0.12)' },
   published: { label: '公開済み', color: '#4ade80', bg: 'rgba(74,222,128,0.1)' },
   skip: { label: 'スキップ', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
 };
 
-const CATEGORY_OPTIONS_FALLBACK = ['トレンド', 'Tips / Learn', 'SEKKEIYA', 'S.Layout', 'S.Models', 'S.Presentations', 'AI News', 'Workflow', 'Desktop'];
+const CATEGORY_OPTIONS_FALLBACK = ['トレンド', 'Tips / Learn', 'SEKKEIYA', 'S.Layout', 'S.Model', 'S.Slide', 'AI News', 'Workflow', 'Desktop'];
 
 const TEXT_MODELS = [
   { key: 'gemini-2.5-flash', provider: 'gemini', model: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash（高速・低コスト）' },
@@ -52,12 +57,8 @@ const IMAGE_MODELS = [
 
 interface Topic {
   id: string; keyword: string; category: string; targetWeekOffset: number;
-  targetWeekLabel?: string; note?: string; reporterId?: string | null; reporterName?: string | null;
+  targetWeekLabel?: string; note?: string;
   status: string; [k: string]: unknown;
-}
-interface Reporter {
-  id: string; name?: string; displayName?: string; expertise?: string; tone?: string;
-  categories?: string[]; emoji?: string; active?: boolean;
 }
 interface ArticleLite { id: string; title?: string; status?: string; publishedAt?: any; updatedAt?: any; }
 
@@ -80,41 +81,45 @@ const tsToDate = (v: any): Date | null => {
 
 interface OfficialContentStrategyProps {
   onOpenArticle?: (id: string) => void; // カレンダーの記事クリック → 公式エディタを開く
+  /** 「概要・分析・戦略」内に埋め込むとき true: 外側のスクロール枠・ページ見出しを省く。 */
+  embedded?: boolean;
 }
 
-export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = ({ onOpenArticle }) => {
+export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = ({ onOpenArticle, embedded }) => {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [articles, setArticles] = useState<ArticleLite[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<string[]>(CATEGORY_OPTIONS_FALLBACK);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTopic, setEditTopic] = useState<Topic | null>(null);
-  const [aiRunning, setAiRunning] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [aiLog, setAiLog] = useState('');
   const [modelText, setModelText] = useState('gemini-2.5-flash');
   const [modelImage, setModelImage] = useState('nanobanana');
   const [savingModels, setSavingModels] = useState(false);
+  const [modelPanelOpen, setModelPanelOpen] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [reporters, setReporters] = useState<Reporter[]>([]);
-  const [reporterDialogOpen, setReporterDialogOpen] = useState(false);
-  const [editReporter, setEditReporter] = useState<Reporter | null>(null);
-  const [reporterForm, setReporterForm] = useState({ name: '', displayName: '', expertise: '', tone: '', categories: [] as string[], emoji: '📝', active: true });
-  const [form, setForm] = useState({ keyword: '', category: 'SEKKEIYA', targetWeekOffset: 0 as number, note: '', reporterId: '' });
+  // 直近に生成した記事（トピック→ワンクリックでレビューへジャンプする導線用）
+  const [lastGenerated, setLastGenerated] = useState<{ id: string; title: string; interviewCount: number } | null>(null);
+  // 🛠 開発アップデート記事（開発内容メモ → AIが洗って記事化）
+  const [devNotes, setDevNotes] = useState('');
+  const [devKind, setDevKind] = useState<'update' | 'howto' | 'notice'>('update');
+  const [devCategory, setDevCategory] = useState('お知らせ');
+  const [devFocus, setDevFocus] = useState('');
+  const [devGenerating, setDevGenerating] = useState(false);
+  const [form, setForm] = useState({ keyword: '', category: 'SEKKEIYA', targetWeekOffset: 0 as number, note: '' });
   const [confirm, setConfirm] = useState<{ msg: string; onOk: () => void | Promise<void> } | null>(null);
   const [toast, setToast] = useState<{ msg: string; sev: Sev } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [topicSnap, articleSnap, reporterSnap] = await Promise.all([
+      const [topicSnap, articleSnap] = await Promise.all([
         getDocs(query(collection(db, 'topicQueue'), orderBy('createdAt', 'desc'))),
         getDocs(query(collection(db, 'officialArticles'), orderBy('updatedAt', 'desc'))),
-        getDocs(query(collection(db, 'reporters'), orderBy('createdAt', 'desc'))).catch(() => ({ docs: [] as any[] })),
       ]);
       setTopics(topicSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
       setArticles(articleSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
-      setReporters(reporterSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })));
       try { const names = await fetchCategoryNames({ activeOnly: true }); if (names.length) setCategoryOptions(names); } catch { /* fallback */ }
       try {
         const cfgSnap = await getDoc(doc(db, 'config', 'aiModels'));
@@ -128,19 +133,17 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
   useEffect(() => { void loadData(); }, [loadData]);
 
   // ── トピック CRUD ──
-  const openAdd = () => { setEditTopic(null); setForm({ keyword: '', category: 'SEKKEIYA', targetWeekOffset: 0, note: '', reporterId: '' }); setDialogOpen(true); };
+  const openAdd = () => { setEditTopic(null); setForm({ keyword: '', category: 'SEKKEIYA', targetWeekOffset: 0, note: '' }); setDialogOpen(true); };
   const openEdit = (t: Topic) => {
     setEditTopic(t);
-    setForm({ keyword: t.keyword || '', category: t.category || 'SEKKEIYA', targetWeekOffset: t.targetWeekOffset ?? 0, note: t.note || '', reporterId: t.reporterId || '' });
+    setForm({ keyword: t.keyword || '', category: t.category || 'SEKKEIYA', targetWeekOffset: t.targetWeekOffset ?? 0, note: t.note || '' });
     setDialogOpen(true);
   };
   const handleSave = async () => {
     const targetWeekStart = getWeekStart(Number(form.targetWeekOffset));
-    const rep = reporters.find((r) => r.id === form.reporterId);
     const payload: any = {
       keyword: form.keyword.trim(), category: form.category, targetWeekOffset: Number(form.targetWeekOffset),
       targetWeekStart, targetWeekLabel: getWeekLabel(targetWeekStart), note: form.note.trim(),
-      reporterId: form.reporterId || null, reporterName: rep ? (rep.displayName || rep.name) : null,
       status: editTopic?.status || 'queued', updatedAt: serverTimestamp(),
     };
     if (editTopic) await updateDoc(doc(db, 'topicQueue', editTopic.id), payload);
@@ -170,42 +173,74 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
     setSavingModels(false);
   };
 
+  // AI投稿計画: SEKKEIYAの状況＋運営戦略を分析し、記事案をトピックキューへ投入（4週間に分散）。
   const suggestTopicsAI = async () => {
-    setSuggesting(true); setAiLog('AIが検索需要からネタを提案中...');
+    setSuggesting(true); setAiLog('SEKKEIYAの状況と戦略から投稿計画を作成中...');
     try {
-      const fn = httpsCallable(functions, 'suggestTopics');
-      const r: any = await fn({ count: 5 });
-      if (r.data?.success) setAiLog(`✅ AIが ${r.data.added} 件のネタをキューに追加しました。内容を確認して ⚡ で記事を生成してください。`);
-      else setAiLog(`⚠️ 提案できませんでした：${r.data?.reason || '不明なエラー'}`);
+      const plan = httpsCallable(functions, 'planBlogContent');
+      const r: any = await plan({ scope: 'official', count: 6, devNotes: devNotes.trim() || undefined });
+      if (r.data?.success && Array.isArray(r.data.topics) && r.data.topics.length) {
+        const topicsOut: any[] = r.data.topics;
+        for (let i = 0; i < topicsOut.length; i++) {
+          const t = topicsOut[i];
+          const offset = Math.min(3, Math.floor(i / 2)); // 2件/週で4週に分散
+          const start = getWeekStart(offset);
+          await addDoc(collection(db, 'topicQueue'), {
+            keyword: String(t.topic || '').trim(),
+            category: String(t.category || 'SEKKEIYA').trim(),
+            targetWeekOffset: offset,
+            targetWeekStart: start,
+            targetWeekLabel: getWeekLabel(start),
+            note: [t.angle, t.rationale].filter(Boolean).join(' / '),
+            kind: t.kind || 'promo',
+            status: 'queued',
+            createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+          });
+        }
+        setAiLog(`✅ ${topicsOut.length} 件の投稿計画をキューに追加しました。内容を確認して ⚡ で記事を生成してください。`);
+      } else {
+        setAiLog(`⚠️ 提案できませんでした：${r.data?.reason || '不明なエラー'}`);
+      }
       void loadData();
     } catch (e: any) { setAiLog(`❌ エラー：${e.message}`); }
     setSuggesting(false);
   };
 
-  const triggerAiReporter = async () => {
-    setAiRunning(true); setAiLog('集計を実行中...');
+  // 🛠 開発アップデート記事を生成（開発メモ → AIがユーザー目線の記事に翻訳）
+  const generateDevUpdate = async () => {
+    if (devGenerating || !devNotes.trim()) return;
+    setDevGenerating(true);
+    setLastGenerated(null);
+    setAiLog('開発内容から記事を生成中...');
     try {
-      const aggregate = httpsCallable(functions, 'aggregateWeeklyTrends');
-      const generate = httpsCallable(functions, 'generateTrendArticle');
-      const r1: any = await aggregate();
-      setAiLog(`集計完了（惜しいKW ${r1.data?.topKeywords?.length || 0}件）。記事を生成中...`);
-      const r2: any = await generate();
-      setAiLog(`✅ 完了：「${r2.data?.slug}」を ${r2.data?.action === 'created' ? '新規作成' : '更新'}しました。記事一覧で確認してください。`);
-      void loadData();
-    } catch (e: any) { setAiLog(`❌ エラー：${e.message}`); }
-    setAiRunning(false);
+      const fn = httpsCallable(functions, 'generateDevUpdateArticle');
+      const r: any = await fn({ notes: devNotes.trim(), kind: devKind, category: devCategory, focus: devFocus.trim() });
+      if (r.data?.success) {
+        setAiLog(`✅ 完了：「${r.data.title || 'アップデート記事'}」を下書き作成しました。`);
+        if (r.data.articleId) setLastGenerated({ id: r.data.articleId, title: r.data.title || 'アップデート記事', interviewCount: 0 });
+        setDevNotes(''); setDevFocus('');
+      } else {
+        setAiLog(`⚠️ 生成できませんでした：${r.data?.reason || '不明なエラー'}`);
+      }
+    } catch (e: any) {
+      setAiLog(`❌ エラー：${e.message}`);
+    } finally {
+      setDevGenerating(false);
+    }
   };
 
   const generateForTopic = async (topic: Topic) => {
     setGeneratingId(topic.id);
+    setLastGenerated(null);
     setAiLog(`「${topic.keyword}」のSEO記事を生成中...`);
     setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, status: 'generating' } : t)));
     try {
       const generate = httpsCallable(functions, 'generateKeywordArticle');
-      const r: any = await generate({ topicId: topic.id, keyword: topic.keyword, category: topic.category, note: topic.note || '', reporterId: topic.reporterId || null });
+      const r: any = await generate({ topicId: topic.id, keyword: topic.keyword, category: topic.category, note: topic.note || '' });
       if (r.data?.success) {
-        const by = r.data.reporter ? `（記者: ${r.data.reporter}）` : '';
-        setAiLog(`✅ 完了：「${r.data.title || topic.keyword}」を下書き作成しました${by}。記事一覧のレビュー待ちで確認してください。`);
+        setAiLog(`✅ 完了：「${r.data.title || topic.keyword}」を下書き作成しました。`);
+        // ワンクリックでレビューへジャンプできるよう、生成記事を控える
+        if (r.data.articleId) setLastGenerated({ id: r.data.articleId, title: r.data.title || topic.keyword, interviewCount: Number(r.data.interviewQuestions) || 0 });
       } else {
         setAiLog(`⚠️ 生成できませんでした：${r.data?.reason || '不明なエラー'}`);
         setTopics((prev) => prev.map((t) => (t.id === topic.id ? { ...t, status: 'queued' } : t)));
@@ -217,39 +252,6 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
     }
     setGeneratingId(null);
   };
-
-  // ── 専門AI記者 CRUD ──
-  const openAddReporter = () => { setEditReporter(null); setReporterForm({ name: '', displayName: '', expertise: '', tone: '', categories: [], emoji: '📝', active: true }); setReporterDialogOpen(true); };
-  const openEditReporter = (rep: Reporter) => {
-    setEditReporter(rep);
-    setReporterForm({ name: rep.name || '', displayName: rep.displayName || '', expertise: rep.expertise || '', tone: rep.tone || '', categories: Array.isArray(rep.categories) ? rep.categories : [], emoji: rep.emoji || '📝', active: rep.active !== false });
-    setReporterDialogOpen(true);
-  };
-  const handleSaveReporter = async () => {
-    const payload: any = {
-      name: reporterForm.name.trim(), displayName: reporterForm.displayName.trim() || reporterForm.name.trim(),
-      expertise: reporterForm.expertise.trim(), tone: reporterForm.tone.trim(), categories: reporterForm.categories,
-      emoji: reporterForm.emoji || '📝', active: reporterForm.active, updatedAt: serverTimestamp(),
-    };
-    if (editReporter) await updateDoc(doc(db, 'reporters', editReporter.id), payload);
-    else await addDoc(collection(db, 'reporters'), { ...payload, createdAt: serverTimestamp() });
-    setReporterDialogOpen(false);
-    void loadData();
-  };
-  const handleDeleteReporter = async (id: string) => {
-    await deleteDoc(doc(db, 'reporters', id));
-    setReporters((prev) => prev.filter((r) => r.id !== id));
-  };
-  const seedReporters = async () => {
-    const samples = [
-      { name: '佐藤（間取りの専門家）', displayName: '佐藤 一級建築士', emoji: '🏠', expertise: '住宅の間取り・動線計画・採光/通風設計', tone: '実務的で具体的。施主にも分かるよう噛み砕く', categories: ['S.Layout', 'SEKKEIYA'], active: true },
-      { name: '田中（テックライター）', displayName: '田中 テックライター', emoji: '🛠️', expertise: 'Rhino・glb/3D変換・CAD/BIM連携などの技術ワークフロー', tone: '手順が明快で再現性重視。専門用語は補足する', categories: ['Workflow', 'S.Models', 'Desktop'], active: true },
-      { name: 'リナ（AIニュース担当）', displayName: 'リナ AIウォッチャー', emoji: '📰', expertise: '建築/設計×AIの最新動向・ツール比較', tone: '速報的で分かりやすく、要点を先に述べる', categories: ['AI News', 'S.Presentations'], active: true },
-    ];
-    for (const s of samples) await addDoc(collection(db, 'reporters'), { ...s, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    void loadData();
-  };
-  const toggleReporterCategory = (cat: string) => setReporterForm((f) => ({ ...f, categories: f.categories.includes(cat) ? f.categories.filter((c) => c !== cat) : [...f.categories, cat] }));
 
   // ── カレンダー ──
   const weeks = [0, 1, 2, 3].map((offset) => {
@@ -271,100 +273,175 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
   const openArticle = (id: string) => onOpenArticle?.(id);
 
   if (loading) return (
-    <Box sx={{ flex: 1, display: 'flex', minHeight: '50vh', alignItems: 'center', justifyContent: 'center' }}>
+    <Box sx={{ flex: 1, display: 'flex', minHeight: embedded ? 160 : '50vh', alignItems: 'center', justifyContent: 'center' }}>
       <CircularProgress sx={{ color: ACCENT }} />
     </Box>
   );
 
-  const drawerField = { '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' } } } as const;
+  const drawerField = { '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } } as const;
+
+  // 埋め込み時は外側のスクロール枠を持たず（親のスクロールに乗る）、上下パディングも抑える。
+  const OuterBox = embedded
+    ? { component: 'div' as const, sx: { width: '100%' } }
+    : { component: 'div' as const, sx: { flex: 1, height: '100%', overflowY: 'auto', bgcolor: 'background.default' } };
 
   return (
-    <Box sx={{ flex: 1, height: '100%', overflowY: 'auto', bgcolor: 'background.default' }}>
-      <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: { xs: 2.5, md: 4 }, pb: 8 }}>
-        {/* ヘッダー */}
+    <Box {...OuterBox}>
+      <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: embedded ? 0 : { xs: 2.5, md: 4 }, pb: embedded ? 2 : 8 }}>
+        {/* ヘッダー（埋め込み時はセクション見出しに） */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#fff', mb: 0.25 }}>Content Strategy</Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)' }}>トピックキュー・AI記者の管理</Typography>
+            <Typography variant={embedded ? 'subtitle1' : 'h5'} sx={{ fontWeight: 800, color: 'var(--brand-fg)', mb: 0.25 }}>
+              {embedded ? '運営ツール' : 'Content Strategy'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
+              {embedded ? 'AIモデル設定・開発アップデートから記事化。AI投稿計画・記事ネタはスケジュール画面で。' : 'トピックキュー・AI記者の管理'}
+            </Typography>
           </Box>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" size="small" startIcon={suggesting ? <CircularProgress size={14} sx={{ color: '#fb923c' }} /> : <AutoAwesomeRoundedIcon />}
+          {!embedded && (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button variant="outlined" size="small" startIcon={suggesting ? <CircularProgress size={14} sx={{ color: 'light-dark(#aa4e03, #fb923c)' }} /> : <AutoAwesomeRoundedIcon />}
               onClick={() => void suggestTopicsAI()} disabled={suggesting}
-              sx={{ color: '#fb923c', borderColor: 'rgba(251,146,60,0.4)', textTransform: 'none', borderRadius: 2, fontWeight: 700, '&:hover': { borderColor: '#fb923c', bgcolor: 'rgba(251,146,60,0.05)' } }}>AIでネタ提案</Button>
+              sx={{ color: 'light-dark(#aa4e03, #fb923c)', borderColor: 'rgba(251,146,60,0.4)', textTransform: 'none', borderRadius: 2, fontWeight: 700, '&:hover': { borderColor: '#fb923c', bgcolor: 'rgba(251,146,60,0.05)' } }}>{suggesting ? '計画を作成中…' : 'AI投稿計画'}</Button>
             <Button variant="outlined" size="small" startIcon={<AddRoundedIcon />} onClick={openAdd}
               sx={{ color: ACCENT, borderColor: `${ACCENT}66`, textTransform: 'none', borderRadius: 2, fontWeight: 700, '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}0d` } }}>トピックを追加</Button>
-            <Button variant="contained" size="small" startIcon={aiRunning ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <SmartToyRoundedIcon />}
-              onClick={() => void triggerAiReporter()} disabled={aiRunning}
-              sx={{ bgcolor: '#c084fc', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#a855f7' } }}>AI記者を実行</Button>
           </Stack>
+          )}
         </Box>
 
         {aiLog && (
           <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.25)' }}>
-            <Typography variant="caption" sx={{ color: '#c084fc', fontFamily: 'monospace' }}>{aiLog}</Typography>
+            <Typography variant="caption" sx={{ color: 'light-dark(#5704a9, #c084fc)', fontFamily: 'monospace' }}>{aiLog}</Typography>
           </Box>
         )}
 
-        {/* KPI */}
+        {/* 生成直後: ワンクリックで記事を開いてレビュー/公開へ（作成の入口を滑らかに） */}
+        {lastGenerated && onOpenArticle && (
+          <Box sx={{ mb: 2, p: 1.75, borderRadius: 2, bgcolor: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.35)',
+            display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <CheckCircleRoundedIcon sx={{ color: '#4ade80', flexShrink: 0 }} />
+            <Box sx={{ flex: 1, minWidth: 160 }}>
+              <Typography sx={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--brand-fg)' }}>記事を生成しました</Typography>
+              <Typography noWrap sx={{ fontSize: '0.76rem', color: 'rgb(var(--brand-fg-rgb) / 0.55)' }}>
+                「{lastGenerated.title}」
+                {lastGenerated.interviewCount > 0 ? ` — 取材質問 ${lastGenerated.interviewCount} 件つき` : ' — レビュー待ち'}
+              </Typography>
+            </Box>
+            <Button variant="contained" size="small" endIcon={<ArrowForwardRoundedIcon />}
+              onClick={() => { const id = lastGenerated.id; setLastGenerated(null); onOpenArticle(id); }}
+              sx={{ bgcolor: '#4ade80', color: '#04331a', fontWeight: 800, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#22c55e' } }}>
+              記事を開いてレビュー
+            </Button>
+            <IconButton size="small" onClick={() => setLastGenerated(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        )}
+
+        {/* KPI（埋め込み時は「概要・分析・戦略」の統計と重複するので省く） */}
+        {!embedded && (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1.5, mb: 3 }}>
           {[
             { label: '今週の投稿', value: thisWeekCount, icon: <CalendarMonthRoundedIcon />, color: ACCENT, sub: '公開・レビュー' },
-            { label: 'レビュー待ち', value: totalReview, icon: <SmartToyRoundedIcon />, color: '#c084fc', sub: 'AI生成・未公開' },
+            { label: 'レビュー待ち', value: totalReview, icon: <SmartToyRoundedIcon />, color: 'light-dark(#5704a9, #c084fc)', sub: 'AI生成・未公開' },
             { label: '公開済み記事', value: totalPublished, icon: <CheckCircleRoundedIcon />, color: '#4ade80', sub: '累計' },
-            { label: '待機中ネタ', value: topics.filter((t) => t.status === 'queued').length, icon: <ScheduleRoundedIcon />, color: '#fbbf24', sub: 'キュー内' },
+            { label: '待機中ネタ', value: topics.filter((t) => t.status === 'queued').length, icon: <ScheduleRoundedIcon />, color: 'light-dark(#aa7c03, #fbbf24)', sub: 'キュー内' },
           ].map((kpi) => (
-            <Box key={kpi.label} sx={{ p: 1.75, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <Box key={kpi.label} sx={{ p: 1.75, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
               <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.75 }}>
                 <Box sx={{ color: kpi.color, display: 'flex', '& svg': { fontSize: 18 } }}>{kpi.icon}</Box>
-                <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>{kpi.label}</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{kpi.label}</Typography>
               </Stack>
-              <Typography sx={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{kpi.value}</Typography>
-              <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', mt: 0.4 }}>{kpi.sub}</Typography>
+              <Typography sx={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--brand-fg)', lineHeight: 1 }}>{kpi.value}</Typography>
+              <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', mt: 0.4 }}>{kpi.sub}</Typography>
             </Box>
           ))}
         </Box>
+        )}
 
-        {/* AIモデル設定 */}
-        <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1.5 }}>
-            <SmartToyRoundedIcon sx={{ color: '#c084fc' }} />
-            <Typography sx={{ fontWeight: 700, color: '#fff' }}>AIモデル設定</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>記事生成・取材・仕上げに使うモデル</Typography>
+        {/* AIモデル設定（コンパクト・折りたたみ。既定は現在のモデルをチップ表示のみ） */}
+        <Box sx={{ mb: 3, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
+          <Stack direction="row" alignItems="center" spacing={1} onClick={() => setModelPanelOpen((v) => !v)}
+            sx={{ px: 1.75, py: 1.25, cursor: 'pointer', flexWrap: 'wrap', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)' } }}>
+            <TuneRoundedIcon sx={{ color: 'light-dark(#5704a9, #c084fc)', fontSize: 18 }} />
+            <Typography sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.86rem' }}>AIモデル設定</Typography>
+            <Chip size="small" label={TEXT_MODELS.find((m) => m.key === modelText)?.label ?? modelText}
+              sx={{ height: 20, fontSize: '0.68rem', bgcolor: 'rgba(192,132,252,0.12)', color: 'light-dark(#5704a9, #c084fc)' }} />
+            <Chip size="small" label={IMAGE_MODELS.find((m) => m.key === modelImage)?.label ?? modelImage}
+              sx={{ height: 20, fontSize: '0.68rem', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', color: 'rgb(var(--brand-fg-rgb) / 0.6)' }} />
+            <Box sx={{ flex: 1 }} />
+            <ExpandMoreRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', transform: modelPanelOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'flex-end' }}>
-            <TextField select label="文章生成モデル" size="small" value={modelText} onChange={(e) => setModelText(e.target.value)}
-              sx={{ flex: 1, ...drawerField }} InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}>
-              {TEXT_MODELS.map((m) => <MenuItem key={m.key} value={m.key}>{m.label}</MenuItem>)}
+          <Collapse in={modelPanelOpen} unmountOnExit>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'flex-end' }} sx={{ px: 1.75, pb: 1.75, pt: 0.5 }}>
+              <TextField select label="文章生成モデル" size="small" value={modelText} onChange={(e) => setModelText(e.target.value)}
+                sx={{ flex: 1, ...drawerField }} InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}>
+                {TEXT_MODELS.map((m) => <MenuItem key={m.key} value={m.key}>{m.label}</MenuItem>)}
+              </TextField>
+              <TextField select label="画像生成モデル" size="small" value={modelImage} onChange={(e) => setModelImage(e.target.value)}
+                helperText="※画像/スライド生成は次段で連携予定" sx={{ flex: 1, ...drawerField }}
+                InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }} FormHelperTextProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
+                {IMAGE_MODELS.map((m) => <MenuItem key={m.key} value={m.key}>{m.label}</MenuItem>)}
+              </TextField>
+              <Button variant="contained" onClick={() => void saveAiModels()} disabled={savingModels}
+                startIcon={savingModels ? <CircularProgress size={16} sx={{ color: '#000' }} /> : <CheckCircleRoundedIcon />}
+                sx={{ bgcolor: '#c084fc', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap', '&:hover': { bgcolor: '#a855f7' } }}>保存</Button>
+            </Stack>
+          </Collapse>
+        </Box>
+
+        {/* 🛠 開発アップデートから記事を生成（AIが開発状況を洗って記事化） */}
+        <Box sx={{ mb: 3, p: 2, borderRadius: 2, bgcolor: 'rgba(56,189,248,0.05)', border: '1px solid rgba(56,189,248,0.25)' }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+            <BuildRoundedIcon sx={{ color: ACCENT }} />
+            <Typography sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>開発アップデートから記事を生成</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.75rem' }}>最近の変更点を貼り付け → AIがユーザー目線の記事に翻訳</Typography>
+          </Stack>
+          <TextField
+            value={devNotes} onChange={(e) => setDevNotes(e.target.value)} fullWidth multiline minRows={4} size="small"
+            placeholder={'最近の開発内容・変更点・コミットの要約を貼り付け…\n例:\n- S.BlogにSEO自動最適化を追加（スラッグ/メタ説明/タグ提案）\n- 記事の公開ページを sekkeiya.com/{user}/blog/{slug} に対応\n- 公式ブログのAI記者に開発アップデート記事モードを追加'}
+            sx={{ ...drawerField, mb: 1.5, '& textarea': { fontSize: '0.82rem', lineHeight: 1.7 } }} InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+          />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <TextField select label="記事タイプ" size="small" value={devKind} onChange={(e) => setDevKind(e.target.value as any)}
+              sx={{ width: { xs: '100%', sm: 190 }, ...drawerField }} InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}>
+              <MenuItem value="update">新機能・アップデート紹介</MenuItem>
+              <MenuItem value="howto">使い方・活用ガイド</MenuItem>
+              <MenuItem value="notice">お知らせ</MenuItem>
             </TextField>
-            <TextField select label="画像生成モデル" size="small" value={modelImage} onChange={(e) => setModelImage(e.target.value)}
-              helperText="※画像/スライド生成は次段で連携予定" sx={{ flex: 1, ...drawerField }}
-              InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} FormHelperTextProps={{ sx: { color: 'rgba(255,255,255,0.3)' } }}>
-              {IMAGE_MODELS.map((m) => <MenuItem key={m.key} value={m.key}>{m.label}</MenuItem>)}
+            <TextField select label="カテゴリ" size="small" value={devCategory} onChange={(e) => setDevCategory(e.target.value)}
+              sx={{ width: { xs: '100%', sm: 170 }, ...drawerField }} InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}>
+              {categoryOptions.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </TextField>
-            <Button variant="contained" onClick={() => void saveAiModels()} disabled={savingModels}
-              startIcon={savingModels ? <CircularProgress size={16} sx={{ color: '#000' }} /> : <CheckCircleRoundedIcon />}
-              sx={{ bgcolor: '#c084fc', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap', '&:hover': { bgcolor: '#a855f7' } }}>保存</Button>
+            <TextField label="切り口・強調点（任意）" size="small" value={devFocus} onChange={(e) => setDevFocus(e.target.value)}
+              placeholder="例: 設計者の時短にどう効くか" sx={{ flex: 1, ...drawerField }} InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }} />
+            <Button variant="contained" onClick={() => void generateDevUpdate()} disabled={devGenerating || !devNotes.trim()}
+              startIcon={devGenerating ? <CircularProgress size={16} sx={{ color: '#001018' }} /> : <AutoAwesomeRoundedIcon />}
+              sx={{ bgcolor: ACCENT, color: '#001018', fontWeight: 700, textTransform: 'none', borderRadius: 2, whiteSpace: 'nowrap', '&:hover': { bgcolor: '#0ea5e9' } }}>
+              {devGenerating ? '生成中…' : '記事を生成'}
+            </Button>
           </Stack>
         </Box>
 
-        {/* 4週間カレンダー */}
-        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#fff', mb: 1.5 }}>
+        {/* 4週間カレンダー（埋め込み時はスケジュール画面と重複するため非表示） */}
+        {!embedded && (<>
+        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'var(--brand-fg)', mb: 1.5 }}>
           <CalendarMonthRoundedIcon sx={{ fontSize: 17, mr: 0.75, verticalAlign: 'middle', color: ACCENT }} />4週間カレンダー
         </Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 1.5, mb: 3.5 }}>
           {weeks.map((week) => (
-            <Box key={week.offset} sx={{ p: 2, borderRadius: 2, bgcolor: week.offset === 0 ? `${ACCENT}0f` : 'rgba(255,255,255,0.03)', border: `1px solid ${week.offset === 0 ? `${ACCENT}40` : 'rgba(255,255,255,0.07)'}` }}>
+            <Box key={week.offset} sx={{ p: 2, borderRadius: 2, bgcolor: week.offset === 0 ? `${ACCENT}0f` : 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${week.offset === 0 ? `${ACCENT}40` : 'rgb(var(--brand-fg-rgb) / 0.07)'}` }}>
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: week.offset === 0 ? ACCENT : 'rgba(255,255,255,0.5)' }}>
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: week.offset === 0 ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                   {week.offset === 0 ? '今週' : `+${week.offset}週`}　{week.label}
                 </Typography>
-                <Chip label={`${week.articles.length + week.topics.length}件`} size="small" sx={{ fontSize: '0.68rem', height: 18, bgcolor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)' }} />
+                <Chip label={`${week.articles.length + week.topics.length}件`} size="small" sx={{ fontSize: '0.68rem', height: 18, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
               </Stack>
               <Stack spacing={0.75}>
                 {week.articles.map((a) => (
                   <Box key={a.id} onClick={() => openArticle(a.id)}
                     sx={{ p: 0.75, borderRadius: 1, cursor: 'pointer', bgcolor: a.status === 'published' ? 'rgba(74,222,128,0.08)' : a.status === 'interview' ? 'rgba(251,146,60,0.08)' : 'rgba(192,132,252,0.08)', border: `1px solid ${a.status === 'published' ? 'rgba(74,222,128,0.2)' : a.status === 'interview' ? 'rgba(251,146,60,0.2)' : 'rgba(192,132,252,0.2)'}`, '&:hover': { filter: 'brightness(1.3)' } }}>
-                    <Typography sx={{ fontSize: '0.75rem', color: '#fff', fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'var(--brand-fg)', fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {a.status === 'published' ? '✅ ' : a.status === 'interview' ? '🎤 ' : '🤖 '}{a.title}
                     </Typography>
                   </Box>
@@ -372,96 +449,72 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
                 {week.topics.map((t) => (
                   <Box key={t.id} onClick={() => openEdit(t)}
                     sx={{ p: 0.75, borderRadius: 1, cursor: 'pointer', bgcolor: 'rgba(251,191,36,0.06)', border: '1px dashed rgba(251,191,36,0.25)', '&:hover': { bgcolor: 'rgba(251,191,36,0.12)' } }}>
-                    <Typography sx={{ fontSize: '0.75rem', color: '#fbbf24', lineHeight: 1.3 }}>📌 {t.keyword}</Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'light-dark(#aa7c03, #fbbf24)', lineHeight: 1.3 }}>📌 {t.keyword}</Typography>
                   </Box>
                 ))}
                 {week.articles.length + week.topics.length === 0 && (
-                  <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', py: 0.5 }}>予定なし</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.2)', py: 0.5 }}>予定なし</Typography>
                 )}
               </Stack>
             </Box>
           ))}
         </Box>
+        </>)}
 
-        {/* 専門AI記者 */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#fff' }}>
-            <SmartToyRoundedIcon sx={{ fontSize: 17, mr: 0.75, verticalAlign: 'middle', color: '#c084fc' }} />専門AI記者
-          </Typography>
-          <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={openAddReporter}
-            sx={{ color: '#c084fc', borderColor: 'rgba(192,132,252,0.4)', textTransform: 'none', borderRadius: 2, fontWeight: 700, '&:hover': { borderColor: '#c084fc', bgcolor: 'rgba(192,132,252,0.05)' } }}>記者を追加</Button>
-        </Stack>
-        {reporters.length === 0 ? (
-          <Box sx={{ mb: 3.5, p: 4, borderRadius: 2, border: '1px dashed rgba(192,132,252,0.3)', textAlign: 'center' }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', mb: 0.5 }}>専門AI記者がまだいません</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', mb: 2.5 }}>分野ごとに人格・専門性・文体を持った記者を作ると、カテゴリ別に一貫した記事を量産できます</Typography>
-            <Stack direction="row" spacing={1.5} justifyContent="center">
-              <Button variant="contained" startIcon={<SmartToyRoundedIcon />} onClick={() => void seedReporters()}
-                sx={{ bgcolor: '#c084fc', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#a855f7' } }}>サンプル記者3名を作成</Button>
-              <Button variant="outlined" startIcon={<AddRoundedIcon />} onClick={openAddReporter}
-                sx={{ color: '#c084fc', borderColor: 'rgba(192,132,252,0.4)', textTransform: 'none', borderRadius: 2 }}>自分で追加</Button>
-            </Stack>
+        {/* 記事ネタ（作成待ち）。埋め込み時（戦略タブ）はスケジュール画面へ誘導し、一覧は二重表示しない */}
+        {embedded ? (
+          <Box sx={{ p: 2, borderRadius: 2, bgcolor: `${ACCENT}0d`, border: `1px solid ${ACCENT}33`, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <ScheduleRoundedIcon sx={{ color: ACCENT }} />
+            <Typography sx={{ flex: 1, minWidth: 180, fontSize: '0.82rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
+              起こした記事ネタの一覧・記事化（⚡）は「スケジュール」画面の右側「記事ネタ（作成待ち）」で行えます。
+            </Typography>
           </Box>
-        ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1.5, mb: 3.5 }}>
-            {reporters.map((rep) => (
-              <Box key={rep.id} onClick={() => openEditReporter(rep)} sx={{ p: 2, borderRadius: 2, bgcolor: 'rgba(192,132,252,0.05)', cursor: 'pointer', border: '1px solid rgba(192,132,252,0.2)', opacity: rep.active === false ? 0.5 : 1, '&:hover': { bgcolor: 'rgba(192,132,252,0.1)', borderColor: 'rgba(192,132,252,0.4)' } }}>
-                <Stack direction="row" alignItems="flex-start" spacing={1.5}>
-                  <Box sx={{ fontSize: '1.6rem', lineHeight: 1 }}>{rep.emoji || '📝'}</Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.92rem', lineHeight: 1.3 }}>{rep.displayName || rep.name}</Typography>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.72rem', mb: 0.75 }}>{rep.expertise}</Typography>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                      {(rep.categories || []).map((c) => <Chip key={c} label={c} size="small" sx={{ height: 18, fontSize: '0.62rem', bgcolor: 'rgba(192,132,252,0.12)', color: '#c084fc' }} />)}
-                    </Stack>
-                  </Box>
-                  <Stack direction="column" spacing={0.5}>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEditReporter(rep); }} sx={{ color: ACCENT, p: 0.5 }}><EditRoundedIcon sx={{ fontSize: 16 }} /></IconButton>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); setConfirm({ msg: `記者「${rep.displayName || rep.name}」を削除しますか？`, onOk: () => handleDeleteReporter(rep.id) }); }} sx={{ color: '#ef4444', p: 0.5 }}><DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} /></IconButton>
-                  </Stack>
-                </Stack>
-              </Box>
-            ))}
-          </Box>
-        )}
-
-        {/* トピックキュー */}
+        ) : (<>
+        {/* 記事ネタ（作成待ち） */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#fff' }}>
-            <ScheduleRoundedIcon sx={{ fontSize: 17, mr: 0.75, verticalAlign: 'middle', color: '#fbbf24' }} />トピックキュー
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>
+            <ScheduleRoundedIcon sx={{ fontSize: 17, mr: 0.75, verticalAlign: 'middle', color: 'light-dark(#aa7c03, #fbbf24)' }} />記事ネタ（作成待ち）
           </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)' }}>狙う検索KWを追加 → ⚡でSEO記事を生成 → レビュー待ちへ</Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>狙う検索KWを追加 → ⚡でSEO記事を生成 → レビュー待ちへ</Typography>
         </Stack>
-        <Box sx={{ borderRadius: 2, border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+        <Box sx={{ borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', overflow: 'hidden' }}>
           {topics.length === 0 ? (
             <Box sx={{ p: 6, textAlign: 'center' }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.3)', mb: 2 }}>トピックがまだありません</Typography>
+              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', mb: 2 }}>トピックがまだありません</Typography>
               <Button variant="outlined" startIcon={<AddRoundedIcon />} onClick={openAdd} sx={{ color: ACCENT, borderColor: `${ACCENT}66`, textTransform: 'none', borderRadius: 2 }}>最初のトピックを追加</Button>
             </Box>
           ) : topics.map((topic, i) => {
             const sc = TOPIC_STATUS[topic.status] || TOPIC_STATUS.queued;
             return (
-              <Box key={topic.id} onClick={() => openEdit(topic)} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, cursor: 'pointer', borderBottom: i < topics.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
-                <Chip label={sc.label} size="small" sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 700, border: `1px solid ${sc.color}33`, fontSize: '0.7rem', minWidth: 90 }} />
+              <Box key={topic.id} onClick={() => openEdit(topic)} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, cursor: 'pointer', borderBottom: i < topics.length - 1 ? '1px solid rgb(var(--brand-fg-rgb) / 0.05)' : 'none', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' } }}>
+                <Chip label={sc.label} size="small" sx={{ bgcolor: sc.bg, color: sc.color, fontWeight: 700, border: `1px solid color-mix(in srgb, ${sc.color} 20%, transparent)`, fontSize: '0.7rem', minWidth: 90 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topic.keyword}</Typography>
+                  <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topic.keyword}</Typography>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{topic.category}</Typography>
-                    {topic.reporterName && <Typography sx={{ fontSize: '0.72rem', color: '#c084fc' }}>✍️ {topic.reporterName}</Typography>}
-                    {topic.targetWeekLabel && <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>📅 {topic.targetWeekLabel}</Typography>}
-                    {topic.note && <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>💬 {topic.note}</Typography>}
+                    <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{topic.category}</Typography>
+                    {topic.targetWeekLabel && <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>📅 {topic.targetWeekLabel}</Typography>}
+                    {topic.note && <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>💬 {topic.note}</Typography>}
                   </Stack>
                 </Box>
                 <TextField select size="small" value={topic.status} onClick={(e) => e.stopPropagation()} onChange={(e) => void handleStatusChange(topic, e.target.value)}
-                  sx={{ width: 120, '& .MuiOutlinedInput-root': { fontSize: '0.78rem', color: sc.color, '& fieldset': { borderColor: `${sc.color}44` } } }}>
+                  sx={{ width: 120, '& .MuiOutlinedInput-root': { fontSize: '0.78rem', color: sc.color, '& fieldset': { borderColor: `color-mix(in srgb, ${sc.color} 27%, transparent)` } } }}>
                   {Object.entries(TOPIC_STATUS).map(([v, { label }]) => <MenuItem key={v} value={v} sx={{ fontSize: '0.82rem' }}>{label}</MenuItem>)}
                 </TextField>
                 <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
-                  <Tooltip title="このキーワードでSEO記事を生成">
+                  {/* 生成済みトピックは記事へジャンプ（レビュー/公開） */}
+                  {onOpenArticle && typeof topic.generatedArticleId === 'string' && topic.generatedArticleId && (
+                    <Tooltip title="生成した記事を開く（レビュー・公開）">
+                      <IconButton size="small" onClick={() => onOpenArticle(topic.generatedArticleId as string)}
+                        sx={{ color: '#4ade80', bgcolor: 'rgba(74,222,128,0.1)', '&:hover': { bgcolor: 'rgba(74,222,128,0.2)' } }}>
+                        <LaunchRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  <Tooltip title={typeof topic.generatedArticleId === 'string' && topic.generatedArticleId ? 'このキーワードで記事を再生成' : 'このキーワードでSEO記事を生成'}>
                     <span>
                       <IconButton size="small" onClick={() => void generateForTopic(topic)} disabled={generatingId === topic.id || topic.status === 'generating'}
-                        sx={{ color: '#c084fc', bgcolor: 'rgba(192,132,252,0.1)', '&:hover': { bgcolor: 'rgba(192,132,252,0.2)' }, '&:disabled': { color: 'rgba(192,132,252,0.4)' } }}>
-                        {generatingId === topic.id ? <CircularProgress size={16} sx={{ color: '#c084fc' }} /> : <BoltRoundedIcon fontSize="small" />}
+                        sx={{ color: 'light-dark(#5704a9, #c084fc)', bgcolor: 'rgba(192,132,252,0.1)', '&:hover': { bgcolor: 'rgba(192,132,252,0.2)' }, '&:disabled': { color: 'light-dark(rgba(87,4,169,0.4), rgba(192,132,252,0.4))' } }}>
+                        {generatingId === topic.id ? <CircularProgress size={16} sx={{ color: 'light-dark(#5704a9, #c084fc)' }} /> : <BoltRoundedIcon fontSize="small" />}
                       </IconButton>
                     </span>
                   </Tooltip>
@@ -473,99 +526,51 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
             );
           })}
         </Box>
+        </>)}
       </Box>
 
       {/* トピック追加/編集 Drawer */}
       <Drawer anchor="right" open={dialogOpen} onClose={() => setDialogOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 440 }, bgcolor: '#0e121c', borderLeft: '1px solid rgba(255,255,255,0.1)', color: '#fff' } }}>
-        <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.05rem' }}>{editTopic ? 'トピックを編集' : 'トピックを追加'}</Typography>
-          <IconButton size="small" onClick={() => setDialogOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)' }}><CloseRoundedIcon fontSize="small" /></IconButton>
+        PaperProps={{ sx: { width: { xs: '100%', sm: 440 }, bgcolor: 'var(--brand-surface)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' } }}>
+        <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
+          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 800, fontSize: '1.05rem' }}>{editTopic ? 'トピックを編集' : 'トピックを追加'}</Typography>
+          <IconButton size="small" onClick={() => setDialogOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}><CloseRoundedIcon fontSize="small" /></IconButton>
         </Box>
         <Box sx={{ p: 2.5, flex: 1, overflowY: 'auto' }}>
           <Stack spacing={2.5}>
             <TextField label="キーワード / 記事タイトルイメージ" fullWidth size="small" value={form.keyword} onChange={(e) => setForm((f) => ({ ...f, keyword: e.target.value }))}
-              placeholder="例: 自動レイアウト カフェ 家具" InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField} />
+              placeholder="例: 自動レイアウト カフェ 家具" InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }} sx={drawerField} />
             <TextField select label="カテゴリ" fullWidth size="small" value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField}>
+              InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }} sx={drawerField}>
               {categoryOptions.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </TextField>
-            <TextField select label="担当記者（任意）" fullWidth size="small" value={form.reporterId} onChange={(e) => setForm((f) => ({ ...f, reporterId: e.target.value }))}
-              helperText="未指定ならカテゴリ一致の記者が自動で担当します" InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} FormHelperTextProps={{ sx: { color: 'rgba(255,255,255,0.3)' } }} sx={drawerField}>
-              <MenuItem value=""><em>自動（カテゴリで選択）</em></MenuItem>
-              {reporters.filter((r) => r.active !== false).map((r) => <MenuItem key={r.id} value={r.id}>{r.emoji || '📝'} {r.displayName || r.name}</MenuItem>)}
-            </TextField>
             <TextField select label="対象週" fullWidth size="small" value={form.targetWeekOffset} onChange={(e) => setForm((f) => ({ ...f, targetWeekOffset: Number(e.target.value) }))}
-              InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField}>
+              InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }} sx={drawerField}>
               {[0, 1, 2, 3].map((offset) => <MenuItem key={offset} value={offset}>{offset === 0 ? '今週' : `${offset}週後`}　（{getWeekLabel(getWeekStart(offset))}）</MenuItem>)}
             </TextField>
             <TextField label="メモ（任意）" fullWidth size="small" multiline rows={2} value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-              placeholder="GSCで上位を狙いたい理由、参考URLなど" InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField} />
+              placeholder="GSCで上位を狙いたい理由、参考URLなど" InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }} sx={drawerField} />
             {editTopic && (
               <Button onClick={() => { setConfirm({ msg: 'このトピックを削除しますか？', onOk: () => handleDelete(editTopic.id) }); setDialogOpen(false); }} startIcon={<DeleteOutlineRoundedIcon />}
                 sx={{ color: '#ef4444', textTransform: 'none', justifyContent: 'flex-start', mt: 1 }}>このトピックを削除</Button>
             )}
           </Stack>
         </Box>
-        <Box sx={{ p: 2.5, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
-          <Button onClick={() => setDialogOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>キャンセル</Button>
+        <Box sx={{ p: 2.5, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+          <Button onClick={() => setDialogOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>キャンセル</Button>
           <Button onClick={() => void handleSave()} variant="contained" disabled={!form.keyword.trim()}
             sx={{ bgcolor: ACCENT, color: '#001018', fontWeight: 700, textTransform: 'none', borderRadius: 2 }}>{editTopic ? '更新' : '追加'}</Button>
         </Box>
       </Drawer>
 
-      {/* 記者 追加/編集 Drawer */}
-      <Drawer anchor="right" open={reporterDialogOpen} onClose={() => setReporterDialogOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 440 }, bgcolor: '#0e121c', borderLeft: '1px solid rgba(255,255,255,0.1)', color: '#fff' } }}>
-        <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.05rem' }}>{editReporter ? '記者を編集' : '専門AI記者を追加'}</Typography>
-          <IconButton size="small" onClick={() => setReporterDialogOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)' }}><CloseRoundedIcon fontSize="small" /></IconButton>
-        </Box>
-        <Box sx={{ p: 2.5, flex: 1, overflowY: 'auto' }}>
-          <Stack spacing={2.5}>
-            <Stack direction="row" spacing={2}>
-              <TextField label="絵文字" size="small" value={reporterForm.emoji} onChange={(e) => setReporterForm((f) => ({ ...f, emoji: e.target.value }))}
-                inputProps={{ maxLength: 4, style: { textAlign: 'center', fontSize: '1.2rem' } }} InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={{ width: 90, ...drawerField }} />
-              <TextField label="表示名（記事の著者名）" fullWidth size="small" value={reporterForm.displayName} onChange={(e) => setReporterForm((f) => ({ ...f, displayName: e.target.value }))}
-                placeholder="例: 佐藤 一級建築士" InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField} />
-            </Stack>
-            <TextField label="専門分野" fullWidth size="small" value={reporterForm.expertise} onChange={(e) => setReporterForm((f) => ({ ...f, expertise: e.target.value }))}
-              placeholder="例: 住宅の間取り・動線計画・採光/通風設計" InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField} />
-            <TextField label="文体・トーン" fullWidth size="small" multiline rows={2} value={reporterForm.tone} onChange={(e) => setReporterForm((f) => ({ ...f, tone: e.target.value }))}
-              placeholder="例: 実務的で具体的。施主にも分かるよう噛み砕く" InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }} sx={drawerField} />
-            <Box>
-              <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', mb: 1 }}>担当カテゴリ（複数選択可・自動割当に使用）</Typography>
-              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                {categoryOptions.map((c) => {
-                  const on = reporterForm.categories.includes(c);
-                  return <Chip key={c} label={c} size="small" onClick={() => toggleReporterCategory(c)}
-                    sx={{ cursor: 'pointer', bgcolor: on ? 'rgba(192,132,252,0.2)' : 'rgba(255,255,255,0.05)', color: on ? '#c084fc' : 'rgba(255,255,255,0.5)', border: `1px solid ${on ? 'rgba(192,132,252,0.5)' : 'transparent'}` }} />;
-                })}
-              </Stack>
-            </Box>
-            <Chip label={reporterForm.active ? '✓ 有効（生成に使用）' : '無効'} onClick={() => setReporterForm((f) => ({ ...f, active: !f.active }))}
-              sx={{ cursor: 'pointer', alignSelf: 'flex-start', bgcolor: reporterForm.active ? 'rgba(74,222,128,0.12)' : 'rgba(107,114,128,0.15)', color: reporterForm.active ? '#4ade80' : 'rgba(255,255,255,0.4)', fontWeight: 700 }} />
-            {editReporter && (
-              <Button onClick={() => { setConfirm({ msg: 'この記者を削除しますか？', onOk: () => handleDeleteReporter(editReporter.id) }); setReporterDialogOpen(false); }} startIcon={<DeleteOutlineRoundedIcon />}
-                sx={{ color: '#ef4444', textTransform: 'none', justifyContent: 'flex-start', mt: 1 }}>この記者を削除</Button>
-            )}
-          </Stack>
-        </Box>
-        <Box sx={{ p: 2.5, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
-          <Button onClick={() => setReporterDialogOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>キャンセル</Button>
-          <Button onClick={() => void handleSaveReporter()} variant="contained" disabled={!reporterForm.displayName.trim() && !reporterForm.name.trim()}
-            sx={{ bgcolor: '#c084fc', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#a855f7' } }}>{editReporter ? '更新' : '追加'}</Button>
-        </Box>
-      </Drawer>
-
       {/* 削除確認 */}
       <Dialog open={!!confirm} onClose={() => setConfirm(null)}
-        PaperProps={{ sx: { bgcolor: '#0e121c', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 380, borderRadius: 3, backgroundImage: 'none' } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 380, borderRadius: 3, backgroundImage: 'none' } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>確認</DialogTitle>
-        <DialogContent><DialogContentText sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>{confirm?.msg}</DialogContentText></DialogContent>
+        <DialogContent><DialogContentText sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.9rem' }}>{confirm?.msg}</DialogContentText></DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setConfirm(null)} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
-          <Button onClick={async () => { const c = confirm; setConfirm(null); await c?.onOk(); }} variant="contained" sx={{ bgcolor: '#ef4444', color: '#fff', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>削除する</Button>
+          <Button onClick={() => setConfirm(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
+          <Button onClick={async () => { const c = confirm; setConfirm(null); await c?.onOk(); }} variant="contained" sx={{ bgcolor: '#ef4444', color: 'var(--brand-fg)', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>削除する</Button>
         </DialogActions>
       </Dialog>
 

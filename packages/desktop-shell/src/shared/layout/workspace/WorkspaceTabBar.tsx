@@ -31,26 +31,36 @@ import {
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { listen, emit } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppStore } from '../../../store/useAppStore';
 import { useDssSyncStore } from '../../../store/useDssSyncStore';
 import { BRAND } from '../../../styles/theme';
 import { openChildWindow } from '../../../utils/openChildWindow';
+import { isTauri } from '../../../lib/platform';
 import { UnsavedFilesIndicator } from './UnsavedFilesIndicator';
 
-type TabDef = { scope: string; id: string | null; label: string; color: string; icon?: string };
+export type TabDef = { scope: string; id: string | null; label: string; color: string; icon?: string };
 
-const ALL_CHILD_TABS: TabDef[] = [
-  { scope: '3dss', id: 'models',   label: 'S.Models',        color: '#ff5252',  icon: iconShare    },
-  { scope: '3dsl', id: 'layout',   label: 'S.Layout',        color: '#ffb74d',  icon: iconLayout   },
-  { scope: '3dsp', id: 'presents', label: 'S.Presentations', color: '#ba68c8',  icon: iconPresents },
-  { scope: '3dsc', id: 'create',   label: 'S.Create',        color: '#ffa726',  icon: iconCreate   },
-  { scope: '3dsd', id: 'diagram',  label: 'S.Diagram',       color: '#aed581',  icon: iconDiagram  },
+// ポップアウトした Chat 窓のリモコン等が子アプリ切替を要求するイベント（子→本体）。
+export const OPEN_SUBAPP_EVENT = 'sekkeiya://open-subapp';
+// 本体が現在表示中の子アプリ scope を配信するイベント（本体→子。リモコンのハイライト用）。
+export const ACTIVE_SUBAPP_EVENT = 'sekkeiya://active-subapp';
+// 後から開いた子ウィンドウが「現在のアクティブ子アプリ」を本体へ問い合わせるイベント（子→本体）。
+export const REQUEST_ACTIVE_SUBAPP_EVENT = 'sekkeiya://request-active-subapp';
+
+export const ALL_CHILD_TABS: TabDef[] = [
+  { scope: '3dss', id: 'models',   label: 'S.Model',        color: '#ff5252',  icon: iconShare    },
+  { scope: '3dsl', id: 'layout',   label: 'S.Layout',        color: 'light-dark(#ad6700, #ffb74d)',  icon: iconLayout   },
+  { scope: '3dsp', id: 'presents', label: 'S.Slide', color: 'light-dark(#732e7f, #ba68c8)',  icon: iconPresents },
+  { scope: '3dsc', id: 'create',   label: 'S.Create',        color: 'light-dark(#ad6700, #ffa726)',  icon: iconCreate   },
+  { scope: '3dsd', id: 'diagram',  label: 'S.Diagram',       color: 'light-dark(#5a822b, #aed581)',  icon: iconDiagram  },
   { scope: '3dsr', id: 'drawing',  label: 'S.Drawing',       color: '#4db6ac',  icon: iconDrawing  },
   { scope: '3dsi', id: 'image',    label: 'S.Image',         color: '#ec407a',  icon: iconImage    },
   { scope: '3dsq', id: 'quest',    label: 'S.Quest',         color: '#5c6bc0',  icon: iconQuest    },
   { scope: '3dsf', id: 'portfolio', label: 'S.Portfolio',    color: '#7e57c2',  icon: iconBooks    },
   { scope: '3dsk', id: 'library',  label: 'S.Library',       color: '#26a69a',  icon: iconLibrary  },
-  { scope: '3dsb', id: 'blog',     label: 'S.Blog',          color: '#e57373',  icon: iconBlog     },
+  { scope: '3dsb', id: 'blog',     label: 'S.Blog',          color: 'light-dark(#921b1b, #e57373)',  icon: iconBlog     },
   { scope: '3dsm', id: 'movie',    label: 'S.Movie',         color: '#C98A4B',  icon: iconMovie    },
   { scope: '3dsmt', id: 'material', label: 'S.Material',     color: '#ec407a',  icon: iconMaterial },
 ];
@@ -64,11 +74,11 @@ const TabIcon: React.FC<{ src?: string; color?: string }> = ({ src, color }) => 
       sx={{
         width: 22, height: 22,
         borderRadius: '5px',
-        bgcolor: color ? `${color}33` : 'rgba(255,255,255,0.12)',
+        bgcolor: color ? `color-mix(in srgb, ${color} 20%, transparent)` : BRAND.panel2,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, mr: 0.75,
-        border: color ? `1px solid ${color}77` : '1px solid rgba(255,255,255,0.15)',
-        boxShadow: color ? `0 0 6px ${color}44` : 'none',
+        border: color ? `1px solid color-mix(in srgb, ${color} 47%, transparent)` : `1px solid ${BRAND.line2}`,
+        boxShadow: color ? `0 0 6px color-mix(in srgb, ${color} 27%, transparent)` : 'none',
         transition: 'transform 0.18s ease, box-shadow 0.18s ease',
       }}
     >
@@ -94,7 +104,7 @@ const TAB_BASE_SX = (isActive: boolean) => ({
   pl: 2,
   borderRight: `1px solid ${BRAND.line}`,
   bgcolor: isActive ? BRAND.bg : 'transparent',
-  color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
+  color: isActive ? BRAND.text : BRAND.sub2,
   cursor: 'pointer',
   position: 'relative' as const,
   transition: 'background-color 0.2s, color 0.2s',
@@ -107,8 +117,8 @@ const TAB_BASE_SX = (isActive: boolean) => ({
     boxShadow: '0 0 8px rgba(144,202,249,0.5)',
   } : {},
   '&:hover': {
-    bgcolor: isActive ? BRAND.bg : 'rgba(255,255,255,0.03)',
-    color: '#fff',
+    bgcolor: isActive ? BRAND.bg : BRAND.panel,
+    color: BRAND.text,
     '& .tab-dot':      { opacity: 0 },
     '& .tab-actions':  { opacity: 1, pointerEvents: 'auto' },
     '& .tab-icon-badge': {
@@ -189,7 +199,7 @@ const SortableTab: React.FC<SortableTabProps> = ({
               position: 'absolute', top: '50%', right: 8,
               transform: 'translateY(-50%)',
               width: 6, height: 6, borderRadius: '50%',
-              bgcolor: tab.color, boxShadow: `0 0 5px ${tab.color}99`,
+              bgcolor: tab.color, boxShadow: `0 0 5px color-mix(in srgb, ${tab.color} 60%, transparent)`,
               transition: 'opacity 0.15s', opacity: 1,
               pointerEvents: 'none',
             }}
@@ -212,7 +222,7 @@ const SortableTab: React.FC<SortableTabProps> = ({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 14, height: 14, borderRadius: '3px',
               transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' },
+              '&:hover': { bgcolor: BRAND.panel2 },
             }}
           >
             <OpenInNewIcon sx={{ fontSize: 10 }} />
@@ -223,7 +233,7 @@ const SortableTab: React.FC<SortableTabProps> = ({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 14, height: 14, borderRadius: '50%',
               transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.15)' },
+              '&:hover': { bgcolor: BRAND.panel2 },
             }}
           >
             <CloseIcon sx={{ fontSize: 10 }} />
@@ -245,7 +255,7 @@ export const WorkspaceTabBar: React.FC = () => {
   const dirtyScopes         = useAppStore(s => s.dirtyScopes);
 
 
-  // S.Models(3dss): ローカルモデルファイルが未アップロード（編集後）なら未保存扱い。
+  // S.Model(3dss): ローカルモデルファイルが未アップロード（編集後）なら未保存扱い。
   // ファイル監視ストアは常駐するため、常時マウントされるタブバーで registry に同期する。
   const dssStatuses = useDssSyncStore(s => s.statuses);
   useEffect(() => {
@@ -274,7 +284,7 @@ export const WorkspaceTabBar: React.FC = () => {
     setPinnedTabIds(arrayMove(pinnedTabIds, oldIdx, newIdx));
   };
 
-  const activateTab = (tab: TabDef) => {
+  const activateTab = React.useCallback((tab: TabDef) => {
     const store = useAppStore.getState();
 
     // No project selected → switch sub-app to its global browse scope
@@ -298,16 +308,61 @@ export const WorkspaceTabBar: React.FC = () => {
     } else if (store.currentMainView !== 'workspace') {
       store.setCurrentMainView('workspace');
     }
-  };
+  }, [setActiveWorkspaceId, setLastActiveAppScope]);
+
+  // ポップアウトした Chat 窓（リモコン）からの子アプリ切替要求を受けて、本体の表示を切り替え、
+  // 本体ウィンドウを前面に出す。本タブバーは本体ウィンドウにのみマウントされるため、
+  // 反応するのは本体だけ（子ウィンドウには WorkspaceTabBar が無い）。
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | null = null;
+    listen<{ scope: string }>(OPEN_SUBAPP_EVENT, async (e) => {
+      const tab = ALL_CHILD_TABS.find(t => t.scope === e.payload?.scope);
+      if (!tab) return;
+      activateTab(tab);
+      try {
+        const win = getCurrentWindow();
+        await win.show();
+        await win.unminimize();
+        await win.setFocus();
+      } catch { /* noop */ }
+    }).then(fn => { unlisten = fn; });
+    return () => { unlisten?.(); };
+  }, [activateTab]);
+
+  // 現在表示中の子アプリ scope を子ウィンドウへ配信（リモコンのハイライト用）。
+  // currentMainView が 'workspace' 以外（マイサイト等）は子アプリ非表示として null を送る。
+  const currentMainView = useAppStore(s => s.currentMainView);
+  const currentActiveScope = currentMainView === 'workspace'
+    ? (ALL_CHILD_TABS.find(t => t.id === activeWorkspaceId)?.scope ?? null)
+    : null;
+  useEffect(() => {
+    if (!isTauri()) return;
+    emit(ACTIVE_SUBAPP_EVENT, { scope: currentActiveScope }).catch(() => {});
+  }, [currentActiveScope]);
+
+  // 後から開いた子ウィンドウ（リモコン）からの問い合わせに、現在のアクティブ scope で応答する。
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | null = null;
+    listen(REQUEST_ACTIVE_SUBAPP_EVENT, () => {
+      const store = useAppStore.getState();
+      const scope = store.currentMainView === 'workspace'
+        ? (ALL_CHILD_TABS.find(t => t.id === store.activeWorkspaceId)?.scope ?? null)
+        : null;
+      emit(ACTIVE_SUBAPP_EVENT, { scope }).catch(() => {});
+    }).then(fn => { unlisten = fn; });
+    return () => { unlisten?.(); };
+  }, []);
 
   const handleOpenNew = (tab: TabDef) => {
     openChildWindow(tab.scope, activeProjectId);
   };
 
   const menuPaperSx = {
-    bgcolor: '#1a1c22',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: '#fff',
+    bgcolor: BRAND.glass,
+    border: `1px solid ${BRAND.line}`,
+    color: BRAND.text,
     minWidth: 200,
     boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
   };
@@ -317,7 +372,7 @@ export const WorkspaceTabBar: React.FC = () => {
       sx={{
         display: 'flex',
         alignItems: 'center',
-        bgcolor: '#14161B',
+        bgcolor: BRAND.panel2,
         borderBottom: `1px solid ${BRAND.line}`,
         height: 32,
         overflowX: 'auto',
@@ -356,9 +411,9 @@ export const WorkspaceTabBar: React.FC = () => {
             height: '100%',
             width: 32,
             flexShrink: 0,
-            color: 'rgba(255,255,255,0.4)',
+            color: BRAND.sub2,
             cursor: 'pointer',
-            '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' },
+            '&:hover': { color: BRAND.text, bgcolor: BRAND.panel },
           }}
         >
           <AddIcon sx={{ fontSize: 16 }} />
@@ -377,7 +432,7 @@ export const WorkspaceTabBar: React.FC = () => {
         slotProps={{ paper: { sx: menuPaperSx } }}
       >
         {hiddenTabs.length === 0 ? (
-          <MenuItem disabled sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
+          <MenuItem disabled sx={{ fontSize: '0.8rem', color: BRAND.sub2 }}>
             すべて表示中
           </MenuItem>
         ) : (
@@ -385,7 +440,7 @@ export const WorkspaceTabBar: React.FC = () => {
             <MenuItem
               key={tab.scope}
               onClick={() => { togglePinnedTab(tab.scope); setAddMenuAnchor(null); }}
-              sx={{ fontSize: '0.8rem', gap: 1.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}
+              sx={{ fontSize: '0.8rem', gap: 1.5, '&:hover': { bgcolor: BRAND.panel } }}
             >
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: tab.color, flexShrink: 0 }} />
               {tab.label}
@@ -407,20 +462,20 @@ export const WorkspaceTabBar: React.FC = () => {
             if (contextMenu) handleOpenNew(contextMenu.tab);
             setContextMenu(null);
           }}
-          sx={{ fontSize: '0.85rem', gap: 1.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}
+          sx={{ fontSize: '0.85rem', gap: 1.5, '&:hover': { bgcolor: BRAND.panel } }}
         >
-          <OpenInNewIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }} />
+          <OpenInNewIcon sx={{ fontSize: 16, color: BRAND.sub2 }} />
           新しいウィンドウで開く
         </MenuItem>
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 0.5 }} />
+        <Divider sx={{ borderColor: BRAND.line, my: 0.5 }} />
         <MenuItem
           onClick={() => {
             if (contextMenu) togglePinnedTab(contextMenu.tab.scope);
             setContextMenu(null);
           }}
-          sx={{ fontSize: '0.85rem', gap: 1.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}
+          sx={{ fontSize: '0.85rem', gap: 1.5, '&:hover': { bgcolor: BRAND.panel } }}
         >
-          <CloseIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.6)' }} />
+          <CloseIcon sx={{ fontSize: 16, color: BRAND.sub2 }} />
           タブを閉じる
         </MenuItem>
       </Menu>

@@ -34,11 +34,11 @@ const PURPOSE_OPTIONS: Record<BuildingType, { value: string; label: string }[]> 
   custom: [{ value: 'general', label: '汎用' }],
 };
 
-const line = 'rgba(255,255,255,0.1)';
+const line = 'rgb(var(--brand-fg-rgb) / 0.1)';
 const accent = '#a78bfa';
 
 const radioSx = { color: line, '&.Mui-checked': { color: accent }, padding: '4px 8px' };
-const headingSx = { color: alpha('#fff', 0.7), fontSize: 12, fontWeight: 700, mb: 1, '&.Mui-focused': { color: alpha('#fff', 0.7) } };
+const headingSx = { color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: 12, fontWeight: 700, mb: 1, '&.Mui-focused': { color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" } };
 const sectionSx = { mb: 2.5 };
 
 interface Props { projectId?: string | null }
@@ -89,12 +89,12 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
   const inputSx = {
     flex: 1,
     '& .MuiOutlinedInput-root': {
-      color: '#fff', fontSize: 13,
+      color: 'var(--brand-fg)', fontSize: 13,
       '& fieldset': { borderColor: line },
       '&:hover fieldset': { borderColor: alpha('#fff', 0.35) },
       '&.Mui-focused fieldset': { borderColor: accent },
     },
-    '& .MuiInputLabel-root': { color: alpha('#fff', 0.45), fontSize: 12, '&.Mui-focused': { color: accent } },
+    '& .MuiInputLabel-root': { color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontSize: 12, '&.Mui-focused': { color: accent } },
   };
 
   return (
@@ -107,11 +107,11 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
           <Box sx={{ display: 'flex', gap: 1.5 }}>
             <TextField size="small" label="幅" type="number" value={roomWidthMm}
               onChange={(e) => setRoomWidthMm(Math.max(1000, Number(e.target.value)))}
-              InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 11, color: alpha('#fff', 0.4) }}>mm</Typography></InputAdornment> }}
+              InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>mm</Typography></InputAdornment> }}
               inputProps={{ min: 1000, max: 20000, step: 100 }} sx={inputSx} />
             <TextField size="small" label="奥行き" type="number" value={roomDepthMm}
               onChange={(e) => setRoomDepthMm(Math.max(1000, Number(e.target.value)))}
-              InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 11, color: alpha('#fff', 0.4) }}>mm</Typography></InputAdornment> }}
+              InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>mm</Typography></InputAdornment> }}
               inputProps={{ min: 1000, max: 20000, step: 100 }} sx={inputSx} />
           </Box>
           <Divider sx={{ borderColor: line, mt: 2 }} />
@@ -168,18 +168,18 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
       {/* 図面出力（採用時に Topビュー平面図を生成） */}
       <Box sx={sectionSx}>
         <FormLabel sx={headingSx}>図面出力（採用時に平面図を生成）</FormLabel>
-        <Typography sx={{ fontSize: 10.5, color: alpha('#fff', 0.4), mb: 1 }}>
+        <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mb: 1 }}>
           採用時に Topビュー（通常モード）の平面図を用紙サイズ・縮尺に合わせて生成し History に保存します。
         </Typography>
 
         <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
           {/* 用紙サイズ */}
           <FormControl size="small" sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.5), mb: 0.5 }}>用紙</Typography>
+            <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mb: 0.5 }}>用紙</Typography>
             <Select
               value={planPaperSize}
               onChange={(e) => setPlanPaperSize(e.target.value as 'A3' | 'A4')}
-              sx={{ color: '#fff', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: line }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.35) }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent }, '.MuiSvgIcon-root': { color: alpha('#fff', 0.5) } }}
+              sx={{ color: 'var(--brand-fg)', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: line }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.35) }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent }, '.MuiSvgIcon-root': { color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" } }}
             >
               <MenuItem value="A3">A3</MenuItem>
               <MenuItem value="A4">A4</MenuItem>
@@ -188,11 +188,11 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
 
           {/* 縮尺 */}
           <FormControl size="small" sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.5), mb: 0.5 }}>縮尺</Typography>
+            <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mb: 0.5 }}>縮尺</Typography>
             <Select
               value={planScale === 'auto' ? 'auto' : String(planScale)}
               onChange={(e) => setPlanScale(e.target.value === 'auto' ? 'auto' : Number(e.target.value))}
-              sx={{ color: '#fff', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: line }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.35) }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent }, '.MuiSvgIcon-root': { color: alpha('#fff', 0.5) } }}
+              sx={{ color: 'var(--brand-fg)', fontSize: 13, '.MuiOutlinedInput-notchedOutline': { borderColor: line }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha('#fff', 0.35) }, '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent }, '.MuiSvgIcon-root': { color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" } }}
             >
               <MenuItem value="auto">自動（用紙に合わせる）</MenuItem>
               {[20, 30, 50, 100, 150, 200, 250, 300, 500].map((s) => (
@@ -229,14 +229,14 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
             onClick={handleExecute}
             startIcon={
               isGenerating
-                ? <CircularProgress size={14} sx={{ color: '#fff' }} />
+                ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} />
                 : <AutoFixHighRoundedIcon sx={{ fontSize: 16 }} />
             }
             sx={{
               py: 0.9, textTransform: 'none', fontWeight: 800, fontSize: 12.5,
-              bgcolor: '#7c3aed', color: '#fff', borderRadius: 2,
+              bgcolor: '#7c3aed', color: 'var(--brand-fg)', borderRadius: 2,
               '&:hover': { bgcolor: '#6d28d9' },
-              '&.Mui-disabled': { bgcolor: alpha('#7c3aed', 0.3), color: alpha('#fff', 0.4) },
+              '&.Mui-disabled': { bgcolor: alpha('#7c3aed', 0.3), color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" },
             }}
           >
             {isGenerating ? '生成中…' : 'Auto Layout 実行'}
@@ -247,7 +247,7 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
               onClick={openRulesDialog}
               sx={{
                 minWidth: 38, width: 38, height: 38, p: 0, flexShrink: 0, borderRadius: 2,
-                borderColor: alpha('#fff', 0.2), color: alpha('#fff', 0.7),
+                borderColor: alpha('#fff', 0.2), color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)",
                 '&:hover': { borderColor: accent, color: accent, bgcolor: alpha('#7c3aed', 0.12) },
               }}
             >
@@ -255,7 +255,7 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
             </Button>
           </Tooltip>
         </Stack>
-        <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.3), textAlign: 'center', mt: 0.75 }}>
+        <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)", textAlign: 'center', mt: 0.75 }}>
           {hint}
         </Typography>
       </Box>

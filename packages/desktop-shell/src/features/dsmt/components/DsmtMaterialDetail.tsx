@@ -31,13 +31,13 @@ const SLOT_LABEL: Record<string, string> = Object.fromEntries(SLOTS.map((s) => [
  */
 const CssSpherePreview: React.FC<{ baseColor: string; albedoUrl?: string; size?: number }> = ({ baseColor, albedoUrl, size = 300 }) => {
   const hasTex = !!albedoUrl;
-  const shade = `radial-gradient(circle at 32% 28%, rgba(255,255,255,${hasTex ? 0.45 : 0.6}) 0%, rgba(255,255,255,0) 44%), radial-gradient(circle at 72% 82%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 62%)`;
+  const shade = `radial-gradient(circle at 32% 28%, rgba(255,255,255,${hasTex ? 0.45 : 0.6}) 0%, rgb(var(--brand-fg-rgb) / 0) 44%), radial-gradient(circle at 72% 82%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 62%)`;
   return (
     <Box sx={{
       width: size, height: size, borderRadius: '50%', m: 'auto',
       backgroundImage: hasTex ? `${shade}, url("${albedoUrl}")` : `${shade}, radial-gradient(circle, ${baseColor} 0%, ${baseColor} 100%)`,
       backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-      boxShadow: 'inset 0 -12px 28px rgba(0,0,0,0.55), inset 0 8px 18px rgba(255,255,255,0.1)',
+      boxShadow: 'inset 0 -12px 28px rgba(0,0,0,0.55), inset 0 8px 18px rgb(var(--brand-fg-rgb) / 0.1)',
     }} />
   );
 };
@@ -152,46 +152,46 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
       {/* 左+中央: 詳細編集 */}
       <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         {/* ヘッダー */}
-        <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <IconButton onClick={onBack} sx={{ color: '#fff' }}><ArrowBackRoundedIcon /></IconButton>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>マテリアル詳細</Typography>
+        <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+          <IconButton onClick={onBack} sx={{ color: 'var(--brand-fg)' }}><ArrowBackRoundedIcon /></IconButton>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'var(--brand-fg)' }}>マテリアル詳細</Typography>
           <Box sx={{ flex: 1 }} />
           {!projectId && <Typography sx={{ fontSize: 12, color: '#ff9800' }}>プロジェクト由来の素材のみ編集できます</Typography>}
           <Button variant="contained" size="small" disabled={!projectId || savingParams} onClick={saveParams}
-            startIcon={savingParams ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : undefined}
+            startIcon={savingParams ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : undefined}
             sx={{ bgcolor: ACCENT, textTransform: 'none', '&:hover': { bgcolor: '#f06292' } }}>保存</Button>
         </Box>
 
         <Box sx={{ p: 3, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {/* プレビュー */}
           <Box sx={{ width: 300, flexShrink: 0 }}>
-            <Box sx={{ width: 300, height: 300, borderRadius: 2, overflow: 'hidden', bgcolor: '#05060a', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1.5 }}>
+            <Box sx={{ width: 300, height: 300, borderRadius: 2, overflow: 'hidden', bgcolor: 'var(--brand-bg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 1.5 }}>
               <CssSpherePreview baseColor={mat.params.baseColor} albedoUrl={previewMaps.albedo} size={270} />
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 1 }}>
-              <Chip label={meta.label} size="small" sx={{ bgcolor: `${meta.color}22`, color: meta.color }} />
+              <Chip label={meta.label} size="small" sx={{ bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color }} />
               <Chip label={mat.visibility === 'public' ? '公開中' : '非公開'} size="small"
-                sx={{ bgcolor: mat.visibility === 'public' ? 'rgba(236,64,122,0.18)' : 'rgba(255,255,255,0.08)', color: mat.visibility === 'public' ? ACCENT : 'rgba(255,255,255,0.6)' }} />
+                sx={{ bgcolor: mat.visibility === 'public' ? 'rgba(236,64,122,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.08)', color: mat.visibility === 'public' ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.6)' }} />
             </Box>
           </Box>
 
           {/* パラメータ + スロット */}
           <Box sx={{ flex: 1, minWidth: 280 }}>
             <TextField label="素材名" value={mat.title || ''} onChange={(e) => setMat((m) => ({ ...m, title: e.target.value }))} fullWidth size="small"
-              sx={{ mb: 2, '& .MuiInputBase-input': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+              sx={{ mb: 2, '& .MuiInputBase-input': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }} />
 
             <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
               <Select value={mat.category} onChange={(e) => setMat((m) => ({ ...m, category: e.target.value as DsmtCategory }))} size="small"
-                sx={{ minWidth: 160, color: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}>
+                sx={{ minWidth: 160, color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}>
                 {(Object.keys(DSMT_CATEGORY_META) as DsmtCategory[]).map((c) => <MenuItem key={c} value={c}>{DSMT_CATEGORY_META[c].label}</MenuItem>)}
               </Select>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>ベースカラー</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>ベースカラー</Typography>
                 <input type="color" value={mat.params.baseColor} onChange={(e) => setParam('baseColor', e.target.value)}
-                  style={{ width: 36, height: 26, background: 'none', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4 }} />
+                  style={{ width: 36, height: 26, background: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 4 }} />
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>公開</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>公開</Typography>
                 <Switch size="small" checked={mat.visibility === 'public'} onChange={(e) => setMat((m) => ({ ...m, visibility: e.target.checked ? 'public' : 'private' }))}
                   sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: ACCENT }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'rgba(236,64,122,0.5)' } }} />
               </Box>
@@ -200,19 +200,19 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
             {(['roughness', 'metalness', 'opacity'] as (keyof DsmtPbrParams)[]).map((k) => (
               <Box key={k} sx={{ mb: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{k === 'roughness' ? 'ラフネス' : k === 'metalness' ? 'メタルネス' : '不透明度'}</Typography>
-                  <Typography sx={{ fontSize: 12, color: '#fff' }}>{Number(mat.params[k] ?? (k === 'opacity' ? 1 : 0)).toFixed(2)}</Typography>
+                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>{k === 'roughness' ? 'ラフネス' : k === 'metalness' ? 'メタルネス' : '不透明度'}</Typography>
+                  <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}>{Number(mat.params[k] ?? (k === 'opacity' ? 1 : 0)).toFixed(2)}</Typography>
                 </Box>
                 <Slider size="small" min={0} max={1} step={0.01} value={Number(mat.params[k] ?? (k === 'opacity' ? 1 : 0))} onChange={(_, v) => setParam(k, v as number)} sx={{ color: ACCENT }} />
               </Box>
             ))}
 
             <TextField label="タグ（カンマ区切り）" value={(mat.tags ?? []).join(', ')} onChange={(e) => setMat((m) => ({ ...m, tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean) }))} fullWidth size="small"
-              sx={{ mt: 1, mb: 2, '& .MuiInputBase-input': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+              sx={{ mt: 1, mb: 2, '& .MuiInputBase-input': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }} />
 
             {/* テクスチャスロット */}
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff', mb: 1 }}>テクスチャスロット</Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mb: 1.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)', mb: 1 }}>テクスチャスロット</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 1.5 }}>
               右の一覧から画像をクリックすると、ファイル名に応じて自動でスロットに入ります。スロットを選んでから画像をクリックすると、そのスロットに入れられます。
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
@@ -222,20 +222,20 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
                 return (
                   <Box key={slot} onClick={() => setTargetSlot(isTarget ? null : slot)}
                     sx={{ p: 1, borderRadius: 1.5, cursor: 'pointer', position: 'relative',
-                      bgcolor: isTarget ? 'rgba(236,64,122,0.12)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${isTarget ? ACCENT : 'rgba(255,255,255,0.08)'}`,
+                      bgcolor: isTarget ? 'rgba(236,64,122,0.12)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+                      border: `1px solid ${isTarget ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                       transition: 'border-color 0.15s' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ width: 44, height: 44, borderRadius: 1, flexShrink: 0, bgcolor: 'rgba(0,0,0,0.4)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <Box sx={{ width: 44, height: 44, borderRadius: 1, flexShrink: 0, bgcolor: 'rgba(0,0,0,0.4)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
                         {assigning === slot ? <CircularProgress size={16} sx={{ color: ACCENT }} />
                           : url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <Typography sx={{ fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>＋</Typography>}
+                          : <Typography sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>＋</Typography>}
                       </Box>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography sx={{ fontSize: 11, fontWeight: 600, color: url ? '#fff' : 'rgba(255,255,255,0.6)' }} noWrap>{label}</Typography>
-                        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }} noWrap>{url ? '設定済み' : hint}</Typography>
+                        <Typography sx={{ fontSize: 11, fontWeight: 600, color: url ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)' }} noWrap>{label}</Typography>
+                        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} noWrap>{url ? '設定済み' : hint}</Typography>
                       </Box>
-                      {url && <IconButton size="small" onClick={(e) => { e.stopPropagation(); clearSlot(slot); }} sx={{ color: 'rgba(255,255,255,0.5)' }}><ClearRoundedIcon sx={{ fontSize: 15 }} /></IconButton>}
+                      {url && <IconButton size="small" onClick={(e) => { e.stopPropagation(); clearSlot(slot); }} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}><ClearRoundedIcon sx={{ fontSize: 15 }} /></IconButton>}
                     </Box>
                     {isTarget && <Typography sx={{ position: 'absolute', top: 2, right: 6, fontSize: 9, color: ACCENT }}>選択中</Typography>}
                   </Box>
@@ -243,7 +243,7 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
               })}
             </Box>
             {((mat.maps as any)?.albedo) && (
-              <Typography sx={{ fontSize: 10.5, color: 'rgba(129,199,132,0.9)', mt: 1 }}>
+              <Typography sx={{ fontSize: 10.5, color: 'light-dark(rgba(53,120,56,0.9), rgba(129,199,132,0.9))', mt: 1 }}>
                 ✓ Albedo を設定したのでベースカラーは白に正規化されています（色の二重適用を防止）。
               </Typography>
             )}
@@ -261,12 +261,12 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
       </Box>
 
       {/* 右サイドバー: テクスチャ一覧（S.Image / ローカル素材） */}
-      <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', bgcolor: 'rgba(10,15,25,0.4)' }}>
-        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: 1, mb: 1 }}>テクスチャ一覧</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 2, px: 1.25, py: 0.4, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <SearchRoundedIcon sx={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', mr: 0.75 }} />
-            <InputBase placeholder="フォルダ / ファイル名で絞り込み" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: '#fff', fontSize: 12, flex: 1 }} />
+      <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', display: 'flex', flexDirection: 'column', bgcolor: 'light-dark(rgba(255,255,255,0.55), rgba(10,15,25,0.4))' }}>
+        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.8)', textTransform: 'uppercase', letterSpacing: 1, mb: 1 }}>テクスチャ一覧</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 2, px: 1.25, py: 0.4, border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+            <SearchRoundedIcon sx={{ fontSize: 15, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 0.75 }} />
+            <InputBase placeholder="フォルダ / ファイル名で絞り込み" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }} />
           </Box>
           {targetSlot && <Typography sx={{ fontSize: 11, color: ACCENT, mt: 1 }}>「{SLOT_LABEL[targetSlot]}」に入れる画像を選んでください</Typography>}
         </Box>
@@ -275,7 +275,7 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
           {texLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress size={20} sx={{ color: ACCENT }} /></Box>
           ) : grouped.length === 0 ? (
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', p: 1 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)', p: 1 }}>
               ローカル素材にテクスチャがありません。S.Image の「ローカル素材」（%USERPROFILE%\SEKKEIYA\LocalAssets\Images）に画像を置いてください。
             </Typography>
           ) : grouped.map(([folder, items]) => {
@@ -284,8 +284,8 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
             return (
               <Box key={folder} sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75 }}>
-                  {isMatch && <CheckCircleRoundedIcon sx={{ fontSize: 14, color: '#81c784' }} />}
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: isMatch ? '#81c784' : 'rgba(255,255,255,0.55)', flex: 1 }} noWrap>{folder}</Typography>
+                  {isMatch && <CheckCircleRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#357838, #81c784)' }} />}
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: isMatch ? 'light-dark(#357838, #81c784)' : 'rgb(var(--brand-fg-rgb) / 0.55)', flex: 1 }} noWrap>{folder}</Typography>
                   {hasSet && (
                     <Tooltip title="ファイル名から4スロットを一括割当">
                       <IconButton size="small" onClick={() => assignFolderSet(items)} sx={{ color: ACCENT, p: 0.25 }}><AutoFixHighRoundedIcon sx={{ fontSize: 15 }} /></IconButton>
@@ -296,12 +296,12 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
                   {items.map((t) => (
                     <Box key={t.id} onClick={() => handleTextureClick(t)}
                       title={`${t.name}${t.slot ? `（推定: ${SLOT_LABEL[t.slot] ?? t.slot}）` : ''}`}
-                      sx={{ cursor: 'pointer', borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(0,0,0,0.3)', '&:hover': { borderColor: ACCENT } }}>
-                      <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: '#000' }}>
+                      sx={{ cursor: 'pointer', borderRadius: 1, overflow: 'hidden', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', '&:hover': { borderColor: ACCENT } }}>
+                      <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: 'var(--brand-bg)' }}>
                         <img src={t.url} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </Box>
                       <Box sx={{ px: 0.5, py: 0.4 }}>
-                        <Typography sx={{ fontSize: 9.5, color: '#fff' }} noWrap>{t.name}</Typography>
+                        <Typography sx={{ fontSize: 9.5, color: 'var(--brand-fg)' }} noWrap>{t.name}</Typography>
                         {t.slot && t.slot !== 'metalness' && (
                           <Typography sx={{ fontSize: 8.5, color: ACCENT }} noWrap>→ {SLOT_LABEL[t.slot]}</Typography>
                         )}
@@ -309,7 +309,7 @@ export const DsmtMaterialDetail: React.FC<Props> = ({ material, onBack }) => {
                     </Box>
                   ))}
                 </Box>
-                <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mt: 1.5 }} />
+                <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mt: 1.5 }} />
               </Box>
             );
           })}

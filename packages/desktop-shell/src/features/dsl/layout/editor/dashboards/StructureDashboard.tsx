@@ -62,8 +62,8 @@ export default function StructureDashboard({ title, items, type, onCreate, onSel
   const isCurrentlyShowingLoader = isLoading || showFlow;
 
   return (
-    <Box sx={{ width: "100%", height: "100%", bgcolor: "#0a0c12", p: 4, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-      <Typography variant="h5" sx={{ color: "rgba(255,255,255,0.9)", mb: 4, fontWeight: 600 }}>
+    <Box sx={{ width: "100%", height: "100%", bgcolor: "var(--brand-bg)", p: 4, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+      <Typography variant="h5" sx={{ color: "rgb(var(--brand-fg-rgb) / 0.9)", mb: 4, fontWeight: 600 }}>
         {title}
       </Typography>
 
@@ -78,12 +78,12 @@ export default function StructureDashboard({ title, items, type, onCreate, onSel
               sx={{ color: type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF" }} 
             />
             <Box sx={{ top: 0, left: 0, bottom: 0, right: 0, position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="h5" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
+              <Typography variant="h5" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 700 }}>
                 {Math.round(progress)}%
               </Typography>
             </Box>
           </Box>
-          <Typography sx={{ mt: 4, color: "rgba(255,255,255,0.6)", fontSize: 15, letterSpacing: 1 }}>
+          <Typography sx={{ mt: 4, color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 15, letterSpacing: 1 }}>
             データを取得しています...
           </Typography>
         </Box>
@@ -95,20 +95,20 @@ export default function StructureDashboard({ title, items, type, onCreate, onSel
               sx={{
                 height: 160,
                 borderRadius: 2,
-                border: "1px dashed rgba(255,255,255,0.2)",
+                border: "1px dashed rgb(var(--brand-fg-rgb) / 0.2)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                bgcolor: "rgba(255,255,255,0.02)",
+                bgcolor: "rgb(var(--brand-fg-rgb) / 0.02)",
                 "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.06)",
-                  borderColor: "rgba(255,255,255,0.4)",
+                  bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)",
+                  borderColor: "rgb(var(--brand-fg-rgb) / 0.4)",
                 },
               }}
             >
-              <AddRoundedIcon sx={{ fontSize: 32, color: "rgba(255,255,255,0.5)", mb: 1 }} />
-              <Typography sx={{ color: "rgba(255,255,255,0.5)", fontWeight: 500, fontSize: 14 }}>
+              <AddRoundedIcon sx={{ fontSize: 32, color: "rgb(var(--brand-fg-rgb) / 0.5)", mb: 1 }} />
+              <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontWeight: 500, fontSize: 14 }}>
                 {creatingLabel}
               </Typography>
             </CardActionArea>
@@ -122,23 +122,23 @@ export default function StructureDashboard({ title, items, type, onCreate, onSel
                 height: 160,
                 borderRadius: 2,
                 border: "1px solid",
-                borderColor: selectedId === item.id ? (type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF") : "rgba(255,255,255,0.08)",
+                borderColor: selectedId === item.id ? (type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF") : "rgb(var(--brand-fg-rgb) / 0.08)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                bgcolor: selectedId === item.id ? alpha(type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF", 0.08) : "rgba(255,255,255,0.04)",
+                bgcolor: selectedId === item.id ? alpha(type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF", 0.08) : "rgb(var(--brand-fg-rgb) / 0.04)",
                 "&:hover": {
-                  bgcolor: selectedId === item.id ? alpha(type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF", 0.12) : "rgba(255,255,255,0.08)",
+                  bgcolor: selectedId === item.id ? alpha(type === "base" ? "#ff9800" : type === "plan" ? "#4caf50" : "#00BFFF", 0.12) : "rgb(var(--brand-fg-rgb) / 0.08)",
                 },
                 position: "relative",
               }}
             >
               {icon}
-              <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: 16, mb: 0.5 }}>
+              <Typography sx={{ color: "var(--brand-fg)", fontWeight: 600, fontSize: 16, mb: 0.5 }}>
                 {item.name || "Untitled"}
               </Typography>
-              <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+              <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 12 }}>
                 {type === "plan" ? "Plan" : "Option"} ID: {item.id.slice(0, 6)}...
               </Typography>
             </CardActionArea>

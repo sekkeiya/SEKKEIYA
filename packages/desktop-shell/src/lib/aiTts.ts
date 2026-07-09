@@ -9,16 +9,13 @@
  */
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase/client';
+import { toPlaybackRate } from './tts';
 import type { AiTtsStyle } from './tts';
 
-/** AI音声のプリセット声（Gemini TTS）。日本語も自然に読める。 */
+/** AI音声のプリセット声（Gemini TTS）。日本語も自然に読める。迷わないよう女性/男性の2択に絞る。 */
 export const AI_VOICES: { name: string; label: string }[] = [
   { name: 'Kore',    label: 'Kore（落ち着いた女性）' },
-  { name: 'Aoede',   label: 'Aoede（明るい女性）' },
-  { name: 'Leda',    label: 'Leda（やわらかい女性）' },
   { name: 'Charon',  label: 'Charon（落ち着いた男性）' },
-  { name: 'Puck',    label: 'Puck（快活な男性）' },
-  { name: 'Fenrir',  label: 'Fenrir（力強い男性）' },
 ];
 
 /** base64 の 16bit PCM を再生可能な WAV Blob に包む。 */
@@ -47,6 +44,17 @@ function pcmBase64ToWavBlob(b64: string, sampleRate: number): Blob {
   return new Blob([header, pcm], { type: 'audio/wav' });
 }
 
+// AI音声の利用枠（サーバー側のClaude式時間窓）超過中フラグ。回復時刻まで readFrom は標準音声を使う。
+let limitedUntil = 0;
+export const isAiTtsLimited = (): boolean => Date.now() < limitedUntil;
+/** 回復予定時刻（"HH:MM頃" 表示用。未制限なら null） */
+export const aiTtsLimitedUntil = (): number | null => (isAiTtsLimited() ? limitedUntil : null);
+
+// 有料プラン未加入（PLAN_REQUIRED）を一度受けたら、しばらく合成呼び出し自体を止める
+// （全チャンクで同じ拒否を食らってCFを無駄撃ちしない）。プラン購入直後に備えて10分でリトライ可。
+let planBlockedUntil = 0;
+export const isAiTtsPlanBlocked = (): boolean => Date.now() < planBlockedUntil;
+
 // 合成結果のメモリキャッシュ（同じ記事の再読・戻り再生でAPIを叩き直さない）
 const cache = new Map<string, Blob>();
 const cacheKey = (text: string, voice: string, style: string) => `${voice}|${style}|${text}`;
@@ -63,12 +71,34 @@ export async function synthesizeAiTts(text: string, opts: { voice: string; style
   const inflight = pending.get(key);
   if (inflight) return inflight; // 準備フェーズと再生の同時要求を1本化
 
+  // 枠超過/プラン未加入が判明している間は、CFを呼ばず即座に同じエラーを返す
+  // （キャッシュ済みチャンクは上で返る＝取得済み音声は最後まで再生できる）
+  if (isAiTtsLimited()) {
+    const err: any = new Error('AI音声の利用枠を使い切りました');
+    err.code = 'TTS_LIMITED';
+    err.resetAt = limitedUntil;
+    throw err;
+  }
+  if (isAiTtsPlanBlocked()) {
+    const err: any = new Error('AI音声は有料プランでご利用いただけます');
+    err.code = 'PLAN_REQUIRED';
+    throw err;
+  }
+
   const task = (async () => {
     const fn = httpsCallable(functions, 'ttsSynthesize');
     const r: any = await fn({ text, voice: opts.voice, style: opts.style });
     if (!r.data?.success) {
+      // 利用枠超過（Claude式・時間窓リセット）: 回復時刻までAI音声を封印し、呼び出し側は標準音声へフォールバック
+      if (r.data?.code === 'TTS_LIMITED') {
+        limitedUntil = Number(r.data?.resetAt) || Date.now() + 30 * 60e3;
+      }
+      if (r.data?.code === 'PLAN_REQUIRED') {
+        planBlockedUntil = Date.now() + 10 * 60e3;
+      }
       const err: any = new Error(r.data?.reason || 'AI音声の生成に失敗しました');
-      err.code = r.data?.code; // 'PLAN_REQUIRED' など
+      err.code = r.data?.code; // 'PLAN_REQUIRED' | 'TTS_LIMITED' など
+      err.resetAt = r.data?.resetAt;
       throw err;
     }
     let blob: Blob;
@@ -99,8 +129,10 @@ export interface AiPlayCallbacks {
   onChunkStart?: (index: number) => void;
   /** 全チャンク自然完了時のみ（stop では呼ばれない） */
   onEnd?: () => void;
-  /** 合成/再生エラー（そのチャンクはスキップして継続） */
-  onError?: (message: string) => void;
+  /** 合成/再生エラー。既定はそのチャンクをスキップして継続。
+   *  info.code が 'TTS_LIMITED' / 'PLAN_REQUIRED' なら以降の全チャンクも失敗するため、
+   *  呼び出し側は stop() して標準音声へ切り替えるのが正しい（info.index = 失敗チャンク位置）。 */
+  onError?: (message: string, info?: { index: number; code?: string }) => void;
 }
 
 /**
@@ -111,18 +143,20 @@ export interface AiPlayCallbacks {
 export async function prepareAiTts(
   chunks: string[],
   opts: { voice: string; style: AiTtsStyle },
-  cb?: { onProgress?: (done: number, total: number) => void; shouldStop?: () => boolean; onError?: (message: string) => void },
+  cb?: { onProgress?: (done: number, total: number) => void; shouldStop?: () => boolean; onError?: (message: string, code?: string) => void },
 ): Promise<void> {
   let done = 0;
   const total = chunks.length;
   cb?.onProgress?.(0, total);
   for (let i = 0; i < chunks.length; i += 3) {
-    if (cb?.shouldStop?.()) return;
+    // 枠超過/プラン未加入が確定したら以降の合成は無意味（全て同じ拒否）なので打ち切る。
+    // 再生側は取得済みキャッシュを使い切ったところで標準音声へフォールバックする。
+    if (cb?.shouldStop?.() || isAiTtsLimited() || isAiTtsPlanBlocked()) return;
     await Promise.all(chunks.slice(i, i + 3).map(async (text) => {
       try {
         await synthesizeAiTts(text, opts);
       } catch (e: any) {
-        cb?.onError?.(String(e?.message || e));
+        cb?.onError?.(String(e?.message || e), e?.code);
       }
       done += 1;
       cb?.onProgress?.(done, total);
@@ -150,7 +184,7 @@ export class AiTtsPlayer {
       try {
         blob = await nextPromise!;
       } catch (e: any) {
-        cb.onError?.(String(e?.message || e));
+        cb.onError?.(String(e?.message || e), { index: i, code: e?.code });
       }
       if (this.stopped) return;
       nextPromise = i + 1 < chunks.length ? synth(i + 1) : null;
@@ -166,7 +200,7 @@ export class AiTtsPlayer {
       const url = URL.createObjectURL(blob);
       const done = () => { URL.revokeObjectURL(url); resolve(); };
       this.audio.src = url;
-      this.audio.playbackRate = Math.min(2, Math.max(0.5, rate));
+      this.audio.playbackRate = Math.min(3, Math.max(0.5, toPlaybackRate(rate)));
       this.audio.onended = done;
       this.audio.onerror = done;
       this.audio.play().catch(done);

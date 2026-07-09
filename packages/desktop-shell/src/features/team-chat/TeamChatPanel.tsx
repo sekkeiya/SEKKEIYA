@@ -178,7 +178,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
           senderUid: 'system',
           senderName: 'system',
           kind: 'system',
-          text: `AIが${myName}さんに確認を求めています（SEKKEIYA Chat パネルで選択すると続行されます）`,
+          text: `AIが${myName}さんに確認を求めています（SEKKEIYA OS パネルで選択すると続行されます）`,
         });
       }
     } catch (e: any) {
@@ -245,18 +245,18 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
   const hasConversation = messages.some(m => m.kind !== 'system');
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#1a1f2b', color: '#fff', position: 'relative' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', position: 'relative' }}>
 
       {/* Header（AIChatPanel と同形式）。コックピット埋め込み時はヘッダーを簡素化し、
           会話を開いているときだけ「戻る・相手名・メンバー」を出す細いコンテキストバーにする。 */}
       {(!embedded || !!target) && (
-      <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid rgba(255,255,255,0.05)`, minHeight: 48 }}>
+      <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid rgb(var(--brand-fg-rgb) / 0.05)`, minHeight: 48 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, overflow: 'hidden' }}>
           {!embedded && (
             <IconButton
               size="small"
               onClick={toggleTeamChatSidebar}
-              sx={{ color: isTeamChatSidebarOpen ? '#ffd740' : 'rgba(255,255,255,0.4)', p: 0.25, flexShrink: 0, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+              sx={{ color: isTeamChatSidebarOpen ? 'light-dark(#ad8900, #ffd740)' : 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.25, flexShrink: 0, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
               title="トーク一覧サイドバー"
             >
               <ViewSidebarRoundedIcon sx={{ fontSize: '1.1rem' }} />
@@ -266,20 +266,20 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
             <IconButton
               size="small"
               onClick={() => setTarget(null)}
-              sx={{ color: 'rgba(255,255,255,0.4)', p: 0.25, flexShrink: 0, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.25, flexShrink: 0, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
               title="トーク選択に戻る"
             >
               <ArrowBackRoundedIcon sx={{ fontSize: '1.1rem' }} />
             </IconButton>
           )}
           {!embedded && (
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.5px', color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.5px', color: 'rgb(var(--brand-fg-rgb) / 0.8)', flexShrink: 0 }}>
               Project Chat
             </Typography>
           )}
           {target && (
             <Typography sx={{
-              fontSize: '0.7rem', color: '#8ab4f8', fontWeight: 600,
+              fontSize: '0.7rem', color: 'light-dark(#0a45a4, #8ab4f8)', fontWeight: 600,
               bgcolor: 'rgba(138,180,248,0.1)', border: '1px solid rgba(138,180,248,0.2)',
               borderRadius: 1, px: 0.75, py: 0.15, flexShrink: 0,
               maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -294,7 +294,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
               {target.name.slice(0, 1)}
             </Avatar>
           ) : (
-            <AvatarGroup max={4} sx={{ '& .MuiAvatar-root': { width: 20, height: 20, fontSize: 10, border: '1px solid rgba(255,255,255,0.15)' } }}>
+            <AvatarGroup max={4} sx={{ '& .MuiAvatar-root': { width: 20, height: 20, fontSize: 10, border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)' } }}>
               {members.map(m => (
                 <Tooltip key={m.uid} title={m.displayName}>
                   <Avatar src={m.photoURL || undefined} sx={{ bgcolor: '#3498db' }}>
@@ -309,7 +309,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
               <IconButton
                 size="small"
                 onClick={() => setMembersDialogOpen(true)}
-                sx={{ color: 'rgba(255,255,255,0.4)', p: 0.25, '&:hover': { color: '#8ab4f8', bgcolor: 'rgba(138,180,248,0.08)' } }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.25, '&:hover': { color: 'light-dark(#0a45a4, #8ab4f8)', bgcolor: 'rgba(138,180,248,0.08)' } }}
               >
                 <PersonAddAltRoundedIcon sx={{ fontSize: '1.05rem' }} />
               </IconButton>
@@ -319,7 +319,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
             <IconButton
               size="small"
               onClick={() => setTeamChatOpen(false)}
-              sx={{ color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             >
               <CloseRoundedIcon sx={{ fontSize: '1.1rem' }} />
             </IconButton>
@@ -342,17 +342,17 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
       {!target ? (
         embedded ? (
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 3, gap: 1 }}>
-            <ForumRoundedIcon sx={{ fontSize: 34, color: 'rgba(255,255,255,0.22)' }} />
-            <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
+            <ForumRoundedIcon sx={{ fontSize: 34, color: 'rgb(var(--brand-fg-rgb) / 0.22)' }} />
+            <Typography sx={{ fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontWeight: 500 }}>
               相手を選択してください
             </Typography>
-            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', fontWeight: 300, lineHeight: 1.6 }}>
+            <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 300, lineHeight: 1.6 }}>
               左の一覧から相手を選ぶと<br />ダイレクトメッセージが開きます
             </Typography>
           </Box>
         ) : (
           <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <Typography sx={{ px: 2, pt: 1.5, fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', fontWeight: 300 }}>
+            <Typography sx={{ px: 2, pt: 1.5, fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 300 }}>
               誰とチャットしますか？
             </Typography>
             <ChatTargetList />
@@ -366,12 +366,12 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
 
               {messages.length === 0 && !error && (
                 <Box sx={{ m: 'auto', textAlign: 'center', opacity: 0.6, py: 6 }}>
-                  <ForumRoundedIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.3)', mb: 1 }} />
-                  <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>
+                  <ForumRoundedIcon sx={{ fontSize: 32, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mb: 1 }} />
+                  <Typography sx={{ fontSize: '0.75rem', color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontWeight: 300 }}>
                     {target.kind === 'dm' ? `${target.name}さんとのチャットを始めましょう` : 'メンバーとのチャットを始めましょう'}
                   </Typography>
                   {isProjectChat && (
-                    <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', mt: 0.5, fontWeight: 300 }}>
+                    <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 0.5, fontWeight: 300 }}>
                       「@AI 来週月曜に定例を入れて」のように依頼すると<br />会話の流れから予定・タスクを自動登録できます
                     </Typography>
                   )}
@@ -379,7 +379,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
               )}
 
               {error && (
-                <Typography sx={{ m: 'auto', fontSize: '0.7rem', color: '#f87171', fontWeight: 300 }}>{error}</Typography>
+                <Typography sx={{ m: 'auto', fontSize: '0.7rem', color: 'light-dark(#a50808, #f87171)', fontWeight: 300 }}>{error}</Typography>
               )}
 
               {messages.map((m, i) => {
@@ -393,34 +393,34 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                   <React.Fragment key={m.id}>
                     {showDate && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, my: 0.5 }}>
-                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
-                        <Typography sx={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>
+                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
+                        <Typography sx={{ fontSize: '0.58rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 500 }}>
                           {formatDateDivider(m.createdAt)}
                         </Typography>
-                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,255,255,0.05)' }} />
+                        <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
                       </Box>
                     )}
 
                     {isSystem ? (
                       <Typography sx={{
                         alignSelf: 'center', textAlign: 'center', maxWidth: '90%',
-                        fontSize: '0.62rem', fontWeight: 300, color: 'rgba(255,255,255,0.4)',
-                        bgcolor: 'rgba(255,255,255,0.04)', px: 1.5, py: 0.5, borderRadius: 2,
+                        fontSize: '0.62rem', fontWeight: 300, color: 'rgb(var(--brand-fg-rgb) / 0.4)',
+                        bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', px: 1.5, py: 0.5, borderRadius: 2,
                       }}>
                         {m.text}
                       </Typography>
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: own ? 'flex-end' : 'flex-start' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.25, gap: 1 }}>
-                          <Typography sx={{ fontSize: '0.6rem', color: isAi ? '#8ab4f8' : 'rgba(255,255,255,0.4)', fontWeight: 500, textTransform: own ? 'uppercase' : 'none' }}>
+                          <Typography sx={{ fontSize: '0.6rem', color: isAi ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 500, textTransform: own ? 'uppercase' : 'none' }}>
                             {own ? 'You' : m.senderName}
                             {isAi && m.requestedByName && (
-                              <Box component="span" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>
+                              <Box component="span" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 400 }}>
                                 {'　'}（{m.requestedByName}さんの依頼）
                               </Box>
                             )}
                           </Typography>
-                          <Typography sx={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.25)' }}>
+                          <Typography sx={{ fontSize: '0.55rem', color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
                             {formatTime(m.createdAt)}
                           </Typography>
                         </Box>
@@ -428,10 +428,10 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                           p: 1.25,
                           px: 1.5,
                           maxWidth: '90%',
-                          bgcolor: own ? 'rgba(255,255,255,0.08)' : 'transparent',
-                          color: 'rgba(255,255,255,0.9)',
+                          bgcolor: own ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+                          color: 'rgb(var(--brand-fg-rgb) / 0.9)',
                           borderRadius: 2,
-                          border: own ? 'none' : `1px solid ${isAi ? 'rgba(138,180,248,0.25)' : 'rgba(255,255,255,0.05)'}`,
+                          border: own ? 'none' : `1px solid ${isAi ? 'rgba(138,180,248,0.25)' : 'rgb(var(--brand-fg-rgb) / 0.05)'}`,
                         }}>
                           <Typography sx={{
                             fontSize: '0.75rem',
@@ -461,18 +461,18 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                   bgcolor: 'rgba(138,180,248,0.06)', border: '1px solid rgba(138,180,248,0.15)',
                   borderRadius: 2, px: 1.5, py: 0.75,
                 }}>
-                  <AutoAwesomeRoundedIcon sx={{ fontSize: '0.75rem', color: '#8ab4f8', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: '0.65rem', color: 'rgba(138,180,248,0.9)', fontWeight: 300, flex: 1 }}>
+                  <AutoAwesomeRoundedIcon sx={{ fontSize: '0.75rem', color: 'light-dark(#0a45a4, #8ab4f8)', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: '0.65rem', color: 'light-dark(rgba(10,69,164,0.9), rgba(138,180,248,0.9))', fontWeight: 300, flex: 1 }}>
                     {currentToolLabel || 'AI が考えています...'}
                   </Typography>
-                  <CircularProgress size={10} sx={{ color: '#8ab4f8', flexShrink: 0 }} />
+                  <CircularProgress size={10} sx={{ color: 'light-dark(#0a45a4, #8ab4f8)', flexShrink: 0 }} />
                 </Box>
               </Box>
             )}
           </Box>
 
           {/* Input Area（AIChatPanel と同形式） */}
-          <Box sx={{ p: 2, pt: 1, bgcolor: '#1a1f2b', flexShrink: 0 }}>
+          <Box sx={{ p: 2, pt: 1, bgcolor: 'var(--brand-surface2)', flexShrink: 0 }}>
             {/* 「AIが回答しますか？」サジェスト（複数人＋依頼っぽい発言で提示） */}
             {isProjectChat && pendingAiSuggest && !aiRunning && (
               <Box sx={{
@@ -480,21 +480,21 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                 bgcolor: 'rgba(138,180,248,0.08)', border: '1px solid rgba(138,180,248,0.25)',
                 borderRadius: 2, px: 1.25, py: 0.75,
               }}>
-                <AutoAwesomeRoundedIcon sx={{ fontSize: '0.85rem', color: '#8ab4f8', flexShrink: 0 }} />
-                <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)', flex: 1, fontWeight: 300 }}>
+                <AutoAwesomeRoundedIcon sx={{ fontSize: '0.85rem', color: 'light-dark(#0a45a4, #8ab4f8)', flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)', flex: 1, fontWeight: 300 }}>
                   AIが回答しますか？
                 </Typography>
                 <Box
                   onClick={() => { const t = pendingAiSuggest; setPendingAiSuggest(null); if (t) void runAi(t); }}
                   sx={{
-                    fontSize: '0.65rem', fontWeight: 500, color: '#8ab4f8', cursor: 'pointer',
+                    fontSize: '0.65rem', fontWeight: 500, color: 'light-dark(#0a45a4, #8ab4f8)', cursor: 'pointer',
                     bgcolor: 'rgba(138,180,248,0.12)', border: '1px solid rgba(138,180,248,0.35)',
-                    borderRadius: 5, px: 1, py: 0.3, '&:hover': { bgcolor: 'rgba(138,180,248,0.2)', color: '#fff' },
+                    borderRadius: 5, px: 1, py: 0.3, '&:hover': { bgcolor: 'rgba(138,180,248,0.2)', color: 'var(--brand-fg)' },
                   }}
                 >
                   回答してもらう
                 </Box>
-                <IconButton size="small" onClick={() => setPendingAiSuggest(null)} sx={{ color: 'rgba(255,255,255,0.4)', p: 0.25, '&:hover': { color: '#fff' } }}>
+                <IconButton size="small" onClick={() => setPendingAiSuggest(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 0.25, '&:hover': { color: 'var(--brand-fg)' } }}>
                   <CloseRoundedIcon sx={{ fontSize: '0.9rem' }} />
                 </IconButton>
               </Box>
@@ -502,7 +502,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
             {/* AI 候補ピル（プロジェクト会話のみ） */}
             {isProjectChat && !aiRunning && !input.trim() && hasConversation && (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography sx={{ width: '100%', fontSize: '0.55rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '1px', textTransform: 'uppercase', mb: 0.25 }}>
+                <Typography sx={{ width: '100%', fontSize: '0.55rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', letterSpacing: '1px', textTransform: 'uppercase', mb: 0.25 }}>
                   候補
                 </Typography>
                 {QUICK_ACTIONS.map((a) => (
@@ -517,14 +517,14 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                     }}
                     sx={{
                       display: 'flex', alignItems: 'center', gap: 0.5,
-                      fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)',
+                      fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.8)',
                       bgcolor: 'rgba(255,215,64,0.06)', border: '1px solid rgba(255,215,64,0.25)',
                       borderRadius: 5, px: 1, py: 0.4, cursor: 'pointer', transition: 'all 0.15s',
-                      '&:hover': { bgcolor: 'rgba(255,215,64,0.14)', color: '#fff', borderColor: 'rgba(255,215,64,0.5)' },
+                      '&:hover': { bgcolor: 'rgba(255,215,64,0.14)', color: 'var(--brand-fg)', borderColor: 'rgba(255,215,64,0.5)' },
                     }}
                     title={a.instruction}
                   >
-                    <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: '#ffd740' }} />
+                    <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: 'light-dark(#ad8900, #ffd740)' }} />
                     {a.label}
                   </Box>
                 ))}
@@ -535,12 +535,12 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
               component="form"
               onSubmit={handleSubmit}
               sx={{
-                bgcolor: 'rgba(0,0,0,0.2)',
-                border: `1px solid rgba(255,255,255,0.1)`,
+                bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
+                border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`,
                 borderRadius: 3,
                 p: 1,
                 transition: 'border-color 0.2s',
-                '&:focus-within': { borderColor: 'rgba(255,255,255,0.3)' },
+                '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
               }}
             >
               {/* テキスト入力 */}
@@ -558,7 +558,7 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                   style: {
                     fontSize: '0.75rem',
                     fontWeight: 300,
-                    color: '#fff',
+                    color: 'var(--brand-fg)',
                     lineHeight: 1.5,
                     fontFamily: FONT_FAMILY,
                     WebkitFontSmoothing: 'antialiased',
@@ -570,13 +570,13 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5, px: 0.25 }}>
                 {isProjectChat && input.trim().match(AI_MENTION_RE) ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: '#8ab4f8' }} />
-                    <Typography sx={{ fontSize: '0.6rem', color: '#8ab4f8', fontWeight: 300 }}>
+                    <AutoAwesomeRoundedIcon sx={{ fontSize: '0.7rem', color: 'light-dark(#0a45a4, #8ab4f8)' }} />
+                    <Typography sx={{ fontSize: '0.6rem', color: 'light-dark(#0a45a4, #8ab4f8)', fontWeight: 300 }}>
                       送信するとAIが会話の流れを読んで対応します
                     </Typography>
                   </Box>
                 ) : (
-                  <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>
+                  <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 300 }}>
                     {target.kind === 'dm'
                       ? `${target.name} さんとのダイレクトチャット`
                       : members.length > 0 ? `${members.length} メンバー${isProjectChat ? ' + AI' : ''}` : ''}
@@ -588,10 +588,10 @@ export const TeamChatPanel: React.FC<{ embedded?: boolean; forcedTarget?: ChatTa
                   disabled={!input.trim()}
                   sx={{
                     width: 30, height: 30, p: 0, borderRadius: '50%', transition: 'all 0.2s',
-                    bgcolor: input.trim() ? '#fff' : 'rgba(255,255,255,0.12)',
-                    color: input.trim() ? '#000' : 'rgba(255,255,255,0.3)',
-                    '&:hover': { bgcolor: input.trim() ? '#f0f0f0' : 'rgba(255,255,255,0.12)' },
-                    '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)', bgcolor: 'rgba(255,255,255,0.08)' },
+                    bgcolor: input.trim() ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.12)',
+                    color: input.trim() ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.3)',
+                    '&:hover': { bgcolor: input.trim() ? '#f0f0f0' : 'rgb(var(--brand-fg-rgb) / 0.12)' },
+                    '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
                   }}
                 >
                   <ArrowUpwardRoundedIcon sx={{ fontSize: '1.1rem' }} />

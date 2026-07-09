@@ -152,8 +152,8 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
   const sliderRow = (label: string, key: keyof DsmtPbrParams, min: number, max: number, step = 0.01) => (
     <Box sx={{ mb: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-        <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>{label}</Typography>
-        <Typography sx={{ fontSize: 12, color: '#fff' }}>{Number(params[key] ?? 0).toFixed(2)}</Typography>
+        <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>{label}</Typography>
+        <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)' }}>{Number(params[key] ?? 0).toFixed(2)}</Typography>
       </Box>
       <Slider
         size="small" min={min} max={max} step={step}
@@ -166,13 +166,13 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
 
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth
-      PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3 } }}>
       <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>{isEdit ? 'マテリアルを編集' : '新規マテリアル'}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
           {/* 左: 3D プレビュー */}
           <Box sx={{ width: 280, flexShrink: 0 }}>
-            <Box sx={{ width: 280, height: 280, borderRadius: 2, overflow: 'hidden', bgcolor: '#05060a', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <Box sx={{ width: 280, height: 280, borderRadius: 2, overflow: 'hidden', bgcolor: 'var(--brand-bg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
               <Canvas camera={{ position: [0, 0, 3], fov: 40 }} dpr={[1, 2]}>
                 <ambientLight intensity={0.4} />
                 <directionalLight position={[3, 4, 2]} intensity={1.1} />
@@ -183,7 +183,7 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
                 <OrbitControls enablePan={false} minDistance={2} maxDistance={6} />
               </Canvas>
             </Box>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', mt: 1, textAlign: 'center' }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1, textAlign: 'center' }}>
               ドラッグで回転 · リアルタイムプレビュー
             </Typography>
           </Box>
@@ -192,22 +192,22 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <TextField
               label="素材名" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth size="small"
-              sx={{ mb: 2, '& .MuiInputBase-input': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+              sx={{ mb: 2, '& .MuiInputBase-input': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
             />
 
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', mb: 0.5 }}>カテゴリ</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 0.5 }}>カテゴリ</Typography>
             <Select value={category} onChange={(e) => setCategory(e.target.value as DsmtCategory)} size="small" fullWidth
-              MenuProps={{ PaperProps: { sx: { bgcolor: '#1a1d24', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)' } } }}
-              sx={{ mb: 2, color: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}>
+              MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } } }}
+              sx={{ mb: 2, color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}>
               {(Object.keys(DSMT_CATEGORY_META) as DsmtCategory[]).map((c) => (
-                <MenuItem key={c} value={c} sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
+                <MenuItem key={c} value={c} sx={{ color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
                   {DSMT_CATEGORY_META[c].label}
                 </MenuItem>
               ))}
             </Select>
 
             {/* 仕上げ種別プリセット（選ぶと部位＋カテゴリ＋タグを自動設定） */}
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', mb: 0.5 }}>仕上げ種別（選ぶと部位・カテゴリ・タグを自動設定）</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 0.5 }}>仕上げ種別（選ぶと部位・カテゴリ・タグを自動設定）</Typography>
             <Select
               value={subtypeKey}
               displayEmpty
@@ -225,27 +225,27 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
                 });
               }}
               size="small" fullWidth
-              MenuProps={{ PaperProps: { sx: { bgcolor: '#1a1d24', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', maxHeight: 360 } } }}
-              sx={{ mb: 2, color: '#fff', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+              MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', maxHeight: 360 } } }}
+              sx={{ mb: 2, color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
             >
-              <MenuItem value="" sx={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>（任意）種別から選ぶ…</MenuItem>
-              <ListSubheader sx={{ bgcolor: '#1a1d24', color: 'rgba(255,255,255,0.4)', fontSize: 11, lineHeight: '28px', letterSpacing: 1 }}>── 床</ListSubheader>
+              <MenuItem value="" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontStyle: 'italic' }}>（任意）種別から選ぶ…</MenuItem>
+              <ListSubheader sx={{ bgcolor: 'var(--brand-surface2)', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11, lineHeight: '28px', letterSpacing: 1 }}>── 床</ListSubheader>
               {FINISH_SUBTYPES.filter(s => s.applications.includes('floor') && !s.applications.includes('inner_wall')).map((s) => (
-                <MenuItem key={s.key} value={s.key} sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
+                <MenuItem key={s.key} value={s.key} sx={{ color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
                   {s.label}
                   <span style={{ marginLeft: 8, opacity: 0.45, fontSize: 11 }}>{DSMT_CATEGORY_META[s.category].label}</span>
                 </MenuItem>
               ))}
-              <ListSubheader sx={{ bgcolor: '#1a1d24', color: 'rgba(255,255,255,0.4)', fontSize: 11, lineHeight: '28px', letterSpacing: 1 }}>── 内壁 / 天井</ListSubheader>
+              <ListSubheader sx={{ bgcolor: 'var(--brand-surface2)', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11, lineHeight: '28px', letterSpacing: 1 }}>── 内壁 / 天井</ListSubheader>
               {FINISH_SUBTYPES.filter(s => s.applications.some(a => a === 'inner_wall' || a === 'ceiling')).map((s) => (
-                <MenuItem key={s.key} value={s.key} sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
+                <MenuItem key={s.key} value={s.key} sx={{ color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
                   {s.label}
                   <span style={{ marginLeft: 8, opacity: 0.45, fontSize: 11 }}>{s.applications.map(a => MATERIAL_APPLICATION_JP[a]).join('/')}</span>
                 </MenuItem>
               ))}
-              <ListSubheader sx={{ bgcolor: '#1a1d24', color: 'rgba(255,255,255,0.4)', fontSize: 11, lineHeight: '28px', letterSpacing: 1 }}>── 外壁</ListSubheader>
+              <ListSubheader sx={{ bgcolor: 'var(--brand-surface2)', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11, lineHeight: '28px', letterSpacing: 1 }}>── 外壁</ListSubheader>
               {FINISH_SUBTYPES.filter(s => s.applications.includes('outer_wall')).map((s) => (
-                <MenuItem key={s.key} value={s.key} sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
+                <MenuItem key={s.key} value={s.key} sx={{ color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }, '&.Mui-selected': { bgcolor: 'rgba(236,64,122,0.2)' } }}>
                   {s.label}
                   <span style={{ marginLeft: 8, opacity: 0.45, fontSize: 11 }}>{DSMT_CATEGORY_META[s.category].label}</span>
                 </MenuItem>
@@ -253,7 +253,7 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
             </Select>
 
             {/* 部位（自動マテリアル付与の床/内壁/外壁/天井マッチに使用。複数選択可） */}
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', mb: 0.5 }}>部位（適合する場所・複数可）</Typography>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 0.5 }}>部位（適合する場所・複数可）</Typography>
             <ToggleButtonGroup
               size="small"
               value={applications}
@@ -265,9 +265,9 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
                   key={app}
                   value={app}
                   sx={{
-                    color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 12, px: 1.5,
-                    border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px !important',
-                    '&.Mui-selected': { color: '#fff', background: 'rgba(52,211,153,0.28)', borderColor: 'rgba(52,211,153,0.6)' },
+                    color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 12, px: 1.5,
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: '6px !important',
+                    '&.Mui-selected': { color: 'var(--brand-fg)', background: 'rgba(52,211,153,0.28)', borderColor: 'rgba(52,211,153,0.6)' },
                     '&.Mui-selected:hover': { background: 'rgba(52,211,153,0.36)' },
                   }}
                 >
@@ -278,7 +278,7 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
 
             {/* 似た素材を探す（メーカー候補へ検索リンク。品番・直URLは保持しない） */}
             <Box sx={{ mb: 2 }}>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mb: 0.5 }}>似た素材を探す（外部検索）</Typography>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.5 }}>似た素材を探す（外部検索）</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                 {MAKER_REFERENCES.map((m) => (
                   <Link
@@ -287,7 +287,7 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
                     target="_blank"
                     rel="noreferrer"
                     underline="hover"
-                    sx={{ fontSize: 11, color: 'rgba(120,180,255,0.85)', '&:hover': { color: '#9cc4ff' } }}
+                    sx={{ fontSize: 11, color: 'light-dark(rgba(0,77,173,0.85), rgba(120,180,255,0.85))', '&:hover': { color: 'light-dark(#0046ad, #9cc4ff)' } }}
                   >
                     {m}
                   </Link>
@@ -297,18 +297,18 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
 
             {/* カラー + PBR */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-              <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>ベースカラー</Typography>
+              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>ベースカラー</Typography>
               <input type="color" value={params.baseColor}
                 onChange={(e) => setParams((p) => ({ ...p, baseColor: e.target.value }))}
-                style={{ width: 40, height: 28, background: 'none', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 4, cursor: 'pointer' }} />
-              <Typography sx={{ fontSize: 12, color: '#fff', fontFamily: 'monospace' }}>{params.baseColor}</Typography>
+                style={{ width: 40, height: 28, background: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 4, cursor: 'pointer' }} />
+              <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)', fontFamily: 'monospace' }}>{params.baseColor}</Typography>
             </Box>
             {sliderRow('ラフネス (粗さ)', 'roughness', 0, 1)}
             {sliderRow('メタルネス (金属度)', 'metalness', 0, 1)}
             {sliderRow('不透明度', 'opacity', 0, 1)}
 
             {/* テクスチャスロット */}
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', mt: 1.5, mb: 0.5 }}>テクスチャ</Typography>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mt: 1.5, mb: 0.5 }}>テクスチャ</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 2 }}>
               {TEX_SLOTS.map(({ slot, label }) => {
                 const hasFile = !!files[slot] || !!material?.maps?.[slot];
@@ -318,7 +318,7 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
                       onChange={(e) => handlePickFile(slot, e.target.files?.[0])} />
                     <Button size="small" variant="outlined" startIcon={<UploadFileRoundedIcon sx={{ fontSize: 14 }} />}
                       onClick={() => fileInputs.current[slot]?.click()}
-                      sx={{ flex: 1, fontSize: 10, textTransform: 'none', color: hasFile ? ACCENT : 'rgba(255,255,255,0.6)', borderColor: hasFile ? ACCENT : 'rgba(255,255,255,0.2)', justifyContent: 'flex-start' }}>
+                      sx={{ flex: 1, fontSize: 10, textTransform: 'none', color: hasFile ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: hasFile ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.2)', justifyContent: 'flex-start' }}>
                       {hasFile ? `✓ ${label}` : label}
                     </Button>
                   </Box>
@@ -328,27 +328,27 @@ export const DsmtMaterialDialog: React.FC<DsmtMaterialDialogProps> = ({ open, on
 
             <TextField
               label="タグ（カンマ区切り）" value={tags} onChange={(e) => setTags(e.target.value)} fullWidth size="small"
-              sx={{ mb: 2, '& .MuiInputBase-input': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+              sx={{ mb: 2, '& .MuiInputBase-input': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
             />
 
             <ToggleButtonGroup exclusive size="small" value={visibility} onChange={(_, v) => v && setVisibility(v)}>
-              <ToggleButton value="private" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 12 }}>
+              <ToggleButton value="private" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 12 }}>
                 <LockRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} /> 非公開
               </ToggleButton>
-              <ToggleButton value="public" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 12 }}>
+              <ToggleButton value="public" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 12 }}>
                 <PublicRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} /> 公開
               </ToggleButton>
             </ToggleButtonGroup>
 
-            {error && <Typography sx={{ color: '#ff6b6b', fontSize: 12, mt: 1.5 }}>{error}</Typography>}
+            {error && <Typography sx={{ color: 'light-dark(#ad0000, #ff6b6b)', fontSize: 12, mt: 1.5 }}>{error}</Typography>}
           </Box>
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={onClose} disabled={saving} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button onClick={handleSave} disabled={saving} variant="contained"
           sx={{ bgcolor: ACCENT, '&:hover': { bgcolor: '#f06292' } }}
-          startIcon={saving ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : undefined}>
+          startIcon={saving ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : undefined}>
           {saving ? '保存中...' : (isEdit ? '更新' : '作成')}
         </Button>
       </DialogActions>

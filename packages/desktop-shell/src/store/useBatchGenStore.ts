@@ -3,7 +3,7 @@
 //   - 「実行中(submitting + generating)」の合計を MAX_ACTIVE 件に制限し、Tripo の同時実行上限(429)を回避する。
 //   - 各ジョブは Firestore users/{uid}/aiJobs/{jobId} を onSnapshot で監視し、完了/失敗を反映。
 //   - 今月の残上限を超える分は最初から skipped にし、生成途中で上限レース（resource-exhausted）が出たら残りを skipped に。
-//   - 完了したモデルはサーバ側（tripoProvider）が必ず S.Models（root assets）へ保存するので、クライアント保存は不要。
+//   - 完了したモデルはサーバ側（tripoProvider）が必ず S.Model（root assets）へ保存するので、クライアント保存は不要。
 //   - グローバル store ＋ 進捗UIは MainLayout 直下にマウントされるため、画面遷移しても生成は継続する。
 
 import { create } from 'zustand';
@@ -59,7 +59,7 @@ interface BatchGenState {
   panelOpen: boolean;
   /** 永続データの所有ユーザー uid（アカウント切替時のクリア判定用）。 */
   ownerUid: string | null;
-  /** 完了時に自動で S.Models のアップロードダイアログを開く。 */
+  /** 完了時に自動で S.Model のアップロードダイアログを開く。 */
   autoSaveToModels: boolean;
   setAutoSaveToModels: (v: boolean) => void;
   /** ログインユーザーが変わったら一括生成の状態をクリアする。 */

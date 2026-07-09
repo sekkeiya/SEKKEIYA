@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Dialog, IconButton, Typography } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { useAIDriveStore } from '../../store/useAIDriveStore';
+import { useDriveAssets, PICKER_LAYERS } from '../../features/drive/driveAccess';
 import { BRAND } from '../../styles/theme';
 
 interface AIDriveImagePickerProps {
@@ -15,15 +15,8 @@ interface AIDriveImagePickerProps {
  * Filters the AI Drive store to image-typed assets (or assets whose URL looks like an image).
  */
 const AIDriveImagePicker: React.FC<AIDriveImagePickerProps> = ({ open, onClose, onPick }) => {
-  const assets = useAIDriveStore((s) => s.assets);
-
-  const driveImages = React.useMemo(() => {
-    return assets.filter((a) => {
-      if (a.type === 'image') return true;
-      const url = a.storageUrl || a.thumbnailUrl || (a as any).url || '';
-      return !a.type && /\.(png|jpe?g|webp|gif|bmp)(\?|$)/i.test(url);
-    });
-  }, [assets]);
+  // SEKKEIYA Drive の画像資産（driveAccess = 単一の読み取り窓口・スコープ非依存の決定的プール）。
+  const { assets: driveImages } = useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
 
   return (
     <Dialog
@@ -34,17 +27,17 @@ const AIDriveImagePicker: React.FC<AIDriveImagePickerProps> = ({ open, onClose, 
       PaperProps={{ sx: { bgcolor: BRAND.bg, backgroundImage: 'none', height: '60vh' } }}
     >
       <Box sx={{ p: 2, borderBottom: `1px solid ${BRAND.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6" sx={{ color: '#fff', fontWeight: 'bold' }}>
-          AI Drive から画像を選択
+        <Typography variant="h6" sx={{ color: 'var(--brand-fg)', fontWeight: 'bold' }}>
+          SEKKEIYA Drive から画像を選択
         </Typography>
-        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+        <IconButton onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
           <CloseRoundedIcon />
         </IconButton>
       </Box>
       <Box sx={{ flexGrow: 1, p: 2, overflowY: 'auto' }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 2 }}>
           {driveImages.length === 0 ? (
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', gridColumn: '1 / -1', textAlign: 'center', py: 4 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', gridColumn: '1 / -1', textAlign: 'center', py: 4 }}>
               画像アセットが見つかりません
             </Typography>
           ) : (
@@ -60,7 +53,7 @@ const AIDriveImagePicker: React.FC<AIDriveImagePickerProps> = ({ open, onClose, 
                   }}
                   sx={{
                     aspectRatio: '1',
-                    bgcolor: 'rgba(0,0,0,0.3)',
+                    bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))',
                     borderRadius: 2,
                     overflow: 'hidden',
                     cursor: 'pointer',

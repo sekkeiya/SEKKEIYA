@@ -202,9 +202,9 @@ export const DsfBookViewer: React.FC<DsfBookViewerProps> = ({ item, onClose }) =
         sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 1.5, flexShrink: 0 }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <Typography noWrap sx={{ color: '#fff', fontSize: 15, fontWeight: 700 }}>{item.title || item.name || 'ポートフォリオ'}</Typography>
+          <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 15, fontWeight: 700 }}>{item.title || item.name || 'ポートフォリオ'}</Typography>
           {pageCount > 0 && (
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 12 }}>
               {mode === 'single' || current + 1 >= pageCount
                 ? `${Math.min(current + 1, pageCount)} / ${pageCount} ページ`
                 : `${current + 1} – ${Math.min(current + 2, pageCount)} / ${pageCount} ページ`}
@@ -217,7 +217,7 @@ export const DsfBookViewer: React.FC<DsfBookViewerProps> = ({ item, onClose }) =
             value={mode}
             onChange={(_, v) => { if (v) setMode(v); }}
             sx={{
-              '& .MuiToggleButton-root': { color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)', px: 1, py: 0.25 },
+              '& .MuiToggleButton-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', px: 1, py: 0.25 },
               '& .Mui-selected': { color: '#fff !important', bgcolor: `${ACCENT} !important` },
             }}
           >
@@ -226,13 +226,13 @@ export const DsfBookViewer: React.FC<DsfBookViewerProps> = ({ item, onClose }) =
           </ToggleButtonGroup>
           {item.downloadUrl && (
             <Tooltip title="ダウンロード">
-              <IconButton component="a" href={item.downloadUrl} download size="small" sx={{ color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } }}>
+              <IconButton component="a" href={item.downloadUrl} download size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', '&:hover': { color: 'var(--brand-fg)' } }}>
                 <DownloadRoundedIcon />
               </IconButton>
             </Tooltip>
           )}
           <Tooltip title="閉じる">
-            <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.7)', '&:hover': { color: '#fff' } }}>
+            <IconButton onClick={onClose} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', '&:hover': { color: 'var(--brand-fg)' } }}>
               <CloseRoundedIcon />
             </IconButton>
           </Tooltip>
@@ -247,10 +247,10 @@ export const DsfBookViewer: React.FC<DsfBookViewerProps> = ({ item, onClose }) =
         {loading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <CircularProgress sx={{ color: ACCENT }} />
-            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>{progress}</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13 }}>{progress}</Typography>
           </Box>
         ) : error ? (
-          <Typography sx={{ color: '#ff6b6b', fontSize: 14 }}>{error}</Typography>
+          <Typography sx={{ color: 'light-dark(#ad0000, #ff6b6b)', fontSize: 14 }}>{error}</Typography>
         ) : pageCount > 0 ? (
           <>
             <IconButton onClick={flipPrev} sx={navBtnSx}>
@@ -297,7 +297,7 @@ export const DsfBookViewer: React.FC<DsfBookViewerProps> = ({ item, onClose }) =
             </IconButton>
           </>
         ) : (
-          <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>表示できるページがありません</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 14 }}>表示できるページがありません</Typography>
         )}
       </Box>
     </Box>
@@ -305,8 +305,8 @@ export const DsfBookViewer: React.FC<DsfBookViewerProps> = ({ item, onClose }) =
 };
 
 const navBtnSx = {
-  color: 'rgba(255,255,255,0.55)',
-  bgcolor: 'rgba(255,255,255,0.06)',
-  '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.14)' },
+  color: 'rgb(var(--brand-fg-rgb) / 0.55)',
+  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)',
+  '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.14)' },
   flexShrink: 0,
 } as const;

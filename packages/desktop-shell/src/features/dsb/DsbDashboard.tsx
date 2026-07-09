@@ -33,6 +33,7 @@ import { BlogSummary } from './BlogSummary';
 import { BlogScheduleView } from './BlogScheduleView';
 import { BlogCategoryManager } from './BlogCategoryManager';
 import { BlogCategoryInspector } from './BlogCategoryInspector';
+import { BlogCategoryStrategist } from './BlogCategoryStrategist';
 import { BlogArticleInspector } from './BlogArticleInspector';
 import { BRAND } from '../../styles/theme';
 import type { BlogArticle, BlogStatus } from './types';
@@ -41,8 +42,8 @@ const ACCENT = '#e57373';
 
 // 状況バッジ（サイト管理画面の StatusBadge に倣う）。
 const STATUS_META: Record<BlogStatus, { label: string; color: string; bg: string }> = {
-  published: { label: '公開', color: '#81c784', bg: 'rgba(67,160,71,0.18)' },
-  draft: { label: '下書き', color: 'rgba(255,255,255,0.6)', bg: 'rgba(255,255,255,0.08)' },
+  published: { label: '公開', color: 'light-dark(#357838, #81c784)', bg: 'rgba(67,160,71,0.18)' },
+  draft: { label: '下書き', color: 'rgb(var(--brand-fg-rgb) / 0.6)', bg: 'rgb(var(--brand-fg-rgb) / 0.08)' },
 };
 const StatusBadge: React.FC<{ status: BlogStatus }> = ({ status }) => {
   const m = STATUS_META[status];
@@ -50,7 +51,7 @@ const StatusBadge: React.FC<{ status: BlogStatus }> = ({ status }) => {
     <Chip
       label={m.label} size="small"
       icon={status === 'published' ? <PublicRoundedIcon sx={{ fontSize: '0.8rem !important', color: `${m.color} !important` }} /> : undefined}
-      sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800, color: m.color, bgcolor: m.bg, border: `1px solid ${m.color}33`, '& .MuiChip-icon': { ml: 0.5 } }}
+      sx={{ height: 20, fontSize: '0.68rem', fontWeight: 800, color: m.color, bgcolor: m.bg, border: `1px solid color-mix(in srgb, ${m.color} 20%, transparent)`, '& .MuiChip-icon': { ml: 0.5 } }}
     />
   );
 };
@@ -85,6 +86,25 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
 
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: 'success' | 'error' | 'info' } | null>(null);
+
+  // 🔁 リロード復帰: 編集中（AI議論中含む）にリロード/クラッシュで飛んだ場合、
+  // DsbEditor が残した localStorage フラグから直前の下書きを自動で開き直す。
+  // （正常に閉じた場合はフラグがアンマウント時に消えるので発動しない）
+  const restoreTriedRef = React.useRef(false);
+  useEffect(() => {
+    if (restoreTriedRef.current || mode === 'edit' || articles.length === 0) return;
+    restoreTriedRef.current = true;
+    try {
+      const id = localStorage.getItem('dsb-editing-draft');
+      if (!id) return;
+      if (articles.some((a) => a.id === id)) {
+        startEdit(id);
+        setToast({ msg: '編集途中の記事を復元しました（AIとの議論も保存されています）', sev: 'info' });
+      } else {
+        localStorage.removeItem('dsb-editing-draft'); // 消えた下書きのフラグは掃除
+      }
+    } catch { /* noop */ }
+  }, [articles, mode, startEdit]);
 
   // 「AIで書く」: テーマ入力 → AIが下書き＋議論の口火を生成 → エディタ（議論パネル付き）へ
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -375,7 +395,8 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
   if (view === 'overview') {
     return <BlogSummary source={{ kind: 'account' }} />;
   }
-  if (view === 'schedule') {
+  if (view === 'schedule' || view === 'plan') {
+    // スケジュール = 投稿カレンダー（タスクなし・月/リスト・AI投稿計画）。plan は旧IDの後方互換。
     return <BlogScheduleView />;
   }
   if (view === 'categories') {
@@ -389,11 +410,12 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
               <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CategoryRoundedIcon sx={{ color: ACCENT }} />
               </Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#fff' }}>カテゴリ</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>カテゴリ</Typography>
             </Box>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', mb: 2.5 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.82rem', mb: 2.5 }}>
               テーマごとにカテゴリを作成・管理し、記事を整理します。
             </Typography>
+            <BlogCategoryStrategist categories={categories} />
             <BlogCategoryManager selectedName={selCat} onSelect={setSelectedCategory} />
           </Box>
         </Box>
@@ -415,7 +437,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
   ];
   const SortHead: React.FC<{ k: SortKey; label: string }> = ({ k, label }) => (
     <Box onClick={() => { if (sortBy === k) setSortDir((d) => d === 'asc' ? 'desc' : 'asc'); else { setSortBy(k); setSortDir('asc'); } }}
-      sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, cursor: 'pointer', color: sortBy === k ? '#fff' : 'rgba(255,255,255,0.55)', '&:hover': { color: '#fff' } }}>
+      sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, cursor: 'pointer', color: sortBy === k ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.55)', '&:hover': { color: 'var(--brand-fg)' } }}>
       {label}{sortBy === k && (sortDir === 'asc' ? <ArrowUpwardRoundedIcon sx={{ fontSize: '0.85rem' }} /> : <ArrowDownwardRoundedIcon sx={{ fontSize: '0.85rem' }} />)}
     </Box>
   );
@@ -435,7 +457,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
             <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ArticleRoundedIcon sx={{ color: ACCENT }} />
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#fff' }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>
               {categoryFilter || 'ブログ記事'}
             </Typography>
             {categoryFilter && (
@@ -444,7 +466,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
             )}
           </Box>
           <Button variant="outlined" startIcon={<AutoAwesomeRoundedIcon />} onClick={() => setAiDialogOpen(true)}
-            sx={{ color: '#e57373', borderColor: 'rgba(229,115,115,0.45)', textTransform: 'none', fontWeight: 700, mr: 1,
+            sx={{ color: 'light-dark(#921b1b, #e57373)', borderColor: 'rgba(229,115,115,0.45)', textTransform: 'none', fontWeight: 700, mr: 1,
               '&:hover': { borderColor: '#e57373', bgcolor: 'rgba(229,115,115,0.08)' } }}>
             AIで書く
           </Button>
@@ -453,8 +475,9 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
             新規記事
           </Button>
         </Box>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', mb: 2.5 }}>
-          記事を書いて公開サイトと SEKKEIYA 検索に届けます。
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.82rem', mb: 2.5 }}>
+          <Box component="span" sx={{ color: 'light-dark(#921b1b, #e57373)', fontWeight: 700 }}>AIで書く</Box>＝気になる記事を元にAIと議論して執筆／
+          <Box component="span" sx={{ color: 'var(--brand-fg)', fontWeight: 700 }}>新規記事</Box>＝自分で自由に執筆。公開サイトと SEKKEIYA 検索に届きます。
         </Typography>
 
         {loading ? (
@@ -467,15 +490,15 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
                 {TABS.map((t, i) => (
                   <React.Fragment key={t.key}>
                     {i > 0 && <Box sx={{ width: '1px', height: 12, bgcolor: BRAND.line, mx: 1 }} />}
-                    <Box onClick={() => setStatusFilter(t.key)} sx={{ cursor: 'pointer', fontSize: '0.82rem', fontWeight: statusFilter === t.key ? 800 : 500, color: statusFilter === t.key ? ACCENT : 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff' } }}>
-                      {t.label} <Box component="span" sx={{ color: 'rgba(255,255,255,0.4)' }}>({counts[t.key]})</Box>
+                    <Box onClick={() => setStatusFilter(t.key)} sx={{ cursor: 'pointer', fontSize: '0.82rem', fontWeight: statusFilter === t.key ? 800 : 500, color: statusFilter === t.key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)' } }}>
+                      {t.label} <Box component="span" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>({counts[t.key]})</Box>
                     </Box>
                   </React.Fragment>
                 ))}
               </Box>
               <TextField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="記事を検索" size="small"
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: '1.05rem', color: 'rgba(255,255,255,0.4)' }} /></InputAdornment>, sx: { color: '#fff', fontSize: '0.82rem' } }}
-                sx={{ width: 230, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)', '& fieldset': { borderColor: 'rgba(255,255,255,0.14)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }} />
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: '1.05rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} /></InputAdornment>, sx: { color: 'var(--brand-fg)', fontSize: '0.82rem' } }}
+                sx={{ width: 230, '& .MuiOutlinedInput-root': { borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.14)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }} />
             </Box>
 
             {/* 一括操作バー＋件数・ページ */}
@@ -483,32 +506,32 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <FormControl size="small" sx={{ minWidth: 150 }}>
                   <Select value={bulkAction} displayEmpty onChange={(e) => setBulkAction(e.target.value)}
-                    sx={{ color: '#fff', fontSize: '0.8rem', bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 2, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.14)' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' } }}
-                    MenuProps={{ slotProps: { paper: { sx: { bgcolor: '#1a1f2a', color: '#fff' } } } }}>
+                    sx={{ color: 'var(--brand-fg)', fontSize: '0.8rem', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 2, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.14)' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                    MenuProps={{ slotProps: { paper: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}>
                     <MenuItem value="" disabled sx={{ fontSize: '0.8rem' }}>一括操作</MenuItem>
                     <MenuItem value="delete" sx={{ fontSize: '0.8rem' }}>記事を削除</MenuItem>
                   </Select>
                 </FormControl>
                 <Button size="small" onClick={applyBulk} disabled={!bulkAction || selected.size === 0}
-                  sx={{ color: 'rgba(255,255,255,0.8)', textTransform: 'none', border: `1px solid ${BRAND.line}`, borderRadius: 1.5, '&.Mui-disabled': { color: 'rgba(255,255,255,0.25)' } }}>
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', textTransform: 'none', border: `1px solid ${BRAND.line}`, borderRadius: 1.5, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.25)' } }}>
                   適用{selected.size > 0 ? ` (${selected.size})` : ''}
                 </Button>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.78rem', mr: 1 }}>{filtered.length} 件</Typography>
-                <IconButton size="small" disabled={page <= 1} onClick={() => setPage(1)} sx={{ color: 'rgba(255,255,255,0.6)', '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' } }}><FirstPageRoundedIcon fontSize="small" /></IconButton>
-                <IconButton size="small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} sx={{ color: 'rgba(255,255,255,0.6)', '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' } }}><ChevronLeftRoundedIcon fontSize="small" /></IconButton>
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', minWidth: 56, textAlign: 'center' }}>{page} / {pageCount}</Typography>
-                <IconButton size="small" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)} sx={{ color: 'rgba(255,255,255,0.6)', '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' } }}><ChevronRightRoundedIcon fontSize="small" /></IconButton>
-                <IconButton size="small" disabled={page >= pageCount} onClick={() => setPage(pageCount)} sx={{ color: 'rgba(255,255,255,0.6)', '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' } }}><LastPageRoundedIcon fontSize="small" /></IconButton>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.78rem', mr: 1 }}>{filtered.length} 件</Typography>
+                <IconButton size="small" disabled={page <= 1} onClick={() => setPage(1)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}><FirstPageRoundedIcon fontSize="small" /></IconButton>
+                <IconButton size="small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}><ChevronLeftRoundedIcon fontSize="small" /></IconButton>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.78rem', minWidth: 56, textAlign: 'center' }}>{page} / {pageCount}</Typography>
+                <IconButton size="small" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}><ChevronRightRoundedIcon fontSize="small" /></IconButton>
+                <IconButton size="small" disabled={page >= pageCount} onClick={() => setPage(pageCount)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}><LastPageRoundedIcon fontSize="small" /></IconButton>
               </Box>
             </Box>
 
             {/* テーブル */}
             <Paper sx={{ bgcolor: BRAND.panel, border: `1px solid ${BRAND.line}`, borderRadius: 2, overflow: 'hidden' }}>
               {/* ヘッダ行 */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: COLS, gap: 1.5, alignItems: 'center', px: 1.5, py: 1, borderBottom: `1px solid ${BRAND.line}`, bgcolor: 'rgba(255,255,255,0.03)', fontSize: '0.76rem', fontWeight: 700, color: 'rgba(255,255,255,0.55)' }}>
-                <Checkbox size="small" checked={allChecked} indeterminate={!allChecked && someChecked} onChange={toggleAll} sx={{ p: 0, color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT }, '&.MuiCheckbox-indeterminate': { color: ACCENT } }} />
+              <Box sx={{ display: 'grid', gridTemplateColumns: COLS, gap: 1.5, alignItems: 'center', px: 1.5, py: 1, borderBottom: `1px solid ${BRAND.line}`, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', fontSize: '0.76rem', fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.55)' }}>
+                <Checkbox size="small" checked={allChecked} indeterminate={!allChecked && someChecked} onChange={toggleAll} sx={{ p: 0, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT }, '&.MuiCheckbox-indeterminate': { color: ACCENT } }} />
                 <Box sx={cell}><SortHead k="title" label="タイトル" /></Box>
                 <Box sx={cell}>状況</Box>
                 <Box sx={cell}>カテゴリ</Box>
@@ -519,7 +542,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
 
               {/* データ行 */}
               {pageItems.length === 0 ? (
-                <Box sx={{ py: 6, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+                <Box sx={{ py: 6, textAlign: 'center', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.85rem' }}>
                   {articles.length === 0 ? 'まだ記事がありません。「新規記事」から書き始めましょう。' : '条件に一致する記事はありません。'}
                 </Box>
               ) : pageItems.map((a) => {
@@ -527,36 +550,36 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
                 const isSelected = selectedId === a.id;
                 return (
                   <Box key={a.id} onClick={() => setSelectedId(a.id)}
-                    sx={{ display: 'grid', gridTemplateColumns: COLS, gap: 1.5, alignItems: 'center', px: 1.5, py: 1, cursor: 'pointer', borderBottom: `1px solid ${BRAND.line}`, transition: 'background 0.12s', boxShadow: isSelected ? `inset 3px 0 0 ${ACCENT}` : 'none', bgcolor: isSelected ? `${ACCENT}1f` : (checked ? `${ACCENT}14` : 'transparent'), '&:hover': { bgcolor: isSelected ? `${ACCENT}26` : 'rgba(255,255,255,0.03)' }, '&:last-of-type': { borderBottom: 'none' } }}>
-                    <Checkbox size="small" checked={checked} onClick={(e) => e.stopPropagation()} onChange={() => toggleOne(a.id)} sx={{ p: 0, color: 'rgba(255,255,255,0.35)', '&.Mui-checked': { color: ACCENT } }} />
+                    sx={{ display: 'grid', gridTemplateColumns: COLS, gap: 1.5, alignItems: 'center', px: 1.5, py: 1, cursor: 'pointer', borderBottom: `1px solid ${BRAND.line}`, transition: 'background 0.12s', boxShadow: isSelected ? `inset 3px 0 0 ${ACCENT}` : 'none', bgcolor: isSelected ? `${ACCENT}1f` : (checked ? `${ACCENT}14` : 'transparent'), '&:hover': { bgcolor: isSelected ? `${ACCENT}26` : 'rgb(var(--brand-fg-rgb) / 0.03)' }, '&:last-of-type': { borderBottom: 'none' } }}>
+                    <Checkbox size="small" checked={checked} onClick={(e) => e.stopPropagation()} onChange={() => toggleOne(a.id)} sx={{ p: 0, color: 'rgb(var(--brand-fg-rgb) / 0.35)', '&.Mui-checked': { color: ACCENT } }} />
                     {/* タイトル */}
                     <Box sx={{ ...cell, gap: 1.25 }}>
-                      <Box sx={{ width: 28, height: 28, borderRadius: 1, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid ${BRAND.line}` }}>
+                      <Box sx={{ width: 28, height: 28, borderRadius: 1, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', border: `1px solid ${BRAND.line}` }}>
                         <ArticleRoundedIcon sx={{ fontSize: '1rem', color: ACCENT }} />
                       </Box>
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography noWrap sx={{ fontWeight: 700, color: isSelected ? ACCENT : '#fff', fontSize: '0.86rem' }}>{a.title || '(無題)'}</Typography>
-                        <Typography noWrap sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>{a.excerpt || a.bodyMarkdown.slice(0, 60) || '本文なし'}</Typography>
+                        <Typography noWrap sx={{ fontWeight: 700, color: isSelected ? ACCENT : 'var(--brand-fg)', fontSize: '0.86rem' }}>{a.title || '(無題)'}</Typography>
+                        <Typography noWrap sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{a.excerpt || a.bodyMarkdown.slice(0, 60) || '本文なし'}</Typography>
                       </Box>
                     </Box>
                     {/* 状況 */}
                     <Box sx={cell}><StatusBadge status={a.status} /></Box>
                     {/* カテゴリ */}
                     <Box sx={cell}>
-                      <Typography noWrap sx={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.7)' }}>{a.category || '—'}</Typography>
+                      <Typography noWrap sx={{ fontSize: '0.76rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>{a.category || '—'}</Typography>
                     </Box>
                     {/* 公開先 */}
                     <Box sx={cell}>
-                      <Typography noWrap sx={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.55)' }}>{targetLabel(a)}</Typography>
+                      <Typography noWrap sx={{ fontSize: '0.74rem', color: 'rgb(var(--brand-fg-rgb) / 0.55)' }}>{targetLabel(a)}</Typography>
                     </Box>
                     {/* 更新日時 */}
-                    <Box sx={{ ...cell, color: 'rgba(255,255,255,0.5)', fontSize: '0.74rem' }}>{fmtDateTime(a.updatedAt)}</Box>
+                    <Box sx={{ ...cell, color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.74rem' }}>{fmtDateTime(a.updatedAt)}</Box>
                     {/* 操作 */}
                     <Box sx={{ ...cell, justifyContent: 'flex-end', gap: 0.25 }} onClick={(e) => e.stopPropagation()}>
                       <Tooltip title="本文を編集">
-                        <IconButton size="small" onClick={() => startEdit(a.id)} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff' } }}><LaunchRoundedIcon sx={{ fontSize: '1.05rem' }} /></IconButton>
+                        <IconButton size="small" onClick={() => startEdit(a.id)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)' } }}><LaunchRoundedIcon sx={{ fontSize: '1.05rem' }} /></IconButton>
                       </Tooltip>
-                      <IconButton size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuId(a.id); }} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}><MoreVertRoundedIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
+                      <IconButton size="small" onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuId(a.id); }} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}><MoreVertRoundedIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
                     </Box>
                   </Box>
                 );
@@ -579,28 +602,28 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
 
       {/* 行のケバブメニュー */}
       <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}
-        slotProps={{ paper: { sx: { bgcolor: '#1a1f2a', color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 180 } } }}>
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 180 } } }}>
         <MenuItem onClick={() => { if (menuId) startEdit(menuId); setMenuAnchor(null); }} sx={{ fontSize: '0.85rem' }}>
-          <ListItemIcon sx={{ color: 'rgba(255,255,255,0.7)', minWidth: 32 }}><EditRoundedIcon sx={{ fontSize: '1.1rem' }} /></ListItemIcon>編集
+          <ListItemIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', minWidth: 32 }}><EditRoundedIcon sx={{ fontSize: '1.1rem' }} /></ListItemIcon>編集
         </MenuItem>
         <MenuItem onClick={() => {
           const id = menuId; setMenuAnchor(null);
           if (!id) return;
           const a = articles.find((x) => x.id === id);
           setConfirm({ title: '記事を削除', message: `「${a?.title || '(無題)'}」を削除します。この操作は取り消せません。`, confirmLabel: '削除する', onConfirm: () => deleteOne(id) });
-        }} sx={{ fontSize: '0.85rem', color: '#fa9bb4' }}>
-          <ListItemIcon sx={{ color: '#fa9bb4', minWidth: 32 }}><DeleteOutlineRoundedIcon sx={{ fontSize: '1.1rem' }} /></ListItemIcon>削除
+        }} sx={{ fontSize: '0.85rem', color: 'light-dark(#a50832, #fa9bb4)' }}>
+          <ListItemIcon sx={{ color: 'light-dark(#a50832, #fa9bb4)', minWidth: 32 }}><DeleteOutlineRoundedIcon sx={{ fontSize: '1.1rem' }} /></ListItemIcon>削除
         </MenuItem>
       </Menu>
 
       {/* 確認ダイアログ */}
       <Dialog open={!!confirm} onClose={() => !busy && setConfirm(null)}
-        PaperProps={{ sx: { bgcolor: '#0e121c', color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 420, borderRadius: 3, backgroundImage: 'none' } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 420, borderRadius: 3, backgroundImage: 'none' } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>{confirm?.title}</DialogTitle>
-        <DialogContent><DialogContentText sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>{confirm?.message}</DialogContentText></DialogContent>
+        <DialogContent><DialogContentText sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.9rem' }}>{confirm?.message}</DialogContentText></DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setConfirm(null)} disabled={busy} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
-          <Button onClick={runConfirm} disabled={busy} variant="contained" sx={{ bgcolor: '#ef4444', color: '#fff', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>
+          <Button onClick={() => setConfirm(null)} disabled={busy} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
+          <Button onClick={runConfirm} disabled={busy} variant="contained" sx={{ bgcolor: '#ef4444', color: 'var(--brand-fg)', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>
             {busy ? '処理中...' : (confirm?.confirmLabel || 'OK')}
           </Button>
         </DialogActions>
@@ -608,10 +631,10 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
 
       {/* 「AIで書く」テーマ入力 */}
       <Dialog open={aiDialogOpen} onClose={() => !aiDrafting && setAiDialogOpen(false)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { bgcolor: '#16181d', border: '1px solid rgba(229,115,115,0.35)', borderRadius: 3, color: '#fff' } }}>
-        <DialogTitle sx={{ fontWeight: 800, color: '#e57373', pb: 1 }}>✨ AIで書く</DialogTitle>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgba(229,115,115,0.35)', borderRadius: 3, color: 'var(--brand-fg)' } }}>
+        <DialogTitle sx={{ fontWeight: 800, color: 'light-dark(#921b1b, #e57373)', pb: 1 }}>✨ AIで書く</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, mb: 2 }}>
+          <DialogContentText sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.55)', fontSize: 13, mb: 2 }}>
             テーマを入れると、AIが下書きと「議論の口火」を用意します。<br />
             そのあとAIと議論して、あなたの考えを記事に反映できます。
           </DialogContentText>
@@ -622,21 +645,21 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
             onChange={(e) => setAiTheme(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !(e.nativeEvent as any).isComposing) { e.preventDefault(); void handleAiDraft(); } }}
             disabled={aiDrafting}
-            sx={{ '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&.Mui-focused fieldset': { borderColor: '#e57373' } } }}
+            sx={{ '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&.Mui-focused fieldset': { borderColor: '#e57373' } } }}
           />
 
           {/* 🌐 Webの記事を題材にする（テーマで検索 → 選んだ記事を下書きの題材に） */}
           <Box sx={{ mt: 2 }}>
             <Button size="small" variant="outlined" onClick={() => void handleFetchSources()} disabled={!aiTheme.trim() || aiFetchingSources || aiDrafting}
-              startIcon={aiFetchingSources ? <CircularProgress size={13} sx={{ color: '#64b5f6' }} /> : <PublicRoundedIcon sx={{ fontSize: 15 }} />}
-              sx={{ color: '#64b5f6', borderColor: 'rgba(100,181,246,0.4)', textTransform: 'none', fontSize: 12,
+              startIcon={aiFetchingSources ? <CircularProgress size={13} sx={{ color: 'light-dark(#0a5fa4, #64b5f6)' }} /> : <PublicRoundedIcon sx={{ fontSize: 15 }} />}
+              sx={{ color: 'light-dark(#0a5fa4, #64b5f6)', borderColor: 'rgba(100,181,246,0.4)', textTransform: 'none', fontSize: 12,
                 '&:hover': { borderColor: '#64b5f6', bgcolor: 'rgba(100,181,246,0.06)' } }}>
               {aiFetchingSources && !aiActiveSite ? 'Webから記事を検索中…' : 'Webの記事を題材にする（テーマで検索）'}
             </Button>
 
             {/* おすすめサイトの最新記事から選ぶ（テーマ入力不要） */}
             <Box sx={{ mt: 1.5 }}>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', mb: 0.75 }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 0.75 }}>
                 または、おすすめの建築・インテリアメディアの最新記事から選ぶ：
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6 }}>
@@ -648,7 +671,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
                         disabled={aiFetchingSources || aiDrafting}
                         sx={{ cursor: 'pointer', fontSize: 11, fontWeight: 600, height: 24,
                           bgcolor: active ? '#64b5f6' : 'rgba(100,181,246,0.08)',
-                          color: active ? '#000' : '#90caf9',
+                          color: active ? '#000' : 'light-dark(#095fa5, #90caf9)',
                           border: `1px solid ${active ? '#64b5f6' : 'rgba(100,181,246,0.3)'}`,
                           '&:hover': { bgcolor: active ? '#64b5f6' : 'rgba(100,181,246,0.2)' } }} />
                     </Tooltip>
@@ -659,7 +682,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
 
             {aiSources.length > 0 && (
               <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75, maxHeight: 220, overflowY: 'auto' }}>
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
                   {aiActiveSite ? `${aiActiveSite} の記事から選択` : '題材にする記事を選択'}（{aiSelectedSources.size}件選択中）— 選んだ記事を要約・出典付きで下書きに反映します
                 </Typography>
                 {aiSources.map((s, i) => {
@@ -667,13 +690,13 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
                   return (
                     <Box key={i} onClick={() => !aiDrafting && toggleSource(i)}
                       sx={{ p: 1.1, borderRadius: 1.5, cursor: 'pointer', display: 'flex', gap: 1, alignItems: 'flex-start',
-                        bgcolor: on ? 'rgba(100,181,246,0.1)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${on ? '#64b5f6' : 'rgba(255,255,255,0.1)'}`,
+                        bgcolor: on ? 'rgba(100,181,246,0.1)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+                        border: `1px solid ${on ? '#64b5f6' : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
                         '&:hover': { borderColor: 'rgba(100,181,246,0.6)' } }}>
-                      <Checkbox checked={on} size="small" sx={{ p: 0, mt: 0.2, color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: '#64b5f6' } }} />
+                      <Checkbox checked={on} size="small" sx={{ p: 0, mt: 0.2, color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&.Mui-checked': { color: 'light-dark(#0a5fa4, #64b5f6)' } }} />
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: 12, lineHeight: 1.45 }}>{s.title}</Typography>
-                        <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10.5, mt: 0.25 }}>
+                        <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: 12, lineHeight: 1.45 }}>{s.title}</Typography>
+                        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10.5, mt: 0.25 }}>
                           {s.source || 'Web'}{s.summary ? ` — ${s.summary}` : ''}
                         </Typography>
                       </Box>
@@ -688,8 +711,8 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
               <FormControlLabel
                 sx={{ mt: 1, ml: 0 }}
                 control={<Checkbox size="small" checked={saveToLibrary} onChange={(e) => setSaveToLibrary(e.target.checked)}
-                  sx={{ p: 0.5, color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: '#64b5f6' } }} />}
-                label={<Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+                  sx={{ p: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&.Mui-checked': { color: 'light-dark(#0a5fa4, #64b5f6)' } }} />}
+                label={<Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
                   選んだ題材をS.Libraryに保存（原文スナップショット＋Chat/検索で再利用）
                 </Typography>}
               />
@@ -699,8 +722,8 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
           {/* SEO×あなたの記事傾向からの戦略的テーマ提案 */}
           <Box sx={{ mt: 2 }}>
             <Button size="small" variant="outlined" onClick={() => void handleSuggestThemes()} disabled={aiSuggesting || aiDrafting}
-              startIcon={aiSuggesting ? <CircularProgress size={13} sx={{ color: '#e57373' }} /> : <AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />}
-              sx={{ color: '#e57373', borderColor: 'rgba(229,115,115,0.4)', textTransform: 'none', fontSize: 12,
+              startIcon={aiSuggesting ? <CircularProgress size={13} sx={{ color: 'light-dark(#921b1b, #e57373)' }} /> : <AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />}
+              sx={{ color: 'light-dark(#921b1b, #e57373)', borderColor: 'rgba(229,115,115,0.4)', textTransform: 'none', fontSize: 12,
                 '&:hover': { borderColor: '#e57373', bgcolor: 'rgba(229,115,115,0.06)' } }}>
               {aiSuggesting ? 'あなたの記事傾向を分析中…' : 'テーマをAIに提案してもらう（SEO×あなたの記事傾向）'}
             </Button>
@@ -711,14 +734,14 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
                   return (
                     <Box key={i} onClick={() => !aiDrafting && setAiTheme(s.theme)}
                       sx={{ p: 1.25, borderRadius: 1.5, cursor: 'pointer',
-                        bgcolor: selected ? 'rgba(229,115,115,0.14)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${selected ? '#e57373' : 'rgba(255,255,255,0.1)'}`,
+                        bgcolor: selected ? 'rgba(229,115,115,0.14)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+                        border: `1px solid ${selected ? '#e57373' : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
                         '&:hover': { borderColor: 'rgba(229,115,115,0.6)' } }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                        <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 12.5, flex: 1, minWidth: 0 }}>{s.theme}</Typography>
-                        <Chip label={s.category} size="small" sx={{ height: 17, fontSize: 10, bgcolor: 'rgba(229,115,115,0.15)', color: '#e57373' }} />
+                        <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 12.5, flex: 1, minWidth: 0 }}>{s.theme}</Typography>
+                        <Chip label={s.category} size="small" sx={{ height: 17, fontSize: 10, bgcolor: 'rgba(229,115,115,0.15)', color: 'light-dark(#921b1b, #e57373)' }} />
                       </Box>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, mt: 0.4, lineHeight: 1.5 }}>
+                      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11, mt: 0.4, lineHeight: 1.5 }}>
                         🔍 {s.keyword}{s.why ? ` — ${s.why}` : ''}
                       </Typography>
                     </Box>
@@ -729,7 +752,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => setAiDialogOpen(false)} disabled={aiDrafting} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setAiDialogOpen(false)} disabled={aiDrafting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>キャンセル</Button>
           <Button onClick={() => void handleAiDraft()} disabled={(!aiTheme.trim() && aiSelectedSources.size === 0) || aiDrafting} variant="contained"
             startIcon={aiDrafting ? <CircularProgress size={14} sx={{ color: '#000' }} /> : <AutoAwesomeRoundedIcon />}
             sx={{ bgcolor: '#e57373', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#ef5350' } }}>

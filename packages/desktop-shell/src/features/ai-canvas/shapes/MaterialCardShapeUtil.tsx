@@ -71,7 +71,7 @@ export class MaterialCardShapeUtil extends ShapeUtil<any> {
             justifyContent: 'center'
           }}
         >
-          {!imageUrl && <span style={{ color: '#bdbdbd', fontSize: '0.9rem' }}>No Image</span>}
+          {!imageUrl && <span style={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontSize: '0.9rem' }}>No Image</span>}
         </div>
 
         {/* Specs Section */}

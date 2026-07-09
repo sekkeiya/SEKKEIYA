@@ -6,8 +6,8 @@ export default function PlanDetailPanel({ planDoc, planDocLoading }) {
   if (!planDoc) return <Box p={2}><Typography fontSize={12}>No Plan Selected</Typography></Box>;
 
   return (
-    <Box sx={{ p: 2, height: "100%", overflowY: "auto", color: "rgba(255,255,255,0.9)" }}>
-      <Typography variant="caption" sx={{ color: "#38bdf8", fontWeight: 700, mb: 1, display: "block" }}>
+    <Box sx={{ p: 2, height: "100%", overflowY: "auto", color: "rgb(var(--brand-fg-rgb) / 0.9)" }}>
+      <Typography variant="caption" sx={{ color: "light-dark(#0676a8, #38bdf8)", fontWeight: 700, mb: 1, display: "block" }}>
         PLAN CONTEXT
       </Typography>
       <Typography variant="h6" sx={{ fontSize: 16, fontWeight: 600, mb: 2 }}>

@@ -18,7 +18,9 @@ import { normalizeSite } from './siteTemplates';
 /** プロジェクト公開時にアカウント未公開だと投げるエラー（呼び出し側で識別表示）。 */
 export const ACCOUNT_NOT_PUBLISHED = 'ACCOUNT_NOT_PUBLISHED';
 
-export const PUBLIC_BASE = 'https://sekkeiya.web.app';
+// 公開URLの基点。sekkeiya.com / sekkeiya.web.app は同一ホスティングを指すが、
+// ブランドの正規（canonical）ドメインである sekkeiya.com を既定にする。
+export const PUBLIC_BASE = 'https://sekkeiya.com';
 
 export const USERNAME_RE = /^[a-z0-9][a-z0-9-]{2,29}$/;
 

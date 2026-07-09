@@ -134,7 +134,7 @@ export default function BoardPanel() {
       width: 28,
       height: 28,
       borderRadius: 2,
-      color: danger ? alpha("#ff6b6b", 0.92) : alpha("#fff", 0.86),
+      color: danger ? "light-dark(rgba(173,0,0,0.92), rgba(255,107,107,0.92))" : alpha("#fff", 0.86),
       "&:hover": { bgcolor: danger ? alpha("#ff6b6b", 0.14) : alpha("#fff", 0.1) },
     }),
     []
@@ -143,7 +143,7 @@ export default function BoardPanel() {
   if (loading) {
      return (
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress size={24} sx={{ color: "rgba(255,255,255,0.3)" }} />
+          <CircularProgress size={24} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.3)" }} />
         </Box>
      );
   }

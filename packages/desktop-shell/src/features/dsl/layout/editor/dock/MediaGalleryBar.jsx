@@ -553,7 +553,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
           <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5 }}>
             {title}（{activeSetName}）：カメラアングルを選ぶ
           </Typography>
-          <Typography sx={{ fontSize: 10, fontWeight: 600, color: alpha("#fff", 0.5) }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 600, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>
             {clampedFocus === 0
               ? "← → で移動 ・ Enter で現在のアングルを追加"
               : clampedFocus === 1
@@ -563,9 +563,9 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
           {panelProgress && (
             <Stack direction="row" alignItems="center" spacing={0.5}>
               <CircularProgress size={11} sx={{ color: accent }} />
-              <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.7) }}>{panelProgress.label}（{panelProgress.pct}%）</Typography>
+              <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>{panelProgress.label}（{panelProgress.pct}%）</Typography>
               {videoRendering && (
-                <IconButton size="small" onClick={cancelVideoRender} sx={{ p: 0.2, color: alpha("#f87171", 0.8) }}>
+                <IconButton size="small" onClick={cancelVideoRender} sx={{ p: 0.2, color: "light-dark(rgba(165,8,8,0.8), rgba(248,113,113,0.8))" }}>
                   <StopCircleRoundedIcon sx={{ fontSize: 13 }} />
                 </IconButton>
               )}
@@ -573,11 +573,11 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
           )}
           <Box sx={{ flex: 1 }} />
           {clampedFocus >= 2 && (
-            <Typography sx={{ fontSize: 10, fontWeight: 600, color: alpha("#fff", 0.45), whiteSpace: "nowrap" }}>
+            <Typography sx={{ fontSize: 10, fontWeight: 600, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", whiteSpace: "nowrap" }}>
               Delete で削除
             </Typography>
           )}
-          <Typography onClick={handleClose} title="閉じる" sx={{ cursor: "pointer", color: alpha("#fff", 0.5), fontSize: 14, fontWeight: 700, "&:hover": { color: "#fff" } }}>✕</Typography>
+          <Typography onClick={handleClose} title="閉じる" sx={{ cursor: "pointer", color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", fontSize: 14, fontWeight: 700, "&:hover": { color: "var(--brand-fg)" } }}>✕</Typography>
         </Stack>
 
         {panelProgress && (
@@ -608,7 +608,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
                 }}>
                   {addingShot ? <CircularProgress size={18} sx={{ color: accent }} /> : <AddRoundedIcon sx={{ fontSize: 22 }} />}
                 </div>
-                <div style={{ fontSize: 10.5, fontWeight: active ? 800 : 600, color: active ? "#fff" : "rgba(255,255,255,0.6)" }}>現在のアングル</div>
+                <div style={{ fontSize: 10.5, fontWeight: active ? 800 : 600, color: active ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.6)" }}>現在のアングル</div>
               </div>
             );
           })()}
@@ -635,7 +635,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
                 }}>
                   {autoAnglesBusy ? <CircularProgress size={18} sx={{ color: accent }} /> : <AutoAwesomeRoundedIcon sx={{ fontSize: 22 }} />}
                 </div>
-                <div style={{ fontSize: 10.5, fontWeight: active ? 800 : 600, color: active ? "#fff" : "rgba(255,255,255,0.6)", whiteSpace: "nowrap" }}>自動アングル生成</div>
+                <div style={{ fontSize: 10.5, fontWeight: active ? 800 : 600, color: active ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.6)", whiteSpace: "nowrap" }}>自動アングル生成</div>
               </div>
             );
           })()}
@@ -660,8 +660,8 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
                 <div style={{
                   width: 96, height: 56, borderRadius: 12, overflow: "hidden", position: "relative",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  background: "rgba(255,255,255,0.06)",
-                  border: active ? `2px solid ${accent}` : isSelected ? `2px solid ${alpha(accent, 0.85)}` : "1px solid rgba(255,255,255,0.18)",
+                  background: "rgb(var(--brand-fg-rgb) / 0.06)",
+                  border: active ? `2px solid ${accent}` : isSelected ? `2px solid ${alpha(accent, 0.85)}` : "1px solid rgb(var(--brand-fg-rgb) / 0.18)",
                   boxShadow: active ? `0 6px 18px ${alpha(accent, 0.45)}, 0 0 0 3px ${alpha(accent, 0.3)}` : "none",
                   transform: active ? "scale(1.08)" : "scale(1)",
                   transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
@@ -678,21 +678,21 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
                   <div style={{
                     position: "absolute", top: 2, left: 2, width: 16, height: 16, borderRadius: "50%",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    background: isSelected ? accent : alpha("#000", 0.5),
-                    border: `1px solid ${isSelected ? accent : "rgba(255,255,255,0.5)"}`,
+                    background: isSelected ? accent : "color-mix(in srgb, var(--brand-bg) 50%, transparent)",
+                    border: `1px solid ${isSelected ? accent : "rgb(var(--brand-fg-rgb) / 0.5)"}`,
                   }}>
-                    {isSelected && <CheckRoundedIcon sx={{ fontSize: 11, color: "#fff" }} />}
+                    {isSelected && <CheckRoundedIcon sx={{ fontSize: 11, color: "var(--brand-fg)" }} />}
                   </div>
                   {/* 削除 */}
                   <IconButton
                     size="small"
                     onClick={(e) => { e.stopPropagation(); removeShot(shot.id); }}
-                    sx={{ position: "absolute", top: 2, right: 2, p: 0.2, background: alpha("#000", 0.55), color: alpha("#fff", 0.7), "&:hover": { color: "#ff7070", background: alpha("#000", 0.7) } }}
+                    sx={{ position: "absolute", top: 2, right: 2, p: 0.2, background: "color-mix(in srgb, var(--brand-bg) 55%, transparent)", color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", "&:hover": { color: "light-dark(#ad0000, #ff7070)", background: "color-mix(in srgb, var(--brand-bg) 70%, transparent)" } }}
                   >
                     <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
                   </IconButton>
                 </div>
-                <div style={{ fontSize: 10.5, fontWeight: active ? 800 : 600, color: active ? "#fff" : "rgba(255,255,255,0.65)", maxWidth: 96, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 10.5, fontWeight: active ? 800 : 600, color: active ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.65)", maxWidth: 96, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {shot.name}
                 </div>
               </div>
@@ -716,7 +716,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
 
       {/* ── FFmpeg セットアップ ── */}
       <Dialog open={ffmpegSetupOpen} onClose={() => !ffmpegDownloading && setFfmpegSetupOpen(false)}
-        PaperProps={{ sx: { background: "#1a1a2e", color: "#fff", borderRadius: 2, minWidth: 360 } }}>
+        PaperProps={{ sx: { background: "var(--brand-surface2)", color: "var(--brand-fg)", borderRadius: 2, minWidth: 360 } }}>
         <DialogTitle sx={{ fontSize: 14, fontWeight: 700, pb: 1 }}>
           {ffmpegDownloading ? "FFmpeg をダウンロード中…" : "動画エンコードの準備"}
         </DialogTitle>
@@ -739,7 +739,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
           {!ffmpegDownloading && (
             <>
               <Button size="small" variant="outlined" onClick={() => setFfmpegSetupOpen(false)}
-                sx={{ textTransform: "none", fontSize: 12, borderColor: alpha("#fff", 0.2), color: alpha("#fff", 0.6) }}>キャンセル</Button>
+                sx={{ textTransform: "none", fontSize: 12, borderColor: alpha("#fff", 0.2), color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>キャンセル</Button>
               <Button size="small" variant="contained" onClick={handleDownloadFfmpeg}
                 sx={{ textTransform: "none", fontSize: 12, fontWeight: 700, background: "#a78bfa", "&:hover": { background: "#8b5cf6" } }}>ダウンロード</Button>
             </>
@@ -749,7 +749,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
 
       {/* ── Blender セットアップ ── */}
       <Dialog open={blenderSetupOpen} onClose={() => !blenderDownloading && setBlenderSetupOpen(false)}
-        PaperProps={{ sx: { background: "#1a1a2e", color: "#fff", borderRadius: 2, minWidth: 360 } }}>
+        PaperProps={{ sx: { background: "var(--brand-surface2)", color: "var(--brand-fg)", borderRadius: 2, minWidth: 360 } }}>
         <DialogTitle sx={{ fontSize: 14, fontWeight: 700, pb: 1 }}>
           {blenderDownloading ? "Blender をダウンロード中…" : "Cycles レンダリングの準備"}
         </DialogTitle>
@@ -772,7 +772,7 @@ export default function MediaGalleryBar({ projectId, projectName, workspaceId, p
           {!blenderDownloading && (
             <>
               <Button size="small" variant="outlined" onClick={() => { setBlenderSetupOpen(false); setPendingShot(null); }}
-                sx={{ textTransform: "none", fontSize: 12, borderColor: alpha("#fff", 0.2), color: alpha("#fff", 0.6) }}>キャンセル</Button>
+                sx={{ textTransform: "none", fontSize: 12, borderColor: alpha("#fff", 0.2), color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>キャンセル</Button>
               <Button size="small" variant="contained" onClick={handleDownloadBlender}
                 sx={{ textTransform: "none", fontSize: 12, background: alpha("#6c87ff", 0.85), boxShadow: "none", "&:hover": { background: "#6c87ff" } }}>ダウンロードして始める</Button>
             </>

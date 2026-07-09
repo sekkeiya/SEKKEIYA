@@ -24,7 +24,7 @@ const KIND_ICON: Record<GalleryKind, React.ReactElement> = {
 };
 
 const NAV: { value: GalleryKind | 'all'; label: string; icon: React.ReactElement; color: string }[] = [
-  { value: 'all', label: 'すべて', icon: <AppsRoundedIcon sx={{ fontSize: 16 }} />, color: '#5dade2' },
+  { value: 'all', label: 'すべて', icon: <AppsRoundedIcon sx={{ fontSize: 16 }} />, color: 'light-dark(#1a6393, #5dade2)' },
   ...(Object.keys(KIND_META) as GalleryKind[]).map(k => ({
     value: k, label: KIND_META[k].label, icon: KIND_ICON[k], color: KIND_META[k].color,
   })),
@@ -41,8 +41,8 @@ export const GallerySidebar: React.FC = () => {
     }}>
       {/* ヘッダー */}
       <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, pt: 2.5, pb: 2 }}>
-        <CollectionsRoundedIcon sx={{ fontSize: 16, color: '#5dade2' }} />
-        <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '0.8rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+        <CollectionsRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#1a6393, #5dade2)' }} />
+        <Typography sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.8rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>
           Gallery
         </Typography>
       </Stack>
@@ -64,16 +64,16 @@ export const GallerySidebar: React.FC = () => {
                 px: 1.25, py: 0.7,
                 borderRadius: 1.5, cursor: 'pointer',
                 // 選択: アイコンカラー化 + 極薄背景のみ（borderLeft なし）
-                color: active ? '#fff' : 'rgba(255,255,255,0.55)',
-                bgcolor: active ? `${n.color}18` : 'transparent',
+                color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.55)',
+                bgcolor: active ? `color-mix(in srgb, ${n.color} 9%, transparent)` : 'transparent',
                 transition: 'all 0.12s ease',
                 '&:hover': {
-                  bgcolor: active ? `${n.color}22` : 'rgba(255,255,255,0.04)',
-                  color: '#fff',
+                  bgcolor: active ? `color-mix(in srgb, ${n.color} 13%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                  color: 'var(--brand-fg)',
                 },
               }}
             >
-              <Box sx={{ color: active ? n.color : 'rgba(255,255,255,0.4)', display: 'flex', flexShrink: 0, transition: 'color 0.12s' }}>
+              <Box sx={{ color: active ? n.color : 'rgb(var(--brand-fg-rgb) / 0.4)', display: 'flex', flexShrink: 0, transition: 'color 0.12s' }}>
                 {n.icon}
               </Box>
               <Typography sx={{ fontSize: 12.5, fontWeight: active ? 600 : 400, lineHeight: 1, letterSpacing: 0.2 }}>
@@ -100,11 +100,11 @@ export const GallerySidebar: React.FC = () => {
                 flex: 1, textAlign: 'center',
                 py: 0.65, borderRadius: 1.5, cursor: 'pointer',
                 fontSize: 12, fontWeight: active ? 600 : 400,
-                color: active ? '#fff' : 'rgba(255,255,255,0.45)',
+                color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                 bgcolor: active ? 'rgba(93,173,226,0.15)' : 'transparent',
                 border: `1px solid ${active ? 'rgba(93,173,226,0.35)' : BRAND.line}`,
                 transition: 'all 0.12s ease',
-                '&:hover': { bgcolor: active ? 'rgba(93,173,226,0.2)' : 'rgba(255,255,255,0.04)', color: '#fff' },
+                '&:hover': { bgcolor: active ? 'rgba(93,173,226,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.04)', color: 'var(--brand-fg)' },
               }}
             >
               {label}

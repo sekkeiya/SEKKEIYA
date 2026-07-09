@@ -124,6 +124,7 @@ export const RightPanelHost: React.FC = () => {
 
   const showDspRightSidebar = useDspStore((s) => s.showRightSidebar);
   const dspActiveTab = useDspStore((s) => s.inspectorActiveTopTab);
+  const dspScope = useAppStore((s: any) => s.dspScope);
   const dscShellMode = useAppStore((s: any) => s.dscShellMode);
   // NOTE: these hooks MUST be called before any early return to avoid React hooks count mismatch.
   const dsdShellMode = useAppStore((s: any) => s.dsdShellMode);
@@ -176,8 +177,8 @@ export const RightPanelHost: React.FC = () => {
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
           style={{ 
             flexShrink: 0, 
-            backgroundColor: 'rgba(10, 15, 25, 0.6)', 
-            borderLeft: '1px solid rgba(255,255,255,0.05)',
+            backgroundColor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))',
+            borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
             display: 'flex',
             flexDirection: 'column',
             overflowY: 'auto',
@@ -190,7 +191,7 @@ export const RightPanelHost: React.FC = () => {
             </Box>
           ) : is3dsd ? (
             <>
-              <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+              <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
                   S.Diagram プロパティ
                 </Typography>
@@ -201,7 +202,7 @@ export const RightPanelHost: React.FC = () => {
             </>
           ) : scope === '3dsl' && !isDslDashboard ? (
             <>
-              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
                   S.Layout Workspace
                 </Typography>
@@ -224,14 +225,14 @@ export const RightPanelHost: React.FC = () => {
                     content: "S.Layout Workspace";
                     display: block;
                     padding: 16px;
-                    color: #ce93d8;
+                    color: light-dark(#742e7f, #ce93d8);
                     font-size: 0.75rem;
                   }
                   #dsl-right-sidebar-portal:empty::after {
                     content: "Loading layout tools or fallback properties...";
                     display: block;
                     padding: 0 16px;
-                    color: rgba(255,255,255,0.5);
+                    color: rgb(var(--brand-fg-rgb) / 0.5);
                     font-size: 0.875rem;
                   }
                 `}</style>
@@ -239,9 +240,9 @@ export const RightPanelHost: React.FC = () => {
             </>
           ) : scope === '3dsp' ? (
             <>
-              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
-                  {dspActiveTab === 'properties' ? 'プロパティ' : dspActiveTab === 'deck' ? 'デッキテンプレート' : dspActiveTab === 'parts' ? 'パーツテンプレート' : 'レイヤー'}
+                  {dspScope === 'my_templates' ? 'テンプレート詳細' : dspActiveTab === 'properties' ? 'プロパティ' : dspActiveTab === 'deck' ? 'デッキテンプレート' : dspActiveTab === 'parts' ? 'パーツテンプレート' : 'レイヤー'}
                 </Typography>
               </Box>
               <Box 
@@ -258,17 +259,17 @@ export const RightPanelHost: React.FC = () => {
                 {/* Fallback styling when portal is empty */}
                 <style>{`
                   #dsp-right-sidebar-portal:empty::before {
-                    content: "S.Presentations ワークスペース";
+                    content: "S.Slide ワークスペース";
                     display: block;
                     padding: 16px;
-                    color: #29b6f6;
+                    color: light-dark(#0775a6, #29b6f6);
                     font-size: 0.75rem;
                   }
                   #dsp-right-sidebar-portal:empty::after {
                     content: "要素を選択するとプロパティが表示されます...";
                     display: block;
                     padding: 0 16px;
-                    color: rgba(255,255,255,0.5);
+                    color: rgb(var(--brand-fg-rgb) / 0.5);
                     font-size: 0.875rem;
                   }
                 `}</style>
@@ -276,7 +277,7 @@ export const RightPanelHost: React.FC = () => {
             </>
           ) : scope === '3dsc' ? (
             <>
-              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
                   S.Create プロパティ
                 </Typography>
@@ -294,7 +295,7 @@ export const RightPanelHost: React.FC = () => {
             />
           ) : (
             <>
-              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
                   {scope} プロパティ
                 </Typography>
@@ -316,7 +317,7 @@ export const RightPanelHost: React.FC = () => {
                       fullWidth 
                       value={editData.name}
                       onChange={e => setEditData({ ...editData, name: e.target.value })}
-                      InputProps={{ sx: { color: 'white' } }}
+                      InputProps={{ sx: { color: 'var(--brand-fg)' } }}
                       InputLabelProps={{ sx: { color: 'text.secondary' } }}
                     />
                     <TextField 
@@ -326,7 +327,7 @@ export const RightPanelHost: React.FC = () => {
                       fullWidth 
                       value={editData.type}
                       onChange={e => setEditData({ ...editData, type: e.target.value })}
-                      InputProps={{ sx: { color: 'white' } }}
+                      InputProps={{ sx: { color: 'var(--brand-fg)' } }}
                       InputLabelProps={{ sx: { color: 'text.secondary' } }}
                     />
 
@@ -338,7 +339,7 @@ export const RightPanelHost: React.FC = () => {
                             value={editData.category}
                             label="Category"
                             onChange={e => setEditData({ ...editData, category: e.target.value })}
-                            sx={{ color: 'white', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }}
+                            sx={{ color: 'var(--brand-fg)', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
                           >
                             <MenuItem value="">Uncategorized</MenuItem>
                             <MenuItem value="Furniture">Furniture</MenuItem>
@@ -366,7 +367,7 @@ export const RightPanelHost: React.FC = () => {
                                 setTagInput('');
                               }
                             }}
-                            InputProps={{ sx: { color: 'white' } }}
+                            InputProps={{ sx: { color: 'var(--brand-fg)' } }}
                             InputLabelProps={{ sx: { color: 'text.secondary' } }}
                           />
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 1 }}>
@@ -376,7 +377,7 @@ export const RightPanelHost: React.FC = () => {
                                 label={tag} 
                                 size="small" 
                                 onDelete={() => setEditData({ ...editData, tags: editData.tags.filter((t: string) => t !== tag) })}
-                                sx={{ height: 24, fontSize: 11, bgcolor: 'rgba(156,39,176,0.3)', color: '#ce93d8' }} 
+                                sx={{ height: 24, fontSize: 11, bgcolor: 'rgba(156,39,176,0.3)', color: 'light-dark(#742e7f, #ce93d8)' }} 
                               />
                             ))}
                           </Box>
@@ -411,7 +412,7 @@ export const RightPanelHost: React.FC = () => {
                     
                     {/* Render Canvas Shape Props (Read-only) */}
                     {scope === 'canvas' && selectedItem.props && (
-                      <Box sx={{ mt: 2, pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <Box sx={{ mt: 2, pt: 1, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>Shape Properties</Typography>
                         {Object.entries(selectedItem.props).map(([k, v]) => (
                           <Typography key={k} variant="body2" sx={{ color: 'text.secondary', mb: 0.5 }}>
@@ -434,14 +435,14 @@ export const RightPanelHost: React.FC = () => {
 
                     {/* Version Info for Pinned Items */}
                     {selectedItem.pinnedVersion && (
-                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
                         <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <b>Version:</b> 
-                          <Chip size="small" label={`v${selectedItem.pinnedVersion}`} sx={{ height: 20, fontSize: 11, bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+                          <Chip size="small" label={`v${selectedItem.pinnedVersion}`} sx={{ height: 20, fontSize: 11, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' }} />
                         </Typography>
                         {selectedItem.isOutdated && (
                           <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            <Typography variant="caption" sx={{ color: '#ffb74d', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography variant="caption" sx={{ color: 'light-dark(#ad6700, #ffb74d)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               <span style={{ fontSize: 16 }}>⚠️</span> 最新バージョン (v{selectedItem.latestVersion}) が利用可能です
                             </Typography>
                             <Button 
@@ -483,7 +484,7 @@ export const RightPanelHost: React.FC = () => {
                       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>Tags</Typography>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         {selectedItem.tags.map((t: string) => (
-                          <Chip key={t} label={t} size="small" sx={{ height: 20, fontSize: 10, bgcolor: 'rgba(156,39,176,0.15)', color: '#ce93d8' }} />
+                          <Chip key={t} label={t} size="small" sx={{ height: 20, fontSize: 10, bgcolor: 'rgba(156,39,176,0.15)', color: 'light-dark(#742e7f, #ce93d8)' }} />
                         ))}
                       </Box>
                     </Box>
@@ -492,7 +493,7 @@ export const RightPanelHost: React.FC = () => {
                   {(selectedItem.mainCategory || (Array.isArray(selectedItem.categoryPath) && selectedItem.categoryPath.length > 0)) && (
                     <Box sx={{ mb: 1.5 }}>
                       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>Category</Typography>
-                      <Typography variant="body2" sx={{ color: '#ce93d8' }}>
+                      <Typography variant="body2" sx={{ color: 'light-dark(#742e7f, #ce93d8)' }}>
                         {Array.isArray(selectedItem.categoryPath) ? selectedItem.categoryPath.join(' > ') : selectedItem.mainCategory}
                       </Typography>
                     </Box>
@@ -504,12 +505,12 @@ export const RightPanelHost: React.FC = () => {
                       <Box sx={{ display: 'flex', gap: 2 }}>
                         {(selectedItem.metadata?.vertices || selectedItem.vertices) && (
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Vertices: <span style={{ color: '#ce93d8' }}>{selectedItem.metadata?.vertices || selectedItem.vertices}</span>
+                            Vertices: <span style={{ color: 'light-dark(#742e7f, #ce93d8)' }}>{selectedItem.metadata?.vertices || selectedItem.vertices}</span>
                           </Typography>
                         )}
                         {(selectedItem.metadata?.triangles || selectedItem.triangles) && (
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Triangles: <span style={{ color: '#ce93d8' }}>{selectedItem.metadata?.triangles || selectedItem.triangles}</span>
+                            Triangles: <span style={{ color: 'light-dark(#742e7f, #ce93d8)' }}>{selectedItem.metadata?.triangles || selectedItem.triangles}</span>
                           </Typography>
                         )}
                       </Box>
@@ -532,7 +533,7 @@ export const RightPanelHost: React.FC = () => {
                 <Box sx={{ p: 2, bgcolor: 'rgba(76,175,80,0.05)', borderRadius: 2, border: '1px solid rgba(76,175,80,0.1)' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary', wordBreak: 'break-all' }}>
                     <b>Linked Asset:</b><br />
-                    <span style={{ color: '#81c784' }}>{selectedItem.assetRef}</span>
+                    <span style={{ color: 'light-dark(#357838, #81c784)' }}>{selectedItem.assetRef}</span>
                   </Typography>
                 </Box>
               </Box>
@@ -547,18 +548,18 @@ export const RightPanelHost: React.FC = () => {
                     <Button variant="contained" color="primary" size="small" fullWidth onClick={handleSave}>
                       Save Changes
                     </Button>
-                    <Button variant="outlined" size="small" fullWidth onClick={() => setIsEditing(false)} sx={{ color: 'text.secondary', borderColor: 'rgba(255,255,255,0.2)' }}>
+                    <Button variant="outlined" size="small" fullWidth onClick={() => setIsEditing(false)} sx={{ color: 'text.secondary', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>
                       Cancel
                     </Button>
                   </>
                 ) : (
-                  <Button variant="outlined" size="small" fullWidth onClick={() => setIsEditing(true)} sx={{ justifyContent: 'flex-start', color: '#90caf9', borderColor: 'rgba(144,202,249,0.3)' }}>
+                  <Button variant="outlined" size="small" fullWidth onClick={() => setIsEditing(true)} sx={{ justifyContent: 'flex-start', color: 'light-dark(#095fa5, #90caf9)', borderColor: 'rgba(144,202,249,0.3)' }}>
                     Edit Properties
                   </Button>
                 )}
                 
                 {scope === '3dss' && !isEditing && (
-                  <Button variant="outlined" size="small" fullWidth onClick={handleOpenMasterViewer} sx={{ justifyContent: 'flex-start', color: '#ce93d8', borderColor: 'rgba(206,147,216,0.3)' }}>
+                  <Button variant="outlined" size="small" fullWidth onClick={handleOpenMasterViewer} sx={{ justifyContent: 'flex-start', color: 'light-dark(#742e7f, #ce93d8)', borderColor: 'rgba(206,147,216,0.3)' }}>
                     Open in Master Viewer
                   </Button>
                 )}
@@ -569,7 +570,7 @@ export const RightPanelHost: React.FC = () => {
                     size="small" 
                     fullWidth 
                     onClick={() => useAppStore.getState().setDslShellMode('canvas')}
-                    sx={{ justifyContent: 'flex-start', color: '#fa709a', borderColor: 'rgba(250,112,154,0.3)' }}
+                    sx={{ justifyContent: 'flex-start', color: 'light-dark(#a80637, #fa709a)', borderColor: 'rgba(250,112,154,0.3)' }}
                   >
                     Open in Native Canvas
                   </Button>
@@ -581,7 +582,7 @@ export const RightPanelHost: React.FC = () => {
                     size="small" 
                     fullWidth 
                     onClick={() => useAppStore.getState().setDspShellMode('editor')}
-                    sx={{ justifyContent: 'flex-start', color: '#29b6f6', borderColor: 'rgba(41, 182, 246, 0.3)' }}
+                    sx={{ justifyContent: 'flex-start', color: 'light-dark(#0775a6, #29b6f6)', borderColor: 'rgba(41, 182, 246, 0.3)' }}
                   >
                     スライドエディタで開く
                   </Button>
@@ -595,7 +596,7 @@ export const RightPanelHost: React.FC = () => {
               </Box>
             </Box>
 
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
             {/* Raw Data Section */}
             <Box>
@@ -606,7 +607,7 @@ export const RightPanelHost: React.FC = () => {
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails sx={{ p: 0 }}>
-                  <Box component="pre" sx={{ p: 1.5, bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 1, fontSize: 11, color: '#90caf9', overflowX: 'auto', maxHeight: 250 }}>
+                  <Box component="pre" sx={{ p: 1.5, bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 1, fontSize: 11, color: 'light-dark(#095fa5, #90caf9)', overflowX: 'auto', maxHeight: 250 }}>
                     {JSON.stringify(selectedItem, null, 2)}
                   </Box>
                 </AccordionDetails>
@@ -615,13 +616,13 @@ export const RightPanelHost: React.FC = () => {
           </>
         ) : (
           <>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 2 }}>
               アイテムを選択するとプロパティが表示されます。
             </Typography>
             
             {scope === '3dss' && (
-              <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                <Typography variant="caption" color="primary">S.Models ワークスペース</Typography>
+              <Box sx={{ p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)' }}>
+                <Typography variant="caption" color="primary">S.Model ワークスペース</Typography>
                 <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>プロジェクトを選択するとモデルと関連情報がここに表示されます。</Typography>
               </Box>
             )}
@@ -629,22 +630,22 @@ export const RightPanelHost: React.FC = () => {
             {/* 3dsl fallback is now handled via top-level shortcircuit */}
 
             {scope === '3dsp' && (
-              <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                <Typography variant="caption" color="info.main">S.Presentations Workspace</Typography>
+              <Box sx={{ p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)' }}>
+                <Typography variant="caption" color="info.main">S.Slide Workspace</Typography>
                 <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>Slide transitions, camera angles, and presentation script controls.</Typography>
               </Box>
             )}
 
             {scope === '3dsc' && (
-              <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1, border: '1px dashed rgba(255,255,255,0.1)' }}>
+              <Box sx={{ p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)' }}>
                 <Typography variant="caption" color="warning.main">S.Create Workspace</Typography>
                 <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>Generative parameters, style prompts, and mesh exports.</Typography>
               </Box>
             )}
 
             {scope === 'canvas' && (
-              <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                <Typography variant="caption" sx={{ color: '#00e5ff' }}>AI Canvas</Typography>
+              <Box sx={{ p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 1, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.1)' }}>
+                <Typography variant="caption" sx={{ color: 'light-dark(#009cad, #00e5ff)' }}>AI Canvas</Typography>
                 <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>Select a shape, image, or zone on the canvas to view and edit its properties.</Typography>
               </Box>
             )}
@@ -727,52 +728,52 @@ function DslDashboardRightPanel({
 
     return (
       <>
-        <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+        <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
             {isVideo ? '動画情報' : '静止画情報'}
           </Typography>
         </Box>
         <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
           {/* Thumbnail */}
-          <Box sx={{ width: '100%', aspectRatio: '16/9', bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+          <Box sx={{ width: '100%', aspectRatio: '16/9', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', overflow: 'hidden' }}>
             {selectedRender.url
               ? <img src={selectedRender.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>No Preview</Typography>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 11 }}>No Preview</Typography>
                 </Box>}
           </Box>
 
           <Box>
-            <Typography sx={{ fontSize: 10, color: 'rgba(148,163,184,0.7)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', mb: 0.5 }}>Shot</Typography>
-            <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{selectedRender.shotName || selectedRender.id}</Typography>
+            <Typography sx={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.7)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', mb: 0.5 }}>Shot</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-fg)' }}>{selectedRender.shotName || selectedRender.id}</Typography>
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography sx={{ fontSize: 10, color: 'rgba(148,163,184,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Quality</Typography>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Quality</Typography>
               <Box sx={{ px: 1, py: 0.25, borderRadius: 0.75, background: isCycles ? 'rgba(167,139,250,0.2)' : 'rgba(108,135,255,0.18)' }}>
-                <Typography sx={{ fontSize: 11, fontWeight: 700, color: isCycles ? '#c4b5fd' : '#9db4ff' }}>{isCycles ? 'Cycles' : '標準'}</Typography>
+                <Typography sx={{ fontSize: 11, fontWeight: 700, color: isCycles ? 'light-dark(#2705a9, #c4b5fd)' : 'light-dark(#0029ad, #9db4ff)' }}>{isCycles ? 'Cycles' : '標準'}</Typography>
               </Box>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography sx={{ fontSize: 10, color: 'rgba(148,163,184,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>解像度</Typography>
-              <Typography sx={{ fontSize: 12, color: 'rgba(229,231,235,0.7)' }}>{selectedRender.width}×{selectedRender.height}</Typography>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>解像度</Typography>
+              <Typography sx={{ fontSize: 12, color: 'light-dark(rgba(31,41,55,0.7), rgba(229,231,235,0.7))' }}>{selectedRender.width}×{selectedRender.height}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Typography sx={{ fontSize: 10, color: 'rgba(148,163,184,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>レイアウト</Typography>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>レイアウト</Typography>
               <Typography sx={{ fontSize: 12, color: '#00BFFF', textAlign: 'right', maxWidth: 140 }}>{selectedRender.planName}</Typography>
             </Box>
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} />
 
           {/* 公開設定 */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
-              <Typography sx={{ fontSize: 10, color: 'rgba(148,163,184,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.25 }}>公開設定</Typography>
-              <Typography sx={{ fontSize: 12, color: isPublic ? '#fa709a' : 'rgba(255,255,255,0.4)' }}>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, mb: 0.25 }}>公開設定</Typography>
+              <Typography sx={{ fontSize: 12, color: isPublic ? 'light-dark(#a80637, #fa709a)' : 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                 {isPublic ? '公開中' : '非公開'}
               </Typography>
             </Box>
@@ -782,7 +783,7 @@ function DslDashboardRightPanel({
               disabled={renderUpdating}
               onChange={(e) => handleVisibilityToggle(e.target.checked)}
               sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': { color: '#fa709a' },
+                '& .MuiSwitch-switchBase.Mui-checked': { color: 'light-dark(#a80637, #fa709a)' },
                 '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'rgba(250,112,154,0.5)' },
               }}
             />
@@ -796,41 +797,41 @@ function DslDashboardRightPanel({
   if (selectedItem) {
     return (
       <>
-        <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
+        <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
             レイアウト情報
           </Typography>
         </Box>
         <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           {/* Thumbnail */}
-          <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', mb: 2 }}>
+          <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', mb: 2 }}>
             {selectedItem.thumbnailUrl
               ? <img src={selectedItem.thumbnailUrl} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: 500 }}>No Preview Available</Typography>}
+              : <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 11, fontWeight: 500 }}>No Preview Available</Typography>}
           </Box>
 
           <Box sx={{ mb: 2 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', display: 'block', mb: 0.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>名前</Typography>
-            <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fff', lineHeight: 1.4 }}>{selectedItem.title || selectedItem.name || 'Untitled Layout'}</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--brand-fg)', lineHeight: 1.4 }}>{selectedItem.title || selectedItem.name || 'Untitled Layout'}</Typography>
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
           {selectedItem.updatedAt && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>更新日時</Typography>
-              <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
                 {new Date(selectedItem.updatedAt?.toDate ? selectedItem.updatedAt.toDate() : selectedItem.updatedAt).toLocaleDateString('ja-JP')}
               </Typography>
             </Box>
           )}
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Box>
               <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>公開設定</Typography>
-              <Typography sx={{ fontSize: 12, color: selectedItem.visibility === 'public' ? '#fa709a' : 'rgba(255,255,255,0.4)' }}>
+              <Typography sx={{ fontSize: 12, color: selectedItem.visibility === 'public' ? 'light-dark(#a80637, #fa709a)' : 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                 {selectedItem.visibility === 'public' ? '公開中' : '非公開'}
               </Typography>
             </Box>
@@ -854,13 +855,13 @@ function DslDashboardRightPanel({
                 }
               }}
               sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': { color: '#fa709a' },
+                '& .MuiSwitch-switchBase.Mui-checked': { color: 'light-dark(#a80637, #fa709a)' },
                 '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: 'rgba(250,112,154,0.5)' },
               }}
             />
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+          <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
           {/* プラン一覧（Base 選択中のみ）。この躯体で作成したインテリア案をサムネ付きで表示 */}
           {isBaseSelected && (
@@ -869,10 +870,10 @@ function DslDashboardRightPanel({
                 <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   プラン
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>{basePlans.length}</Typography>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.5)' }}>{basePlans.length}</Typography>
               </Box>
               {basePlans.length === 0 ? (
-                <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.45)', lineHeight: 1.5, mb: 2 }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.45)', lineHeight: 1.5, mb: 2 }}>
                   プランはまだありません。エディタで家具を配置するとプランが作成されます。
                 </Typography>
               ) : (
@@ -892,20 +893,20 @@ function DslDashboardRightPanel({
                       }}
                     >
                       {/* サムネイル */}
-                      <Box sx={{ position: 'relative', width: 64, height: 40, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <Box sx={{ position: 'relative', width: 64, height: 40, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
                         {plan.thumbnailUrl
                           ? <Box component="img" src={plan.thumbnailUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Typography sx={{ fontSize: 8, color: 'rgba(148,163,184,0.45)' }}>No Image</Typography>
+                              <Typography sx={{ fontSize: 8, color: 'rgb(var(--slate-ink-rgb) / 0.45)' }}>No Image</Typography>
                             </Box>}
                       </Box>
                       {/* 名前・更新日時 */}
                       <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {plan.name || plan.title || 'Untitled Plan'}
                         </Typography>
                         {(plan.updatedAt || plan.createdAt) && (
-                          <Typography sx={{ fontSize: 10, color: 'rgba(148,163,184,0.5)', mt: '1px' }}>
+                          <Typography sx={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.5)', mt: '1px' }}>
                             {new Date((plan.updatedAt ?? plan.createdAt)?.toDate
                               ? (plan.updatedAt ?? plan.createdAt).toDate()
                               : (plan.updatedAt ?? plan.createdAt)).toLocaleDateString('ja-JP')}
@@ -917,7 +918,7 @@ function DslDashboardRightPanel({
                 </Box>
               )}
 
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+              <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
             </>
           )}
 
@@ -928,10 +929,10 @@ function DslDashboardRightPanel({
                 <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   オプション
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>{planOptions.length}</Typography>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.5)' }}>{planOptions.length}</Typography>
               </Box>
               {planOptions.length === 0 ? (
-                <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.45)', lineHeight: 1.5, mb: 2 }}>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.45)', lineHeight: 1.5, mb: 2 }}>
                   オプションはまだありません。エディタでマテリアルなどの検討を始めると追加できます。
                 </Typography>
               ) : (
@@ -945,14 +946,14 @@ function DslDashboardRightPanel({
                         bgcolor: 'rgba(244,114,182,0.05)',
                       }}
                     >
-                      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', bgcolor: 'rgba(0,0,0,0.3)' }}>
+                      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))' }}>
                         {opt.thumbnailUrl
                           ? <Box component="img" src={opt.thumbnailUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Typography sx={{ fontSize: 9, color: 'rgba(244,114,182,0.5)' }}>Option</Typography>
+                              <Typography sx={{ fontSize: 9, color: 'light-dark(rgba(161,13,90,0.5), rgba(244,114,182,0.5))' }}>Option</Typography>
                             </Box>}
                       </Box>
-                      <Typography sx={{ px: 0.75, py: 0.5, fontSize: 10, fontWeight: 600, color: '#f472b6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography sx={{ px: 0.75, py: 0.5, fontSize: 10, fontWeight: 600, color: 'light-dark(#a10d5a, #f472b6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {opt.name || opt.title || 'Option'}
                       </Typography>
                     </Box>
@@ -960,7 +961,7 @@ function DslDashboardRightPanel({
                 </Box>
               )}
 
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+              <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
             </>
           )}
 
@@ -971,7 +972,7 @@ function DslDashboardRightPanel({
                 <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   画像・動画
                 </Typography>
-                <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>{selectedItem.dslRenders.length}</Typography>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.5)' }}>{selectedItem.dslRenders.length}</Typography>
               </Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75, mb: 2 }}>
                 {selectedItem.dslRenders.map((r: any) => (
@@ -981,7 +982,7 @@ function DslDashboardRightPanel({
                     title={r.shotName || r.id}
                     sx={{
                       position: 'relative', aspectRatio: '1 / 1', borderRadius: 1, overflow: 'hidden', cursor: 'pointer',
-                      border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))',
                       '&:hover': { borderColor: '#00BFFF' },
                     }}
                   >
@@ -989,7 +990,7 @@ function DslDashboardRightPanel({
                       ? <Box component="img" src={r.url} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : null}
                     {r.type === 'video' && (
-                      <PlayCircleOutlineRoundedIcon sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 20, color: 'rgba(255,255,255,0.9)', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+                      <PlayCircleOutlineRoundedIcon sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 20, color: 'rgb(var(--brand-fg-rgb) / 0.9)', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
                     )}
                   </Box>
                 ))}
@@ -1007,7 +1008,7 @@ function DslDashboardRightPanel({
               >
                 S.Image で画像・動画を管理
               </Button>
-              <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+              <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
             </>
           )}
 

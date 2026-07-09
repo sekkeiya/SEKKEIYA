@@ -22,12 +22,12 @@ const hueOf = (s: string) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0) % 3
 
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
-    color: '#fff',
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.35)' },
+    color: 'var(--brand-fg)',
+    '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.18)' },
+    '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.35)' },
     '&.Mui-focused fieldset': { borderColor: ACCENT },
   },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.55)' },
+  '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.55)' },
   '& .MuiInputLabel-root.Mui-focused': { color: ACCENT },
 };
 
@@ -65,18 +65,18 @@ export const BlogCategoryInspector: React.FC<Props> = ({ name, uid, onClose, onR
   return (
     <Box sx={{
       width: 340, flexShrink: 0, height: '100%',
-      borderLeft: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(10,15,25,0.6)',
+      borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(255,255,255,0.75), rgba(10,15,25,0.6))',
       overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5, px: 2.5, py: 2.5,
     }}>
       {/* ヘッダ */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           <Box sx={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, bgcolor: `hsl(${hueOf(name)},65%,62%)` }} />
-          <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
             カテゴリ
           </Typography>
         </Box>
-        <Tooltip title="閉じる"><IconButton size="small" onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}><CloseRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+        <Tooltip title="閉じる"><IconButton size="small" onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}><CloseRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       </Box>
 
       {/* 名前 */}
@@ -95,11 +95,11 @@ export const BlogCategoryInspector: React.FC<Props> = ({ name, uid, onClose, onR
           { v: published, l: '公開', c: '#43a047' },
           { v: drafts, l: '下書き', c: '#9e9e9e' },
         ].map((s) => (
-          <Box key={s.l} sx={{ flex: 1, p: 1.25, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', textAlign: 'center' }}>
-            <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{s.v}</Typography>
+          <Box key={s.l} sx={{ flex: 1, p: 1.25, borderRadius: 1.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', textAlign: 'center' }}>
+            <Typography sx={{ fontSize: 20, fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1 }}>{s.v}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: s.c }} />
-              <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)' }}>{s.l}</Typography>
+              <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{s.l}</Typography>
             </Box>
           </Box>
         ))}
@@ -116,9 +116,9 @@ export const BlogCategoryInspector: React.FC<Props> = ({ name, uid, onClose, onR
 
       {/* 配下の記事 */}
       <Box>
-        <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 0.5, mb: 1 }}>記事（{items.length}）</Typography>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 0.5, mb: 1 }}>記事（{items.length}）</Typography>
         {items.length === 0 ? (
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', py: 1 }}>このカテゴリの記事はまだありません。</Typography>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.35)', py: 1 }}>このカテゴリの記事はまだありません。</Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {items.map((a) => {
@@ -126,9 +126,9 @@ export const BlogCategoryInspector: React.FC<Props> = ({ name, uid, onClose, onR
               const color = pub ? '#81c784' : '#ffb74d';
               return (
                 <Box key={a.id} onClick={() => onOpenArticle(a.id)}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.75, borderRadius: 1.5, cursor: 'pointer', bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' } }}>
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.75, borderRadius: 1.5, cursor: 'pointer', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
                   {pub ? <PublicRoundedIcon sx={{ fontSize: 14, color, flexShrink: 0 }} /> : <EditNoteRoundedIcon sx={{ fontSize: 14, color, flexShrink: 0 }} />}
-                  <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 12.5, color: pub ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.6)' }}>{a.title || '(無題)'}</Typography>
+                  <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 12.5, color: pub ? 'rgb(var(--brand-fg-rgb) / 0.85)' : 'rgb(var(--brand-fg-rgb) / 0.6)' }}>{a.title || '(無題)'}</Typography>
                   <Typography sx={{ fontSize: 9.5, fontWeight: 700, color, flexShrink: 0 }}>{pub ? '公開' : '下書き'}</Typography>
                 </Box>
               );
@@ -141,16 +141,16 @@ export const BlogCategoryInspector: React.FC<Props> = ({ name, uid, onClose, onR
         onClick={() => setConfirmDelete(true)}
         startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
         variant="text" size="small"
-        sx={{ mt: 'auto', alignSelf: 'flex-start', color: '#fa9bb4', textTransform: 'none', '&:hover': { bgcolor: 'rgba(250,155,180,0.08)' } }}
+        sx={{ mt: 'auto', alignSelf: 'flex-start', color: 'light-dark(#a50832, #fa9bb4)', textTransform: 'none', '&:hover': { bgcolor: 'rgba(250,155,180,0.08)' } }}
       >
         このカテゴリを削除
       </Button>
 
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)}
-        PaperProps={{ sx: { bgcolor: '#0e121c', color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 380, borderRadius: 3, backgroundImage: 'none' } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 380, borderRadius: 3, backgroundImage: 'none' } }}>
         <DialogTitle sx={{ fontWeight: 800 }}>カテゴリを削除</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+          <DialogContentText sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.9rem' }}>
             「{name}」を削除します。
             {items.length > 0
               ? `配下の ${items.length} 件の記事は未分類（カテゴリなし）になります（記事自体は削除されません）。`
@@ -158,9 +158,9 @@ export const BlogCategoryInspector: React.FC<Props> = ({ name, uid, onClose, onR
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setConfirmDelete(false)} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setConfirmDelete(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={() => { if (uid) removeCategory(uid, name); setConfirmDelete(false); onClose(); }}
-            variant="contained" sx={{ bgcolor: '#ef4444', color: '#fff', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>削除する</Button>
+            variant="contained" sx={{ bgcolor: '#ef4444', color: 'var(--brand-fg)', fontWeight: 800, '&:hover': { bgcolor: '#dc2626' } }}>削除する</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -55,7 +55,7 @@ export default function LibraryAssetGrid({ models, modelTitleMap, planIds, tab, 
         glbUrl: m?.glbUrl || m?.downloadUrl || null,
         dimensionsMm: m?.dimensionsMm || m?.dimensions || null,
         dimensionSource: m?.dimensionSource || null,
-        // ウォークスルーのギミック定義（S.Models の extendedMetadata 由来）を引き継ぐ（複数対応）
+        // ウォークスルーのギミック定義（S.Model の extendedMetadata 由来）を引き継ぐ（複数対応）
         gimmicks: m?.extendedMetadata?.gimmicks || m?.gimmicks || null,
         gimmick: m?.extendedMetadata?.gimmick || m?.gimmick || null, // 後方互換
         // 常時アニメ（回転/往復）とアイテム情報（ⓘ）も引き継ぐ

@@ -39,10 +39,10 @@ type FormatFilter = 'all' | 'image' | 'video' | 'pdf';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const TEMPLATE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: '#aed581' },
-  site:   { label: '敷地・周辺',   icon: <PlaceRoundedIcon   sx={{ fontSize: 14 }} />, color: '#4dd0e1' },
-  layout: { label: 'ゾーニング',   icon: <RouteRoundedIcon   sx={{ fontSize: 14 }} />, color: '#ffb74d' },
-  env:    { label: '環境・風・音', icon: <AirRoundedIcon     sx={{ fontSize: 14 }} />, color: '#80cbc4' },
+  sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: 'light-dark(#5a822b, #aed581)' },
+  site:   { label: '敷地・周辺',   icon: <PlaceRoundedIcon   sx={{ fontSize: 14 }} />, color: 'light-dark(#198694, #4dd0e1)' },
+  layout: { label: 'ゾーニング',   icon: <RouteRoundedIcon   sx={{ fontSize: 14 }} />, color: 'light-dark(#ad6700, #ffb74d)' },
+  env:    { label: '環境・風・音', icon: <AirRoundedIcon     sx={{ fontSize: 14 }} />, color: 'light-dark(#327b74, #80cbc4)' },
 };
 
 const FORMAT_META: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -95,17 +95,17 @@ const DsdDiagramStateCard: React.FC<DsdDiagramStateCardProps> = ({ item, onOpen,
       onClick={handleClick}
       sx={{
         borderRadius: 2,
-        border: `1px solid ${meta.color}44`,
-        bgcolor: `${meta.color}08`,
+        border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)`,
+        bgcolor: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.18s ease',
         cursor: 'pointer',
         '&:hover': {
-          border: `1px solid ${meta.color}88`,
-          boxShadow: `0 4px 16px ${meta.color}22`,
-          bgcolor: `${meta.color}12`,
+          border: `1px solid color-mix(in srgb, ${meta.color} 53%, transparent)`,
+          boxShadow: `0 4px 16px color-mix(in srgb, ${meta.color} 13%, transparent)`,
+          bgcolor: `color-mix(in srgb, ${meta.color} 7%, transparent)`,
           '& .card-actions': { opacity: 1 },
         },
       }}
@@ -114,7 +114,7 @@ const DsdDiagramStateCard: React.FC<DsdDiagramStateCardProps> = ({ item, onOpen,
       <Box sx={{
         position: 'relative',
         aspectRatio: '16/9',
-        bgcolor: `${meta.color}14`,
+        bgcolor: `color-mix(in srgb, ${meta.color} 8%, transparent)`,
         overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexDirection: 'column', gap: 0.5,
@@ -147,7 +147,7 @@ const DsdDiagramStateCard: React.FC<DsdDiagramStateCardProps> = ({ item, onOpen,
             <IconButton
               size="small"
               onClick={(e) => { e.stopPropagation(); if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; } onOpen?.(item); }}
-              sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
+              sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
             >
               <EditRoundedIcon sx={{ fontSize: 16 }} />
             </IconButton>
@@ -155,7 +155,7 @@ const DsdDiagramStateCard: React.FC<DsdDiagramStateCardProps> = ({ item, onOpen,
           <IconButton
             size="small"
             onClick={(e) => { e.stopPropagation(); setMenuAnchor(e.currentTarget); }}
-            sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
+            sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: 'var(--brand-fg)', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
           >
             <MoreVertRoundedIcon sx={{ fontSize: 16 }} />
           </IconButton>
@@ -178,8 +178,8 @@ const DsdDiagramStateCard: React.FC<DsdDiagramStateCardProps> = ({ item, onOpen,
             size="small"
             sx={{
               height: 20, fontSize: '0.65rem', fontWeight: 600,
-              bgcolor: `${meta.color}18`, color: meta.color,
-              border: `1px solid ${meta.color}44`,
+              bgcolor: `color-mix(in srgb, ${meta.color} 9%, transparent)`, color: meta.color,
+              border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)`,
               '& .MuiChip-icon': { color: meta.color, ml: 0.5 },
             }}
           />
@@ -258,8 +258,8 @@ const DsdExportCard: React.FC<DsdExportCardProps> = ({ item, onDelete }) => {
       flexDirection: 'column',
       transition: 'all 0.18s ease',
       '&:hover': {
-        border: `1px solid ${meta.color}66`,
-        boxShadow: `0 4px 16px ${meta.color}18`,
+        border: `1px solid color-mix(in srgb, ${meta.color} 40%, transparent)`,
+        boxShadow: `0 4px 16px color-mix(in srgb, ${meta.color} 9%, transparent)`,
         '& .card-actions': { opacity: 1 },
       },
     }}>
@@ -267,7 +267,7 @@ const DsdExportCard: React.FC<DsdExportCardProps> = ({ item, onDelete }) => {
       <Box sx={{
         position: 'relative',
         aspectRatio: '16/9',
-        bgcolor: `${meta.color}10`,
+        bgcolor: `color-mix(in srgb, ${meta.color} 6%, transparent)`,
         overflow: 'hidden',
       }}>
         {item.exportType === 'video' ? (
@@ -286,9 +286,9 @@ const DsdExportCard: React.FC<DsdExportCardProps> = ({ item, onDelete }) => {
             <Box sx={{
               position: 'absolute', inset: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'rgba(0,0,0,0.35)',
+              background: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))',
             }}>
-              <VideocamRoundedIcon sx={{ color: '#fff', fontSize: 32 }} />
+              <VideocamRoundedIcon sx={{ color: 'var(--brand-fg)', fontSize: 32 }} />
             </Box>
           </Box>
         ) : item.thumbnailUrl && !imgError ? (
@@ -315,14 +315,14 @@ const DsdExportCard: React.FC<DsdExportCardProps> = ({ item, onDelete }) => {
         }}>
           <Tooltip title="ダウンロード" placement="top">
             <IconButton size="small" onClick={handleDownload} sx={{
-              bgcolor: 'rgba(0,0,0,0.55)', color: '#fff',
+              bgcolor: 'rgba(0,0,0,0.55)', color: 'var(--brand-fg)',
               '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' },
             }}>
               <DownloadRoundedIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
           <IconButton size="small" onClick={e => setMenuAnchor(e.currentTarget)} sx={{
-            bgcolor: 'rgba(0,0,0,0.55)', color: '#fff',
+            bgcolor: 'rgba(0,0,0,0.55)', color: 'var(--brand-fg)',
             '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' },
           }}>
             <MoreVertRoundedIcon sx={{ fontSize: 16 }} />
@@ -346,8 +346,8 @@ const DsdExportCard: React.FC<DsdExportCardProps> = ({ item, onDelete }) => {
             size="small"
             sx={{
               height: 20, fontSize: '0.65rem', fontWeight: 600,
-              bgcolor: `${meta.color}18`, color: meta.color,
-              border: `1px solid ${meta.color}44`,
+              bgcolor: `color-mix(in srgb, ${meta.color} 9%, transparent)`, color: meta.color,
+              border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)`,
               '& .MuiChip-icon': { color: meta.color, ml: 0.5 },
             }}
           />
@@ -427,7 +427,7 @@ export const DsdLibraryGrid: React.FC<DsdLibraryGridProps> = ({
   if (isInitializing) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress size={24} sx={{ color: '#aed581' }} />
+        <CircularProgress size={24} sx={{ color: 'light-dark(#5a822b, #aed581)' }} />
       </Box>
     );
   }
@@ -451,7 +451,7 @@ export const DsdLibraryGrid: React.FC<DsdLibraryGridProps> = ({
             </Typography>
             <Typography variant="caption" sx={{
               fontSize: '0.65rem', color: BRAND.sub2,
-              bgcolor: 'rgba(255,255,255,0.06)', px: 0.75, py: 0.25, borderRadius: 1,
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', px: 0.75, py: 0.25, borderRadius: 1,
             }}>
               {diagramItems.length}
             </Typography>
@@ -486,7 +486,7 @@ export const DsdLibraryGrid: React.FC<DsdLibraryGridProps> = ({
           {hasExports && (
             <Typography variant="caption" sx={{
               fontSize: '0.65rem', color: BRAND.sub2,
-              bgcolor: 'rgba(255,255,255,0.06)', px: 0.75, py: 0.25, borderRadius: 1,
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', px: 0.75, py: 0.25, borderRadius: 1,
             }}>
               {items.length}
             </Typography>
@@ -508,10 +508,10 @@ export const DsdLibraryGrid: React.FC<DsdLibraryGridProps> = ({
                   onClick={() => setTemplateFilter(f)}
                   sx={{
                     height: 24, fontSize: '0.7rem', cursor: 'pointer',
-                    bgcolor: templateFilter === f ? (m ? `${m.color}22` : 'rgba(255,255,255,0.08)') : 'transparent',
+                    bgcolor: templateFilter === f ? (m ? `color-mix(in srgb, ${m.color} 13%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.08)') : 'transparent',
                     color: templateFilter === f ? (m ? m.color : BRAND.text) : BRAND.sub2,
-                    border: `1px solid ${templateFilter === f ? (m ? `${m.color}66` : BRAND.text + '44') : BRAND.line}`,
-                    '&:hover': { bgcolor: m ? `${m.color}15` : 'rgba(255,255,255,0.05)' },
+                    border: `1px solid ${templateFilter === f ? (m ? `color-mix(in srgb, ${m.color} 40%, transparent)` : BRAND.text + '44') : BRAND.line}`,
+                    '&:hover': { bgcolor: m ? `color-mix(in srgb, ${m.color} 8%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.05)' },
                   }}
                 />
               );
@@ -532,7 +532,7 @@ export const DsdLibraryGrid: React.FC<DsdLibraryGridProps> = ({
                   onClick={() => setFormatFilter(f)}
                   sx={{
                     height: 24, fontSize: '0.7rem', cursor: 'pointer',
-                    bgcolor: formatFilter === f ? 'rgba(255,255,255,0.08)' : 'transparent',
+                    bgcolor: formatFilter === f ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
                     color: formatFilter === f ? BRAND.text : BRAND.sub2,
                     border: `1px solid ${formatFilter === f ? BRAND.text + '44' : BRAND.line}`,
                     '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
@@ -590,7 +590,7 @@ export const DsdLibraryGrid: React.FC<DsdLibraryGridProps> = ({
                 transition: 'all 0.15s',
               }}
             >
-              <Typography variant="body2" sx={{ color: '#aed581', fontWeight: 600, fontSize: '0.8rem' }}>
+              <Typography variant="body2" sx={{ color: 'light-dark(#5a822b, #aed581)', fontWeight: 600, fontSize: '0.8rem' }}>
                 + 新規ダイアグラムを作成
               </Typography>
             </Box>

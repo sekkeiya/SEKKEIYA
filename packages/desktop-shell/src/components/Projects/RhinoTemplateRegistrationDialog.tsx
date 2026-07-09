@@ -170,10 +170,10 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#1a1d24',
-          border: '1px solid rgba(255,255,255,0.1)',
+          bgcolor: 'var(--brand-surface2)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           borderRadius: 4,
-          color: '#fff'
+          color: 'var(--brand-fg)'
         }
       }}
     >
@@ -181,7 +181,7 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
         <Typography variant="h6" component="div" fontWeight={800}>
           {initialData ? 'テンプレートの編集' : 'テンプレートの登録'}
         </Typography>
-        <IconButton onClick={onClose} disabled={status === 'uploading' || status === 'saving'} sx={{ color: 'rgba(255,255,255,0.5)' }}>
+        <IconButton onClick={onClose} disabled={status === 'uploading' || status === 'saving'} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
           <CloseRoundedIcon />
         </IconButton>
       </DialogTitle>
@@ -202,8 +202,8 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
                 sx={{ 
                   width: '100%', 
                   aspectRatio: '16/9', 
-                  bgcolor: 'rgba(0,0,0,0.3)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
+                  bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', 
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', 
                   borderRadius: 2, 
                   overflow: 'hidden',
                   position: 'relative',
@@ -214,17 +214,17 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
               >
                 {isGeneratingThumbnail ? (
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, opacity: 0.7 }}>
-                    <CircularProgress size={32} sx={{ color: '#90caf9' }} />
+                    <CircularProgress size={32} sx={{ color: 'light-dark(#095fa5, #90caf9)' }} />
                     <Typography variant="caption">サムネイル画像を生成中...</Typography>
                   </Box>
                 ) : thumbnailUrlPreview ? (
                   <img src={thumbnailUrlPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.3)' }}>No Thumbnail Found</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>No Thumbnail Found</Typography>
                 )}
               </Box>
 
-              <Box sx={{ p: 2, border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 2, textAlign: 'center', bgcolor: 'rgba(255,255,255,0.02)' }}>
+              <Box sx={{ p: 2, border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 2, textAlign: 'center', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)' }}>
                 <input 
                   type="file" 
                   accept=".3dm"
@@ -238,22 +238,22 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
                   onClick={() => fileInputRef.current?.click()}
                   startIcon={<UploadFileRoundedIcon />}
                   disabled={isGeneratingThumbnail}
-                  sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)', textTransform: 'none', mb: selectedFile ? 2 : 0 }}
+                  sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', textTransform: 'none', mb: selectedFile ? 2 : 0 }}
                 >
                   .3dm ファイルを選択
                 </Button>
                 {selectedFile && (
-                  <Typography variant="body2" sx={{ color: '#90caf9', mt: 1, fontWeight: 600 }}>
+                  <Typography variant="body2" sx={{ color: 'light-dark(#095fa5, #90caf9)', mt: 1, fontWeight: 600 }}>
                     選択済み: {selectedFile.name}
                   </Typography>
                 )}
                 {!selectedFile && !initialData && (
-                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'rgba(255,255,255,0.4)' }}>
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                     ※後から追加できます (*.3dm, *.blend)
                   </Typography>
                 )}
                 {!selectedFile && initialData && (
-                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'rgba(255,255,255,0.4)' }}>
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                     ※変更しない場合は選択不要です
                   </Typography>
                 )}
@@ -263,19 +263,19 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
             {/* Right side: Form Fields */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>テンプレート名 *</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>テンプレート名 *</Typography>
                 <TextField
                   fullWidth
                   size="small"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="例: My Custom Architecture Unit"
-                  sx={{ input: { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
+                  sx={{ input: { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
                 />
               </Box>
               
               <Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>説明</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>説明</Typography>
                 <TextField
                   fullWidth
                   multiline
@@ -283,21 +283,21 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="用途などを入力"
-                  sx={{ '& .MuiInputBase-root': { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
+                  sx={{ '& .MuiInputBase-root': { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
                 />
               </Box>
               
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>ソフトウェア</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>ソフトウェア</Typography>
                   <TextField
                     select
                     fullWidth
                     size="small"
                     value={toolType}
                     onChange={e => setToolType(e.target.value as WorkFileToolType)}
-                    sx={{ '& .MuiSelect-select': { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
-                    SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: '#2a2d34', color: '#fff' } } } }}
+                    sx={{ '& .MuiSelect-select': { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
+                    SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}
                   >
                     <MenuItem value="rhino">Rhino</MenuItem>
                     <MenuItem value="blender">Blender</MenuItem>
@@ -305,15 +305,15 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
                 </Box>
                 
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>カテゴリ</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>カテゴリ</Typography>
                   <TextField
                     select
                     fullWidth
                     size="small"
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    sx={{ '& .MuiSelect-select': { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
-                    SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: '#2a2d34', color: '#fff' } } } }}
+                    sx={{ '& .MuiSelect-select': { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
+                    SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}
                   >
                     <MenuItem value="Architecture">Architecture</MenuItem>
                     <MenuItem value="Large Objects">Large Objects</MenuItem>
@@ -326,30 +326,30 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
               {toolType === 'rhino' && (
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>Rhino バージョン</Typography>
+                    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>Rhino バージョン</Typography>
                     <TextField
                       select
                       fullWidth
                       size="small"
                       value={rhinoVersion}
                       onChange={e => setRhinoVersion(Number(e.target.value))}
-                      sx={{ '& .MuiSelect-select': { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
-                      SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: '#2a2d34', color: '#fff' } } } }}
+                      sx={{ '& .MuiSelect-select': { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
+                      SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}
                     >
                       <MenuItem value={8}>Rhino 8</MenuItem>
                       <MenuItem value={7}>Rhino 7</MenuItem>
                     </TextField>
                   </Box>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>単位</Typography>
+                    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>単位</Typography>
                     <TextField
                       select
                       fullWidth
                       size="small"
                       value={unitSystem}
                       onChange={e => setUnitSystem(e.target.value as any)}
-                      sx={{ '& .MuiSelect-select': { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
-                      SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: '#2a2d34', color: '#fff' } } } }}
+                      sx={{ '& .MuiSelect-select': { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
+                      SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}
                     >
                       <MenuItem value="mm">ミリメートル (mm)</MenuItem>
                       <MenuItem value="m">メートル (m)</MenuItem>
@@ -360,14 +360,14 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
               )}
 
               <Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mb: 1, display: 'block' }}>タグ (カンマ区切り)</Typography>
+                <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1, display: 'block' }}>タグ (カンマ区切り)</Typography>
                 <TextField
                   fullWidth
                   size="small"
                   value={tags}
                   onChange={e => setTags(e.target.value)}
                   placeholder="例: interior, layout"
-                  sx={{ input: { color: '#fff' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } } }}
+                  sx={{ input: { color: 'var(--brand-fg)' }, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }}
                 />
               </Box>
 
@@ -379,7 +379,7 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
                 {isAdmin && (
                   <FormControlLabel
                     control={<Switch checked={isOfficial} onChange={e => setIsOfficial(e.target.checked)} color="warning" />}
-                    label={<Typography sx={{ fontSize: 14, color: '#ffb74d' }}>公式テンプレートとして登録 (管理者専用)</Typography>}
+                    label={<Typography sx={{ fontSize: 14, color: 'light-dark(#ad6700, #ffb74d)' }}>公式テンプレートとして登録 (管理者専用)</Typography>}
                   />
                 )}
               </Box>
@@ -402,8 +402,8 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
       )}
       
       {status === 'idle' || status === 'error' ? (
-        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid rgba(255,255,255,0.05)', gap: 1 }}>
-          <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none' }}>キャンセル</Button>
+        <DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', gap: 1 }}>
+          <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>キャンセル</Button>
           <Box sx={{ flex: 1 }} />
           {!initialData && (
             <Button
@@ -411,9 +411,9 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
               disabled={!isFormValid}
               variant="outlined"
               sx={{
-                color: '#ce93d8', borderColor: 'rgba(180,100,255,0.4)', textTransform: 'none', fontWeight: 600,
+                color: 'light-dark(#742e7f, #ce93d8)', borderColor: 'rgba(180,100,255,0.4)', textTransform: 'none', fontWeight: 600,
                 '&:hover': { borderColor: '#ce93d8', bgcolor: 'rgba(180,100,255,0.08)' },
-                '&.Mui-disabled': { borderColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' },
+                '&.Mui-disabled': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
               }}
             >
               下書きとして保存
@@ -423,7 +423,7 @@ export const RhinoTemplateRegistrationDialog: React.FC<Props> = ({ open, onClose
             onClick={() => handleSubmit(false)}
             disabled={!isFormValid}
             variant="contained"
-            sx={{ bgcolor: '#90caf9', color: '#000', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#64b5f6' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' } }}
+            sx={{ bgcolor: '#90caf9', color: '#000', textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: '#64b5f6' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}
           >
             {initialData ? '更新する' : '登録する'}
           </Button>

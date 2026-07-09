@@ -37,9 +37,9 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({ workspace, onClick
   return (
     <Card 
       sx={{ 
-        bgcolor: "rgba(255,255,255,0.03)", 
+        bgcolor: "rgb(var(--brand-fg-rgb) / 0.03)", 
         borderRadius: 4,
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: "1px solid rgb(var(--brand-fg-rgb) / 0.06)",
         transition: "all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)",
         height: 200,
         display: "flex",
@@ -47,7 +47,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({ workspace, onClick
         overflow: "hidden",
         position: "relative",
         "&:hover": {
-          bgcolor: "rgba(255,255,255,0.06)",
+          bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)",
           borderColor: `hsl(${hue}, 70%, 50%, 0.5)`,
           transform: "translateY(-4px)",
           boxShadow: `0 12px 24px -10px hsl(${hue}, 70%, 50%, 0.3)`
@@ -65,21 +65,21 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({ workspace, onClick
         }}>
           <Box sx={{ 
             position: "absolute", top: "50%", left: 20, transform: "translateY(-50%)",
-            width: 48, height: 48, borderRadius: 2, bgcolor: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)"
+            width: 48, height: 48, borderRadius: 2, bgcolor: "light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)"
           }}>
             {iconMap[workspace.type] || <LayoutTemplate size={24} color="#fff" />}
           </Box>
         </Box>
         <Box sx={{ p: 2.5, flex: 1, display: "flex", flexDirection: "column" }}>
-          <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: 16, mb: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", pr: 3 }}>
+          <Typography sx={{ color: "var(--brand-fg)", fontWeight: 700, fontSize: 16, mb: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", pr: 3 }}>
             {name}
           </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 13, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {workspace.description}
           </Typography>
           <Box sx={{ mt: 'auto', pt: 1 }}>
-             <Typography variant="caption" sx={{ display: 'inline-block', bgcolor: 'rgba(255,255,255,0.05)', border: `1px solid rgba(255,255,255,0.1)`, px: 1, py: 0.5, borderRadius: 1, color: BRAND.sub }}>
+             <Typography variant="caption" sx={{ display: 'inline-block', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`, px: 1, py: 0.5, borderRadius: 1, color: BRAND.sub }}>
                {workspace.appScope}
              </Typography>
           </Box>
@@ -89,8 +89,8 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({ workspace, onClick
         onClick={handleMenuClick}
         sx={{ 
           position: "absolute", bottom: 12, right: 12, 
-          color: "rgba(255,255,255,0.5)",
-          "&:hover": { color: "#fff", bgcolor: "rgba(255,255,255,0.1)" }
+          color: "rgb(var(--brand-fg-rgb) / 0.5)",
+          "&:hover": { color: "var(--brand-fg)", bgcolor: "rgb(var(--brand-fg-rgb) / 0.1)" }
         }}
       >
         <MoreVertIcon fontSize="small" />
@@ -100,7 +100,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({ workspace, onClick
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
         PaperProps={{
-          sx: { bgcolor: "#1a1e27", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 2 }
+          sx: { bgcolor: "var(--brand-surface2)", color: "var(--brand-fg)", border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)", borderRadius: 2 }
         }}
       >
         <MenuItem onClick={handleMenuClose} sx={{ fontSize: 14 }}>

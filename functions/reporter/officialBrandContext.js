@@ -12,9 +12,9 @@ const SITE_URL = "https://sekkeiya.com";
 // 製品LPの正典（productSlugs.mjs と一致）。記事から自然に絡められるよう1行説明つき。
 const PRODUCTS = [
   { name: "S.Layout", url: "/products/s-layout", desc: "家具を置いた3D空間で間取り・レイアウトを検討（AI自動レイアウト・ウォークスルー）" },
-  { name: "S.Models", url: "/products/s-models", desc: "3Dモデル・家具ライブラリの管理と共有（Rhino連携・リンク共有）" },
+  { name: "S.Model", url: "/products/s-model", desc: "3Dモデル・家具ライブラリの管理と共有（Rhino連携・リンク共有）" },
   { name: "S.Create", url: "/products/s-create", desc: "スケッチや写真から特注家具・什器を3D生成" },
-  { name: "S.Presentations", url: "/products/s-presentations", desc: "歩ける没入型の3Dプレゼンをリンクで配信" },
+  { name: "S.Slide", url: "/products/s-slide", desc: "歩ける没入型の3Dプレゼンをリンクで配信" },
   { name: "S.Material", url: "/products/s-material", desc: "仕上げ材の比較検討・標準化（マテリアル在庫化）" },
   { name: "S.Diagram", url: "/products/s-diagram", desc: "ゾーニング・動線・構成図などのダイアグラム作成" },
   { name: "S.Drawing", url: "/products/s-drawing", desc: "平面図・立面図・詳細図の図面セット管理と共有" },

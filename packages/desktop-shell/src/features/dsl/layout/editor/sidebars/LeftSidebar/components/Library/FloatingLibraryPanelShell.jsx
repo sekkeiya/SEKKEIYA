@@ -89,7 +89,7 @@ export default function FloatingLibraryPanelShell({ projectId, workspaceId, plan
     })
   ), [isPlanContext]);
 
-  // 正典カテゴリマップ（S.Models Settings と同一ソース）。Firestore 同期を購読して再計算。
+  // 正典カテゴリマップ（S.Model Settings と同一ソース）。Firestore 同期を購読して再計算。
   const systemCategories = useUserSettingsStore((s) => s.systemCategories);
   const hiddenCats = useUserSettingsStore((s) => s.hiddenSystemDetailedCategories);
   const getMergedCategoryMap = useUserSettingsStore((s) => s.getMergedCategoryMap);
@@ -213,7 +213,7 @@ export default function FloatingLibraryPanelShell({ projectId, workspaceId, plan
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 18 }} />
+                <SearchIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 18 }} />
               </InputAdornment>
             ),
             sx: { height: 32, fontSize: 13, borderRadius: 1.5, bgcolor: BRAND.bg }
@@ -274,7 +274,7 @@ export default function FloatingLibraryPanelShell({ projectId, workspaceId, plan
            width: 240, 
            flexShrink: 0, 
            borderRight: `1px solid ${alpha('#fff', 0.1)}`,
-           bgcolor: 'rgba(0,0,0,0.1)',
+           bgcolor: 'light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))',
            overflowY: 'auto'
         }}>
           <List component="nav" disablePadding sx={{ pt: 1 }}>
@@ -353,7 +353,7 @@ export default function FloatingLibraryPanelShell({ projectId, workspaceId, plan
             <LightingLibraryContent />
           ) : loadingAny ? (
             <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-              <CircularProgress size={32} sx={{ color: alpha("#fff", 0.3) }} />
+              <CircularProgress size={32} sx={{ color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }} />
             </Box>
           ) : (
             filteredModels.length === 0 ? (

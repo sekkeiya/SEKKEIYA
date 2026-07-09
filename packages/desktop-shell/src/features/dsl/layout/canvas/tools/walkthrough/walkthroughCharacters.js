@@ -64,7 +64,7 @@ export function getCharacter(key) {
 }
 
 // ── 正規化された「キャラクター記述子」 ───────────────────────────
-// プリセット(簡易シルエット)と S.Models 登録モデルを同じ形で扱う。
+// プリセット(簡易シルエット)と S.Model 登録モデルを同じ形で扱う。
 //   source : "preset" | "model"
 //   id     : preset key または modelId
 //   glbUrl : 実モデルの GLB URL（preset は null → 簡易アバター）
@@ -86,7 +86,7 @@ export function presetDescriptor(key) {
 
 export const DEFAULT_CHARACTER = presetDescriptor("male");
 
-// S.Models の asset ドキュメントから記述子を作る
+// S.Model の asset ドキュメントから記述子を作る
 export function modelDescriptor(asset) {
   const heightMm =
     asset?.dimensionsMm?.height ??

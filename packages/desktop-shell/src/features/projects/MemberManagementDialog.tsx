@@ -123,10 +123,10 @@ export const MemberManagementDialog: React.FC<Props> = ({ open, project, uid, on
 
   return (
     <Dialog open={open} onClose={() => !busyUid && !inviting && onClose()}
-      PaperProps={{ sx: { bgcolor: '#0e121c', color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 520, borderRadius: 3, backgroundImage: 'none' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 520, borderRadius: 3, backgroundImage: 'none' } }}>
       <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
         <GroupsRoundedIcon sx={{ color: '#00BFFF' }} /> メンバー管理
-        <Typography component="span" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', fontWeight: 500 }}>— {project.name}</Typography>
+        <Typography component="span" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.8rem', fontWeight: 500 }}>— {project.name}</Typography>
       </DialogTitle>
       <DialogContent sx={{ pb: 1 }}>
         {loading ? (
@@ -137,11 +137,11 @@ export const MemberManagementDialog: React.FC<Props> = ({ open, project, uid, on
               const isSelf = m.uid === uid;
               const busy = busyUid === m.uid;
               return (
-                <Box key={m.uid} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1, px: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' } }}>
+                <Box key={m.uid} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1, px: 1, borderRadius: 1.5, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' } }}>
                   <Avatar src={m.photoURL} sx={{ width: 32, height: 32, fontSize: '0.8rem', bgcolor: 'rgba(0,191,255,0.2)' }}>{m.displayName.slice(0, 1)}</Avatar>
                   <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography noWrap sx={{ fontSize: '0.86rem', fontWeight: 600, color: '#fff' }}>
-                      {m.displayName}{isSelf && <Box component="span" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>（自分）</Box>}
+                    <Typography noWrap sx={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--brand-fg)' }}>
+                      {m.displayName}{isSelf && <Box component="span" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 400 }}>（自分）</Box>}
                     </Typography>
                   </Box>
 
@@ -149,18 +149,18 @@ export const MemberManagementDialog: React.FC<Props> = ({ open, project, uid, on
                     <>
                       <Select size="small" value={m.role} disabled={busy}
                         onChange={e => onRoleChange(m.uid, e.target.value as ProjectRole)}
-                        sx={{ minWidth: 110, color: '#fff', fontSize: '0.8rem', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.18)' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' } }}
-                        MenuProps={{ slotProps: { paper: { sx: { bgcolor: '#1a1f2a', color: '#fff' } } } }}>
+                        sx={{ minWidth: 110, color: 'var(--brand-fg)', fontSize: '0.8rem', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.18)' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                        MenuProps={{ slotProps: { paper: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}>
                         {ROLE_ORDER.map(r => <MenuItem key={r} value={r} sx={{ fontSize: '0.8rem' }}>{ROLE_LABELS[r]}</MenuItem>)}
                       </Select>
                       {m.role !== 'owner' && (
                         <Tooltip title="オーナーを譲渡">
-                          <span><IconButton size="small" disabled={busy} onClick={() => onTransfer(m.uid)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#f6c453' } }}><StarRoundedIcon sx={{ fontSize: '1.1rem' }} /></IconButton></span>
+                          <span><IconButton size="small" disabled={busy} onClick={() => onTransfer(m.uid)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'light-dark(#a57509, #f6c453)' } }}><StarRoundedIcon sx={{ fontSize: '1.1rem' }} /></IconButton></span>
                         </Tooltip>
                       )}
                       {!isSelf && (
                         <Tooltip title="プロジェクトから除外">
-                          <span><IconButton size="small" disabled={busy} onClick={() => onRemove(m.uid)} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fa9bb4' } }}><PersonRemoveRoundedIcon sx={{ fontSize: '1.05rem' }} /></IconButton></span>
+                          <span><IconButton size="small" disabled={busy} onClick={() => onRemove(m.uid)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'light-dark(#a50832, #fa9bb4)' } }}><PersonRemoveRoundedIcon sx={{ fontSize: '1.05rem' }} /></IconButton></span>
                         </Tooltip>
                       )}
                     </>
@@ -170,14 +170,14 @@ export const MemberManagementDialog: React.FC<Props> = ({ open, project, uid, on
             })}
           </Box>
         )}
-        {error && <Typography sx={{ color: '#fa9bb4', fontSize: '0.8rem', mt: 1.5 }}>{error}</Typography>}
-        <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', mt: 2, mb: 1.5 }}>
+        {error && <Typography sx={{ color: 'light-dark(#a50832, #fa9bb4)', fontSize: '0.8rem', mt: 1.5 }}>{error}</Typography>}
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: '0.72rem', mt: 2, mb: 1.5 }}>
           オーナー = 設定・削除・公開・メンバー管理 / 編集者 = 編集 / 閲覧者 = 閲覧のみ。オーナーは最低 1 名必要です。
         </Typography>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mb: 1.5 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', mb: 1.5 }} />
 
-        <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', mb: 1 }}>
+        <Typography sx={{ fontSize: '0.76rem', fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.5)', letterSpacing: '0.06em', mb: 1 }}>
           メンバーを追加
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -192,9 +192,9 @@ export const MemberManagementDialog: React.FC<Props> = ({ open, project, uid, on
             sx={{
               flex: 1,
               '& .MuiOutlinedInput-root': {
-                color: '#fff', fontSize: '0.85rem',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.35)' },
+                color: 'var(--brand-fg)', fontSize: '0.85rem',
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.18)' },
+                '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.35)' },
                 '&.Mui-focused fieldset': { borderColor: '#00BFFF' },
               },
             }}
@@ -208,19 +208,19 @@ export const MemberManagementDialog: React.FC<Props> = ({ open, project, uid, on
               bgcolor: '#00BFFF', color: '#000', fontWeight: 700, fontSize: '0.8rem',
               textTransform: 'none', borderRadius: 1.5, whiteSpace: 'nowrap',
               '&:hover': { bgcolor: '#4facfe' },
-              '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' },
+              '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
             }}
           >
             追加
           </Button>
         </Box>
-        {inviteError && <Typography sx={{ color: '#fa9bb4', fontSize: '0.78rem', mt: 0.75 }}>{inviteError}</Typography>}
-        <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', mt: 0.75 }}>
+        {inviteError && <Typography sx={{ color: 'light-dark(#a50832, #fa9bb4)', fontSize: '0.78rem', mt: 0.75 }}>{inviteError}</Typography>}
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: '0.7rem', mt: 0.75 }}>
           追加されたユーザーのデフォルトロールは「編集者」です。
         </Typography>
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 1 }}>
-        <Button onClick={onClose} disabled={!!busyUid || inviting} sx={{ color: 'rgba(255,255,255,0.7)' }}>閉じる</Button>
+        <Button onClick={onClose} disabled={!!busyUid || inviting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>閉じる</Button>
       </DialogActions>
     </Dialog>
   );

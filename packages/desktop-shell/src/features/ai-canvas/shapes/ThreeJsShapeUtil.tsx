@@ -66,7 +66,7 @@ export class ThreeJsShapeUtil extends ShapeUtil<any> {
         onPointerDown={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
-        <Suspense fallback={<div style={{ color: '#fff', fontFamily: 'sans-serif' }}>Loading 3D...</div>}>
+        <Suspense fallback={<div style={{ color: 'var(--brand-fg)', fontFamily: 'sans-serif' }}>Loading 3D...</div>}>
           <Canvas shadows dpr={[1, 2]} camera={{ position: [3, 3, 3], fov: 50 }}>
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 10]} intensity={1} castShadow />

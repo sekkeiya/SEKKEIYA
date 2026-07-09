@@ -1,0 +1,1725 @@
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, Panel,
+  useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals,
+  Handle, Position, MarkerType, ConnectionMode,
+  BaseEdge, EdgeLabelRenderer, getBezierPath,
+  type Node, type NodeProps, type Edge, type EdgeProps, type Connection,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import {
+  Box, Typography, Button, IconButton, InputBase, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tooltip,
+} from '@mui/material';
+import StickyNote2OutlinedIcon from '@mui/icons-material/StickyNote2Outlined';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import FormatQuoteRoundedIcon from '@mui/icons-material/FormatQuoteRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
+import LocalLibraryRoundedIcon from '@mui/icons-material/LocalLibraryRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
+import HubRoundedIcon from '@mui/icons-material/HubRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
+import { useAppStore } from '../../store/useAppStore';
+import {
+  ResearchCanvasRepository,
+  ACCOUNT_BOARD_ID,
+  parseBoardKey,
+  type ResearchCanvasItem,
+  type ResearchCanvasEdge,
+  type ResearchNodeRole,
+  type ResearchCardPort,
+  type ResearchPortSide,
+} from '../../features/projects/repositories/ResearchCanvasRepository';
+import { registerResearchBoardHost, RESEARCH_BOARD_CHANGED_EVENT } from '../../features/projects/chat/researchBoardBridge';
+import { isTauri } from '../../lib/platform';
+import { KnowledgePickerDialog } from './KnowledgePickerDialog';
+import {
+  useConnectorStore, useConnectors, getConnector, DEFAULT_CONNECTOR_KEY, CONNECTOR_COLOR_CHOICES,
+} from '../../store/useConnectorStore';
+
+// ─── 定数 ─────────────────────────────────────────────────────────────────────
+
+const NOTE_COLORS: Record<string, { bg: string; border: string }> = {
+  yellow: { bg: 'light-dark(#fef9c3, #3a3520)', border: 'light-dark(#eab308, #a1861f)' },
+  blue:   { bg: 'light-dark(#dbeafe, #1e2a3f)', border: 'light-dark(#3b82f6, #3b6bb6)' },
+  pink:   { bg: 'light-dark(#fce7f3, #3a2231)', border: 'light-dark(#ec4899, #b0487f)' },
+  green:  { bg: 'light-dark(#dcfce7, #1f3527)', border: 'light-dark(#22c55e, #2f8a52)' },
+};
+const DEFAULT_NOTE_COLOR = 'yellow';
+
+/**
+ * タブを開いたときの自動キックオフを1アプリセッション=1プロジェクト1回に抑えるガード。
+ * （タブの出入りで毎回AIが挨拶し直すのを防ぐ。アプリ再起動でリセットされる）
+ */
+const autoKickedProjects = new Set<string>();
+
+// エッジの関係ラベル（接続詞）は useConnectorStore で管理（ビルトイン＋ユーザーのカスタム）。
+// getConnector(key) で色/ラベルを解決、useConnectors() で React 追従の一覧を得る。
+
+/** カードの役割（根拠 → 解釈 → 結論）。エッジで編む論証グラフの階層。 */
+const NODE_ROLES: Record<ResearchNodeRole, { label: string; color: string }> = {
+  evidence:       { label: '根拠', color: '#26a69a' },
+  interpretation: { label: '解釈', color: '#a18cd1' },
+  conclusion:     { label: '結論', color: '#ffb74d' },
+};
+
+// ─── ロジックの地図（レーン整列）定数 ─────────────────────────────────────────
+// 「表示モード」の一つ。役割＝横位置（根拠→解釈→結論の3レーン）、テーマ（連結成分）＝縦の帯、
+// で意味に沿ってカードを自動配置し、座標そのものが論証の筋道を語る"地図"にする。
+// 保存座標は書き換えず、表示コピーにだけ適用する（自由配置に戻すと元の手置きが残る）。
+const MAP_COL_LEFT = [0, 380, 760];  // 根拠 / 解釈 / 結論 レーンの左端X
+const MAP_LANE_W = 320;
+const MAP_ROW_H = 168;               // カード1枚分の縦ピッチ
+const MAP_BAND_GAP = 56;             // テーマ帯どうしの縦間隔
+const MAP_HEADER_H = 52;             // レーン上部のラベル帯
+const MAP_NOMINAL_W: Record<string, number> = { note: 240, quote: 280, image: 280, link: 260, source: 260 };
+const MAP_LANE_META: Array<{ role: ResearchNodeRole; label: string; color: string }> = [
+  { role: 'evidence',       label: '根拠 — 素材・記事',   color: '#26a69a' },
+  { role: 'interpretation', label: '解釈 — 本PJでの意味', color: '#a18cd1' },
+  { role: 'conclusion',     label: '結論 — コンセプト',   color: '#ffb74d' },
+];
+
+/** キャンバスの表示モード。free=手置きのまま / map=論証の地図（レーン整列）。 */
+type BoardViewMode = 'free' | 'map';
+
+function newId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+}
+
+/** Tauri では window.open が効かないため plugin-opener を使う（Web はフォールバック） */
+function openExternal(url: string) {
+  import('@tauri-apps/plugin-opener')
+    .then(({ openUrl }) => { if (openUrl) openUrl(url); else window.open(url, '_blank'); })
+    .catch(() => window.open(url, '_blank'));
+}
+
+/**
+ * 引用/ソースカードの出典を開く（トレーサビリティの担保）。
+ * library → S.Library を前面に出して該当エントリを選択、article → S.Blog エディタで開く。
+ * アプリ内で辿れないときは元URLへフォールバック。
+ */
+async function openBoardSource(item: ResearchCanvasItem) {
+  try {
+    if (item.refType === 'library' && item.refId) {
+      const { useAppStore } = await import('../../store/useAppStore');
+      const s = useAppStore.getState() as any;
+      if (s.pinnedTabIds && !s.pinnedTabIds.includes('3dsk')) s.togglePinnedTab?.('3dsk');
+      s.setActiveWorkspaceId?.('library');
+      s.setLastActiveAppScope?.('3dsk');
+      s.setCurrentMainView?.('workspace');
+      const { useDskStore } = await import('../../features/dsk/store/useDskStore');
+      const dsk = useDskStore.getState();
+      if (dsk.entries.length === 0) await dsk.refresh();
+      dsk.setSelectedId(item.refId);
+      return;
+    }
+    if (item.refType === 'article' && item.refId) {
+      const { useAuthStore } = await import('../../store/useAuthStore');
+      const uid = (useAuthStore.getState().currentUser as any)?.uid as string | undefined;
+      if (!uid) return;
+      const { useAppStore } = await import('../../store/useAppStore');
+      const s = useAppStore.getState() as any;
+      s.setActiveWorkspaceId?.('blog');
+      s.setLastActiveAppScope?.('3dsb');
+      s.setCurrentMainView?.('workspace');
+      const { useDsbStore } = await import('../../features/dsb/store/useDsbStore');
+      const dsb = useDsbStore.getState();
+      await dsb.refresh(uid);
+      dsb.startEdit(item.refId);
+      return;
+    }
+    if (item.url) openExternal(item.url);
+  } catch (e) {
+    console.error('[research] 出典を開けませんでした:', e);
+    if (item.url) openExternal(item.url);
+  }
+}
+
+// ─── ノード → アイテム相互変換 ────────────────────────────────────────────────
+
+type CanvasNode = Node<{ item: ResearchCanvasItem }>;
+/** dimmed は経路ハイライト時の表示用フラグ（表示コピーにだけ乗せる。永続化されない）。 */
+type CanvasEdge = Edge<{ edge: ResearchCanvasEdge; dimmed?: boolean }>;
+
+function itemToNode(item: ResearchCanvasItem): CanvasNode {
+  return { id: item.id, type: item.kind, position: { x: item.x, y: item.y }, data: { item } };
+}
+
+function nodesToItems(nodes: CanvasNode[]): ResearchCanvasItem[] {
+  return nodes.map(n => ({ ...n.data.item, x: n.position.x, y: n.position.y }));
+}
+
+function edgeToRf(edge: ResearchCanvasEdge): CanvasEdge {
+  const rel = getConnector(edge.relation);
+  return {
+    id: edge.id, source: edge.source, target: edge.target, type: 'relation',
+    // 四辺ハンドル化に伴い、辺未指定のエッジ（既存保存分・AI作成分）は既定で右→左に付ける
+    // （＝従来の左→右の流れ）。手動接続は保存された辺を使う。
+    sourceHandle: edge.sourceHandle ?? 'right',
+    targetHandle: edge.targetHandle ?? 'left',
+    data: { edge },
+    markerEnd: { type: MarkerType.ArrowClosed, color: rel.color, width: 16, height: 16 },
+  };
+}
+
+function rfToEdgeItems(edges: CanvasEdge[]): ResearchCanvasEdge[] {
+  return edges.map(e => (e.data as { edge: ResearchCanvasEdge }).edge);
+}
+
+// ─── ロジックの地図: レーンレイアウト計算（純関数・表示コピー専用） ────────────
+// 役割→列（未設定はエッジの向きから推定）、連結成分→テーマ帯、で座標を決める。
+// 「根拠→解釈→結論」が左→右に、同じ論点でつながったカード群が同じ横帯に並ぶことで、
+// 膨大な素材が一つのコンセプトに収束していく漏斗が、配置そのものから読める状態を作る。
+
+interface LaneLayoutResult {
+  positions: Map<string, { x: number; y: number }>;
+  laneHeight: number;
+  totalWidth: number;
+  tray: { top: number; height: number } | null;
+}
+
+function computeLaneLayout(nodes: CanvasNode[], edges: Array<{ source: string; target: string }>): LaneLayoutResult {
+  const positions = new Map<string, { x: number; y: number }>();
+  const totalWidth = MAP_COL_LEFT[2] + MAP_LANE_W;
+  if (nodes.length === 0) return { positions, laneHeight: MAP_HEADER_H + MAP_ROW_H, totalWidth, tray: null };
+
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  const hasIn = new Set<string>();
+  const hasOut = new Set<string>();
+  const adj = new Map<string, Set<string>>();
+  nodes.forEach(n => adj.set(n.id, new Set()));
+  edges.forEach(e => {
+    if (!byId.has(e.source) || !byId.has(e.target)) return;
+    hasOut.add(e.source); hasIn.add(e.target);
+    adj.get(e.source)!.add(e.target);
+    adj.get(e.target)!.add(e.source);
+  });
+  const hasEdge = (id: string) => (adj.get(id)?.size ?? 0) > 0;
+
+  // 列（0=根拠 / 1=解釈 / 2=結論）。役割優先、無ければエッジの入次数/出次数で推定。
+  const colOf = (n: CanvasNode): number => {
+    const role = n.data.item.role;
+    if (role === 'evidence') return 0;
+    if (role === 'interpretation') return 1;
+    if (role === 'conclusion') return 2;
+    const i = hasIn.has(n.id), o = hasOut.has(n.id);
+    if (o && !i) return 0;
+    if (i && !o) return 2;
+    return 1;
+  };
+
+  // 連結成分（テーマ帯）を無向グラフで抽出
+  const compId = new Map<string, number>();
+  let nextComp = 0;
+  nodes.forEach(n => {
+    if (!hasEdge(n.id) || compId.has(n.id)) return;
+    const c = nextComp++;
+    const stack = [n.id];
+    compId.set(n.id, c);
+    while (stack.length) {
+      const cur = stack.pop()!;
+      for (const nb of adj.get(cur) ?? []) {
+        if (!compId.has(nb)) { compId.set(nb, c); stack.push(nb); }
+      }
+    }
+  });
+
+  // グループキー: 接続あり→成分 / 役割のみ→単独帯 / どちらも無し→未配置トレイ
+  const groupKey = (n: CanvasNode): string => {
+    if (hasEdge(n.id)) return `c${compId.get(n.id)}`;
+    if (n.data.item.role) return `s${n.id}`;
+    return 'tray';
+  };
+  const bandOrder: string[] = [];
+  const bands = new Map<string, CanvasNode[]>();
+  const tray: CanvasNode[] = [];
+  nodes.forEach(n => {
+    const k = groupKey(n);
+    if (k === 'tray') { tray.push(n); return; }
+    if (!bands.has(k)) { bands.set(k, []); bandOrder.push(k); }
+    bands.get(k)!.push(n);
+  });
+
+  let bandTop = MAP_HEADER_H;
+  for (const k of bandOrder) {
+    const cols: CanvasNode[][] = [[], [], []];
+    bands.get(k)!.forEach(n => cols[colOf(n)].push(n));
+    const rows = Math.max(cols[0].length, cols[1].length, cols[2].length, 1);
+    cols.forEach((list, ci) => list.forEach((n, ri) => {
+      const w = MAP_NOMINAL_W[n.data.item.kind] ?? 240;
+      positions.set(n.id, { x: MAP_COL_LEFT[ci] + (MAP_LANE_W - w) / 2, y: bandTop + ri * MAP_ROW_H });
+    }));
+    bandTop += rows * MAP_ROW_H + MAP_BAND_GAP;
+  }
+  const laneHeight = Math.max(bandTop - MAP_BAND_GAP, MAP_HEADER_H + MAP_ROW_H);
+
+  // 未配置トレイ（まだ論証に組み込まれていないカード）はレーンの下に横並び
+  let trayInfo: { top: number; height: number } | null = null;
+  if (tray.length) {
+    const perRow = 4;
+    const trayTop = laneHeight + 60;
+    const colW = totalWidth / perRow;
+    tray.forEach((n, i) => {
+      const w = MAP_NOMINAL_W[n.data.item.kind] ?? 240;
+      positions.set(n.id, {
+        x: Math.max(0, (i % perRow) * colW + (colW - w) / 2),
+        y: trayTop + 40 + Math.floor(i / perRow) * MAP_ROW_H,
+      });
+    });
+    trayInfo = { top: trayTop, height: 40 + Math.ceil(tray.length / perRow) * MAP_ROW_H };
+  }
+
+  return { positions, laneHeight, totalWidth, tray: trayInfo };
+}
+
+// ─── コンテキスト（ノード/エッジ内編集 → 親stateへの反映） ─────────────────────
+
+interface CanvasCtx {
+  patchItem: (id: string, patch: Partial<ResearchCanvasItem>) => void;
+  patchEdge: (id: string, patch: Partial<ResearchCanvasEdge>) => void;
+  /** カードの指定辺に接続口を1つ追加し、その新ポートIDを返す。atIndex 指定でその辺の何番目に挿入するか。 */
+  addPort: (id: string, side: ResearchPortSide, atIndex?: number) => string;
+  /** カードの接続口を1つ削除する（その口につながる配線も除去。最後の1つは残す）。 */
+  removePort: (id: string, portId: string) => void;
+  /** ポート編集（＋ボタン表示・右クリック削除）を許可するか（自由配置モードのみ true）。 */
+  portsEditable: boolean;
+}
+const Ctx = createContext<CanvasCtx | null>(null);
+const useCanvasCtx = () => useContext(Ctx)!;
+
+// ─── 接続ハンドル（動的ポート。辺ごとに複数の接続口を持てる） ────────────────────
+// connectionMode=loose で source ハンドルを接続先にもできる＝どの口からでも双方向に矢印を引ける。
+// 辺ホバーで出る「＋」で接続口を増やせる。既定（ports 未設定）は四辺中央に1つずつ。
+
+const SIDE_POSITION: Record<ResearchPortSide, Position> = {
+  top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left,
+};
+const ALL_SIDES: ResearchPortSide[] = ['top', 'right', 'bottom', 'left'];
+
+/** 既定ポート（四辺中央に1つずつ。id は従来のエッジ互換のため辺名そのもの）。 */
+function effectivePorts(item: ResearchCanvasItem): ResearchCardPort[] {
+  if (item.ports && item.ports.length) return item.ports;
+  return ALL_SIDES.map(side => ({ id: side, side }));
+}
+
+/** 辺方向に i 番目/全 n 個のポートを均等配置する style。 */
+function portStyle(side: ResearchPortSide, i: number, n: number): React.CSSProperties {
+  const frac = ((i + 1) / (n + 1)) * 100;
+  const base: React.CSSProperties = { width: 10, height: 10, background: 'var(--brand-surface)', border: '2px solid #00BFFF' };
+  return side === 'left' || side === 'right' ? { ...base, top: `${frac}%` } : { ...base, left: `${frac}%` };
+}
+
+// 操作ボタンは「カードの内側」に寄せる。辺の外側（＝線の端点を掴んで付け替えるゾーン）を
+// 空けておくことで、＋ボタンが再接続ドラッグを奪わないようにする。
+const CTRL_INSET_ADD = 7;    // 「＋」= 辺のすぐ内側（「−」はポートのすぐ外側＝下の minusBtnSx）
+
+function addBtnSx(side: ResearchPortSide) {
+  switch (side) {
+    case 'top':    return { top: CTRL_INSET_ADD, left: '50%', ml: '-9px' };
+    case 'bottom': return { bottom: CTRL_INSET_ADD, left: '50%', ml: '-9px' };
+    case 'left':   return { left: CTRL_INSET_ADD, top: '50%', mt: '-9px' };
+    case 'right':  return { right: CTRL_INSET_ADD, top: '50%', mt: '-9px' };
+  }
+}
+/**
+ * ポート i（全 n 個）の「−」ボタンを、そのポート（境界上の○）のすぐ外側に置く。
+ * ホバー時のみ表示なので外側でも再接続の邪魔にならず、○のそばで「この口を消す」と分かる。
+ */
+const MINUS_OUTSET = -22; // カード外側へ（右端から22px外＝○のすぐ脇）
+function minusBtnSx(side: ResearchPortSide, i: number, n: number) {
+  const frac = `${((i + 1) / (n + 1)) * 100}%`;
+  switch (side) {
+    case 'top':    return { top: MINUS_OUTSET, left: frac, ml: '-8px' };
+    case 'bottom': return { bottom: MINUS_OUTSET, left: frac, ml: '-8px' };
+    case 'left':   return { left: MINUS_OUTSET, top: frac, mt: '-8px' };
+    case 'right':  return { right: MINUS_OUTSET, top: frac, mt: '-8px' };
+  }
+}
+/** 辺中央の「＋」を出すための、見えないホバー領域（辺をホバーしたら＋が現れる）。 */
+function sidePadSx(side: ResearchPortSide) {
+  switch (side) {
+    case 'top':    return { top: 8, left: '50%', ml: '-34px', width: 68, height: 30 };
+    case 'bottom': return { bottom: 8, left: '50%', ml: '-34px', width: 68, height: 30 };
+    case 'left':   return { left: 8, top: '50%', mt: '-34px', width: 30, height: 68 };
+    case 'right':  return { right: 8, top: '50%', mt: '-34px', width: 30, height: 68 };
+  }
+}
+
+const NodeHandles: React.FC<{ item: ResearchCanvasItem }> = ({ item }) => {
+  const { addPort, removePort, portsEditable } = useCanvasCtx();
+  const ports = effectivePorts(item);
+  // ホバー中の辺（＋を出す）とポート（−を出す）。JS 管理でホバーの隙間による消失を防ぐ。
+  const [hover, setHover] = useState<{ side: ResearchPortSide | null; port: string | null }>({ side: null, port: null });
+  const clearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enter = (h: { side: ResearchPortSide; port: string | null }) => {
+    if (clearRef.current) clearTimeout(clearRef.current);
+    setHover(h);
+  };
+  // 辺ホバー: その辺を対象にする（ポートの−表示状態は保持したまま＋を出す）
+  const enterSide = (side: ResearchPortSide) => {
+    if (clearRef.current) clearTimeout(clearRef.current);
+    setHover(prev => ({ side, port: prev.port }));
+  };
+  const scheduleClear = () => {
+    if (clearRef.current) clearTimeout(clearRef.current);
+    clearRef.current = setTimeout(() => setHover({ side: null, port: null }), 120);
+  };
+  useEffect(() => () => { if (clearRef.current) clearTimeout(clearRef.current); }, []);
+
+  const ctrlBaseSx = {
+    position: 'absolute' as const,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', transition: 'opacity .12s, transform .12s',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+    '&:hover': { transform: 'scale(1.15)' },
+  };
+
+  return (
+    <>
+      {ALL_SIDES.map(side => {
+        const list = ports.filter(p => p.side === side);
+        return (
+          <React.Fragment key={side}>
+            {/* 辺中央の見えないホバー領域。ここに触れると「＋」が現れる（辺をホバーで追加）。
+                ハンドルより前に置き、z を持たせないことで接続口(ハンドル)のドラッグは妨げない。 */}
+            {portsEditable && (
+              <Box
+                className="nodrag nopan"
+                onMouseEnter={() => enterSide(side)}
+                onMouseLeave={scheduleClear}
+                sx={{ position: 'absolute', ...sidePadSx(side) }}
+              />
+            )}
+            {list.map((p, i) => {
+              const showMinus = portsEditable && hover.port === p.id;
+              return (
+                <React.Fragment key={p.id}>
+                  <Handle
+                    id={p.id} type="source" position={SIDE_POSITION[side]} style={portStyle(side, i, list.length)}
+                    onMouseEnter={portsEditable ? () => enter({ side, port: p.id }) : undefined}
+                    onMouseLeave={portsEditable ? scheduleClear : undefined}
+                    // 右クリックでも接続口を削除できる（「−」ボタンと同機能）
+                    onContextMenu={portsEditable ? (e => { e.preventDefault(); e.stopPropagation(); removePort(item.id, p.id); }) : undefined}
+                  />
+                  {portsEditable && (
+                    <Box
+                      className="nodrag nopan"
+                      onMouseEnter={() => enter({ side, port: p.id })}
+                      onMouseLeave={scheduleClear}
+                      onClick={e => { e.stopPropagation(); removePort(item.id, p.id); }}
+                      title="この接続口を削除"
+                      sx={{
+                        ...ctrlBaseSx, ...minusBtnSx(side, i, list.length),
+                        width: 16, height: 16, borderRadius: '50%',
+                        bgcolor: 'light-dark(#e53950, #fa5a72)', color: '#fff', zIndex: 7,
+                        opacity: showMinus ? 1 : 0, pointerEvents: showMinus ? 'auto' : 'none',
+                      }}
+                    >
+                      <RemoveRoundedIcon sx={{ fontSize: 12 }} />
+                    </Box>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {portsEditable && (() => {
+              const showAdd = hover.side === side;
+              return (
+                <Box
+                  className="nodrag nopan"
+                  onMouseEnter={() => enterSide(side)}
+                  onMouseLeave={scheduleClear}
+                  onClick={e => { e.stopPropagation(); addPort(item.id, side); }}
+                  title="接続口を増やす"
+                  sx={{
+                    ...ctrlBaseSx, ...addBtnSx(side),
+                    width: 18, height: 18, borderRadius: '50%',
+                    bgcolor: '#00BFFF', color: '#000', zIndex: 6,
+                    opacity: showAdd ? 1 : 0, pointerEvents: showAdd ? 'auto' : 'none',
+                  }}
+                >
+                  <AddRoundedIcon sx={{ fontSize: 13 }} />
+                </Box>
+              );
+            })()}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+};
+
+/** カード上部に出す役割バッジ（根拠/解釈/結論）。 */
+const RoleBadge: React.FC<{ role?: ResearchNodeRole }> = ({ role }) => {
+  if (!role || !NODE_ROLES[role]) return null;
+  const r = NODE_ROLES[role];
+  return (
+    <Box sx={{
+      alignSelf: 'flex-start', mb: 0.5, px: 0.7, py: 0.1, borderRadius: 1,
+      fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em', lineHeight: 1.6,
+      color: r.color, border: `1px solid ${r.color}`, opacity: 0.9,
+    }}>
+      {r.label}
+    </Box>
+  );
+};
+
+// ─── 付箋ノード ───────────────────────────────────────────────────────────────
+
+const NoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+  const { patchItem } = useCanvasCtx();
+  const item = (data as any).item as ResearchCanvasItem;
+  const tone = NOTE_COLORS[item.color || DEFAULT_NOTE_COLOR] || NOTE_COLORS[DEFAULT_NOTE_COLOR];
+  const [editing, setEditing] = useState(!item.text);
+  const [draft, setDraft] = useState(item.text || '');
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== item.text) patchItem(id, { text: draft });
+  };
+
+  return (
+    <Box
+      onDoubleClick={() => { setDraft(item.text || ''); setEditing(true); }}
+      sx={{
+        width: 240, minHeight: 110, p: 1.5, borderRadius: 2, boxSizing: 'border-box',
+        bgcolor: tone.bg,
+        border: '1px solid', borderColor: selected ? '#00BFFF' : tone.border,
+        boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.15)',
+        transition: 'box-shadow .12s, border-color .12s',
+        display: 'flex', flexDirection: 'column',
+      }}
+    >
+      <NodeHandles item={item} />
+      <RoleBadge role={item.role} />
+      {editing ? (
+        <InputBase
+          className="nodrag"
+          multiline autoFocus fullWidth
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) commit(); }}
+          placeholder="リサーチ内容・気づきを書く..."
+          sx={{ flex: 1, fontSize: 13, lineHeight: 1.6, color: 'var(--brand-fg)', alignItems: 'flex-start' }}
+        />
+      ) : (
+        <Typography sx={{ flex: 1, fontSize: 13, lineHeight: 1.6, color: 'var(--brand-fg)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {item.text || <span style={{ opacity: 0.4 }}>ダブルクリックで編集</span>}
+        </Typography>
+      )}
+
+      {selected && (
+        <Box className="nodrag" sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 1, pt: 0.75, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', flexWrap: 'wrap' }}>
+          {Object.entries(NOTE_COLORS).map(([key, c]) => (
+            <Box key={key} onClick={() => patchItem(id, { color: key })}
+              sx={{ width: 14, height: 14, borderRadius: '50%', cursor: 'pointer', bgcolor: c.bg,
+                border: '2px solid', borderColor: (item.color || DEFAULT_NOTE_COLOR) === key ? '#00BFFF' : c.border }} />
+          ))}
+          <Box sx={{ width: '1px', alignSelf: 'stretch', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', mx: 0.4 }} />
+          {(Object.entries(NODE_ROLES) as Array<[ResearchNodeRole, { label: string; color: string }]>).map(([key, r]) => (
+            <Box key={key}
+              onClick={() => patchItem(id, { role: item.role === key ? undefined : key })}
+              sx={{
+                px: 0.7, py: 0.1, borderRadius: 1, cursor: 'pointer',
+                fontSize: 9.5, fontWeight: 800, lineHeight: 1.6,
+                color: item.role === key ? r.color : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                border: '1px solid',
+                borderColor: item.role === key ? r.color : 'rgb(var(--brand-fg-rgb) / 0.2)',
+                '&:hover': { borderColor: r.color, color: r.color },
+              }}>
+              {r.label}
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+// ─── 画像ノード ───────────────────────────────────────────────────────────────
+
+const ImageNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const item = (data as any).item as ResearchCanvasItem;
+  return (
+    <Box sx={{
+      width: 280, borderRadius: 2, overflow: 'hidden',
+      border: '1px solid', borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.15)',
+      boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.2)',
+      bgcolor: 'var(--brand-surface)',
+    }}>
+      <NodeHandles item={item} />
+      <img src={item.url} alt={item.text || ''} draggable={false}
+        style={{ width: '100%', display: 'block', pointerEvents: 'none' }} />
+      {item.text && (
+        <Typography sx={{ px: 1.25, py: 0.75, fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>{item.text}</Typography>
+      )}
+    </Box>
+  );
+};
+
+// ─── リンクノード ─────────────────────────────────────────────────────────────
+
+const LinkNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const item = (data as any).item as ResearchCanvasItem;
+  let host = '';
+  try { host = item.url ? new URL(item.url).hostname : ''; } catch { /* 不正URLはホスト名なし */ }
+  return (
+    <Box sx={{
+      width: 260, p: 1.25, borderRadius: 2, boxSizing: 'border-box',
+      bgcolor: 'var(--brand-surface)',
+      border: '1px solid', borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.15)',
+      boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.2)',
+      display: 'flex', alignItems: 'center', gap: 1,
+    }}>
+      <NodeHandles item={item} />
+      <LinkRoundedIcon sx={{ fontSize: 18, color: '#00BFFF', flexShrink: 0 }} />
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {item.text || item.url}
+        </Typography>
+        {host && <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{host}</Typography>}
+      </Box>
+      <IconButton className="nodrag" size="small" onClick={() => item.url && openExternal(item.url)}
+        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#00BFFF' } }}>
+        <OpenInNewRoundedIcon sx={{ fontSize: 15 }} />
+      </IconButton>
+    </Box>
+  );
+};
+
+// ─── 引用ノード（根拠の最小単位。出典に必ず遡れる） ────────────────────────────
+
+const QuoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
+  const { patchItem } = useCanvasCtx();
+  const item = (data as any).item as ResearchCanvasItem;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.text || '');
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== item.text) patchItem(id, { text: draft });
+  };
+
+  return (
+    <Box
+      onDoubleClick={() => { setDraft(item.text || ''); setEditing(true); }}
+      sx={{
+        width: 280, minHeight: 90, p: 1.5, pl: 1.75, borderRadius: 2, boxSizing: 'border-box',
+        bgcolor: 'var(--brand-surface)',
+        border: '1px solid', borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.15)',
+        borderLeft: '3px solid #a18cd1',
+        boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.2)',
+        transition: 'box-shadow .12s, border-color .12s',
+        display: 'flex', flexDirection: 'column',
+      }}
+    >
+      <NodeHandles item={item} />
+      <FormatQuoteRoundedIcon sx={{ fontSize: 16, color: '#a18cd1', mb: 0.5 }} />
+      {editing ? (
+        <InputBase
+          className="nodrag"
+          multiline autoFocus fullWidth
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) commit(); }}
+          placeholder="引用・根拠となる一節..."
+          sx={{ flex: 1, fontSize: 12.5, lineHeight: 1.65, color: 'var(--brand-fg)', alignItems: 'flex-start' }}
+        />
+      ) : (
+        <Typography sx={{ flex: 1, fontSize: 12.5, lineHeight: 1.65, color: 'var(--brand-fg)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {item.text || <span style={{ opacity: 0.4 }}>ダブルクリックで編集</span>}
+        </Typography>
+      )}
+      {(item.refTitle || item.url) && (
+        <Box className="nodrag" onClick={() => openBoardSource(item)}
+          sx={{
+            mt: 1, pt: 0.75, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+            display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'pointer',
+            '&:hover .quote-src': { color: '#a18cd1' },
+          }}>
+          {item.refType === 'article'
+            ? <ArticleRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+            : <MenuBookRoundedIcon sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />}
+          <Typography className="quote-src" sx={{
+            fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)', transition: 'color .12s',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {item.refTitle || item.url}
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+// ─── ソースノード（S.Library / S.Blog への参照カード） ─────────────────────────
+
+const SourceNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const item = (data as any).item as ResearchCanvasItem;
+  const isArticle = item.refType === 'article';
+  const accent = isArticle ? '#ff8a65' : '#26a69a';
+  return (
+    <Box sx={{
+      width: 260, p: 1.25, borderRadius: 2, boxSizing: 'border-box',
+      bgcolor: 'var(--brand-surface)',
+      border: '1px solid', borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.15)',
+      boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.2)',
+      display: 'flex', alignItems: 'center', gap: 1,
+    }}>
+      <NodeHandles item={item} />
+      {isArticle
+        ? <ArticleRoundedIcon sx={{ fontSize: 20, color: accent, flexShrink: 0 }} />
+        : <MenuBookRoundedIcon sx={{ fontSize: 20, color: accent, flexShrink: 0 }} />}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {item.refTitle || item.text || '無題'}
+        </Typography>
+        <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
+          {isArticle ? 'S.Blog' : 'S.Library'}{item.refMeta ? ` / ${item.refMeta}` : ''}
+        </Typography>
+      </Box>
+      <IconButton className="nodrag" size="small" onClick={() => openBoardSource(item)}
+        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: accent } }}>
+        <OpenInNewRoundedIcon sx={{ fontSize: 15 }} />
+      </IconButton>
+    </Box>
+  );
+};
+
+// ─── レーン背景ノード（ロジックの地図モードの帯・ラベル。非対話・最背面） ──────
+
+const LaneNode: React.FC<NodeProps> = ({ data }) => {
+  const d = data as unknown as { label: string; color: string; w: number; h: number };
+  return (
+    <Box sx={{
+      width: d.w, height: d.h, borderRadius: 3, boxSizing: 'border-box',
+      border: `1px dashed ${d.color}55`, bgcolor: `${d.color}0d`,
+      pointerEvents: 'none', position: 'relative',
+    }}>
+      <Typography sx={{
+        position: 'absolute', top: 12, left: 0, right: 0, textAlign: 'center',
+        fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', color: d.color, opacity: 0.8,
+      }}>
+        {d.label}
+      </Typography>
+    </Box>
+  );
+};
+
+const nodeTypes = { note: NoteNode, image: ImageNode, link: LinkNode, quote: QuoteNode, source: SourceNode, lane: LaneNode };
+
+// ─── 関係エッジ（型付き。選択で関係タイプ切替、ダブルクリックで理由を書ける） ──
+
+const RelationEdge: React.FC<EdgeProps> = ({
+  id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, markerEnd,
+}) => {
+  const { patchEdge } = useCanvasCtx();
+  const { edge, dimmed } = data as { edge: ResearchCanvasEdge; dimmed?: boolean };
+  const connectors = useConnectors();
+  const addPreset = useConnectorStore(s => s.addPreset);
+  const removePreset = useConnectorStore(s => s.removePreset);
+  const rel = getConnector(edge.relation);
+  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(edge.label || '');
+  // カスタムラベル追加（＋を押すと入力欄＋色スウォッチが出る）
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [customLabel, setCustomLabel] = useState('');
+  const [customColor, setCustomColor] = useState(CONNECTOR_COLOR_CHOICES[0]);
+  const commitCustom = () => {
+    const text = customLabel.trim();
+    if (!text) { setAddingCustom(false); return; }
+    const key = addPreset(text, customColor);
+    patchEdge(id, { relation: key });
+    setCustomLabel(''); setAddingCustom(false);
+  };
+
+  const commitLabel = () => {
+    setEditing(false);
+    const text = draft.trim();
+    if (text !== (edge.label || '')) patchEdge(id, { label: text || undefined });
+  };
+
+  return (
+    <>
+      <BaseEdge id={id} path={path} markerEnd={markerEnd as string}
+        style={{
+          stroke: rel.color, strokeWidth: selected ? 2.4 : 1.8, strokeDasharray: rel.dash,
+          opacity: dimmed ? 0.12 : selected ? 1 : 0.8, transition: 'opacity .15s',
+        }} />
+      <EdgeLabelRenderer>
+        <Box className="nodrag nopan"
+          sx={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            pointerEvents: dimmed ? 'none' : 'all',
+            opacity: dimmed ? 0.15 : 1, transition: 'opacity .15s',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5,
+            zIndex: selected ? 10 : 1,
+          }}>
+          {selected && (
+            <Box sx={{
+              display: 'flex', flexWrap: 'wrap', maxWidth: 260, gap: 0.4, p: 0.5, borderRadius: 1.5,
+              bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.25)', justifyContent: 'center',
+            }}>
+              {connectors.map(r => (
+                <Box key={r.key}
+                  onClick={() => patchEdge(id, { relation: r.key })}
+                  // カスタムは右クリックで削除
+                  onContextMenu={r.builtin ? undefined : (e => { e.preventDefault(); e.stopPropagation(); removePreset(r.key); if (edge.relation === r.key) patchEdge(id, { relation: DEFAULT_CONNECTOR_KEY }); })}
+                  title={r.builtin ? undefined : 'クリックで適用 / 右クリックで削除'}
+                  sx={{
+                    px: 0.7, py: 0.15, borderRadius: 1, cursor: 'pointer',
+                    fontSize: 10, fontWeight: 800, lineHeight: 1.6,
+                    color: edge.relation === r.key ? '#000' : r.color,
+                    bgcolor: edge.relation === r.key ? r.color : 'transparent',
+                    border: `1px solid ${r.color}`,
+                    '&:hover': { bgcolor: edge.relation === r.key ? r.color : `${r.color}22` },
+                  }}>
+                  {r.label}
+                </Box>
+              ))}
+              {/* ＋ カスタムラベル追加 */}
+              {!addingCustom ? (
+                <Box onClick={() => setAddingCustom(true)} title="ラベルを追加"
+                  sx={{
+                    px: 0.7, py: 0.15, borderRadius: 1, cursor: 'pointer',
+                    fontSize: 10, fontWeight: 800, lineHeight: 1.6,
+                    color: 'rgb(var(--brand-fg-rgb) / 0.55)', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.3)',
+                    '&:hover': { color: '#00BFFF', borderColor: '#00BFFF' },
+                  }}>
+                  ＋
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, width: '100%', mt: 0.4, justifyContent: 'center' }}>
+                  <InputBase
+                    autoFocus value={customLabel}
+                    onChange={e => setCustomLabel(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitCustom(); if (e.key === 'Escape') setAddingCustom(false); }}
+                    placeholder="ラベル名"
+                    sx={{ width: 96, px: 0.75, py: 0.15, borderRadius: 1, fontSize: 10.5, color: 'var(--brand-fg)', border: `1px solid ${customColor}` }}
+                  />
+                  {CONNECTOR_COLOR_CHOICES.map(c => (
+                    <Box key={c} onClick={() => setCustomColor(c)}
+                      sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', bgcolor: c,
+                        border: customColor === c ? '2px solid var(--brand-fg)' : '2px solid transparent' }} />
+                  ))}
+                  <Box onClick={commitCustom} title="追加"
+                    sx={{ px: 0.6, py: 0.15, borderRadius: 1, cursor: 'pointer', fontSize: 10, fontWeight: 800, bgcolor: '#00BFFF', color: '#000' }}>
+                    追加
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+          {editing ? (
+            <InputBase
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={commitLabel}
+              onKeyDown={e => { if (e.key === 'Enter') commitLabel(); if (e.key === 'Escape') { setDraft(edge.label || ''); setEditing(false); } }}
+              placeholder="理由（なぜ繋がるのか）..."
+              sx={{
+                width: 200, px: 1, py: 0.25, borderRadius: 1.5, fontSize: 10.5,
+                color: 'var(--brand-fg)', bgcolor: 'var(--brand-surface)',
+                border: `1px solid ${rel.color}`, boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+              }}
+            />
+          ) : (
+            <Box
+              onDoubleClick={() => { setDraft(edge.label || ''); setEditing(true); }}
+              sx={{
+                px: 0.8, py: 0.15, borderRadius: 1.5, cursor: 'pointer', maxWidth: 220,
+                fontSize: 10.5, fontWeight: 700, lineHeight: 1.7, textAlign: 'center',
+                color: rel.color, bgcolor: 'var(--brand-surface)',
+                border: `1px solid ${selected ? rel.color : 'rgb(var(--brand-fg-rgb) / 0.15)'}`,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                opacity: selected || edge.label ? 1 : 0.75,
+              }}>
+              {rel.label}{edge.label ? `｜${edge.label}` : ''}
+            </Box>
+          )}
+        </Box>
+      </EdgeLabelRenderer>
+    </>
+  );
+};
+
+const edgeTypes = { relation: RelationEdge };
+
+// ─── キャンバス本体 ───────────────────────────────────────────────────────────
+
+interface Props {
+  /** ボードキー（scope|docId）。scope=projectId or 'account'。区切り無しは既定ボード。 */
+  boardKey: string;
+}
+
+const SAVE_DEBOUNCE_MS = 1500;
+
+const CanvasInner: React.FC<Props> = ({ boardKey }) => {
+  // データ/ブリッジ/イベントは boardKey（ボード単位）、チャット・キックオフは scope（プロジェクト/個人単位）。
+  const { scope } = parseBoardKey(boardKey);
+  const [nodes, setNodes, onNodesChange] = useNodesState<CanvasNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<CanvasEdge>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkTitle, setLinkTitle] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // 表示モード: free=手置きのまま / map=ロジックの地図（レーン整列・非破壊）
+  const [viewMode, setViewMode] = useState<BoardViewMode>('free');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const { screenToFlowPosition, fitView } = useReactFlow();
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  // 保存まわり: 最後に保存したJSONと比較して差分があるときだけ書き込む
+  const lastSavedRef = useRef<string>('');
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nodesRef = useRef<CanvasNode[]>([]);
+  nodesRef.current = nodes;
+  const edgesRef = useRef<CanvasEdge[]>([]);
+  edgesRef.current = edges;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    ResearchCanvasRepository.load(boardKey)
+      .then(({ items, edges: loadedEdges }) => {
+        if (cancelled) return;
+        lastSavedRef.current = JSON.stringify({ items, edges: loadedEdges });
+        setNodes(items.map(itemToNode));
+        setEdges(loadedEdges.map(edgeToRf));
+      })
+      .catch(err => console.error('Research canvas load failed:', err))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [boardKey, setNodes, setEdges]);
+
+  // 別ウィンドウ（ポップアウトした SEKKEIYA OS の AI）がボードをヘッドレスで更新したら、
+  // Firestore から読み直して本体のキャンバスへ反映する（この窓はライブホストを持つが、
+  // 別窓のオーケストレーターはホストを共有できず Firestore 経由で書くため）。
+  // 注意: 反映は上書き型のため、AI 更新と同時にこの窓で手編集していると手編集が失われうる。
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | null = null;
+    import('@tauri-apps/api/event').then(({ listen }) =>
+      listen<{ projectId: string }>(RESEARCH_BOARD_CHANGED_EVENT, (e) => {
+        if (e.payload?.projectId !== boardKey) return;
+        ResearchCanvasRepository.load(boardKey)
+          .then(({ items, edges: loadedEdges }) => {
+            lastSavedRef.current = JSON.stringify({ items, edges: loadedEdges });
+            setNodes(items.map(itemToNode));
+            setEdges(loadedEdges.map(edgeToRf));
+          })
+          .catch(err => console.error('[research] 外部更新の再読込に失敗:', err));
+      }).then(fn => { unlisten = fn; })
+    );
+    return () => { unlisten?.(); };
+  }, [boardKey, setNodes, setEdges]);
+
+  const flushSaveRef = useRef<() => void>(() => {});
+  const flushSave = useCallback(() => {
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+    const items = nodesToItems(nodesRef.current);
+    const edgeItems = rfToEdgeItems(edgesRef.current);
+    const json = JSON.stringify({ items, edges: edgeItems });
+    if (json === lastSavedRef.current) return;
+    const prevSaved = lastSavedRef.current;
+    lastSavedRef.current = json;
+    ResearchCanvasRepository.save(boardKey, { items, edges: edgeItems })
+      .then(() => setSaveError(false))
+      .catch(err => {
+        console.error('Research canvas save failed:', err);
+        // 失敗を「保存済み」と誤認すると以後の再試行が走らずサイレントにデータが消えるため、
+        // 比較値を巻き戻して警告を出し、10秒後に自動リトライする。
+        lastSavedRef.current = prevSaved;
+        setSaveError(true);
+        setTimeout(() => flushSaveRef.current(), 10_000);
+      });
+  }, [boardKey]);
+  flushSaveRef.current = flushSave;
+
+  const scheduleSave = useCallback(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+  }, [flushSave]);
+
+  // ロード完了後のノード/エッジ変化（移動/削除/編集/接続）を保存対象にする
+  useEffect(() => {
+    if (loading) return;
+    scheduleSave();
+  }, [nodes, edges, loading, scheduleSave]);
+
+  // アンマウント・プロジェクト切替時に未保存分をフラッシュ
+  useEffect(() => () => { flushSave(); }, [flushSave]);
+
+  const patchItem = useCallback((id: string, patch: Partial<ResearchCanvasItem>) => {
+    setNodes(nds => nds.map(n => n.id === id
+      ? { ...n, data: { item: { ...n.data.item, ...patch, updatedAt: new Date().toISOString() } } }
+      : n));
+  }, [setNodes]);
+
+  // エッジの更新は edgeToRf で作り直す（relation 変更で線色・矢印マーカーも追従させる）
+  const patchEdge = useCallback((id: string, patch: Partial<ResearchCanvasEdge>) => {
+    setEdges(eds => eds.map(e => {
+      if (e.id !== id) return e;
+      const merged = { ...(e.data as { edge: ResearchCanvasEdge }).edge, ...patch, updatedAt: new Date().toISOString() };
+      return { ...edgeToRf(merged), selected: e.selected };
+    }));
+  }, [setEdges]);
+
+  /**
+   * ハンドルのドラッグ接続。どの辺からでも双方向に引ける（connectionMode=loose）。
+   * 同じカード間でも別の辺を使えば2本・3本と重ねずに引ける。既定の関係タイプで張り、
+   * 選択状態にしてすぐ関係タイプを切り替えられるようにする。
+   */
+  const onConnect = useCallback((conn: Connection) => {
+    if (!conn.source || !conn.target || conn.source === conn.target) return;
+    // 重複ガードは設けない。1つの辺から何本でも、同じカード間でも複数本を自由に引ける。
+    setEdges(eds => {
+      const now = new Date().toISOString();
+      const edge: ResearchCanvasEdge = {
+        id: newId(), source: conn.source, target: conn.target,
+        sourceHandle: conn.sourceHandle ?? undefined,
+        targetHandle: conn.targetHandle ?? undefined,
+        relation: DEFAULT_CONNECTOR_KEY, createdAt: now, updatedAt: now,
+      };
+      return [...eds.map(e => ({ ...e, selected: false })), { ...edgeToRf(edge), selected: true }];
+    });
+  }, [setEdges]);
+
+  // カードの指定辺に接続口（ポート）を追加し、新ポートIDを返す（＋ボタン／接続時の自動追加で使用）。
+  // atIndex を渡すと、その辺のポート列の atIndex 番目へ挿入する（既存ポートの「間」に作れる）。
+  const addPort = useCallback((id: string, side: ResearchPortSide, atIndex?: number): string => {
+    const portId = 'p_' + Math.random().toString(36).slice(2, 8);
+    setNodes(nds => nds.map(n => {
+      if (n.id !== id) return n;
+      const cur = effectivePorts(n.data.item);
+      const newPort: ResearchCardPort = { id: portId, side };
+      // 辺内の順序＝均等割りの並び順。辺別に分けて atIndex 番目へ挿入する
+      // （辺をまたいだ配列順はレイアウトに影響しないので、side ごとにまとめて良い）。
+      const sidePorts = cur.filter(p => p.side === side);
+      const nonSide = cur.filter(p => p.side !== side);
+      const idx = atIndex == null ? sidePorts.length : Math.max(0, Math.min(atIndex, sidePorts.length));
+      const newSide = [...sidePorts.slice(0, idx), newPort, ...sidePorts.slice(idx)];
+      const ports: ResearchCardPort[] = [...nonSide, ...newSide];
+      return { ...n, data: { item: { ...n.data.item, ports, updatedAt: new Date().toISOString() } } };
+    }));
+    // ハンドルが増えて同じ辺の口が再配置されるので、React Flow に再計測させて
+    // 既存の配線の端点も新しい口の位置へ追従させる（呼ばないと線が取り残される）。
+    setTimeout(() => updateNodeInternals(id), 0);
+    return portId;
+  }, [setNodes, updateNodeInternals]);
+
+  // 接続口を削除（その口につながる配線も除去）。最後の1つは残す（口ゼロを防ぐ）。
+  const removePort = useCallback((id: string, portId: string) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id !== id) return n;
+      const cur = effectivePorts(n.data.item);
+      if (cur.length <= 1) return n;
+      const ports = cur.filter(p => p.id !== portId);
+      return { ...n, data: { item: { ...n.data.item, ports, updatedAt: new Date().toISOString() } } };
+    }));
+    // edges 側は edgeToRf で sourceHandle/targetHandle が必ず入っている（既定は right/left）ので単純一致で除去
+    setEdges(eds => eds.filter(e => !(
+      (e.source === id && e.sourceHandle === portId) ||
+      (e.target === id && e.targetHandle === portId)
+    )));
+    setTimeout(() => updateNodeInternals(id), 0);
+  }, [setNodes, setEdges, updateNodeInternals]);
+
+  // ドラッグ接続の始点を記録し、既存ハンドル以外（カード本体）へドロップされたら
+  // 相手カードに接続口を自動で足してつなぐ。
+  const connectFromRef = useRef<{ nodeId: string | null; handleId: string | null } | null>(null);
+  const onConnectStart = useCallback((_: any, params: { nodeId: string | null; handleId: string | null }) => {
+    connectFromRef.current = { nodeId: params.nodeId, handleId: params.handleId };
+  }, []);
+
+  const NODE_FALLBACK: Record<string, { w: number; h: number }> = {
+    note: { w: 240, h: 140 }, quote: { w: 280, h: 130 }, image: { w: 280, h: 220 }, link: { w: 260, h: 64 }, source: { w: 260, h: 64 },
+  };
+  const onConnectEnd = useCallback((event: MouseEvent | TouchEvent, connState: any) => {
+    const from = connectFromRef.current;
+    connectFromRef.current = null;
+    if (!from?.nodeId) return;
+    // 既存ハンドルに着地した場合は onConnect が処理済み → 何もしない
+    if (connState?.toHandle || connState?.isValid) return;
+
+    const pt = 'changedTouches' in event
+      ? (event.changedTouches[0] ? { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY } : null)
+      : { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY };
+    if (!pt) return;
+    const flow = screenToFlowPosition(pt);
+
+    // ドロップ地点にあるカード（始点カード・レーン背景を除く）を探す
+    const target = [...nodesRef.current].reverse().find(n => {
+      if (n.id === from.nodeId) return false;
+      const w = n.measured?.width ?? NODE_FALLBACK[n.data.item.kind]?.w ?? 240;
+      const h = n.measured?.height ?? NODE_FALLBACK[n.data.item.kind]?.h ?? 120;
+      return flow.x >= n.position.x && flow.x <= n.position.x + w && flow.y >= n.position.y && flow.y <= n.position.y + h;
+    });
+    if (!target) return;
+
+    // ドロップ地点に近い辺を選び、そこに接続口を足す
+    const w = target.measured?.width ?? NODE_FALLBACK[target.data.item.kind]?.w ?? 240;
+    const h = target.measured?.height ?? NODE_FALLBACK[target.data.item.kind]?.h ?? 120;
+    const dx = (flow.x - (target.position.x + w / 2)) / (w / 2);
+    const dy = (flow.y - (target.position.y + h / 2)) / (h / 2);
+    const side: ResearchPortSide = Math.abs(dx) > Math.abs(dy)
+      ? (dx > 0 ? 'right' : 'left')
+      : (dy > 0 ? 'bottom' : 'top');
+
+    // ドロップ地点の「辺に沿った位置」から挿入インデックスを決め、既存ポートの間に作る
+    // （末尾固定ではなく、落とした場所に応じて上下/左右の間に入る）。
+    const along = (side === 'left' || side === 'right')
+      ? (flow.y - target.position.y) / h
+      : (flow.x - target.position.x) / w;
+    const f = Math.max(0, Math.min(1, along));
+    const existing = effectivePorts(target.data.item).filter(p => p.side === side).length;
+    let atIndex = 0;
+    for (let k = 0; k < existing; k++) { if ((k + 1) / (existing + 1) < f) atIndex++; }
+    const portId = addPort(target.id, side, atIndex);
+
+    setEdges(eds => {
+      const now = new Date().toISOString();
+      const edge: ResearchCanvasEdge = {
+        id: newId(), source: from.nodeId!, target: target.id,
+        sourceHandle: from.handleId ?? undefined, targetHandle: portId,
+        relation: DEFAULT_CONNECTOR_KEY, createdAt: now, updatedAt: now,
+      };
+      return [...eds.map(e => ({ ...e, selected: false })), { ...edgeToRf(edge), selected: true }];
+    });
+  }, [screenToFlowPosition, addPort, setEdges]);
+
+  // 既存エッジの端点を別の接続口へ付け替え（線の始点/終点を左ドラッグ）。
+  // 付け替え先が無い（空ドロップ）ときは何もしない＝線を維持する。
+  const onReconnect = useCallback((oldEdge: Edge, conn: Connection) => {
+    if (!conn.source || !conn.target) return;
+    setEdges(eds => eds.map(e => {
+      if (e.id !== oldEdge.id) return e;
+      const data = (e.data as { edge: ResearchCanvasEdge }).edge;
+      const merged: ResearchCanvasEdge = {
+        ...data, source: conn.source!, target: conn.target!,
+        sourceHandle: conn.sourceHandle ?? undefined, targetHandle: conn.targetHandle ?? undefined,
+        updatedAt: new Date().toISOString(),
+      };
+      return { ...edgeToRf(merged), selected: e.selected };
+    }));
+  }, [setEdges]);
+
+  // ─── 元に戻す / やり直す（Ctrl+Z / Ctrl+Shift+Z・Ctrl+Y）────────────────────
+  // nodes/edges のスナップショット(JSON)を履歴に積む。編集が 500ms 落ち着くたびに
+  // 直前の確定スナップショットを past へ。適用時は lastSnapRef を書き換えるので
+  // 記録タイマーは「差分なし」と判断して二重記録しない。
+  const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
+  const lastSnapRef = useRef<string>('');
+  const histTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const applySnapshot = useCallback((snap: string) => {
+    const parsed = JSON.parse(snap) as { items: ResearchCanvasItem[]; edges: ResearchCanvasEdge[] };
+    lastSnapRef.current = snap;
+    setNodes(parsed.items.map(itemToNode));
+    setEdges(parsed.edges.map(edgeToRf));
+    // ポート構成が変わっている可能性があるのでハンドルを再計測（配線端点を追従）
+    setTimeout(() => parsed.items.forEach(it => updateNodeInternals(it.id)), 0);
+  }, [setNodes, setEdges, updateNodeInternals]);
+
+  const undo = useCallback(() => {
+    const h = historyRef.current;
+    if (!h.past.length) return;
+    const prev = h.past.pop()!;
+    h.future.push(lastSnapRef.current);
+    applySnapshot(prev);
+  }, [applySnapshot]);
+
+  const redo = useCallback(() => {
+    const h = historyRef.current;
+    if (!h.future.length) return;
+    const next = h.future.pop()!;
+    h.past.push(lastSnapRef.current);
+    applySnapshot(next);
+  }, [applySnapshot]);
+
+  // 変更が落ち着いたら履歴へ記録（差分があるときだけ past に積む）
+  useEffect(() => {
+    if (loading) return;
+    if (histTimerRef.current) clearTimeout(histTimerRef.current);
+    histTimerRef.current = setTimeout(() => {
+      const snap = JSON.stringify({ items: nodesToItems(nodesRef.current), edges: rfToEdgeItems(edgesRef.current) });
+      if (snap === lastSnapRef.current) return;
+      if (lastSnapRef.current) historyRef.current.past.push(lastSnapRef.current);
+      if (historyRef.current.past.length > 100) historyRef.current.past.shift();
+      historyRef.current.future = [];
+      lastSnapRef.current = snap;
+    }, 500);
+  }, [nodes, edges, loading]);
+
+  // ロード完了時点のスナップショットを基準にする（初回で空履歴に）
+  useEffect(() => {
+    if (loading) return;
+    lastSnapRef.current = JSON.stringify({ items: nodesToItems(nodesRef.current), edges: rfToEdgeItems(edgesRef.current) });
+    historyRef.current = { past: [], future: [] };
+    // loading が false になった初回だけ実行したいので依存は loading のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  // Ctrl+Z / Ctrl+Shift+Z（Ctrl+Y）。テキスト編集中はブラウザ既定に譲る。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const k = e.key.toLowerCase();
+      if (k !== 'z' && k !== 'y') return;
+      const ae = document.activeElement as HTMLElement | null;
+      if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+      e.preventDefault();
+      if (k === 'y' || (k === 'z' && e.shiftKey)) redo();
+      else undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo, redo]);
+
+  // ─── 経路ハイライト（トレーサビリティ）──────────────────────────────────────
+  // カードを1枚選択すると、そこから上流（根拠側）・下流（結論側）に繋がる
+  // 全経路を残して他を減光する。「なぜこの結論？」にエッジを遡って即答するための表示。
+  const trace = useMemo(() => {
+    const selectedNodes = nodes.filter(n => n.selected);
+    if (selectedNodes.length !== 1) return null;
+    const rootId = selectedNodes[0].id;
+    if (!edges.some(e => e.source === rootId || e.target === rootId)) return null;
+
+    const nodeIds = new Set<string>([rootId]);
+    const edgeIds = new Set<string>();
+    const walk = (dir: 'up' | 'down') => {
+      const visited = new Set<string>([rootId]);
+      const stack = [rootId];
+      while (stack.length > 0) {
+        const cur = stack.pop()!;
+        for (const e of edges) {
+          const [from, to] = dir === 'up' ? [e.target, e.source] : [e.source, e.target];
+          if (from !== cur) continue;
+          edgeIds.add(e.id);
+          nodeIds.add(to);
+          if (!visited.has(to)) { visited.add(to); stack.push(to); }
+        }
+      }
+    };
+    walk('up');
+    walk('down');
+    return { nodeIds, edgeIds };
+  }, [nodes, edges]);
+
+  // ─── ロジックの地図（表示モード map）─────────────────────────────────────────
+  // 役割＝列・テーマ＝帯でカードを再配置した「表示座標」を計算する。保存 state は不変。
+  const laneLayout = useMemo(
+    () => (viewMode === 'map' ? computeLaneLayout(nodes, edges.map(e => ({ source: e.source, target: e.target }))) : null),
+    [viewMode, nodes, edges],
+  );
+
+  // レーンの背景（帯＋「根拠/解釈/結論」ラベル、未配置トレイ）。最背面の非対話ノード。
+  const laneNodes = useMemo<Node[]>(() => {
+    if (viewMode !== 'map' || !laneLayout) return [];
+    const out: Node[] = MAP_LANE_META.map((m, i) => ({
+      id: `lane-${m.role}`, type: 'lane',
+      position: { x: MAP_COL_LEFT[i], y: 0 },
+      data: { label: m.label, color: m.color, w: MAP_LANE_W, h: laneLayout.laneHeight },
+      style: { width: MAP_LANE_W, height: laneLayout.laneHeight },
+      draggable: false, selectable: false, deletable: false, zIndex: -1,
+    }));
+    if (laneLayout.tray) {
+      out.push({
+        id: 'lane-tray', type: 'lane',
+        position: { x: 0, y: laneLayout.tray.top },
+        data: { label: '未配置 — まだ論証に組み込まれていないカード', color: '#888780', w: laneLayout.totalWidth, h: laneLayout.tray.height },
+        style: { width: laneLayout.totalWidth, height: laneLayout.tray.height },
+        draggable: false, selectable: false, deletable: false, zIndex: -1,
+      });
+    }
+    return out;
+  }, [viewMode, laneLayout]);
+
+  // 表示ノード: map モードはレーン座標を上書き＋背景レーンを前置。減光は表示コピーにだけ適用。
+  const displayNodes = useMemo<Node[]>(() => {
+    const base: CanvasNode[] = viewMode === 'map' && laneLayout
+      ? nodes.map(n => ({ ...n, position: laneLayout.positions.get(n.id) ?? n.position }))
+      : nodes;
+    const traced = trace
+      ? base.map(n => (trace.nodeIds.has(n.id) ? n : { ...n, className: 'trace-dim' }))
+      : base;
+    return viewMode === 'map' ? [...laneNodes, ...traced] : traced;
+  }, [nodes, viewMode, laneLayout, laneNodes, trace]);
+
+  const displayEdges = useMemo(
+    () => (trace ? edges.map(e => (trace.edgeIds.has(e.id) ? e : { ...e, data: { ...e.data!, dimmed: true } })) : edges),
+    [edges, trace],
+  );
+
+  // 背景レーンノードの変更（選択・寸法等）は保存 state に混ぜない
+  const handleNodesChange = useCallback((changes: any[]) => {
+    onNodesChange(changes.filter(c => !(typeof c?.id === 'string' && c.id.startsWith('lane-'))));
+  }, [onNodesChange]);
+
+  // モード切替時に全体表示へ寄せる（地図の俯瞰／手置きの俯瞰）
+  useEffect(() => {
+    const t = window.setTimeout(() => { try { fitView({ maxZoom: 1, duration: 400 }); } catch { /* noop */ } }, 80);
+    return () => window.clearTimeout(t);
+  }, [viewMode, fitView]);
+
+  // ─── 階層整列（根拠→解釈→結論を左→右に敷き直す）───────────────────────────
+  // エッジで繋がっているカードだけを dagre で LR 整列し、未接続カードは動かさない。
+  // 論証の向き（根拠 source → 結論 target）がそのまま左→右の流れになるので、
+  // 「一目で流れがわかる」状態を作る。役割（根拠/解釈/結論）を同ランク内の縦順の
+  // タイブレークに使い、根拠→解釈→結論が上から下に揃うようにする。
+  const [aligning, setAligning] = useState(false);
+  const autoAlign = useCallback(async (opts?: { fit?: boolean }) => {
+    const edgeItems = rfToEdgeItems(edgesRef.current);
+    if (edgeItems.length === 0) return;
+    setAligning(true);
+    try {
+      const mod: any = await import('@dagrejs/dagre');
+      const dagre = mod.default ?? mod;
+      const involved = new Set<string>();
+      edgeItems.forEach(e => { involved.add(e.source); involved.add(e.target); });
+      const targets = nodesRef.current.filter(n => involved.has(n.id));
+      if (targets.length === 0) return;
+      const targetIds = new Set(targets.map(n => n.id));
+
+      const FALLBACK_SIZE: Record<string, { width: number; height: number }> = {
+        note: { width: 240, height: 140 }, quote: { width: 280, height: 130 },
+        image: { width: 280, height: 220 }, link: { width: 260, height: 64 }, source: { width: 260, height: 64 },
+      };
+      const sizeOf = (n: CanvasNode) => ({
+        width: n.measured?.width ?? FALLBACK_SIZE[n.data.item.kind]?.width ?? 240,
+        height: n.measured?.height ?? FALLBACK_SIZE[n.data.item.kind]?.height ?? 120,
+      });
+
+      const g = new dagre.graphlib.Graph();
+      // LR=左→右の流れ。network-simplex + UL で列を揃え、交差を減らして直感的にする。
+      g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 170, ranker: 'network-simplex', align: 'UL', marginx: 24, marginy: 24 });
+      g.setDefaultEdgeLabel(() => ({}));
+      // 役割の重み（根拠→解釈→結論）を weight に反映し、この向きの筋を優先して真っ直ぐ通す。
+      const ROLE_ORDER: Record<string, number> = { evidence: 0, interpretation: 1, conclusion: 2 };
+      targets.forEach(n => g.setNode(n.id, sizeOf(n)));
+      edgeItems.forEach(e => {
+        if (!targetIds.has(e.source) || !targetIds.has(e.target)) return;
+        const sr = ROLE_ORDER[nodesRef.current.find(n => n.id === e.source)?.data.item.role ?? ''];
+        const tr = ROLE_ORDER[nodesRef.current.find(n => n.id === e.target)?.data.item.role ?? ''];
+        // 根拠→解釈→結論の向きに沿うエッジは強め、逆行/横断は弱めにして骨格を安定させる
+        const weight = sr !== undefined && tr !== undefined && tr > sr ? 3 : 1;
+        g.setEdge(e.source, e.target, { weight });
+      });
+      dagre.layout(g);
+
+      // 整列前の左上を基準に平行移動して、グラフ全体がボード上で飛ばないようにする
+      const minX0 = Math.min(...targets.map(n => n.position.x));
+      const minY0 = Math.min(...targets.map(n => n.position.y));
+      const placed = targets.map(n => {
+        const p = g.node(n.id);
+        const s = sizeOf(n);
+        return { id: n.id, x: p.x - s.width / 2, y: p.y - s.height / 2 };
+      });
+      const minX1 = Math.min(...placed.map(p => p.x));
+      const minY1 = Math.min(...placed.map(p => p.y));
+      const posMap = new Map(placed.map(p => [p.id, { x: p.x - minX1 + minX0, y: p.y - minY1 + minY0 }]));
+      setNodes(nds => nds.map(n => {
+        const pos = posMap.get(n.id);
+        return pos ? { ...n, position: pos } : n;
+      }));
+      // AI が組み上げた直後は流れ全体が視界に入るよう、ゆっくり全体表示に合わせる
+      if (opts?.fit) window.setTimeout(() => { try { fitView({ maxZoom: 1, duration: 500 }); } catch { /* noop */ } }, 90);
+    } catch (e) {
+      console.error('[research] 整列に失敗:', e);
+    } finally {
+      setAligning(false);
+    }
+  }, [setNodes, fitView]);
+
+  // AI がカードを接続した直後などに、少し待ってから自動で整列する。
+  // 連続する add_items / connect_items の呼び出しを1回の整列にまとめる（500ms デバウンス）。
+  const arrangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestAutoArrange = useCallback(() => {
+    if (arrangeTimerRef.current) clearTimeout(arrangeTimerRef.current);
+    arrangeTimerRef.current = setTimeout(() => { autoAlign({ fit: true }); }, 500);
+  }, [autoAlign]);
+  useEffect(() => () => { if (arrangeTimerRef.current) clearTimeout(arrangeTimerRef.current); }, []);
+
+  // SEKKEIYA Chat（verb）からボードをライブ操作できるようホスト登録する。
+  // 追加/削除は nodes/edges state に入るので、既存の debounce 保存にそのまま乗る。
+  useEffect(() => {
+    return registerResearchBoardHost({
+      projectId: boardKey,
+      getItems: () => nodesToItems(nodesRef.current),
+      addItems: items => setNodes(nds => [...nds, ...items.map(itemToNode)]),
+      patchItem,
+      removeItems: ids => {
+        const idSet = new Set(ids);
+        setNodes(nds => nds.filter(n => !idSet.has(n.id)));
+        // 消えたカードにぶら下がるエッジも一緒に消す（宙に浮いたエッジを残さない）
+        setEdges(eds => eds.filter(e => !idSet.has(e.source) && !idSet.has(e.target)));
+      },
+      getEdges: () => rfToEdgeItems(edgesRef.current),
+      addEdges: newEdges => setEdges(eds => [...eds, ...newEdges.map(edgeToRf)]),
+      patchEdge,
+      removeEdges: ids => {
+        const idSet = new Set(ids);
+        setEdges(eds => eds.filter(e => !idSet.has(e.id)));
+      },
+      arrange: requestAutoArrange,
+    });
+  }, [boardKey, setNodes, setEdges, patchItem, patchEdge, requestAutoArrange]);
+
+  const viewportCenter = useCallback(() => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+  }, [screenToFlowPosition]);
+
+  const addItem = useCallback((partial: Omit<ResearchCanvasItem, 'id' | 'x' | 'y' | 'createdAt' | 'updatedAt'>, pos?: { x: number; y: number }) => {
+    // 位置指定がない（＝中心置き）ときだけ、連続追加で完全に重ならないよう軽くばらす
+    const jitter = pos ? () => 0 : () => (Math.random() - 0.5) * 60;
+    const p = pos ?? viewportCenter();
+    const now = new Date().toISOString();
+    const item: ResearchCanvasItem = { id: newId(), x: p.x + jitter(), y: p.y + jitter(), createdAt: now, updatedAt: now, ...partial };
+    setNodes(nds => [...nds, itemToNode(item)]);
+  }, [setNodes, viewportCenter]);
+
+  /**
+   * 「SEKKEIYA OS に相談」: チャットを開き、AI側から対話を切り出させる。
+   * キックオフ指示は hidden で送るためチャット欄にはAIの問いかけだけが表示される。
+   * ★ポップアウト窓へ切り出し中はキックオフをその窓へ委譲する（本体では会話が見えないため）。
+   */
+  const isAccountBoard = scope === ACCOUNT_BOARD_ID;
+
+  // ボードのスコープに応じたキックオフ本文（プロジェクト=設計の深掘り / 個人=方向性・ビジョン）
+  const kickoffText = useCallback((entry: 'button' | 'auto') => {
+    const head = entry === 'button'
+      ? '【リサーチボード・キックオフ】これはUIボタンからの内部指示です（ユーザーの発話ではありません）。'
+      : '【リサーチボード・キックオフ】これは Research & Memo タブを開いた際の内部指示です（ユーザーの発話ではありません）。';
+    const frame = isAccountBoard
+      ? 'ここはアカウントサイトの個人ボードで、ユーザーが「自分の目指す方向性・やりたいこと」をあなたと一緒に整理し、根拠（自分の経験・価値観・強み）→ロジック→ビジョン（結論）へと論理を組み立てる場です。'
+      : 'ユーザーはこれからリサーチボードで設計デザインの深掘りを始めます。';
+    const questions = isAccountBoard
+      ? '挨拶は一言だけにして、その人の内発的な動機を引き出す具体的な問いを1〜2個投げかける（例: 3年後に手がけていたい仕事、これまでで一番手応えを感じた瞬間、これだけは譲れないと感じる価値観、避けたい働き方 など）。'
+      : '挨拶は一言だけにして、デザイナーの発想力・想像力を掻き立てる具体的な問いを1〜2個投げかける（例: 敷地で一番心が動いた瞬間、施主の暮らしの理想の一場面、参照したい空間体験——プロジェクトの文脈に合わせて選ぶ）。';
+    const common =
+      '一度に多くを聞かないこと。以後は毎ターン、対話で言語化できた論点・決定・根拠を、' +
+      'ユーザーに頼まれなくても research_board_add_items / connect_items でボードへカード化・接続していくこと' +
+      '（カードには必ず role を付ける。置いたら一言報告。ボードが成果物、チャットは対話）。';
+    if (entry === 'auto') {
+      return head + frame +
+        'あなたから対話を切り出してください。まず research_board_get でボードの現状を確認すること。' +
+        `ボードが空なら: ${questions}` +
+        'カードが既にあるなら: 現状を一言で要約し、hints（役割未設定・宙に浮いたカード・根拠のない結論）があればそれを整える一手を1つだけ提案する。' +
+        common;
+    }
+    return head + frame + 'あなたから対話を切り出してください。' + questions + common;
+  }, [isAccountBoard]);
+
+  const startAiKickoff = useCallback(() => {
+    (async () => {
+      const { dispatchChatKickoff } = await import('../../features/projects/chat/chatKickoff');
+      await dispatchChatKickoff({ projectId: scope, source: 'sidebar_chat', text: kickoffText('button') });
+    })().catch(err => console.error('[research] AI キックオフに失敗:', err));
+  }, [scope, kickoffText]);
+
+  // タブを開いたらチャットを自動で開き、このプロジェクトの対話履歴がまだ無ければ
+  // AI から最初の一声を送らせる（1アプリセッション=1プロジェクト1回）。
+  useEffect(() => {
+    if (loading) return; // ボード読込後に実行（キックオフがボードの現状を踏まえられるように）
+    // ポップアウト中でなければ本体チャットを開く（ポップアウト中はストア側ガードで no-op）。
+    useAppStore.getState().setAIChatOpen(true);
+    if (autoKickedProjects.has(scope)) return;
+    autoKickedProjects.add(scope);
+    (async () => {
+      const { useAIChatStore } = await import('../../store/useAIChatStore');
+      const chat = useAIChatStore.getState();
+      const sessionIds = new Set(chat.getSessionsForProject(scope).map(s => s.id));
+      // 既に対話履歴があるプロジェクトでは挨拶し直さない（チャットを開くだけ）
+      if (chat.messages.some(m => sessionIds.has(m.sessionId))) return;
+      // ★チャットのある場所（本体 or ポップアウト窓）でキックオフを実行する。
+      // 自動オープンなのでポップアウト窓のフォーカスは奪わない（focus:false）。
+      const { dispatchChatKickoff } = await import('../../features/projects/chat/chatKickoff');
+      await dispatchChatKickoff({ projectId: scope, source: 'sidebar_chat', text: kickoffText('auto') }, { focus: false });
+    })().catch(err => console.error('[research] 自動キックオフに失敗:', err));
+  }, [loading, scope, kickoffText]);
+
+  const handleImageFile = useCallback(async (file: File, pos?: { x: number; y: number }) => {
+    if (!file.type.startsWith('image/')) return;
+    setUploading(true);
+    try {
+      const url = await ResearchCanvasRepository.uploadImage(boardKey, file);
+      addItem({ kind: 'image', url, text: '' }, pos);
+    } catch (err) {
+      console.error('Research canvas image upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  }, [boardKey, addItem]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    handleImageFile(file, pos);
+  }, [screenToFlowPosition, handleImageFile]);
+
+  const handleAddLink = () => {
+    const url = linkUrl.trim();
+    if (!url) return;
+    addItem({ kind: 'link', url: /^https?:\/\//.test(url) ? url : `https://${url}`, text: linkTitle.trim() });
+    setLinkUrl(''); setLinkTitle(''); setLinkDialogOpen(false);
+  };
+
+  const toolButtonSx = {
+    px: 1.25, py: 0.5, fontSize: 12, fontWeight: 700, textTransform: 'none', borderRadius: 2,
+    color: 'var(--brand-fg)', bgcolor: 'var(--brand-surface)',
+    border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+    '&:hover': { borderColor: '#00BFFF', bgcolor: 'var(--brand-surface)' },
+  } as const;
+
+  return (
+    <Ctx.Provider value={{ patchItem, patchEdge, addPort, removePort, portsEditable: viewMode === 'free' }}>
+    <Box ref={wrapperRef}
+      sx={{
+        position: 'absolute', inset: 0,
+        // 接続ハンドルは普段は控えめに、カードにホバーしたときだけはっきり見せる
+        '& .react-flow__handle': { opacity: 0.25, transition: 'opacity .12s' },
+        '& .react-flow__node:hover .react-flow__handle, & .react-flow__handle:hover, & .react-flow__node.selected .react-flow__handle': { opacity: 1 },
+        // ＋/− ボタンの表示は NodeHandles 側の hover 状態で制御（辺/ポート単位）
+        // 経路ハイライト: 選択カードの論証チェーン外を減光する
+        '& .react-flow__node': { transition: 'opacity .15s' },
+        '& .react-flow__node.trace-dim': { opacity: 0.22 },
+        // react-flow Controls をダークテーマに合わせる（デフォルトは白背景）
+        '& .react-flow__controls': {
+          boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+          borderRadius: '10px',
+          overflow: 'hidden',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+        },
+        '& .react-flow__controls-button': {
+          bgcolor: 'var(--brand-surface)',
+          borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+          width: 28, height: 28,
+          '& svg': { fill: 'rgb(var(--brand-fg-rgb) / 0.6)', maxWidth: 12, maxHeight: 12 },
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', '& svg': { fill: '#00BFFF' } },
+        },
+      }}
+      onDrop={handleDrop} onDragOver={e => e.preventDefault()}
+      // 右ドラッグ=パンにするため、ブラウザ既定の右クリックメニューを抑止（ポートの右クリック削除は別途動作）
+      onContextMenu={e => e.preventDefault()}>
+      <ReactFlow
+        nodes={displayNodes}
+        edges={displayEdges}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        onReconnect={onReconnect}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        // loose: どの辺のハンドルからでも source/target 両方向に接続できる（矢印を自由に引ける）
+        connectionMode={ConnectionMode.Loose}
+        // 地図モードは自動配置なのでドラッグ移動・接続を止め、地図を安定させる（選択は可＝経路ハイライト）
+        nodesDraggable={viewMode === 'free'}
+        nodesConnectable={viewMode === 'free'}
+        connectionLineStyle={{ stroke: '#00BFFF', strokeWidth: 1.8 }}
+        connectionRadius={28}
+        // 左ドラッグ=範囲選択（複数まとめて選択→まとめて移動）、右ドラッグ=画面パン
+        selectionOnDrag
+        panOnDrag={[2]}
+        selectNodesOnDrag
+        // 複数選択して Delete でまとめて削除（接続エッジも自動で除去される）
+        deleteKeyCode="Delete"
+        multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
+        fitView
+        fitViewOptions={{ maxZoom: 1 }}
+        minZoom={0.1}
+        maxZoom={2.5}
+        proOptions={{ hideAttribution: true }}
+        style={{ background: 'transparent' }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="rgb(var(--brand-fg-rgb) / 0.14)" />
+        <Controls showInteractive={false} />
+
+        {/* 空キャンバスのスターター（対話が主役。チャットは自動で開き、AIが切り出す） */}
+        {!loading && nodes.length === 0 && (
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 4 }}>
+            <Box sx={{ textAlign: 'center', pointerEvents: 'auto', maxWidth: 640, px: 3 }}>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: 'rgb(var(--brand-fg-rgb) / 0.75)', mb: 0.75 }}>
+                リサーチボードを始めましょう
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 3 }}>
+                {isAccountBoard
+                  ? 'SEKKEIYA OS と対話しながら、自分の目指す方向性・やりたいことを根拠→ロジック→ビジョンへ編み上げていきます'
+                  : 'SEKKEIYA OS と対話しながら、根拠→ロジック→コンセプトをこのボードに編み上げていきます'}
+              </Typography>
+
+              <Box
+                onClick={startAiKickoff}
+                sx={{
+                  display: 'inline-flex', alignItems: 'center', gap: 1.25,
+                  px: 2.5, py: 1.5, borderRadius: 3, cursor: 'pointer', textAlign: 'left',
+                  bgcolor: 'var(--brand-surface)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+                  transition: 'border-color .15s, transform .15s, box-shadow .15s',
+                  '&:hover': {
+                    borderColor: '#a18cd1',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                    '& .starter-icon': { color: '#a18cd1' },
+                  },
+                }}>
+                <AutoAwesomeIcon className="starter-icon" sx={{ fontSize: 22, color: 'rgb(var(--brand-fg-rgb) / 0.45)', transition: 'color .15s' }} />
+                <Box>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--brand-fg)' }}>
+                    SEKKEIYA OS に相談
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', lineHeight: 1.5 }}>
+                    AIとの対話で発想を深め、ボードに言語化していく
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Typography sx={{ mt: 2.5, fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
+                メモ・画像・リンク・知識はツールバーから / 画像はドラッグ&ドロップでも追加できます
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        <Panel position="top-left">
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Button startIcon={<StickyNote2OutlinedIcon sx={{ fontSize: 15 }} />} sx={toolButtonSx}
+              onClick={() => addItem({ kind: 'note', text: '', color: DEFAULT_NOTE_COLOR })}>
+              メモ
+            </Button>
+            <Button startIcon={uploading ? <CircularProgress size={13} sx={{ color: '#00BFFF' }} /> : <ImageOutlinedIcon sx={{ fontSize: 15 }} />}
+              sx={toolButtonSx} disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}>
+              画像
+            </Button>
+            <Button startIcon={<LinkRoundedIcon sx={{ fontSize: 15 }} />} sx={toolButtonSx}
+              onClick={() => setLinkDialogOpen(true)}>
+              リンク
+            </Button>
+            <Button startIcon={<LocalLibraryRoundedIcon sx={{ fontSize: 15 }} />} sx={toolButtonSx}
+              onClick={() => setPickerOpen(true)}>
+              知識
+            </Button>
+
+            {/* ── 表示モード切替（自由配置 ⇄ ロジックの地図）── */}
+            <Box sx={{
+              display: 'flex', ml: 0.5, borderRadius: 2, overflow: 'hidden',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            }}>
+              {([
+                { mode: 'free' as const, label: '自由配置', icon: <BubbleChartRoundedIcon sx={{ fontSize: 15 }} /> },
+                { mode: 'map' as const, label: 'ロジックの地図', icon: <HubRoundedIcon sx={{ fontSize: 15 }} /> },
+              ]).map(({ mode, label, icon }) => {
+                const active = viewMode === mode;
+                return (
+                  <Box key={mode} onClick={() => setViewMode(mode)}
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 0.5, px: 1.25, py: 0.5,
+                      cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                      bgcolor: active ? '#00BFFF' : 'var(--brand-surface)',
+                      color: active ? '#000' : 'var(--brand-fg)',
+                      '&:hover': active ? {} : { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
+                    }}>
+                    {icon}{label}
+                  </Box>
+                );
+              })}
+            </Box>
+
+            {viewMode === 'free' && (
+              <Button startIcon={aligning ? <CircularProgress size={13} sx={{ color: '#00BFFF' }} /> : <AccountTreeRoundedIcon sx={{ fontSize: 15 }} />}
+                sx={toolButtonSx} disabled={aligning || loading || edges.length === 0}
+                onClick={() => autoAlign()}>
+                整列
+              </Button>
+            )}
+            {loading && <CircularProgress size={14} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', ml: 0.5 }} />}
+          </Box>
+          <Typography sx={{ mt: 0.75, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
+            {viewMode === 'map'
+              ? 'ロジックの地図: 根拠→解釈→結論のレーンにカードを自動配置（手置きは保持されます）／自由配置に戻せます'
+              : 'ダブルクリックで編集 / 左ドラッグで範囲選択→まとめて移動・Deleteでまとめて削除 / 右ドラッグで画面移動 / 辺の○をドラッグで接続・＋−で接続口を増減 / 線の端をドラッグで付け替え / Ctrl+Zで戻す'}
+          </Typography>
+          {saveError && (
+            <Typography onClick={flushSave} sx={{
+              mt: 0.5, px: 1, py: 0.4, fontSize: 11, fontWeight: 700, cursor: 'pointer', borderRadius: 1.5,
+              color: '#f87171', bgcolor: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)',
+              display: 'inline-block',
+            }}>
+              ⚠ ボードの保存に失敗しました — クリックで再試行
+            </Typography>
+          )}
+        </Panel>
+      </ReactFlow>
+
+      <input ref={fileInputRef} type="file" accept="image/*" hidden
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ''; }} />
+
+      <KnowledgePickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={partials => {
+          // ビューポート中心を起点に、複数枚は縦に少しずつずらして重なりを避ける
+          const c = viewportCenter();
+          partials.forEach((p, i) => addItem(p, { x: c.x + (i % 2) * 40, y: c.y + i * 60 }));
+        }}
+      />
+
+      <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, color: 'var(--brand-fg)' } }}>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: '0.95rem', pb: 1 }}>リンクを追加</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
+          <TextField label="URL *" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} fullWidth size="small" autoFocus
+            placeholder="https://..."
+            InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-focused': { color: '#00BFFF' } } }}
+            InputProps={{ sx: { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } }}
+            sx={{ '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: '#00BFFF' } }} />
+          <TextField label="タイトル" value={linkTitle} onChange={e => setLinkTitle(e.target.value)} fullWidth size="small"
+            onKeyDown={e => { if (e.key === 'Enter') handleAddLink(); }}
+            InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-focused': { color: '#00BFFF' } } }}
+            InputProps={{ sx: { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } }}
+            sx={{ '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: '#00BFFF' } }} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setLinkDialogOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={handleAddLink} disabled={!linkUrl.trim()} variant="contained"
+            sx={{ bgcolor: '#00BFFF', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2,
+              '&:hover': { bgcolor: '#4facfe' }, '&:disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
+            追加
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+    </Ctx.Provider>
+  );
+};
+
+/** Research & Memo タブの無限キャンバス（Miro風・論証グラフ）。boardKey でボードを指定。 */
+export const ResearchCanvas: React.FC<Props> = ({ boardKey }) => (
+  <ReactFlowProvider key={boardKey}>
+    <CanvasInner boardKey={boardKey} />
+  </ReactFlowProvider>
+);
+
+export default ResearchCanvas;

@@ -14,6 +14,7 @@ import {
   matchCategoryKey, getCategoryMeta, LAYOUT_CATEGORY_MAP,
 } from '../constants/furnitureCategoryDefaults';
 import { resolveProduct } from './productResolution';
+import { toAffinityFields, substituteScore } from '../../../dss/graph/furnitureAffinity';
 
 /** 差し替え戦略（ボトムギャラリーのスタイルカードに対応） */
 export const AUTO_REPLACE_STYLES = {
@@ -117,6 +118,28 @@ function pickByStyle(candidates: any[], styleKey: AutoReplaceStyleKey): any {
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+/**
+ * 相性（寸法近接＋部屋/ゾーン文脈＋素材整合）で候補を絞ってからスタイルを適用する。
+ * furnitureAffinity（可視化グラフと同じ正典 substituteScore）で「元家具に最も近い候補」を上位化し、
+ * その上位内でスタイル（compact/spacious/variation）を効かせる。
+ * 寸法/文脈/素材のいずれも無く相性が測れない場合は従来の pickByStyle に委譲（＝無回帰）。
+ */
+function pickByAffinityAndStyle(
+  candidates: any[], original: any, styleKey: AutoReplaceStyleKey, stats: { affinity: number },
+): any {
+  const oaf = toAffinityFields(original);
+  let maxS = 0;
+  const scored = candidates.map((c) => {
+    const s = substituteScore(oaf, toAffinityFields(c));
+    if (s > maxS) maxS = s;
+    return { c, s };
+  });
+  if (maxS <= 0) return pickByStyle(candidates, styleKey); // 相性シグナルなし → 従来動作
+  stats.affinity++;
+  const top = scored.filter((x) => x.s >= maxS - 1e-9).map((x) => x.c);
+  return pickByStyle(top, styleKey);
+}
+
 export interface AutoReplaceResult {
   ok: boolean;
   updatedItems?: any[];
@@ -153,6 +176,7 @@ export async function autoReplaceFurniture(
   }
 
   let skippedUnknown = 0;
+  const affinityStats = { affinity: 0 };
 
   // ── 1) 各アイテムの差し替え先(pick)を決める（同期）──────────────────────────
   const plans = items.map(item => {
@@ -171,7 +195,8 @@ export async function autoReplaceFurniture(
     const candidates = (byCategory.get(category) || []).filter(a => getEntityId(a) !== eid);
     if (candidates.length === 0) return { item }; // 同カテゴリの代替なし → そのまま
 
-    const pick = pickByStyle(candidates, styleKey);
+    // 相性(寸法+文脈+素材)で上位化 → その中でスタイル適用。probe が元家具の相性フィールド源。
+    const pick = pickByAffinityAndStyle(candidates, probe, styleKey, affinityStats);
     const newEid = getEntityId(pick);
     if (!newEid || newEid === eid) return { item };
     return { item, pick, newEid };
@@ -211,6 +236,9 @@ export async function autoReplaceFurniture(
 
   if (skippedUnknown > 0) {
     console.info(`[autoReplace] カテゴリ不明のため ${skippedUnknown} 点は差し替えをスキップ（取り違え防止）`);
+  }
+  if (affinityStats.affinity > 0) {
+    console.info(`[autoReplace] ${affinityStats.affinity} 点を相性(寸法+文脈+素材)で優先選定`);
   }
   return { ok: true, updatedItems, replaced };
 }

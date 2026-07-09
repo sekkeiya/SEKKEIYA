@@ -121,7 +121,7 @@ export const PreviewDialog: React.FC<Props> = ({
         sx: {
           bgcolor: 'rgba(15, 20, 30, 0.95)',
           backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           borderRadius: 4,
           boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
           backgroundImage: 'none'
@@ -134,15 +134,15 @@ export const PreviewDialog: React.FC<Props> = ({
             <VisibilityRoundedIcon sx={{ color: '#00BFFF', fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography variant="h6" sx={{ color: '#fff', fontWeight: 800, fontSize: '1.1rem', lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', fontWeight: 800, fontSize: '1.1rem', lineHeight: 1.2 }}>
               {fileName}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+            <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
               {versionName ? `Version: ${versionName}` : 'Latest Version'} {toolType ? `| Tool: ${toolType}` : ''}
             </Typography>
           </Box>
         </Box>
-        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
+        <IconButton onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
           <CloseRoundedIcon />
         </IconButton>
       </DialogTitle>
@@ -153,7 +153,7 @@ export const PreviewDialog: React.FC<Props> = ({
           height: 500, 
           bgcolor: 'rgba(0,0,0,0.4)', 
           borderRadius: 3, 
-          border: '1px dashed rgba(255,255,255,0.15)',
+          border: '1px dashed rgb(var(--brand-fg-rgb) / 0.15)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -177,7 +177,7 @@ export const PreviewDialog: React.FC<Props> = ({
               {isLoading && (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <CircularProgress sx={{ color: '#00BFFF' }} />
-                  <Typography sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
                     3Dプレビューを生成中... (少し時間がかかります)
                   </Typography>
                 </Box>
@@ -187,7 +187,7 @@ export const PreviewDialog: React.FC<Props> = ({
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, p: 3, textAlign: 'center' }}>
                   <ErrorOutlineIcon sx={{ color: '#f44336', fontSize: 48, mb: 1 }} />
                   <Typography sx={{ color: '#f44336', fontWeight: 600 }}>プレビュー表示エラー</Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.5)' }}>{error}</Typography>
+                  <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{error}</Typography>
                 </Box>
               )}
 
@@ -198,7 +198,7 @@ export const PreviewDialog: React.FC<Props> = ({
               )}
 
               {!isLoading && !error && !glbUrl && !templatePath && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem', textAlign: 'center', maxWidth: 300 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: '0.9rem', textAlign: 'center', maxWidth: 300 }}>
                   プレビューデータが見つかりません。
                 </Typography>
               )}

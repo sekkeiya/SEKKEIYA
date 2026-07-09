@@ -121,7 +121,7 @@ export default function NormalToolbar({ variant = "inline", dense = true }) {
       alignItems: "center",
       flexWrap: "nowrap",
       gap: 1,
-      background: alpha("#050815", 0.72),
+      background: "color-mix(in srgb, var(--brand-bg) 72%, transparent)",
       backdropFilter: "blur(12px)",
       boxShadow: `0 10px 30px ${alpha("#000", 0.45)}`,
       minHeight: dense ? 40 : 44,
@@ -134,7 +134,7 @@ export default function NormalToolbar({ variant = "inline", dense = true }) {
     () => ({
       p: dense ? 0.6 : 0.75,
       borderRadius: 0.9,
-      color: alpha("#fff", 0.92),
+      color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)",
       border: `1px solid ${alpha("#fff", 0.12)}`,
       bgcolor: alpha("#fff", 0.03),
       "&:hover": {
@@ -150,7 +150,7 @@ export default function NormalToolbar({ variant = "inline", dense = true }) {
       ...iconBtnSx,
       bgcolor: alpha(theme.palette.primary.main, 0.85),
       borderColor: theme.palette.primary.main,
-      color: "#ffffff",
+      color: "var(--brand-fg)",
       boxShadow: `0 0 12px ${alpha(theme.palette.primary.main, 0.6)}`,
     }),
     [iconBtnSx, theme.palette.primary.main]

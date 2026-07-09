@@ -289,29 +289,29 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
   const isLoadingActiveScope = activeScope && activeScope !== 'project' && isFetchingCounts && (!alternativesCache[activeScope]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: '#1e1e1e', color: '#fff' } }}>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } }}>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
         家具を変える
-        <IconButton onClick={onClose} size="small" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+        <IconButton onClick={onClose} size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
       
       <DialogContent sx={{ p: 0 }}>
         {loading ? (
-          <Box p={4} textAlign="center" color="rgba(255,255,255,0.5)">
-            <CircularProgress size={24} sx={{ color: '#a78bfa', mb: 2 }} />
+          <Box p={4} textAlign="center" color="rgb(var(--brand-fg-rgb) / 0.5)">
+            <CircularProgress size={24} sx={{ color: 'light-dark(#2f07a6, #a78bfa)', mb: 2 }} />
             <Typography variant="body2">代替家具を読み込み中...</Typography>
           </Box>
         ) : uniquePlaced.length === 0 ? (
-          <Box p={4} textAlign="center" color="rgba(255,255,255,0.5)">
+          <Box p={4} textAlign="center" color="rgb(var(--brand-fg-rgb) / 0.5)">
             配置された家具がありません
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {/* Step 1: Select target furniture */}
-            <Box sx={{ p: 3, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#fff', mb: 2 }}>
+            <Box sx={{ p: 3, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'var(--brand-fg)', mb: 2 }}>
                 ステップ1：どの家具を変えますか？
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1, pt: 1, px: 1 }}>
@@ -342,11 +342,11 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
             {/* Step 2: Select replacement furniture */}
             {targetEntityId && (
               <Box sx={{ p: 3 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#fff', mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'var(--brand-fg)', mb: 2 }}>
                   ステップ2：変更先を選択
                 </Typography>
                 
-                <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+                <Box sx={{ mb: 3, p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     <Button
                       variant={scope === 'project' ? 'contained' : 'outlined'}
@@ -359,11 +359,11 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
                         borderRadius: 20,
                         textTransform: 'none',
                         bgcolor: scope === 'project' ? '#a78bfa' : 'transparent',
-                        color: scope === 'project' ? '#fff' : 'rgba(255,255,255,0.7)',
-                        borderColor: scope === 'project' ? 'transparent' : 'rgba(255,255,255,0.2)',
+                        color: scope === 'project' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                        borderColor: scope === 'project' ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.2)',
                         '&:hover': {
-                          bgcolor: scope === 'project' ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                          borderColor: scope === 'project' ? 'transparent' : 'rgba(255,255,255,0.3)',
+                          bgcolor: scope === 'project' ? '#8b5cf6' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                          borderColor: scope === 'project' ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.3)',
                         }
                       }}
                     >
@@ -381,11 +381,11 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
                         borderRadius: 20,
                         textTransform: 'none',
                         bgcolor: scope === 'following' ? '#a78bfa' : 'transparent',
-                        color: scope === 'following' ? '#fff' : 'rgba(255,255,255,0.7)',
-                        borderColor: scope === 'following' ? 'transparent' : 'rgba(255,255,255,0.2)',
+                        color: scope === 'following' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                        borderColor: scope === 'following' ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.2)',
                         '&:hover': {
-                          bgcolor: scope === 'following' ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                          borderColor: scope === 'following' ? 'transparent' : 'rgba(255,255,255,0.3)',
+                          bgcolor: scope === 'following' ? '#8b5cf6' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                          borderColor: scope === 'following' ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.3)',
                         }
                       }}
                     >
@@ -408,11 +408,11 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
                         borderRadius: 20,
                         textTransform: 'none',
                         bgcolor: scope === 'public' ? '#a78bfa' : 'transparent',
-                        color: scope === 'public' ? '#fff' : 'rgba(255,255,255,0.7)',
-                        borderColor: scope === 'public' ? 'transparent' : 'rgba(255,255,255,0.2)',
+                        color: scope === 'public' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                        borderColor: scope === 'public' ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.2)',
                         '&:hover': {
-                          bgcolor: scope === 'public' ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                          borderColor: scope === 'public' ? 'transparent' : 'rgba(255,255,255,0.3)',
+                          bgcolor: scope === 'public' ? '#8b5cf6' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                          borderColor: scope === 'public' ? 'transparent' : 'rgb(var(--brand-fg-rgb) / 0.3)',
                         }
                       }}
                     >
@@ -429,7 +429,7 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
                     variant="outlined" 
                     size="small"
                     onClick={() => setActiveScope(scope)}
-                    sx={{ color: '#a78bfa', borderColor: '#a78bfa', '&:hover': { borderColor: '#8b5cf6', bgcolor: 'rgba(167,139,250,0.1)' }, borderRadius: 20, px: 2, py: 0.5 }}
+                    sx={{ color: 'light-dark(#2f07a6, #a78bfa)', borderColor: '#a78bfa', '&:hover': { borderColor: '#8b5cf6', bgcolor: 'rgba(167,139,250,0.1)' }, borderRadius: 20, px: 2, py: 0.5 }}
                   >
                     代替家具を探す
                   </Button>
@@ -437,16 +437,16 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
 
                 {/* Results Grid */}
                 {!activeScope ? (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                     「代替家具を探す」をクリックして検索してください。
                   </Typography>
                 ) : isLoadingActiveScope ? (
                   <Box p={4} textAlign="center">
-                    <CircularProgress size={24} sx={{ color: '#a78bfa', mb: 2 }} />
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>検索中...</Typography>
+                    <CircularProgress size={24} sx={{ color: 'light-dark(#2f07a6, #a78bfa)', mb: 2 }} />
+                    <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>検索中...</Typography>
                   </Box>
                 ) : activeAlternatives.length === 0 ? (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                  <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                     同じカテゴリの代替家具が見つかりません。
                   </Typography>
                 ) : (
@@ -481,8 +481,8 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
         )}
       </DialogContent>
       
-      <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+      <DialogActions sx={{ p: 2, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
           キャンセル
         </Button>
         <Button 
@@ -492,7 +492,7 @@ export const FurnitureSwapDialog: React.FC<FurnitureSwapDialogProps> = ({
           sx={{ 
             bgcolor: '#a78bfa', 
             '&:hover': { bgcolor: '#8b5cf6' },
-            '&.Mui-disabled': { bgcolor: 'rgba(167, 139, 250, 0.3)', color: 'rgba(255,255,255,0.3)' }
+            '&.Mui-disabled': { bgcolor: 'rgba(167, 139, 250, 0.3)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' }
           }}
         >
           適用して変更

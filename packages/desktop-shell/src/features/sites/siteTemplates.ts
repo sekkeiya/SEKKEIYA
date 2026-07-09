@@ -65,7 +65,7 @@ export const SECTION_META: Record<SiteSectionType, SectionMeta> = {
   hero:         { label: 'ヒーロー',       description: 'プロジェクト名・キービジュアル', textOnly: true,  defaultLayout: 'full' },
   overview:     { label: '概要',           description: 'コンセプト・概要文',             textOnly: true,  defaultLayout: 'full' },
   layout:       { label: 'レイアウト',     description: 'S.Layout のレンダー',            textOnly: false, defaultLayout: 'grid' },
-  presentation: { label: 'プレゼン',       description: 'S.Presentations のスライド',     textOnly: false, defaultLayout: 'split' },
+  presentation: { label: 'プレゼン',       description: 'S.Slide のスライド',     textOnly: false, defaultLayout: 'split' },
   walkthrough:  { label: 'ウォークスルー', description: 'S.Layout のウォークスルーを埋め込み（操作可能）', textOnly: false, defaultLayout: 'full' },
   diagram:      { label: 'ダイアグラム',   description: 'S.Diagram',                      textOnly: false, defaultLayout: 'grid' },
   drawing:      { label: '図面',           description: 'S.Drawing の図面',              textOnly: false, defaultLayout: 'grid' },

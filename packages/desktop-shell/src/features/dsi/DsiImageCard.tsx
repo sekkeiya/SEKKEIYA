@@ -14,7 +14,7 @@ import { TEXTURE_SLOTS, type TextureGroup } from './textureGrouping';
 /**
  * カードの正方形サムネイル一辺（= カード本体の横幅）。
  * グリッド（DsiImageGrid）はこの値を固定カラム幅として使う。
- * S.Models と同じ「固定ピクセルで正方形を作る」方式。CSS の aspect-ratio /
+ * S.Model と同じ「固定ピクセルで正方形を作る」方式。CSS の aspect-ratio /
  * padding-top は実機（WebView2）で行高さに寄与せずカードが潰れるため使わない。
  */
 export const DSI_CARD_SIZE = 210;
@@ -88,11 +88,11 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
         borderRadius: 2,
         overflow: 'hidden',
         cursor: 'pointer',
-        bgcolor: 'rgba(255,255,255,0.03)',
-        border: `1px solid ${selBlue ? TEX_ACCENT : highlighted ? ACCENT : isGroup ? `${TEX_ACCENT}55` : 'rgba(255,255,255,0.08)'}`,
+        bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+        border: `1px solid ${selBlue ? TEX_ACCENT : highlighted ? ACCENT : isGroup ? `${TEX_ACCENT}55` : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
         boxShadow: selBlue ? `0 0 0 2px ${TEX_ACCENT}` : highlighted ? `0 0 0 1px ${ACCENT}` : 'none',
         transition: 'border-color 0.15s, box-shadow 0.15s',
-        '&:hover': { borderColor: 'rgba(255,255,255,0.25)', '& .dsi-card-actions': { opacity: 1 } },
+        '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', '& .dsi-card-actions': { opacity: 1 } },
       }}
     >
       {/* Thumbnail: 固定ピクセルの正方形（一辺 = DSI_CARD_SIZE）。 */}
@@ -101,7 +101,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
           position: 'relative',
           width: '100%',
           height: DSI_CARD_SIZE,
-          bgcolor: 'rgba(0,0,0,0.25)',
+          bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -121,11 +121,11 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
                 sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               />
               <PlayCircleOutlineRoundedIcon
-                sx={{ position: 'absolute', fontSize: 40, color: 'rgba(255,255,255,0.9)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}
+                sx={{ position: 'absolute', fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.9)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}
               />
             </>
           ) : (
-            <MovieRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.4)' }} />
+            <MovieRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
           )
         ) : (item.thumbnailUrl || item.downloadUrl) ? (
           <Box
@@ -137,7 +137,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
             sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
-          <ImageRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.4)' }} />
+          <ImageRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
         )}
 
         {/* 複数選択モード: チェックボックス（top-right） */}
@@ -145,7 +145,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
           <Box sx={{ position: 'absolute', top: 6, right: 6, zIndex: 2, display: 'flex', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.1 }}>
             {picked
               ? <CheckCircleRoundedIcon sx={{ fontSize: 22, color: ACCENT }} />
-              : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 22, color: 'rgba(255,255,255,0.8)' }} />}
+              : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 22, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }} />}
           </Box>
         )}
         {/* テクスチャ手動セット化モード: チェック（top-right、青系） */}
@@ -153,7 +153,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
           <Box sx={{ position: 'absolute', top: 6, right: 6, zIndex: 3, display: 'flex', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.1 }}>
             {selected
               ? <CheckCircleRoundedIcon sx={{ fontSize: 22, color: TEX_ACCENT }} />
-              : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 22, color: 'rgba(255,255,255,0.8)' }} />}
+              : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 22, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }} />}
           </Box>
         )}
         {/* 生成済みバッジ（ピッカーモード時、top-left に表示） */}
@@ -161,7 +161,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
           <Box sx={{
             position: 'absolute', top: 6, left: 6, zIndex: 3,
             px: 0.75, py: 0.25, borderRadius: 1, fontSize: 9.5, fontWeight: 700,
-            bgcolor: 'rgba(76,175,80,0.85)', color: '#fff', letterSpacing: 0.3,
+            bgcolor: 'rgba(76,175,80,0.85)', color: 'var(--brand-fg)', letterSpacing: 0.3,
             backdropFilter: 'blur(2px)',
           }}>
             生成済み
@@ -175,16 +175,16 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
               size="small"
               icon={<LayersRoundedIcon sx={{ fontSize: 12, color: '#fff !important' }} />}
               label={`${textureGroup?.items.length ?? 0} マップ`}
-              sx={{ height: 18, fontSize: 10, bgcolor: `${TEX_ACCENT}cc`, color: '#fff', '& .MuiChip-label': { pl: 0.5 } }}
+              sx={{ height: 18, fontSize: 10, bgcolor: `${TEX_ACCENT}cc`, color: 'var(--brand-fg)', '& .MuiChip-label': { pl: 0.5 } }}
             />
           ) : variant === 'set' ? (
-            <Chip size="small" label={`${setCount} 点`} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: '#fff' }} />
+            <Chip size="small" label={`${setCount} 点`} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)' }} />
           ) : isLinked ? (
             <Chip
               size="small"
               icon={<AutoAwesomeRoundedIcon sx={{ fontSize: 11, color: '#fff !important' }} />}
               label={SOURCE_LABEL[item.sourceType] || 'リンク'}
-              sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', '& .MuiChip-label': { pl: 0.5 } }}
+              sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)', '& .MuiChip-label': { pl: 0.5 } }}
             />
           ) : null}
         </Box>
@@ -196,7 +196,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
               <IconButton
                 size="small"
                 onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#ff4d4f', bgcolor: 'rgba(0,0,0,0.7)' } }}
+                sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: 'rgb(var(--brand-fg-rgb) / 0.8)', '&:hover': { color: '#ff4d4f', bgcolor: 'rgba(0,0,0,0.7)' } }}
               >
                 <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
               </IconButton>
@@ -212,7 +212,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
                 key={s.key}
                 sx={{
                   px: 0.75, py: 0.125, borderRadius: 0.75, fontSize: 9, fontWeight: 700, letterSpacing: 0.3,
-                  color: '#fff', bgcolor: 'rgba(0,0,0,0.6)', border: `1px solid ${TEX_ACCENT}77`,
+                  color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.6)', border: `1px solid ${TEX_ACCENT}77`,
                 }}
               >
                 {s.short}
@@ -229,11 +229,11 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
             bgcolor: 'rgba(0,0,0,0.72)',
             backdropFilter: 'blur(4px)',
           }}>
-            <Typography noWrap sx={{ color: '#fff', fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
+            <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
               {title}
             </Typography>
             {isGroup && (textureGroup?.tags || []).length > 0 && (
-              <Typography noWrap sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 9.5, lineHeight: 1.2, mt: 0.125 }}>
+              <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 9.5, lineHeight: 1.2, mt: 0.125 }}>
                 {(textureGroup?.tags || []).slice(0, 4).join(' · ')}
               </Typography>
             )}
@@ -244,7 +244,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
       {/* Meta（ピッカー時は非表示にして正方形カードに） */}
       {!pickMode && (
         <Box sx={{ px: 1.25, py: 1, height: DSI_META_HEIGHT, boxSizing: 'border-box', overflow: 'hidden' }}>
-          <Typography noWrap sx={{ color: '#fff', fontSize: 12.5, fontWeight: 600 }}>{title}</Typography>
+          <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 12.5, fontWeight: 600 }}>{title}</Typography>
           {isGroup ? (
             <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, overflow: 'hidden' }}>
               {/* 用途・部位（どこに使えるか）を優先表示 */}
@@ -253,7 +253,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
                   key={a}
                   size="small"
                   label={a}
-                  sx={{ height: 18, fontSize: 10, fontWeight: 600, color: '#fff', bgcolor: 'rgba(102,187,106,0.28)', border: '1px solid rgba(102,187,106,0.6)' }}
+                  sx={{ height: 18, fontSize: 10, fontWeight: 600, color: 'var(--brand-fg)', bgcolor: 'rgba(102,187,106,0.28)', border: '1px solid rgba(102,187,106,0.6)' }}
                 />
               ))}
             </Box>
@@ -261,7 +261,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
             <Chip
               size="small"
               label={category}
-              sx={{ mt: 0.5, height: 18, fontSize: 10, color: '#fff', bgcolor: `${CATEGORY_COLOR[category] || 'rgba(255,255,255,0.15)'}33`, border: `1px solid ${CATEGORY_COLOR[category] || 'rgba(255,255,255,0.2)'}55` }}
+              sx={{ mt: 0.5, height: 18, fontSize: 10, color: 'var(--brand-fg)', bgcolor: `${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.15)'}33`, border: `1px solid ${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.2)'}55` }}
             />
           )}
         </Box>

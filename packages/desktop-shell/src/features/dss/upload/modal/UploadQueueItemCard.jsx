@@ -102,8 +102,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
 
   // Modern UI: Less colorful, more unified.
   // AI Generated fields get a very subtle tint instead of bright purple.
-  const aiBgColor = isAiGenerated ? 'rgba(30, 144, 255, 0.05)' : 'rgba(255,255,255,0.03)';
-  const aiBorderColor = isAiGenerated ? 'rgba(30, 144, 255, 0.3)' : 'rgba(255,255,255,0.15)';
+  const aiBgColor = isAiGenerated ? 'rgba(30, 144, 255, 0.05)' : 'rgb(var(--brand-fg-rgb) / 0.03)';
+  const aiBorderColor = isAiGenerated ? 'rgba(30, 144, 255, 0.3)' : 'rgb(var(--brand-fg-rgb) / 0.15)';
   const [showExtras, setShowExtras] = useState(false);
 
   // Rule Applied state
@@ -123,7 +123,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
   const PremiumLoadingOverlay = () => (
     <Box sx={{
       position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      bgcolor: 'rgba(10, 15, 25, 0.65)',
+      bgcolor: 'light-dark(rgba(255,255,255,0.8), rgba(10, 15, 25, 0.65))',
       backdropFilter: 'blur(8px)',
       zIndex: 50,
       display: 'flex', flexDirection: 'column',
@@ -132,7 +132,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
       borderRadius: 'inherit'
     }}>
       <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress size={56} thickness={1.5} sx={{ color: 'rgba(255,255,255,0.05)', position: 'absolute' }} />
+        <CircularProgress size={56} thickness={1.5} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.05)', position: 'absolute' }} />
         <CircularProgress size={56} thickness={1.5} disableShrink sx={{
           color: 'transparent',
           animationDuration: '2.5s',
@@ -156,7 +156,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
         モデルを準備中… {item.preparingProgress ? `${item.preparingProgress}%` : ''}
       </Typography>
       {total > 0 && index !== undefined && (
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', mt: -2 }}>
+        <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.75rem', mt: -2 }}>
           {index + 1} / {total} 件
         </Typography>
       )}
@@ -175,10 +175,10 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
       componentsProps={{
         paper: {
           sx: {
-            bgcolor: '#2c2c2c',
-            color: '#fff',
+            bgcolor: 'var(--brand-surface2)',
+            color: 'var(--brand-fg)',
             backgroundImage: 'none',
-            border: '1px solid rgba(255,255,255,0.2)'
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)'
           }
         }
       }}
@@ -188,7 +188,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
           return (
             <Chip 
               variant="outlined" size="small" label={option} key={key} {...tagProps} 
-              sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(255,255,255,0.05)' }} 
+              sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} 
             />
           );
         })
@@ -209,8 +209,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
             ),
           }}
           sx={{ 
-             '& .MuiInputBase-root': { bgcolor: aiBgColor, borderRadius: 1.5, color: '#ffffff' },
-             '& .MuiInputLabel-root': { color: isAiGenerated ? '#1e90ff' : 'rgba(255,255,255,0.58)' },
+             '& .MuiInputBase-root': { bgcolor: aiBgColor, borderRadius: 1.5, color: 'var(--brand-fg)' },
+             '& .MuiInputLabel-root': { color: isAiGenerated ? '#1e90ff' : 'rgb(var(--brand-fg-rgb) / 0.58)' },
              '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor }
           }}
         />
@@ -228,9 +228,9 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
         }}
         sx={{
           cursor: onToggleSelect ? 'pointer' : 'default',
-          bgcolor: isSelected ? 'rgba(30, 144, 255, 0.12)' : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.05)' : 'rgba(77, 171, 245, 0.08)') : 'rgba(255, 255, 255, 0.02)',
+          bgcolor: isSelected ? 'rgba(30, 144, 255, 0.12)' : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.05)' : 'rgba(77, 171, 245, 0.08)') : 'rgb(var(--brand-fg-rgb) / 0.02)',
           borderRadius: 2,
-          border: isSelected ? '1px solid #1e90ff' : `1px solid ${item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.3)' : 'rgba(77, 171, 245, 0.35)') : 'rgba(255,255,255,0.06)'}`,
+          border: isSelected ? '1px solid #1e90ff' : `1px solid ${item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.3)' : 'rgba(77, 171, 245, 0.35)') : 'rgb(var(--brand-fg-rgb) / 0.06)'}`,
           transition: 'all 0.2s',
           position: 'relative',
           overflow: 'hidden',
@@ -238,7 +238,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
           flexDirection: 'column',
           height: '100%',
           '&:hover': {
-            bgcolor: isSelected ? 'rgba(30, 144, 255, 0.18)' : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.08)' : 'rgba(77, 171, 245, 0.12)') : 'rgba(255, 255, 255, 0.04)',
+            bgcolor: isSelected ? 'rgba(30, 144, 255, 0.18)' : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.08)' : 'rgba(77, 171, 245, 0.12)') : 'rgb(var(--brand-fg-rgb) / 0.04)',
             boxShadow: isSelected ? '0 0 0 1px rgba(30, 144, 255, 0.6), 0 4px 16px rgba(30, 144, 255, 0.2)' : '0 4px 12px rgba(0,0,0,0.3)'
           }
         }}
@@ -246,7 +246,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
         {/* Selection Checkbox */}
         {onToggleSelect && (
           <Box sx={{ position: 'absolute', top: 4, right: 4, zIndex: 10 }}>
-            <Checkbox checked={!!isSelected} onChange={() => onToggleSelect(item.id)} size="small" sx={{ p: 0.5, color: 'rgba(255,255,255,0.7)', bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 1, '&.Mui-checked': { color: '#1e90ff', bgcolor: 'rgba(0,0,0,0.6)' } }} />
+            <Checkbox checked={!!isSelected} onChange={() => onToggleSelect(item.id)} size="small" sx={{ p: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 1, '&.Mui-checked': { color: '#1e90ff', bgcolor: 'rgba(0,0,0,0.6)' } }} />
           </Box>
         )}
 
@@ -255,19 +255,19 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
           {item.thumbnailPreviewUrl || item.thumbnailUrl ? (
             <img src={item.thumbnailPreviewUrl || item.thumbnailUrl} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: item.uploadEnabled ? 1 : 0.4, filter: item.uploadEnabled ? 'none' : 'grayscale(80%)' }} />
           ) : (
-            <Typography variant="h5" sx={{ color: 'rgba(255,255,255,0.2)', fontWeight: 800 }}>{item.filename.split('.').pop().toUpperCase()}</Typography>
+            <Typography variant="h5" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontWeight: 800 }}>{item.filename.split('.').pop().toUpperCase()}</Typography>
           )}
 
           {/* Badges Overlay */}
           <Stack spacing={0.5} sx={{ position: 'absolute', top: 4, left: 4, zIndex: 5, alignItems: 'flex-start', display: isPreparing ? 'none' : 'flex' }}>
-            {!item.uploadEnabled && <Chip label="除外" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#444', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }} />}
+            {!item.uploadEnabled && <Chip label="除外" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#444', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)' }} />}
             {isUnset && !isError && !isUploading && !isDone && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="未設定" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#ff9800', color: '#000', '& .MuiChip-icon': { color: '#000', ml: 0.5, mr: -0.5 } }} />}
             {hasDuplicate && !isDone && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label={isDuplicateExact ? "重複" : "類似"} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: isDuplicateExact ? '#ff9800' : '#ffcc80', color: '#000', '& .MuiChip-icon': { color: '#000' } }} />}
             {hasRuleApplied && !isAiGenerated && <Chip label="✨ ルール自動入力" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: 'rgba(0, 150, 136, 0.2)', color: '#4db6ac', border: '1px solid rgba(77, 182, 172, 0.3)' }} />}
-            {isAiGenerated && <Chip label="🪄 AI補完" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#ba68c8', color: '#fff' }} />}
-            {item.conversionStatus === 'done' && <Chip label="GLB生成済" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#2e7d32', color: '#fff' }} />}
-            {item.conversionStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="GLB変換失敗" title={item.conversionError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: '#fff', '& .MuiChip-icon': { ml: 0.5, color: '#fff' } }} />}
-            {item.thumbnailStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="サムネ生成失敗" title={item.thumbnailError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: '#fff', '& .MuiChip-icon': { ml: 0.5, color: '#fff' } }} />}
+            {isAiGenerated && <Chip label="🪄 AI補完" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#ba68c8', color: 'var(--brand-fg)' }} />}
+            {item.conversionStatus === 'done' && <Chip label="GLB生成済" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#2e7d32', color: 'var(--brand-fg)' }} />}
+            {item.conversionStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="GLB変換失敗" title={item.conversionError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: 'var(--brand-fg)', '& .MuiChip-icon': { ml: 0.5, color: 'var(--brand-fg)' } }} />}
+            {item.thumbnailStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="サムネ生成失敗" title={item.thumbnailError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: 'var(--brand-fg)', '& .MuiChip-icon': { ml: 0.5, color: 'var(--brand-fg)' } }} />}
             {(!isDone && isUploading || isError || ['waiting'].includes(item.status)) && (
               <Chip icon={statusDisplay.icon} label={statusDisplay.label} color={statusDisplay.color} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, backdropFilter: 'blur(4px)', background: statusDisplay.color === 'default' ? 'rgba(0,0,0,0.6)' : undefined, '& .MuiChip-icon': { ml: 0.5 } }} />
             )}
@@ -277,10 +277,10 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
         {/* Content area */}
         <Box sx={{ p: 1.5, flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ maxWidth: '100%' }}>
-            <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: 'white', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.filename}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: 'var(--brand-fg)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.filename}>
               {item.filename}
             </Typography>
-            <Chip label={item.ext.toUpperCase()} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', borderRadius: 1 }} />
+            <Chip label={item.ext.toUpperCase()} size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 800, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.7)', borderRadius: 1 }} />
           </Stack>
           
           <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -288,7 +288,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
               control={
                 <Switch size="small" checked={item.uploadEnabled} onChange={(e) => handleUpdate({ uploadEnabled: e.target.checked })} disabled={isDisabled} color="primary" sx={{ mr: 0 }} />
               }
-              label={<Typography variant="caption" sx={{ fontWeight: 600, color: item.uploadEnabled ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)' }}>{item.uploadEnabled ? 'ON' : 'OFF'}</Typography>}
+              label={<Typography variant="caption" sx={{ fontWeight: 600, color: item.uploadEnabled ? 'rgb(var(--brand-fg-rgb) / 0.9)' : 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{item.uploadEnabled ? 'ON' : 'OFF'}</Typography>}
               sx={{ m: 0 }}
             />
           </Box>
@@ -309,12 +309,12 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
       cursor: onToggleSelect ? 'pointer' : 'default',
       bgcolor: isSelected 
         ? 'rgba(30, 144, 255, 0.12)' 
-        : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.05)' : 'rgba(77, 171, 245, 0.08)') : 'rgba(255, 255, 255, 0.02)', 
+        : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.05)' : 'rgba(77, 171, 245, 0.08)') : 'rgb(var(--brand-fg-rgb) / 0.02)', 
       borderRadius: isCompactView ? 2 : 3, 
       border: isSelected
         ? '1px solid #1e90ff'
-        : `1px solid ${item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.3)' : 'rgba(77, 171, 245, 0.35)') : 'rgba(255,255,255,0.06)'}`,
-      borderLeft: item.uploadEnabled ? `4px solid ${borderColor}` : `4px solid rgba(255,255,255,0.1)`,
+        : `1px solid ${item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.3)' : 'rgba(77, 171, 245, 0.35)') : 'rgb(var(--brand-fg-rgb) / 0.06)'}`,
+      borderLeft: item.uploadEnabled ? `4px solid ${borderColor}` : `4px solid rgb(var(--brand-fg-rgb) / 0.1)`,
       transition: 'all 0.2s',
       boxShadow: isSelected
         ? '0 0 0 1px rgba(30, 144, 255, 0.5), 0 4px 20px rgba(30, 144, 255, 0.15)'
@@ -322,7 +322,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
       position: 'relative',
       overflow: 'visible',
       '&:hover': { 
-        bgcolor: isSelected ? 'rgba(30, 144, 255, 0.18)' : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.08)' : 'rgba(77, 171, 245, 0.12)') : 'rgba(255, 255, 255, 0.04)', 
+        bgcolor: isSelected ? 'rgba(30, 144, 255, 0.18)' : item.uploadEnabled ? (hasErrorOrUnset ? 'rgba(255, 152, 0, 0.08)' : 'rgba(77, 171, 245, 0.12)') : 'rgb(var(--brand-fg-rgb) / 0.04)', 
         boxShadow: isSelected ? '0 0 0 1px rgba(30, 144, 255, 0.6), 0 6px 24px rgba(30, 144, 255, 0.25)' : item.uploadEnabled ? (hasErrorOrUnset ? '0 4px 20px rgba(255, 152, 0, 0.15)' : '0 4px 20px rgba(77, 171, 245, 0.25)') : '0 4px 16px rgba(0,0,0,0.4)' 
       }
     }}>
@@ -338,7 +338,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
          <Chip 
            label="除外" 
            size="small" 
-           sx={{ position: 'absolute', top: -10, right: isCompactView ? 30 : 100, fontWeight: 700, height: 20, fontSize: '0.65rem', zIndex: 10, bgcolor: '#444444', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)' }}
+           sx={{ position: 'absolute', top: -10, right: isCompactView ? 30 : 100, fontWeight: 700, height: 20, fontSize: '0.65rem', zIndex: 10, bgcolor: '#444444', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)' }}
          />
       )}
       
@@ -383,7 +383,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
              position: 'absolute', top: -10, right: isCompactView ? 80 : 160, 
              fontWeight: 700, height: 22, fontSize: '0.7rem', zIndex: 10, 
              bgcolor: '#ba68c8', 
-             color: '#fff'
+             color: 'var(--brand-fg)'
            }}
          />
       )}
@@ -403,7 +403,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
             overflow: 'hidden',
             flexShrink: 0,
             position: 'relative',
-            border: '1px solid rgba(255,255,255,0.05)'
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)'
           }}>
             {item.thumbnailPreviewUrl || item.thumbnailUrl ? (
               <img
@@ -412,16 +412,16 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                 style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: item.uploadEnabled ? 1 : 0.4, filter: item.uploadEnabled ? 'none' : 'grayscale(80%)' }}
               />
             ) : (
-              <Typography variant={isCompactView ? "h5" : "h3"} sx={{ color: 'rgba(255,255,255,0.2)', fontWeight: 800 }}>
+              <Typography variant={isCompactView ? "h5" : "h3"} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontWeight: 800 }}>
                 {item.filename.split('.').pop().toUpperCase()}
               </Typography>
             )}
             
             {(!isCompactView || isUploading || isError || isDone || ['waiting'].includes(item.status)) && !isPreparing && (
               <Stack spacing={0.5} sx={{ position: 'absolute', top: 4, left: 4, zIndex: 10, alignItems: 'flex-start' }}>
-                {item.conversionStatus === 'done' && <Chip label="GLB生成済" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#2e7d32', color: '#fff' }} />}
-                {item.conversionStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="GLB変換失敗" title={item.conversionError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: '#fff', '& .MuiChip-icon': { ml: 0.5, color: '#fff' } }} />}
-                {item.thumbnailStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="サムネ生成失敗" title={item.thumbnailError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: '#fff', '& .MuiChip-icon': { ml: 0.5, color: '#fff' } }} />}
+                {item.conversionStatus === 'done' && <Chip label="GLB生成済" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#2e7d32', color: 'var(--brand-fg)' }} />}
+                {item.conversionStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="GLB変換失敗" title={item.conversionError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: 'var(--brand-fg)', '& .MuiChip-icon': { ml: 0.5, color: 'var(--brand-fg)' } }} />}
+                {item.thumbnailStatus === 'error' && <Chip icon={<WarningIcon sx={{ fontSize: '0.8rem' }} />} label="サムネ生成失敗" title={item.thumbnailError} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#d32f2f', color: 'var(--brand-fg)', '& .MuiChip-icon': { ml: 0.5, color: 'var(--brand-fg)' } }} />}
                 {(!isDone && isUploading || isError || ['waiting'].includes(item.status)) && (
                   <Chip
                     icon={statusDisplay.icon}
@@ -446,11 +446,11 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
             <Stack direction="row" justifyContent="space-between" alignItems={isCompactView ? "center" : "flex-start"} mb={isCompactView ? 1.5 : 2}>
               <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
                 {!isCompactView && (
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.58)', letterSpacing: '0.05em', fontWeight: 600 }}>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', letterSpacing: '0.05em', fontWeight: 600 }}>
                     ORIGINAL FILE
                   </Typography>
                 )}
-                <Typography component="div" variant="body2" noWrap sx={{ fontWeight: 600, mt: 0.2, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 1 }} title={item.filename}>
+                <Typography component="div" variant="body2" noWrap sx={{ fontWeight: 600, mt: 0.2, color: 'var(--brand-fg)', display: 'flex', alignItems: 'center', gap: 1 }} title={item.filename}>
                   {item.filename}
                   {isAiLoading && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#1e90ff', bgcolor: 'rgba(30, 144, 255, 0.1)', px: 1, py: 0.25, borderRadius: 1 }}>
@@ -459,7 +459,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                     </Box>
                   )}
                   {isAiError && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#ffb74d', bgcolor: 'rgba(255, 152, 0, 0.15)', px: 1, py: 0.25, borderRadius: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'light-dark(#ad6700, #ffb74d)', bgcolor: 'rgba(255, 152, 0, 0.15)', px: 1, py: 0.25, borderRadius: 1 }}>
                       <WarningIcon sx={{ fontSize: 12 }} />
                       <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>AI入力失敗</Typography>
                     </Box>
@@ -472,7 +472,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                       checked={!!isSelected}
                       onChange={() => onToggleSelect(item.id)}
                       size="small"
-                      sx={{ color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: '#1e90ff' } }}
+                      sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&.Mui-checked': { color: '#1e90ff' } }}
                     />
                   )}
                   <FormControlLabel
@@ -493,14 +493,14 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                         color="success"
                       />
                     }
-                    label={<Typography variant="caption" sx={{ fontWeight: 600, color: item.uploadEnabled ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0.58)' }}>{item.uploadEnabled ? "アップロード対象" : "除外"}</Typography>}
+                    label={<Typography variant="caption" sx={{ fontWeight: 600, color: item.uploadEnabled ? 'rgb(var(--brand-fg-rgb) / 0.78)' : 'rgb(var(--brand-fg-rgb) / 0.58)' }}>{item.uploadEnabled ? "アップロード対象" : "除外"}</Typography>}
                     sx={{ m: 0, mr: 1 }}
                   />
                   {!isUploading && !isDone && (
                     <IconButton 
                       size="small" 
                       onClick={() => removeQueueItem(item.id)} 
-                      sx={{ color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#ff4444', bgcolor: 'rgba(255,68,68,0.1)' } }}
+                      sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: '#ff4444', bgcolor: 'rgba(255,68,68,0.1)' } }}
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -510,8 +510,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
 
             {/* Duplicate Action Area */}
             {hasDuplicate && !isDone && !isCompactView && (
-              <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(0, 0, 0, 0.2)', border: `1px solid ${isDuplicateExact ? 'rgba(255,152,0,0.4)' : 'rgba(255,204,128,0.3)'}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography variant="caption" sx={{ color: isDuplicateExact ? '#ffb74d' : '#ffe0b2', fontWeight: 600 }}>
+              <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0, 0, 0, 0.2))', border: `1px solid ${isDuplicateExact ? 'rgba(255,152,0,0.4)' : 'rgba(255,204,128,0.3)'}`, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="caption" sx={{ color: isDuplicateExact ? 'light-dark(#ad6700, #ffb74d)' : 'light-dark(#ad6800, #ffe0b2)', fontWeight: 600 }}>
                   {isDuplicateExact ? '⚠️ 完全一致するファイル（名前＋サイズ）が既に存在します' : '💡 同名のファイルが存在します'}
                 </Typography>
                 
@@ -519,13 +519,13 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                   {item.duplicateInfo?.matchedThumb ? (
                     <img src={item.duplicateInfo.matchedThumb} alt="matched" style={{ width: 44, height: 44, borderRadius: 4, objectFit: 'cover', opacity: 0.8 }} />
                   ) : (
-                    <Box sx={{ width: 44, height: 44, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Typography variant="caption" sx={{ color: 'white', fontSize: '0.6rem' }}>NO IMG</Typography>
+                    <Box sx={{ width: 44, height: 44, borderRadius: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Typography variant="caption" sx={{ color: 'var(--brand-fg)', fontSize: '0.6rem' }}>NO IMG</Typography>
                     </Box>
                   )}
                   <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography variant="caption" noWrap sx={{ display: 'block', color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>既存: {item.duplicateInfo?.matchedFilename}</Typography>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                    <Typography variant="caption" noWrap sx={{ display: 'block', color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 600 }}>既存: {item.duplicateInfo?.matchedFilename}</Typography>
+                    <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                        {item.duplicateInfo?.matchedSize ? `${(item.duplicateInfo.matchedSize / 1024 / 1024).toFixed(2)} MB` : ''} 
                        {item.duplicateInfo?.matchedUpdatedAt ? ` • 最終更新: ${new Date(item.duplicateInfo.matchedUpdatedAt).toLocaleDateString()}` : ''}
                     </Typography>
@@ -551,16 +551,16 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                     }}
                     disabled={isDisabled}
                     sx={{
-                      bgcolor: 'rgba(0,0,0,0.3)',
+                      bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))',
                       height: 28,
                       '& .MuiToggleButton-root': {
-                        color: 'rgba(255,255,255,0.6)',
-                        borderColor: 'rgba(255,255,255,0.15)',
+                        color: 'rgb(var(--brand-fg-rgb) / 0.6)',
+                        borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)',
                         py: 0, px: 2,
                         textTransform: 'none',
                         fontSize: '0.75rem',
                         fontWeight: 600,
-                        '&.Mui-selected': { bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }
+                        '&.Mui-selected': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)', color: 'var(--brand-fg)' }
                       }
                     }}
                   >
@@ -576,21 +576,21 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
             {item.ext === 'gh' && (
               <Box sx={{ mb: 2, p: 2, borderRadius: 2, bgcolor: 'rgba(255,152,0,0.1)', border: '1px solid rgba(255,152,0,0.4)' }}>
                 <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
-                  <WarningIcon sx={{ color: '#ffb74d', fontSize: 18 }} />
-                  <Typography variant="caption" sx={{ color: '#ffb74d', fontWeight: 700, fontSize: '0.78rem' }}>
+                  <WarningIcon sx={{ color: 'light-dark(#ad6700, #ffb74d)', fontSize: 18 }} />
+                  <Typography variant="caption" sx={{ color: 'light-dark(#ad6700, #ffb74d)', fontWeight: 700, fontSize: '0.78rem' }}>
                     RhinoファイルをこのGHスクリプトに紐づけてください
                   </Typography>
                 </Stack>
                 {item.companion3dmFile ? (
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 1, px: 1.5, py: 0.75 }}>
-                    <Typography variant="caption" noWrap sx={{ flex: 1, color: '#a5d6a7', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 1, px: 1.5, py: 0.75 }}>
+                    <Typography variant="caption" noWrap sx={{ flex: 1, color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontFamily: 'monospace', fontSize: '0.75rem' }}>
                       ✓ {item.companion3dmFile.name}
                     </Typography>
                     {!isDisabled && (
                       <IconButton
                         size="small"
                         onClick={() => handleUpdate({ companion3dmFile: null, uploadEnabled: false })}
-                        sx={{ color: 'rgba(255,255,255,0.3)', p: 0.25, '&:hover': { color: '#ff4444' } }}
+                        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', p: 0.25, '&:hover': { color: '#ff4444' } }}
                       >
                         <DeleteIcon sx={{ fontSize: 14 }} />
                       </IconButton>
@@ -602,7 +602,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                     component="label"
                     startIcon={<AddIcon sx={{ fontSize: 14 }} />}
                     variant="outlined"
-                    sx={{ color: '#ffb74d', borderColor: 'rgba(255,152,0,0.5)', fontSize: '0.75rem', '&:hover': { borderColor: '#ffb74d', bgcolor: 'rgba(255,152,0,0.1)' } }}
+                    sx={{ color: 'light-dark(#ad6700, #ffb74d)', borderColor: 'rgba(255,152,0,0.5)', fontSize: '0.75rem', '&:hover': { borderColor: '#ffb74d', bgcolor: 'rgba(255,152,0,0.1)' } }}
                   >
                     Rhinoファイルを選択 (.3dm)
                     <input
@@ -639,8 +639,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                       startAdornment: isAiGenerated ? <InputAdornment position="start"><AutoAwesomeIcon sx={{ color: '#1e90ff', fontSize: 16 }} /></InputAdornment> : null,
                     }}
                     sx={{ 
-                      '& .MuiInputBase-root': { bgcolor: aiBgColor, borderRadius: 1.5, color: '#ffffff' },
-                      '& .MuiInputLabel-root': { color: isAiGenerated ? '#1e90ff' : 'rgba(255,255,255,0.58)' },
+                      '& .MuiInputBase-root': { bgcolor: aiBgColor, borderRadius: 1.5, color: 'var(--brand-fg)' },
+                      '& .MuiInputLabel-root': { color: isAiGenerated ? '#1e90ff' : 'rgb(var(--brand-fg-rgb) / 0.58)' },
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor }
                     }}
                   />
@@ -659,13 +659,13 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                           height: 40, 
                           minWidth: 'auto', 
                           px: 2, 
-                          borderColor: 'rgba(255,255,255,0.3)', 
-                          color: 'rgba(255,255,255,0.7)',
+                          borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)', 
+                          color: 'rgb(var(--brand-fg-rgb) / 0.7)',
                           whiteSpace: 'nowrap',
                           '&:hover': {
-                             bgcolor: 'rgba(255, 255, 255, 0.05)',
+                             bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
                              borderColor: '#fff',
-                             color: '#fff'
+                             color: 'var(--brand-fg)'
                           }
                         }}
                       >
@@ -689,16 +689,16 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                       handleUpdate({ macroCategory: e.target.value, mainCategory: '', subCategory: '', ...clearAiFlag() })
                     }}
                     startAdornment={isAiGenerated ? <InputAdornment position="start" sx={{ pl: 1, mr: -0.5 }}><AutoAwesomeIcon sx={{ color: '#1e90ff', fontSize: 16 }} /></InputAdornment> : null}
-                    sx={{ bgcolor: aiBgColor, borderRadius: 1.5, color: '#ffffff', '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.78)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor } }}
-                    MenuProps={{ PaperProps: { sx: { bgcolor: '#2c2c2c', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' } } }}
+                    sx={{ bgcolor: aiBgColor, borderRadius: 1.5, color: 'var(--brand-fg)', '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.78)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor } }}
+                    MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)' } } }}
                   >
                     {safeMacroCategories.map(cat => (
                       <MenuItem key={cat} value={cat}>
                         {cat} {isAiGenerated && normalizedMacroCategory === cat && ' 🪄'}
                       </MenuItem>
                     ))}
-                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-                    <MenuItem value="__add_new__" sx={{ color: '#64b5f6', fontWeight: 'bold' }}>
+                    <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
+                    <MenuItem value="__add_new__" sx={{ color: 'light-dark(#0a5fa4, #64b5f6)', fontWeight: 'bold' }}>
                       <AddIcon fontSize="small" sx={{ mr: 1 }} />
                       新しいカテゴリを追加
                     </MenuItem>
@@ -718,18 +718,18 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                     }}
                     displayEmpty
                     startAdornment={isAiGenerated ? <InputAdornment position="start" sx={{ pl: 1, mr: -0.5 }}><AutoAwesomeIcon sx={{ color: '#1e90ff', fontSize: 16 }} /></InputAdornment> : null}
-                    sx={{ bgcolor: isUnset && item.uploadEnabled && !isUploading && !isDone ? 'rgba(255, 152, 0, 0.1)' : aiBgColor, borderRadius: 1.5, color: '#ffffff', '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.78)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: isUnset && item.uploadEnabled && !isUploading && !isDone ? '#ff9800' : aiBorderColor } }}
-                    MenuProps={{ PaperProps: { sx: { bgcolor: '#2c2c2c', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' } } }}
+                    sx={{ bgcolor: isUnset && item.uploadEnabled && !isUploading && !isDone ? 'rgba(255, 152, 0, 0.1)' : aiBgColor, borderRadius: 1.5, color: 'var(--brand-fg)', '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.78)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: isUnset && item.uploadEnabled && !isUploading && !isDone ? '#ff9800' : aiBorderColor } }}
+                    MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)' } } }}
                   >
-                    <MenuItem value="" disabled sx={{ color: 'rgba(255,255,255,0.5)' }}>カテゴリを選択...</MenuItem>
+                    <MenuItem value="" disabled sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>カテゴリを選択...</MenuItem>
                     {safeMainCategories.map(cat => (
                       <MenuItem key={cat} value={cat}>
                         {cat} {isAiGenerated && normalizedMainCategory === cat && ' 🪄'}
                       </MenuItem>
                     ))}
                     {normalizedMacroCategory && [
-                      <Divider key="div" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />,
-                      <MenuItem key="add" value="__add_new__" sx={{ color: '#64b5f6', fontWeight: 'bold' }}>
+                      <Divider key="div" sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />,
+                      <MenuItem key="add" value="__add_new__" sx={{ color: 'light-dark(#0a5fa4, #64b5f6)', fontWeight: 'bold' }}>
                         <AddIcon fontSize="small" sx={{ mr: 1 }} />
                         新しいカテゴリを追加
                       </MenuItem>
@@ -753,18 +753,18 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                         }}
                         displayEmpty
                         startAdornment={isAiGenerated ? <InputAdornment position="start" sx={{ pl: 1, mr: -0.5 }}><AutoAwesomeIcon sx={{ color: '#1e90ff', fontSize: 16 }} /></InputAdornment> : null}
-                        sx={{ bgcolor: aiBgColor, borderRadius: 1.5, color: '#ffffff', '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.78)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor } }}
-                        MenuProps={{ PaperProps: { sx: { bgcolor: '#2c2c2c', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' } } }}
+                        sx={{ bgcolor: aiBgColor, borderRadius: 1.5, color: 'var(--brand-fg)', '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.78)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor } }}
+                        MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)' } } }}
                       >
-                        <MenuItem value="" sx={{ color: 'rgba(255,255,255,0.5)' }}>{availableSubCategories.length > 0 ? '詳細選択...' : '詳細なし'}</MenuItem>
+                        <MenuItem value="" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{availableSubCategories.length > 0 ? '詳細選択...' : '詳細なし'}</MenuItem>
                         {availableSubCategories.map(sub => (
                           <MenuItem key={sub} value={sub}>
                             {sub} {isAiGenerated && normalizedSubCategory === sub && ' 🪄'}
                           </MenuItem>
                         ))}
                         {normalizedMainCategory && [
-                          <Divider key="div" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />,
-                          <MenuItem key="add" value="__add_new__" sx={{ color: '#64b5f6', fontWeight: 'bold' }}>
+                          <Divider key="div" sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />,
+                          <MenuItem key="add" value="__add_new__" sx={{ color: 'light-dark(#0a5fa4, #64b5f6)', fontWeight: 'bold' }}>
                             <AddIcon fontSize="small" sx={{ mr: 1 }} />
                             新しいカテゴリを追加
                           </MenuItem>
@@ -782,8 +782,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                         value={dims.width}
                         onChange={(e) => handleUpdate({ dimensions: { ...dims, width: e.target.value }, dimensionSource: 'manual' })}
                         disabled={isDisabled}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" color="rgba(255,255,255,0.5)">mm</Typography></InputAdornment> }}
-                        sx={{ flex: 1, '& .MuiInputBase-root': { bgcolor: '#242424', borderRadius: 1.5, color: '#ffffff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.58)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' } }}
+                        InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" color="rgb(var(--brand-fg-rgb) / 0.5)">mm</Typography></InputAdornment> }}
+                        sx={{ flex: 1, '& .MuiInputBase-root': { bgcolor: 'var(--brand-surface2)', borderRadius: 1.5, color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.58)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
                       />
                       <TextField
                         size="small"
@@ -792,8 +792,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                         value={dims.depth}
                         onChange={(e) => handleUpdate({ dimensions: { ...dims, depth: e.target.value }, dimensionSource: 'manual' })}
                         disabled={isDisabled}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" color="rgba(255,255,255,0.5)">mm</Typography></InputAdornment> }}
-                        sx={{ flex: 1, '& .MuiInputBase-root': { bgcolor: '#242424', borderRadius: 1.5, color: '#ffffff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.58)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' } }}
+                        InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" color="rgb(var(--brand-fg-rgb) / 0.5)">mm</Typography></InputAdornment> }}
+                        sx={{ flex: 1, '& .MuiInputBase-root': { bgcolor: 'var(--brand-surface2)', borderRadius: 1.5, color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.58)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
                       />
                       <TextField
                         size="small"
@@ -802,8 +802,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                         value={dims.height}
                         onChange={(e) => handleUpdate({ dimensions: { ...dims, height: e.target.value }, dimensionSource: 'manual' })}
                         disabled={isDisabled}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" color="rgba(255,255,255,0.5)">mm</Typography></InputAdornment> }}
-                        sx={{ flex: 1, '& .MuiInputBase-root': { bgcolor: '#242424', borderRadius: 1.5, color: '#ffffff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.58)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' } }}
+                        InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" color="rgb(var(--brand-fg-rgb) / 0.5)">mm</Typography></InputAdornment> }}
+                        sx={{ flex: 1, '& .MuiInputBase-root': { bgcolor: 'var(--brand-surface2)', borderRadius: 1.5, color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.58)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
                       />
                     </Stack>
                   </Grid>
@@ -828,7 +828,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                               label={option} 
                               key={key} 
                               {...tagProps} 
-                              sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(255,255,255,0.05)' }} 
+                              sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }} 
                             />
                           );
                         })
@@ -849,8 +849,8 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                             ),
                           }}
                           sx={{ 
-                             '& .MuiInputBase-root': { bgcolor: aiBgColor, borderRadius: 1.5, color: '#ffffff' },
-                             '& .MuiInputLabel-root': { color: isAiGenerated ? '#1e90ff' : 'rgba(255,255,255,0.58)' },
+                             '& .MuiInputBase-root': { bgcolor: aiBgColor, borderRadius: 1.5, color: 'var(--brand-fg)' },
+                             '& .MuiInputLabel-root': { color: isAiGenerated ? '#1e90ff' : 'rgb(var(--brand-fg-rgb) / 0.58)' },
                              '& .MuiOutlinedInput-notchedOutline': { borderColor: aiBorderColor }
                           }}
                         />
@@ -860,12 +860,12 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
 
                   {!isCompactView && (
                     <Grid size={{ xs: 12 }}>
-                      <Divider sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.1)' }} />
+                      <Divider sx={{ my: 0.5, borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
                       <Button 
                         size="small" 
                         onClick={() => setShowExtras(!showExtras)}
                         endIcon={<ExpandMoreIcon sx={{ transform: showExtras ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />}
-                        sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#fff', bgcolor: 'transparent' }, px: 0, fontWeight: 600, fontSize: '0.75rem' }}
+                        sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'transparent' }, px: 0, fontWeight: 600, fontSize: '0.75rem' }}
                       >
                         詳細メタデータ (マテリアル・機能空間など)
                       </Button>
@@ -904,7 +904,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                         color="primary"
                       />
                     }
-                    label={<Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.78)' }}>公開する</Typography>}
+                    label={<Typography variant="caption" sx={{ fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.78)' }}>公開する</Typography>}
                     sx={{ m: 0 }}
                   />
                 </Grid>
@@ -946,18 +946,18 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                 {(item.ghFiles?.length > 0) ? (
                   <Stack spacing={0.5}>
                     {item.ghFiles.map((ghFile, idx) => (
-                      <Stack key={idx} direction="row" alignItems="center" spacing={0.5} sx={{ bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 1, px: 1, py: 0.4 }}>
-                        <Typography variant="caption" noWrap sx={{ flex: 1, color: 'rgba(255,255,255,0.8)', fontSize: '0.72rem', fontFamily: 'monospace' }}>
+                      <Stack key={idx} direction="row" alignItems="center" spacing={0.5} sx={{ bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 1, px: 1, py: 0.4 }}>
+                        <Typography variant="caption" noWrap sx={{ flex: 1, color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: '0.72rem', fontFamily: 'monospace' }}>
                           {ghFile.name}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem', flexShrink: 0 }}>
+                        <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: '0.65rem', flexShrink: 0 }}>
                           {(ghFile.size / 1024).toFixed(1)} KB
                         </Typography>
                         {!isDisabled && (
                           <IconButton
                             size="small"
                             onClick={() => handleUpdate({ ghFiles: (item.ghFiles || []).filter((_, i) => i !== idx) })}
-                            sx={{ color: 'rgba(255,255,255,0.25)', p: 0.2, '&:hover': { color: '#ff4444' } }}
+                            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', p: 0.2, '&:hover': { color: '#ff4444' } }}
                           >
                             <DeleteIcon sx={{ fontSize: 13 }} />
                           </IconButton>
@@ -966,7 +966,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                     ))}
                   </Stack>
                 ) : (
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.68rem' }}>
+                  <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: '0.68rem' }}>
                     Grasshopperスクリプト未添付（任意）
                   </Typography>
                 )}
@@ -988,7 +988,7 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                           color="primary"
                         />
                       }
-                      label={<Typography variant="body2" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.78)' }}>一般公開する</Typography>}
+                      label={<Typography variant="body2" sx={{ fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.78)' }}>一般公開する</Typography>}
                     />
                   </Stack>
                 )}
@@ -1004,10 +1004,10 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
                 {isUploading && (
                   <Box sx={{ width: '100%', mt: 1.5 }}>
                     <Stack direction="row" justifyContent="space-between" mb={0.5}>
-                      <Typography variant="caption" sx={{ color: '#4dabf5', fontWeight: 600 }}>{statusDisplay.label}</Typography>
-                      <Typography variant="caption" sx={{ color: '#4dabf5', fontWeight: 600 }}>{Math.round(item.progress)}%</Typography>
+                      <Typography variant="caption" sx={{ color: 'light-dark(#0960a4, #4dabf5)', fontWeight: 600 }}>{statusDisplay.label}</Typography>
+                      <Typography variant="caption" sx={{ color: 'light-dark(#0960a4, #4dabf5)', fontWeight: 600 }}>{Math.round(item.progress)}%</Typography>
                     </Stack>
-                    <LinearProgress variant="determinate" value={item.progress} sx={{ height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.1)' }} />
+                    <LinearProgress variant="determinate" value={item.progress} sx={{ height: 6, borderRadius: 3, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
                   </Box>
                 )}
               </Box>
@@ -1026,36 +1026,36 @@ const UploadQueueItemCard = ({ item, setters, onAttachRhino, isGridView, onOpenC
       <Dialog 
         open={addCatSpec.open} 
         onClose={() => setAddCatSpec({ ...addCatSpec, open: false })}
-        PaperProps={{ sx: { bgcolor: '#1e1e1e', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}
       >
-        <DialogTitle sx={{ color: '#fff' }}>新しいカテゴリの追加</DialogTitle>
+        <DialogTitle sx={{ color: 'var(--brand-fg)' }}>新しいカテゴリの追加</DialogTitle>
         <DialogContent>
-           <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.7)' }}>
+           <Typography variant="body2" sx={{ mb: 2, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
              {addCatSpec.level === 'macro' && '新しいマクロカテゴリ（大分類）を追加します。'}
              {addCatSpec.level === 'main' && `${addCatSpec.macro} の下に新しいメインカテゴリを追加します。`}
              {addCatSpec.level === 'sub' && `${addCatSpec.macro} > ${addCatSpec.main} の下に新しい詳細カテゴリを追加します。`}
            </Typography>
 
            {addCatSpec.level === 'macro' && (
-             <TextField variant="outlined" autoFocus fullWidth label="マクロカテゴリ名" value={addCatSpec.macro} onChange={e => setAddCatSpec({...addCatSpec, macro: e.target.value})} sx={{ mt: 1, '& .MuiInputBase-root': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+             <TextField variant="outlined" autoFocus fullWidth label="マクロカテゴリ名" value={addCatSpec.macro} onChange={e => setAddCatSpec({...addCatSpec, macro: e.target.value})} sx={{ mt: 1, '& .MuiInputBase-root': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }} />
            )}
            {addCatSpec.level === 'main' && (
-             <TextField variant="outlined" autoFocus fullWidth label="メインカテゴリ名" value={addCatSpec.main} onChange={e => setAddCatSpec({...addCatSpec, main: e.target.value})} sx={{ mt: 1, '& .MuiInputBase-root': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+             <TextField variant="outlined" autoFocus fullWidth label="メインカテゴリ名" value={addCatSpec.main} onChange={e => setAddCatSpec({...addCatSpec, main: e.target.value})} sx={{ mt: 1, '& .MuiInputBase-root': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }} />
            )}
            {addCatSpec.level === 'sub' && (
-             <TextField variant="outlined" autoFocus fullWidth label="詳細カテゴリ名" value={addCatSpec.sub} onChange={e => setAddCatSpec({...addCatSpec, sub: e.target.value})} sx={{ mt: 1, '& .MuiInputBase-root': { color: '#fff' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' } }} />
+             <TextField variant="outlined" autoFocus fullWidth label="詳細カテゴリ名" value={addCatSpec.sub} onChange={e => setAddCatSpec({...addCatSpec, sub: e.target.value})} sx={{ mt: 1, '& .MuiInputBase-root': { color: 'var(--brand-fg)' }, '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }} />
            )}
 
            {currentUser?.role === 'admin' && (
              <FormControlLabel
-               control={<Checkbox checked={addCatSpec.isSystem} onChange={e => setAddCatSpec({...addCatSpec, isSystem: e.target.checked})} sx={{ color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: '#64b5f6' } }} />}
+               control={<Checkbox checked={addCatSpec.isSystem} onChange={e => setAddCatSpec({...addCatSpec, isSystem: e.target.checked})} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-checked': { color: 'light-dark(#0a5fa4, #64b5f6)' } }} />}
                label="システム全体のカテゴリとして登録する"
-               sx={{ mt: 3, display: 'block', color: 'rgba(255,255,255,0.8)' }}
+               sx={{ mt: 3, display: 'block', color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}
              />
            )}
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-           <Button onClick={() => setAddCatSpec({ ...addCatSpec, open: false })} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+           <Button onClick={() => setAddCatSpec({ ...addCatSpec, open: false })} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
            <Button variant="contained" sx={{ bgcolor: '#64b5f6', color: '#000', '&:hover': { bgcolor: '#42a5f5' } }} onClick={async () => {
              const isSystem = currentUser?.role === 'admin' && addCatSpec.isSystem;
              const { macro, main, sub } = addCatSpec;

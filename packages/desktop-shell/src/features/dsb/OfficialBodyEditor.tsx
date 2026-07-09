@@ -62,25 +62,25 @@ export const OfficialBodyEditor: React.FC<OfficialBodyEditorProps> = ({ value, o
   return (
     <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <ToolBar editor={editor} onLink={setLink} />
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
       <Box
         sx={{
           flex: 1, overflowY: 'auto', mt: 1.5,
           '& .ProseMirror': {
-            outline: 'none', color: 'rgba(255,255,255,0.9)', fontSize: '0.98rem', lineHeight: 1.9, minHeight: 320,
-            '& h2': { color: '#fff', fontWeight: 800, fontSize: '1.35rem', mt: 3, mb: 1 },
-            '& h3': { color: '#fff', fontWeight: 800, fontSize: '1.12rem', mt: 2.5, mb: 0.75 },
-            '& h4': { color: '#fff', fontWeight: 700, fontSize: '1rem', mt: 2, mb: 0.5 },
+            outline: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontSize: '0.98rem', lineHeight: 1.9, minHeight: 320,
+            '& h2': { color: 'var(--brand-fg)', fontWeight: 800, fontSize: '1.35rem', mt: 3, mb: 1 },
+            '& h3': { color: 'var(--brand-fg)', fontWeight: 800, fontSize: '1.12rem', mt: 2.5, mb: 0.75 },
+            '& h4': { color: 'var(--brand-fg)', fontWeight: 700, fontSize: '1rem', mt: 2, mb: 0.5 },
             '& p': { mb: 1.5 },
             '& ul, & ol': { pl: 3, mb: 1.5 },
             '& li': { mb: 0.5 },
-            '& strong': { color: '#fff' },
+            '& strong': { color: 'var(--brand-fg)' },
             '& a': { color: ACCENT, textDecoration: 'underline' },
-            '& blockquote': { borderLeft: `3px solid ${ACCENT}55`, pl: 2, ml: 0, my: 1.5, color: 'rgba(255,255,255,0.65)', fontStyle: 'italic' },
+            '& blockquote': { borderLeft: `3px solid ${ACCENT}55`, pl: 2, ml: 0, my: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.65)', fontStyle: 'italic' },
             '& img': { maxWidth: '100%', borderRadius: 6, my: 1 },
-            '& hr': { border: 'none', borderTop: '1px solid rgba(255,255,255,0.14)', my: 2 },
+            '& hr': { border: 'none', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.14)', my: 2 },
             '& p.is-editor-empty:first-of-type::before': {
-              content: 'attr(data-placeholder)', float: 'left', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none', height: 0,
+              content: 'attr(data-placeholder)', float: 'left', color: 'rgb(var(--brand-fg-rgb) / 0.3)', pointerEvents: 'none', height: 0,
             },
           },
         }}
@@ -93,20 +93,20 @@ export const OfficialBodyEditor: React.FC<OfficialBodyEditorProps> = ({ value, o
 
 const ToolBar: React.FC<{ editor: Editor; onLink: () => void }> = ({ editor, onLink }) => {
   const btn = (active: boolean) => ({
-    color: active ? ACCENT : 'rgba(255,255,255,0.6)', p: 0.6,
+    color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.6)', p: 0.6,
     bgcolor: active ? `${ACCENT}1f` : 'transparent',
-    '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' },
+    '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
   });
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexWrap: 'wrap', pb: 1 }}>
       <Tooltip title="見出し H2"><IconButton size="small" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} sx={btn(editor.isActive('heading', { level: 2 }))}><TitleRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="太字"><IconButton size="small" onClick={() => editor.chain().focus().toggleBold().run()} sx={btn(editor.isActive('bold'))}><FormatBoldRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       <Tooltip title="斜体"><IconButton size="small" onClick={() => editor.chain().focus().toggleItalic().run()} sx={btn(editor.isActive('italic'))}><FormatItalicRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.12)', mx: 0.5 }} />
+      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)', mx: 0.5 }} />
       <Tooltip title="箇条書き"><IconButton size="small" onClick={() => editor.chain().focus().toggleBulletList().run()} sx={btn(editor.isActive('bulletList'))}><FormatListBulletedRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       <Tooltip title="番号リスト"><IconButton size="small" onClick={() => editor.chain().focus().toggleOrderedList().run()} sx={btn(editor.isActive('orderedList'))}><FormatListNumberedRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       <Tooltip title="引用"><IconButton size="small" onClick={() => editor.chain().focus().toggleBlockquote().run()} sx={btn(editor.isActive('blockquote'))}><FormatQuoteRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.12)', mx: 0.5 }} />
+      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)', mx: 0.5 }} />
       <Tooltip title="リンク"><IconButton size="small" onClick={onLink} sx={btn(editor.isActive('link'))}><LinkRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       <Tooltip title="区切り線"><IconButton size="small" onClick={() => editor.chain().focus().setHorizontalRule().run()} sx={btn(false)}><HorizontalRuleRoundedIcon sx={{ fontSize: 18 }} /></IconButton></Tooltip>
     </Box>

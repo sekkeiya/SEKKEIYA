@@ -83,10 +83,10 @@ export const DslLayoutCard: React.FC<DslLayoutCardProps> = ({
         width: cardSize,
         borderRadius: 2,
         overflow: 'hidden',
-        border: `1.5px solid ${isSelected ? accentColor : hovered ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.12)'}`,
+        border: `1.5px solid ${isSelected ? accentColor : hovered ? 'rgb(var(--slate-ink-rgb) / 0.35)' : 'rgb(var(--slate-ink-rgb) / 0.12)'}`,
         background: isSelected
           ? `rgba(0,191,255,0.06)`
-          : 'rgba(15,23,42,0.55)',
+          : 'rgb(var(--slate-panel-rgb) / 0.55)',
         cursor: 'pointer',
         transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
         boxShadow: isSelected
@@ -174,8 +174,8 @@ export const DslLayoutCard: React.FC<DslLayoutCardProps> = ({
               backdropFilter: 'blur(4px)',
             }}
           >
-            <ImageRoundedIcon sx={{ fontSize: 9, color: 'rgba(255,255,255,0.6)' }} />
-            <Typography sx={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+            <ImageRoundedIcon sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }} />
+            <Typography sx={{ fontSize: 9, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
               {item.rendersCount}
             </Typography>
           </Box>
@@ -192,8 +192,8 @@ export const DslLayoutCard: React.FC<DslLayoutCardProps> = ({
               position: 'absolute', bottom: 6, right: 6,
               width: 26, height: 26,
               background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-              color: 'rgba(255,255,255,0.85)',
-              '&:hover': { background: 'rgba(226,75,74,0.85)', color: '#fff' },
+              color: 'rgb(var(--brand-fg-rgb) / 0.85)',
+              '&:hover': { background: 'rgba(226,75,74,0.85)', color: 'var(--brand-fg)' },
             }}
           >
             <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
@@ -220,7 +220,7 @@ export const DslLayoutCard: React.FC<DslLayoutCardProps> = ({
           sx={{
             fontSize: cardSize < 190 ? 11 : 12,
             fontWeight: 700,
-            color: isSelected ? accentColor : 'rgba(229,231,235,0.92)',
+            color: isSelected ? accentColor : 'light-dark(rgba(31,41,55,0.92), rgba(229,231,235,0.92))',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -234,7 +234,7 @@ export const DslLayoutCard: React.FC<DslLayoutCardProps> = ({
           <Typography
             sx={{
               fontSize: 10,
-              color: 'rgba(148,163,184,0.55)',
+              color: 'rgb(var(--slate-ink-rgb) / 0.55)',
               mt: '2px',
               lineHeight: 1.2,
             }}

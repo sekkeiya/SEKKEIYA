@@ -52,9 +52,9 @@ export const createProject = async ({
   
   const standardWorkspaces = [
     { id: 'main', appScope: 'sekkeiya', name: 'Main Workspace', sortOrder: 0 },
-    { id: 'models', appScope: '3dss', name: 'S.Models', sortOrder: 1 },
+    { id: 'models', appScope: '3dss', name: 'S.Model', sortOrder: 1 },
     { id: 'layout', appScope: '3dsl', name: 'S.Layout', sortOrder: 2 },
-    { id: 'presents', appScope: '3dsp', name: 'S.Presentations', sortOrder: 3 },
+    { id: 'presents', appScope: '3dsp', name: 'S.Slide', sortOrder: 3 },
     { id: 'create', appScope: '3dsc', name: 'S.Create', sortOrder: 4 },
   ];
 

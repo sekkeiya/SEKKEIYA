@@ -27,7 +27,7 @@ const CONNECTORS: ConnectorDef[] = [
   {
     id:          'google_calendar',
     label:       'Google Calendar',
-    description: 'SEKKEIYA Chat からカレンダーの読み込み・予定の作成・更新・削除ができます。',
+    description: 'SEKKEIYA OS からカレンダーの読み込み・予定の作成・更新・削除ができます。',
     icon:        <CalendarMonthRoundedIcon sx={{ fontSize: 28, color: '#4285F4' }}/>,
     available:   true,
   },
@@ -108,8 +108,8 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({ def, uid }) => {
 
   return (
     <Paper sx={{
-      bgcolor: 'rgba(255,255,255,0.03)',
-      border: `1px solid ${isConn ? 'rgba(67,233,123,0.25)' : 'rgba(255,255,255,0.08)'}`,
+      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+      border: `1px solid ${isConn ? 'rgba(67,233,123,0.25)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
       borderRadius: 3,
       p: 2.5,
       display: 'flex',
@@ -123,7 +123,7 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({ def, uid }) => {
       {/* Info */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--brand-fg)' }}>
             {def.label}
           </Typography>
           {isConn && (
@@ -139,20 +139,20 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({ def, uid }) => {
               icon={<ConstructionRoundedIcon sx={{ fontSize: '11px !important' }}/>}
               label="近日公開"
               size="small"
-              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)' }}
+              sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}
             />
           )}
         </Box>
-        <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+        <Typography sx={{ fontSize: '0.78rem', color: 'rgb(var(--brand-fg-rgb) / 0.55)', lineHeight: 1.5 }}>
           {def.description}
         </Typography>
         {email && (
-          <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', mt: 0.5 }}>
+          <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 0.5 }}>
             {email} として接続中
           </Typography>
         )}
         {error && (
-          <Alert severity="error" sx={{ mt: 1, py: 0, fontSize: '0.72rem', bgcolor: 'rgba(250,112,154,0.08)', color: '#fa709a', border: '1px solid rgba(250,112,154,0.2)' }}>
+          <Alert severity="error" sx={{ mt: 1, py: 0, fontSize: '0.72rem', bgcolor: 'rgba(250,112,154,0.08)', color: 'light-dark(#a80637, #fa709a)', border: '1px solid rgba(250,112,154,0.2)' }}>
             {error}
           </Alert>
         )}
@@ -169,7 +169,7 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({ def, uid }) => {
               startIcon={<LinkOffRoundedIcon sx={{ fontSize: '14px !important' }}/>}
               onClick={handleDisconnect}
               sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem', px: 1.5, py: 0.5,
-                bgcolor: 'rgba(250,112,154,0.1)', color: '#fa709a', border: '1px solid rgba(250,112,154,0.25)', borderRadius: 2,
+                bgcolor: 'rgba(250,112,154,0.1)', color: 'light-dark(#a80637, #fa709a)', border: '1px solid rgba(250,112,154,0.25)', borderRadius: 2,
                 '&:hover': { bgcolor: 'rgba(250,112,154,0.2)' } }}>
               切断
             </Button>
@@ -205,19 +205,19 @@ export const ConnectorsSettingsPanel: React.FC = () => {
   return (
     <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto', height: '100%', boxSizing: 'border-box' }}>
       <Box>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#fff', mb: 0.75 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: 'var(--brand-fg)', mb: 0.75 }}>
           コネクタ
         </Typography>
-        <Typography sx={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-          外部サービスを接続すると、SEKKEIYA Chat からそのサービスの読み書きができるようになります。<br/>
+        <Typography sx={{ fontSize: '0.82rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.6 }}>
+          外部サービスを接続すると、SEKKEIYA OS からそのサービスの読み書きができるようになります。<br/>
           接続した情報はアカウントに暗号化して保存されます。
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)' }}/>
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)' }}/>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.35)', mb: 0.5 }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 0.5 }}>
           利用可能なコネクタ
         </Typography>
         {CONNECTORS.map(def => (
@@ -226,7 +226,7 @@ export const ConnectorsSettingsPanel: React.FC = () => {
       </Box>
 
       <Box sx={{ mt: 'auto', pt: 2 }}>
-        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', lineHeight: 1.6 }}>
+        <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.25)', lineHeight: 1.6 }}>
           接続を解除するといつでも連携を停止できます。<br/>
           Google Calendar の接続には Google アカウントへのアクセス許可が必要です。
         </Typography>

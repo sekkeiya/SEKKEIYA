@@ -7,9 +7,11 @@ import CloudOffRoundedIcon from '@mui/icons-material/CloudOffRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import ViewInArIcon from '@mui/icons-material/ViewInAr';
+import BookmarkAddRoundedIcon from '@mui/icons-material/BookmarkAddRounded';
 import { useAppStore } from '../../../store/useAppStore';
 import { useDspStore } from '../store/useDspStore';
-import { useAIDriveStore, resolveAssetPreviewUrl } from '../../../store/useAIDriveStore';
+import { resolveAssetPreviewUrl } from '../../../store/useAIDriveStore';
+import { useDriveAssets, PICKER_LAYERS } from '../../drive/driveAccess';
 import { dspRepository } from '../api/dspRepository';
 import { getAuth } from 'firebase/auth';
 import type { PresentationWorkFile } from '../types/dsp.types';
@@ -37,7 +39,8 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
   const isHydrated = useDspStore(s => s.isHydrated);
   const { initializeWorkspace, saveStatus, isModelPickerOpen, setModelPickerOpen, selectedPageId, addElement, presentation } = useDspStore();
   const activeProject = useAppStore(s => s.projects.find(p => p.id === projectId));
-  const allAssets = useAIDriveStore(s => s.assets);
+  // SEKKEIYA Drive の資産（driveAccess = 決定的プール。AI Drive パネル未オープンでも取得できる）。
+  const { assets: allAssets } = useDriveAssets({ layers: PICKER_LAYERS });
 
   const [hasError, setHasError] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -222,7 +225,7 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
   if (!isHydrated) {
     return (
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
-        <CircularProgress sx={{ color: '#29b6f6', mb: 2 }} />
+        <CircularProgress sx={{ color: 'light-dark(#0775a6, #29b6f6)', mb: 2 }} />
         <Typography color="text.secondary">Loading 3D Shape Presents...</Typography>
       </Box>
     );
@@ -259,10 +262,10 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
         </Box>
       )}
       {saveStatus === 'dirty' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'rgba(255,255,255,0.4)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
           <FiberManualRecordRoundedIcon sx={{ fontSize: 10, color: '#ff9800' }} />
           <Typography variant="caption" sx={{ whiteSpace: 'nowrap' }}>未保存</Typography>
-          <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.25)', fontSize: 10 }}>
+          <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'rgb(var(--brand-fg-rgb) / 0.25)', fontSize: 10 }}>
             Ctrl+S で保存
           </Typography>
         </Box>
@@ -274,13 +277,34 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
         </Box>
       )}
       {(saveStatus === 'idle') && (
-        <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.2)', fontSize: 10 }}>
+        <Typography variant="caption" sx={{ whiteSpace: 'nowrap', color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 10 }}>
           Ctrl+S で保存
         </Typography>
       )}
 
       {/* ── 区切り線 ── */}
-      <Box sx={{ width: 1, height: 20, bgcolor: 'rgba(255,255,255,0.1)' }} />
+      <Box sx={{ width: 1, height: 20, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
+
+      {/* ── テンプレートとして保存（①手作業/②パワポ/③既存流用 の共通出口）── */}
+      <Button
+        variant="contained"
+        size="small"
+        onClick={() => {
+          const s = useDspStore.getState();
+          s.setShowRightSidebar(true);
+          s.setInspectorActiveTopTab('deck');
+          s.setPendingSaveTemplate(true);
+        }}
+        startIcon={<BookmarkAddRoundedIcon sx={{ fontSize: 15 }} />}
+        sx={{
+          bgcolor: 'rgba(41,182,246,0.15)', color: 'light-dark(#0775a6, #29b6f6)',
+          boxShadow: 'none', textTransform: 'none', py: 0.25, px: 1.25,
+          whiteSpace: 'nowrap', minWidth: 'max-content', fontSize: 12, fontWeight: 700,
+          '&:hover': { bgcolor: 'rgba(41,182,246,0.25)', boxShadow: 'none' },
+        }}
+      >
+        テンプレートとして保存
+      </Button>
 
       {/* ── クラウド同期 ── */}
       <Button
@@ -290,15 +314,15 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
         disabled={isSyncing}
         startIcon={isSyncing ? <CircularProgress size={14} /> : <CloudUploadRoundedIcon sx={{ fontSize: 15 }} />}
         sx={{
-          borderColor: 'rgba(255,255,255,0.15)',
-          color: 'rgba(255,255,255,0.5)',
+          borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)',
+          color: 'rgb(var(--brand-fg-rgb) / 0.5)',
           textTransform: 'none',
           py: 0.25,
           px: 1.25,
           whiteSpace: 'nowrap',
           minWidth: 'max-content',
           fontSize: 12,
-          '&:hover': { borderColor: '#29b6f6', color: '#29b6f6', bgcolor: 'rgba(41,182,246,0.08)' },
+          '&:hover': { borderColor: '#29b6f6', color: 'light-dark(#0775a6, #29b6f6)', bgcolor: 'rgba(41,182,246,0.08)' },
         }}
       >
         {isSyncing ? '同期中...' : 'クラウドへ同期'}
@@ -322,10 +346,10 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
   };
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', bgcolor: 'rgb(25, 25, 30)' }}>
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', bgcolor: 'light-dark(#e4e6ea, rgb(25, 25, 30))' }}>
       {/* 3D Model Picker Dialog */}
-      <Dialog open={isModelPickerOpen} onClose={() => setModelPickerOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: '#1e1e1e', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 } }}>
-        <DialogTitle sx={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
+      <Dialog open={isModelPickerOpen} onClose={() => setModelPickerOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2 } }}>
+        <DialogTitle sx={{ color: 'var(--brand-fg)', display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
           <ViewInArIcon sx={{ color: '#9C27B0' }} />
           3Dモデルを選択
         </DialogTitle>
@@ -334,10 +358,10 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
             placeholder="モデル名で検索..."
             size="small" fullWidth value={modelSearch}
             onChange={e => setModelSearch(e.target.value)}
-            sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' } }, '& input::placeholder': { color: 'rgba(255,255,255,0.4)' } }}
+            sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }, '& input::placeholder': { color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
           />
           {modelPickerAssets.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 6, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ textAlign: 'center', py: 6, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <ViewInArIcon sx={{ fontSize: 48, mb: 1, opacity: 0.4 }} />
               <Typography variant="body2">このプロジェクトに3Dモデルがまだありません。<br />WorkFilesからRhinoやBlenderファイルをインポートしてください。</Typography>
             </Box>
@@ -349,14 +373,14 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
                   <Box
                     key={asset.id}
                     onClick={() => handleAddModel(asset)}
-                    sx={{ width: 140, borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.04)', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { borderColor: '#9C27B0', transform: 'translateY(-2px)', boxShadow: '0 8px 24px rgba(156,39,176,0.3)' } }}
+                    sx={{ width: 140, borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { borderColor: '#9C27B0', transform: 'translateY(-2px)', boxShadow: '0 8px 24px rgba(156,39,176,0.3)' } }}
                   >
-                    <Box sx={{ height: 100, bgcolor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {url ? <Box component="img" src={url} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ViewInArIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.2)' }} />}
+                    <Box sx={{ height: 100, bgcolor: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      {url ? <Box component="img" src={url} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ViewInArIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />}
                     </Box>
                     <Box sx={{ p: 1 }}>
-                      <Typography sx={{ color: '#fff', fontSize: 12, fontWeight: 600, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.name || (asset as any).title || 'Untitled'}</Typography>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{(asset as any).toolType || asset.type || 'model'}</Typography>
+                      <Typography sx={{ color: 'var(--brand-fg)', fontSize: 12, fontWeight: 600, noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.name || (asset as any).title || 'Untitled'}</Typography>
+                      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 10 }}>{(asset as any).toolType || asset.type || 'model'}</Typography>
                     </Box>
                   </Box>
                 );
@@ -365,11 +389,11 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setModelPickerOpen(false)} sx={{ color: 'rgba(255,255,255,0.5)' }}>閉じる</Button>
+          <Button onClick={() => setModelPickerOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>閉じる</Button>
         </DialogActions>
       </Dialog>
       {/* DSP Topbar Header */}
-      <Box sx={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, borderBottom: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(10,15,25,0.85)' }}>
+      <Box sx={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(255,255,255,0.92), rgba(10,15,25,0.85))' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Button 
             size="small" 
@@ -379,7 +403,7 @@ export const DspEditor: React.FC<DspEditorProps> = ({ payload, onBack }) => {
           >
             Exit
           </Button>
-          <Typography variant="subtitle2" sx={{ color: '#29b6f6', fontWeight: 600 }}>
+          <Typography variant="subtitle2" sx={{ color: 'light-dark(#0775a6, #29b6f6)', fontWeight: 600 }}>
             {selectedItem?.name || 'Untitled Presentation'}
           </Typography>
         </Box>

@@ -111,25 +111,25 @@ const TIME_SLOTS     = Array.from({ length: CAL_END - CAL_START }, (_, i) => CAL
 
 const SCHEDULE_TYPES: Record<ScheduleType, { label: string; color: string; bg: string }> = {
   meeting:    { label: '会議',     color: '#43e97b', bg: 'rgba(67,233,123,0.22)'  },
-  deadline:   { label: '締め切り', color: '#fa709a', bg: 'rgba(250,112,154,0.22)' },
-  submission: { label: '提出',     color: '#f6d365', bg: 'rgba(246,211,101,0.22)' },
-  other:      { label: 'その他',   color: '#a0aab4', bg: 'rgba(160,170,180,0.15)' },
+  deadline:   { label: '締め切り', color: 'light-dark(#a80637, #fa709a)', bg: 'rgba(250,112,154,0.22)' },
+  submission: { label: '提出',     color: 'light-dark(#a47f0a, #f6d365)', bg: 'rgba(246,211,101,0.22)' },
+  other:      { label: 'その他',   color: 'rgb(var(--brand-fg-rgb) / 0.65)', bg: 'rgba(160,170,180,0.15)' },
 };
 
 const TASK_TYPES: Record<TaskType, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   ai:     { label: 'AI タスク', color: '#00BFFF', bg: 'rgba(0,191,255,0.14)',   Icon: AutoAwesomeRoundedIcon },
-  manual: { label: '自分で実行', color: '#a18cd1', bg: 'rgba(161,140,209,0.14)', Icon: PersonRoundedIcon },
-  review: { label: '確認事項',  color: '#f6d365', bg: 'rgba(246,211,101,0.14)', Icon: FactCheckRoundedIcon },
+  manual: { label: '自分で実行', color: 'light-dark(#48327c, #a18cd1)', bg: 'rgba(161,140,209,0.14)', Icon: PersonRoundedIcon },
+  review: { label: '確認事項',  color: 'light-dark(#a47f0a, #f6d365)', bg: 'rgba(246,211,101,0.14)', Icon: FactCheckRoundedIcon },
 };
 
 const PRIORITY_CFG: Record<TaskPriority, { label: string; color: string }> = {
-  high:   { label: '高', color: '#fa709a' },
-  medium: { label: '中', color: '#f6d365' },
-  low:    { label: '低', color: '#a0aab4' },
+  high:   { label: '高', color: 'light-dark(#a80637, #fa709a)' },
+  medium: { label: '中', color: 'light-dark(#a47f0a, #f6d365)' },
+  low:    { label: '低', color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
 };
 
 const STATUS_CFG: Record<TaskStatus, { label: string; color: string }> = {
-  todo:        { label: '未着手', color: 'rgba(255,255,255,0.5)' },
+  todo:        { label: '未着手', color: 'rgb(var(--brand-fg-rgb) / 0.5)' },
   in_progress: { label: '進行中', color: '#00BFFF' },
   done:        { label: '完了',   color: '#43e97b' },
 };
@@ -141,7 +141,7 @@ const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = {
 };
 
 const KANBAN_COLS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'todo',        label: 'TO DO', color: 'rgba(255,255,255,0.5)' },
+  { id: 'todo',        label: 'TO DO', color: 'rgb(var(--brand-fg-rgb) / 0.5)' },
   { id: 'in_progress', label: 'DOING', color: '#00BFFF' },
   { id: 'done',        label: 'DONE',  color: '#43e97b' },
 ];
@@ -196,12 +196,12 @@ function timeDiffH(s: string, e?: string): number {
 
 // ─── Shared dialog styles ──────────────────────────────────────────────────────
 
-const dlgPaper  = { bgcolor: '#131920', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, color: '#fff' };
+const dlgPaper  = { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, color: 'var(--brand-fg)' };
 const fldSx     = { '& label.Mui-focused': { color: '#00BFFF' }, '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: '#00BFFF' } };
-const lblSx     = { color: 'rgba(255,255,255,0.5)', '&.Mui-focused': { color: '#00BFFF' } };
-const inpProp   = { sx: { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' } } };
-const selSx     = { color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' }, '&.Mui-focused fieldset': { borderColor: '#00BFFF' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' } };
-const menuPpr   = { bgcolor: '#1a2030', color: '#fff' };
+const lblSx     = { color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-focused': { color: '#00BFFF' } };
+const inpProp   = { sx: { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } };
+const selSx     = { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }, '&.Mui-focused fieldset': { borderColor: '#00BFFF' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } };
+const menuPpr   = { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' };
 
 // ─── Event Hover Card ─────────────────────────────────────────────────────────
 
@@ -225,7 +225,7 @@ const EventHoverCard: React.FC<EventHoverCardProps> = ({ ev, anchorEl, onClose }
       sx={{ pointerEvents: 'none' }}
       PaperProps={{
         sx: {
-          bgcolor: '#1a2030', border: '1px solid rgba(255,255,255,0.12)',
+          bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
           borderRadius: 2, p: 1.5, minWidth: 180, maxWidth: 260,
           boxShadow: '0 8px 24px rgba(0,0,0,0.5)', pointerEvents: 'none',
         },
@@ -238,18 +238,18 @@ const EventHoverCard: React.FC<EventHoverCardProps> = ({ ev, anchorEl, onClose }
           {t.label}
         </Typography>
         {ev.status === 'done' && (
-          <Typography sx={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.35)', ml: 'auto', fontWeight: 600 }}>完了</Typography>
+          <Typography sx={{ fontSize: '0.58rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', ml: 'auto', fontWeight: 600 }}>完了</Typography>
         )}
       </Box>
       {/* Title */}
-      <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff', lineHeight: 1.3, mb: 0.5,
+      <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--brand-fg)', lineHeight: 1.3, mb: 0.5,
         textDecoration: ev.status === 'done' ? 'line-through' : 'none',
         opacity: ev.status === 'done' ? 0.55 : 1 }}>
         {ev.title}
       </Typography>
       {/* Time */}
       {(ev.startTime || ev.dueDate) && (
-        <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', mb: ev.description ? 0.75 : 0 }}>
+        <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: ev.description ? 0.75 : 0 }}>
           {ev.dueDate.replace(/-/g, '/')}
           {ev.startTime && ` ${ev.startTime}`}
           {ev.endTime   && ` – ${ev.endTime}`}
@@ -257,14 +257,14 @@ const EventHoverCard: React.FC<EventHoverCardProps> = ({ ev, anchorEl, onClose }
       )}
       {/* Description */}
       {ev.description && (
-        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5,
+        <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.55)', lineHeight: 1.5,
           display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {ev.description}
         </Typography>
       )}
       {/* Project */}
       {ev.projectName && (
-        <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', mt: 0.5 }}>
+        <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', mt: 0.5 }}>
           {ev.projectName}
         </Typography>
       )}
@@ -293,11 +293,11 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, schedules, onDayClic
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Day-of-week header */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', bgcolor: 'rgba(255,255,255,0.03)', borderRadius: '8px 8px 0 0', border: '1px solid rgba(255,255,255,0.07)', borderBottom: 'none' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: '8px 8px 0 0', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', borderBottom: 'none' }}>
         {DAY_LABELS.map((d, i) => (
           <Box key={d} sx={{ textAlign: 'center', py: 0.75 }}>
             <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: 0.5,
-              color: i===5 ? '#4fc3f7' : i===6 ? '#f48fb1' : 'rgba(255,255,255,0.4)' }}>
+              color: i===5 ? 'light-dark(#0875a6, #4fc3f7)' : i===6 ? 'light-dark(#9e103f, #f48fb1)' : 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               {d}
             </Typography>
           </Box>
@@ -305,7 +305,7 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, schedules, onDayClic
       </Box>
 
       {/* Day cells */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gridTemplateRows: 'repeat(6,1fr)', flex: 1, border: '1px solid rgba(255,255,255,0.07)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gridTemplateRows: 'repeat(6,1fr)', flex: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
         {grid.map((date, idx) => {
           const ds      = toDateStr(date);
           const inMonth = date.getMonth() === month;
@@ -315,21 +315,21 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, schedules, onDayClic
           return (
             <Box key={ds} onClick={() => onDayClick(date)}
               sx={{ minHeight: 80, p: '3px', cursor: 'pointer', position: 'relative', overflow: 'hidden',
-                borderBottom: idx < 35 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                borderRight:  dow < 6  ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                borderBottom: idx < 35 ? '1px solid rgb(var(--brand-fg-rgb) / 0.06)' : 'none',
+                borderRight:  dow < 6  ? '1px solid rgb(var(--brand-fg-rgb) / 0.06)' : 'none',
                 bgcolor: today ? 'rgba(0,191,255,0.04)' : 'transparent',
                 opacity: inMonth ? 1 : 0.3,
                 transition: 'background 0.15s',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' },
               }}>
               {/* 日付バッジ（クリックで日ビューへ） */}
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: '2px' }}>
                 <Box onClick={e => { e.stopPropagation(); onDayNumberClick(date); }}
                   sx={{ width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     bgcolor: today ? '#00BFFF' : 'transparent', cursor: 'pointer',
-                    '&:hover': { bgcolor: today ? '#00BFFF' : 'rgba(255,255,255,0.12)' } }}>
+                    '&:hover': { bgcolor: today ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.12)' } }}>
                   <Typography sx={{ fontSize: '0.68rem', fontWeight: today ? 800 : inMonth ? 500 : 400, lineHeight: 1,
-                    color: today ? '#000' : dow===5 ? '#4fc3f7' : dow===6 ? '#f48fb1' : inMonth ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)' }}>
+                    color: today ? '#000' : dow===5 ? 'light-dark(#0875a6, #4fc3f7)' : dow===6 ? 'light-dark(#9e103f, #f48fb1)' : inMonth ? 'rgb(var(--brand-fg-rgb) / 0.85)' : 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                     {date.getDate()}
                   </Typography>
                 </Box>
@@ -354,7 +354,7 @@ const MonthView: React.FC<MonthViewProps> = ({ year, month, schedules, onDayClic
                 );
               })}
               {evs.length > 3 && (
-                <Typography sx={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', pl: '3px', lineHeight: 1.4 }}>
+                <Typography sx={{ fontSize: '0.55rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', pl: '3px', lineHeight: 1.4 }}>
                   +{evs.length - 3} 件
                 </Typography>
               )}
@@ -405,18 +405,18 @@ const WeekView: React.FC<WeekViewProps> = ({ weekDays, schedules, onSlotClick, o
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Headers */}
-      <Box sx={{ display: 'flex', ml: '48px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+      <Box sx={{ display: 'flex', ml: '48px', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', flexShrink: 0 }}>
         {weekDays.map((d, i) => {
           const today = isToday(d);
           return (
             <Box key={i} sx={{ flex: 1, textAlign: 'center', py: 0.75, bgcolor: today ? 'rgba(0,191,255,0.04)' : 'transparent' }}>
-              <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: i===5 ? '#4fc3f7' : i===6 ? '#f48fb1' : 'rgba(255,255,255,0.5)', display: 'block' }}>
+              <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: i===5 ? 'light-dark(#0875a6, #4fc3f7)' : i===6 ? 'light-dark(#9e103f, #f48fb1)' : 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'block' }}>
                 {DAY_LABELS[i]}
               </Typography>
               <Box sx={{ display: 'inline-flex', width: 24, height: 24, borderRadius: '50%', alignItems: 'center', justifyContent: 'center',
                 bgcolor: today ? '#00BFFF' : 'transparent' }}>
                 <Typography sx={{ fontSize: '0.82rem', fontWeight: today ? 800 : 600,
-                  color: today ? '#000' : i===5 ? '#4fc3f7' : i===6 ? '#f48fb1' : 'rgba(255,255,255,0.85)' }}>
+                  color: today ? '#000' : i===5 ? 'light-dark(#0875a6, #4fc3f7)' : i===6 ? 'light-dark(#9e103f, #f48fb1)' : 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
                   {d.getDate()}
                 </Typography>
               </Box>
@@ -426,13 +426,13 @@ const WeekView: React.FC<WeekViewProps> = ({ weekDays, schedules, onSlotClick, o
       </Box>
 
       {/* All-day row */}
-      <Box sx={{ display: 'flex', ml: '48px', borderBottom: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.01)', flexShrink: 0, minHeight: 26 }}>
+      <Box sx={{ display: 'flex', ml: '48px', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.01)', flexShrink: 0, minHeight: 26 }}>
         {weekDays.map((d, i) => {
             const evs = (byDay[toDateStr(d)]||[]).filter(e => !e.startTime);
             return (
               <Box key={i} onClick={() => onSlotClick(d, '')}
                 sx={{ flex: 1, px: '2px', py: '3px', minHeight: 26, cursor: 'pointer',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.025)' } }}>
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.025)' } }}>
                 {evs.map(ev => {
                   const t = SCHEDULE_TYPES[ev.type] ?? SCHEDULE_TYPES.other;
                   return (
@@ -457,7 +457,7 @@ const WeekView: React.FC<WeekViewProps> = ({ weekDays, schedules, onSlotClick, o
         <Box sx={{ width: 48, flexShrink: 0, position: 'relative' }}>
           {TIME_SLOTS.map(h => (
             <Box key={h} sx={{ height: HOUR_HEIGHT, display: 'flex', alignItems: 'flex-start', pt: '3px', pr: 1 }}>
-              <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', fontWeight: 500, width: '100%', textAlign: 'right' }}>
+              <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 500, width: '100%', textAlign: 'right' }}>
                 {String(h).padStart(2,'0')}:00
               </Typography>
             </Box>
@@ -472,16 +472,16 @@ const WeekView: React.FC<WeekViewProps> = ({ weekDays, schedules, onSlotClick, o
           )}
         </Box>
         {/* Columns */}
-        <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
+        <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
           {weekDays.map((d, di) => {
             const ds   = toDateStr(d);
             const evs  = (byDay[ds]||[]).filter(e => e.startTime);
             const today = isToday(d);
             return (
-              <Box key={di} sx={{ position: 'relative', borderRight: '1px solid rgba(255,255,255,0.05)', bgcolor: today ? 'rgba(0,191,255,0.02)' : 'transparent' }}>
+              <Box key={di} sx={{ position: 'relative', borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', bgcolor: today ? 'rgba(0,191,255,0.02)' : 'transparent' }}>
                 {TIME_SLOTS.map(h => (
-                  <Box key={h} sx={{ height: HOUR_HEIGHT, borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.025)' } }}
+                  <Box key={h} sx={{ height: HOUR_HEIGHT, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.04)', cursor: 'pointer',
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.025)' } }}
                     onClick={() => onSlotClick(d, `${String(h).padStart(2,'0')}:00`)} />
                 ))}
                 {evs.map(ev => {
@@ -557,9 +557,9 @@ const DayView: React.FC<DayViewProps> = ({ date, schedules, onSlotClick, onEvent
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box onClick={() => onSlotClick(date, '')}
-        sx={{ mx: 1, mb: 1, p: 1, bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 2, flexShrink: 0, cursor: 'pointer',
-          minHeight: 36, '&:hover': { bgcolor: 'rgba(255,255,255,0.035)' } }}>
-        <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.35)', fontWeight: 700, mb: allDay.length ? '4px' : 0, letterSpacing: 0.5 }}>
+        sx={{ mx: 1, mb: 1, p: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', borderRadius: 2, flexShrink: 0, cursor: 'pointer',
+          minHeight: 36, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.035)' } }}>
+        <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontWeight: 700, mb: allDay.length ? '4px' : 0, letterSpacing: 0.5 }}>
           {allDay.length ? '終日' : '+ 終日の予定を追加'}
         </Typography>
         {allDay.map(ev => {
@@ -579,7 +579,7 @@ const DayView: React.FC<DayViewProps> = ({ date, schedules, onSlotClick, onEvent
         <Box sx={{ width: 52, flexShrink: 0, position: 'relative' }}>
           {TIME_SLOTS.map(h => (
             <Box key={h} sx={{ height: HOUR_HEIGHT, display: 'flex', alignItems: 'flex-start', pt: '3px', pr: 1.5 }}>
-              <Typography sx={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.3)', fontWeight: 500, width: '100%', textAlign: 'right' }}>
+              <Typography sx={{ fontSize: '0.63rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 500, width: '100%', textAlign: 'right' }}>
                 {String(h).padStart(2,'0')}:00
               </Typography>
             </Box>
@@ -593,10 +593,10 @@ const DayView: React.FC<DayViewProps> = ({ date, schedules, onSlotClick, onEvent
             </Box>
           )}
         </Box>
-        <Box sx={{ flex: 1, position: 'relative', borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+        <Box sx={{ flex: 1, position: 'relative', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
           {TIME_SLOTS.map(h => (
-            <Box key={h} sx={{ height: HOUR_HEIGHT, borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}
+            <Box key={h} sx={{ height: HOUR_HEIGHT, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', cursor: 'pointer',
+              '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' } }}
               onClick={() => onSlotClick(date, `${String(h).padStart(2,'0')}:00`)} />
           ))}
           {timed.map(ev => {
@@ -611,7 +611,7 @@ const DayView: React.FC<DayViewProps> = ({ date, schedules, onSlotClick, onEvent
                   borderLeft: `3px solid ${t.color}`, borderRadius: 2, px: 1.5, py: 0.75, cursor: 'pointer',
                   overflow: 'hidden', zIndex: 1, opacity: ev.status==='done' ? 0.45 : 1, '&:hover': { filter: 'brightness(1.2)' } }}>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: t.color, fontSize: '0.82rem', mb: '2px' }}>{ev.title}</Typography>
-                <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>
+                <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                   {ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''}
                 </Typography>
               </Box>
@@ -657,12 +657,12 @@ const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, on
       return (
         <Box key={task.id} onClick={() => onEdit(task)}
           sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.875,
-            borderBottom: '1px solid rgba(255,255,255,0.05)', opacity: done ? 0.5 : 1,
+            borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', opacity: done ? 0.5 : 1,
             transition: 'background 0.15s', cursor: 'pointer',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.03)', '& .row-act': { opacity: 1 } },
+            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', '& .row-act': { opacity: 1 } },
           }}>
           <IconButton size="small" onClick={e => { e.stopPropagation(); onCycleStatus(task); }}
-            sx={{ p: '2px', color: done ? '#43e97b' : 'rgba(255,255,255,0.25)', '&:hover': { color: '#43e97b' } }}>
+            sx={{ p: '2px', color: done ? '#43e97b' : 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { color: '#43e97b' } }}>
             {done
               ? <CheckCircleRoundedIcon sx={{ fontSize: 18 }}/>
               : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 18 }}/>}
@@ -672,7 +672,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, on
             {/* 1行目: タイトル */}
             <Typography variant="body2"
               sx={{ fontWeight: 600, fontSize: '0.83rem',
-                color: done ? 'rgba(255,255,255,0.35)' : '#fff',
+                color: done ? 'rgb(var(--brand-fg-rgb) / 0.35)' : 'var(--brand-fg)',
                 textDecoration: done ? 'line-through' : 'none',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               <Box component="span" sx={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', bgcolor: pri.color, mr: 0.75, mb: '1px', verticalAlign: 'middle' }}/>
@@ -684,7 +684,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, on
                 sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, color: tp.color, bgcolor: tp.bg }}/>
               {showProject && task.projectName && (
                 <Chip label={task.projectName} size="small"
-                  sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.07)', maxWidth: 100 }}/>
+                  sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', maxWidth: 100 }}/>
               )}
               {task.assigneeName && (
                 <Chip label={`@${task.assigneeName}`} size="small"
@@ -692,7 +692,7 @@ const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, on
               )}
               {task.dueDate && (
                 <Typography sx={{ fontSize: '0.68rem', whiteSpace: 'nowrap',
-                  color: ov ? '#fa709a' : 'rgba(255,255,255,0.4)', fontWeight: ov ? 700 : 500 }}>
+                  color: ov ? 'light-dark(#a80637, #fa709a)' : 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: ov ? 700 : 500 }}>
                   {formatShort(task.dueDate)}
                 </Typography>
               )}
@@ -704,8 +704,8 @@ const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, on
               <Chip label={STATUS_CFG[task.status]?.label ?? '未着手'} size="small"
                 onClick={e => { e.stopPropagation(); onCycleStatus(task); }}
                 sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, cursor: 'pointer',
-                  color: STATUS_CFG[task.status]?.color ?? 'rgba(255,255,255,0.5)',
-                  bgcolor: 'rgba(255,255,255,0.06)', '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' } }}/>
+                  color: STATUS_CFG[task.status]?.color ?? 'rgb(var(--brand-fg-rgb) / 0.5)',
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)' } }}/>
             </Box>
           </Box>
           {isAi && !done && (
@@ -780,9 +780,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
               <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 1, color: col.color }}>
                 {col.label}
               </Typography>
-              <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.07)',
+              <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>
+                <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 700 }}>
                   {colTasks.length}
                 </Typography>
               </Box>
@@ -797,14 +797,14 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
                 return (
                   <Paper key={task.id} onClick={() => onEdit(task)}
                     sx={{ p: 1.25, cursor: 'pointer',
-                      bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
                       borderRadius: 2, transition: 'all 0.15s',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', transform: 'translateY(-1px)', '& .kact': { opacity: 1 } },
+                      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', transform: 'translateY(-1px)', '& .kact': { opacity: 1 } },
                     }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.625 }}>
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, flex: 1, minWidth: 0 }}>
                         <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: pri.color, flexShrink: 0, mt: '4px' }}/>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#fff', fontSize: '0.8rem', lineHeight: 1.3 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.8rem', lineHeight: 1.3 }}>
                           {task.title}
                         </Typography>
                       </Box>
@@ -825,7 +825,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
                         )}
                         <IconButton size="small"
                           onClick={e => { e.stopPropagation(); onDelete(task); }}
-                          sx={{ p: '2px', color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fa709a' } }}>
+                          sx={{ p: '2px', color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' } }}>
                           <DeleteRoundedIcon sx={{ fontSize: 12 }}/>
                         </IconButton>
                       </Box>
@@ -835,7 +835,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
                         sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, color: tp.color, bgcolor: tp.bg }}/>
                       {showProject && task.projectName && (
                         <Chip label={task.projectName} size="small"
-                          sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.07)', maxWidth: 90 }}/>
+                          sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', maxWidth: 90 }}/>
                       )}
                       {task.assigneeName && (
                         <Chip label={`@${task.assigneeName}`} size="small"
@@ -843,7 +843,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
                       )}
                       {task.dueDate && (
                         <Typography sx={{ fontSize: '0.62rem', ml: 'auto',
-                          color: ov ? '#fa709a' : 'rgba(255,255,255,0.4)', fontWeight: ov ? 700 : 500 }}>
+                          color: ov ? 'light-dark(#a80637, #fa709a)' : 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: ov ? 700 : 500 }}>
                           {formatShort(task.dueDate)}
                         </Typography>
                       )}
@@ -862,7 +862,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
 
               {/* Inline add card */}
               {inlineCol === col.id ? (
-                <Box sx={{ bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(0,191,255,0.25)', borderRadius: 2, p: 1.125 }}>
+                <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgba(0,191,255,0.25)', borderRadius: 2, p: 1.125 }}>
                   <TextField
                     autoFocus
                     value={inlineTitle}
@@ -873,25 +873,25 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
                     }}
                     placeholder="タスク名を入力..."
                     size="small" fullWidth multiline maxRows={3}
-                    InputProps={{ sx: { color: '#fff', fontSize: '0.8rem', fontWeight: 600, '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.15)' }, '&.Mui-focused fieldset': { borderColor: '#00BFFF' } } }}
+                    InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: '0.8rem', fontWeight: 600, '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }, '&.Mui-focused fieldset': { borderColor: '#00BFFF' } } }}
                   />
                   <FormControl size="small" variant="outlined" sx={{ mt: 0.75, minWidth: 100 }}>
                     <Select value={inlineType} onChange={e => setInlineType(e.target.value as TaskType)}
-                      sx={{ height: 22, fontSize: '0.63rem', fontWeight: 700, color: TASK_TYPES[inlineType].color, bgcolor: TASK_TYPES[inlineType].bg, borderRadius: 1, '& fieldset': { borderColor: 'transparent' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.4)', fontSize: 14 } }}
+                      sx={{ height: 22, fontSize: '0.63rem', fontWeight: 700, color: TASK_TYPES[inlineType].color, bgcolor: TASK_TYPES[inlineType].bg, borderRadius: 1, '& fieldset': { borderColor: 'transparent' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 14 } }}
                       MenuProps={{ PaperProps: { sx: menuPpr } }}>
                       {(Object.entries(TASK_TYPES) as [TaskType, typeof TASK_TYPES[TaskType]][]).map(([k, v]) => (
-                        <MenuItem key={k} value={k} sx={{ fontSize: '0.72rem', color: v.color, '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>{v.label}</MenuItem>
+                        <MenuItem key={k} value={k} sx={{ fontSize: '0.72rem', color: v.color, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                   <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75, justifyContent: 'flex-end' }}>
                     <Button size="small" onClick={cancelInline}
-                      sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', py: 0.25, px: 0.75, '&:hover': { color: '#fff' } }}>
+                      sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', py: 0.25, px: 0.75, '&:hover': { color: 'var(--brand-fg)' } }}>
                       キャンセル
                     </Button>
                     <Button size="small" onClick={() => commitInline(col.id)} disabled={!inlineTitle.trim()}
                       sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.68rem', bgcolor: 'rgba(0,191,255,0.15)', color: '#00BFFF', py: 0.25, px: 0.75, borderRadius: 1,
-                        '&:hover': { bgcolor: 'rgba(0,191,255,0.25)' }, '&:disabled': { color: 'rgba(255,255,255,0.2)', bgcolor: 'transparent' } }}>
+                        '&:hover': { bgcolor: 'rgba(0,191,255,0.25)' }, '&:disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: 'transparent' } }}>
                       追加
                     </Button>
                   </Box>
@@ -899,9 +899,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExec
               ) : (
                 <Button size="small" startIcon={<AddRoundedIcon sx={{ fontSize: 13 }}/>}
                   onClick={() => { setInlineCol(col.id); setInlineTitle(''); setInlineType('manual'); }}
-                  sx={{ justifyContent: 'flex-start', color: 'rgba(255,255,255,0.35)', textTransform: 'none',
+                  sx={{ justifyContent: 'flex-start', color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'none',
                     fontWeight: 600, fontSize: '0.75rem', py: 0.625,
-                    '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                    '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                   カードを追加
                 </Button>
               )}
@@ -932,10 +932,10 @@ const InlineAddRow: React.FC<InlineAddRowProps> = ({ onSave, onCancel }) => {
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.875,
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
       bgcolor: 'rgba(0,191,255,0.04)', borderLeft: '3px solid rgba(0,191,255,0.4)' }}>
       {/* Unchecked circle */}
-      <Box sx={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.25)', flexShrink: 0 }}/>
+      <Box sx={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid rgb(var(--brand-fg-rgb) / 0.25)', flexShrink: 0 }}/>
       {/* Priority dot (default medium) */}
       <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: PRIORITY_CFG.medium.color, flexShrink: 0 }}/>
       {/* Title input */}
@@ -951,8 +951,8 @@ const InlineAddRow: React.FC<InlineAddRowProps> = ({ onSave, onCancel }) => {
         variant="standard"
         size="small"
         sx={{ flex: 1,
-          '& input': { color: '#fff', fontSize: '0.83rem', fontWeight: 600, py: 0 },
-          '& .MuiInput-underline:before': { borderBottomColor: 'rgba(255,255,255,0.1)' },
+          '& input': { color: 'var(--brand-fg)', fontSize: '0.83rem', fontWeight: 600, py: 0 },
+          '& .MuiInput-underline:before': { borderBottomColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
           '& .MuiInput-underline:after':  { borderBottomColor: '#00BFFF' },
         }}
       />
@@ -961,16 +961,16 @@ const InlineAddRow: React.FC<InlineAddRowProps> = ({ onSave, onCancel }) => {
         <Select value={type} onChange={e => setType(e.target.value as TaskType)} disableUnderline
           sx={{ fontSize: '0.68rem', fontWeight: 700, color: TASK_TYPES[type].color,
             bgcolor: TASK_TYPES[type].bg, borderRadius: 1, px: 0.75, py: '2px',
-            '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.4)', fontSize: 14 } }}
+            '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 14 } }}
           MenuProps={{ PaperProps: { sx: menuPpr } }}>
           {(Object.entries(TASK_TYPES) as [TaskType, typeof TASK_TYPES[TaskType]][]).map(([k, v]) => (
-            <MenuItem key={k} value={k} sx={{ fontSize: '0.72rem', color: v.color, '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>{v.label}</MenuItem>
+            <MenuItem key={k} value={k} sx={{ fontSize: '0.72rem', color: v.color, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
           ))}
         </Select>
       </FormControl>
       {/* Close */}
       <IconButton size="small" onClick={onCancel}
-        sx={{ p: '2px', color: 'rgba(255,255,255,0.25)', '&:hover': { color: '#fa709a' }, flexShrink: 0 }}>
+        sx={{ p: '2px', color: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' }, flexShrink: 0 }}>
         <CloseRoundedIcon sx={{ fontSize: 15 }}/>
       </IconButton>
     </Box>
@@ -1008,21 +1008,21 @@ const ScheduleSidePanel: React.FC<ScheduleSidePanelProps> = ({ initial, defaultD
   const t = SCHEDULE_TYPES[f.type] ?? SCHEDULE_TYPES.other;
 
   return (
-    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.08)', bgcolor: '#0c1219', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'var(--brand-surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
-      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.color, flexShrink: 0 }}/>
-        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#fff', flex: 1 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--brand-fg)', flex: 1 }}>
           {initial ? '予定を編集' : '予定を追加'}
         </Typography>
         {initial && onDelete && (
           <Tooltip title="削除">
-            <IconButton size="small" onClick={onDelete} sx={{ p: '4px', color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fa709a' } }}>
+            <IconButton size="small" onClick={onDelete} sx={{ p: '4px', color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' } }}>
               <DeleteRoundedIcon sx={{ fontSize: 14 }}/>
             </IconButton>
           </Tooltip>
         )}
-        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon sx={{ fontSize: 16 }}/>
         </IconButton>
       </Box>
@@ -1046,15 +1046,15 @@ const ScheduleSidePanel: React.FC<ScheduleSidePanelProps> = ({ initial, defaultD
           <InputLabel sx={lblSx}>種別</InputLabel>
           <Select value={f.type} onChange={set('type') as any} label="種別" sx={selSx} MenuProps={{ PaperProps: { sx: menuPpr } }}>
             {(Object.entries(SCHEDULE_TYPES) as [ScheduleType, typeof SCHEDULE_TYPES[ScheduleType]][]).map(([k, v]) => (
-              <MenuItem key={k} value={k} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>{v.label}</MenuItem>
+              <MenuItem key={k} value={k} sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
             ))}
           </Select>
         </FormControl>
         <FormControl size="small" fullWidth>
           <InputLabel sx={lblSx}>ステータス</InputLabel>
           <Select value={f.status} onChange={set('status') as any} label="ステータス" sx={selSx} MenuProps={{ PaperProps: { sx: menuPpr } }}>
-            <MenuItem value="upcoming" sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>予定</MenuItem>
-            <MenuItem value="done"     sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>完了</MenuItem>
+            <MenuItem value="upcoming" sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>予定</MenuItem>
+            <MenuItem value="done"     sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>完了</MenuItem>
           </Select>
         </FormControl>
         <TextField label="詳細・メモ" value={f.description ?? ''} onChange={set('description')} fullWidth size="small" multiline minRows={4}
@@ -1062,13 +1062,13 @@ const ScheduleSidePanel: React.FC<ScheduleSidePanelProps> = ({ initial, defaultD
       </Box>
 
       {/* Footer */}
-      <Box sx={{ px: 2.5, py: 1.75, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 1, justifyContent: 'flex-end', flexShrink: 0 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem' }}>
+      <Box sx={{ px: 2.5, py: 1.75, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', gap: 1, justifyContent: 'flex-end', flexShrink: 0 }}>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem' }}>
           キャンセル
         </Button>
         <Button onClick={() => onSave(f)} disabled={!valid} variant="contained"
           sx={{ bgcolor: '#43e97b', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, fontSize: '0.78rem',
-            '&:hover': { bgcolor: '#57f788' }, '&:disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' } }}>
+            '&:hover': { bgcolor: '#57f788' }, '&:disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
           {initial ? '保存' : '追加'}
         </Button>
       </Box>
@@ -1143,21 +1143,21 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
   );
 
   return (
-    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.08)', bgcolor: '#0c1219', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'var(--brand-surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
-      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: headerColor, flexShrink: 0 }}/>
-        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#fff', flex: 1 }}>
+        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--brand-fg)', flex: 1 }}>
           {headerTitle}
         </Typography>
         {initial && onDelete && (
           <Tooltip title="削除">
-            <IconButton size="small" onClick={onDelete} sx={{ p: '4px', color: 'rgba(255,255,255,0.3)', '&:hover': { color: '#fa709a' } }}>
+            <IconButton size="small" onClick={onDelete} sx={{ p: '4px', color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' } }}>
               <DeleteRoundedIcon sx={{ fontSize: 14 }}/>
             </IconButton>
           </Tooltip>
         )}
-        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon sx={{ fontSize: 16 }}/>
         </IconButton>
       </Box>
@@ -1170,7 +1170,7 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
             <Select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value as string)}
               label="プロジェクト *" sx={selSx} MenuProps={{ PaperProps: { sx: menuPpr } }}>
               {projectOptions!.map(p => (
-                <MenuItem key={p.id} value={p.id} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>{p.name}</MenuItem>
+                <MenuItem key={p.id} value={p.id} sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{p.name}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -1183,10 +1183,10 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
               {visibleSuggestions.map(s => (
                 <Box key={s} onClick={() => setF(p => ({ ...p, title: s }))}
                   sx={{ fontSize: '0.68rem', px: 0.875, py: 0.25, borderRadius: 10,
-                    border: `1px solid ${accentColor}44`, color: `${accentColor}cc`,
-                    bgcolor: `${accentColor}0d`, cursor: 'pointer', userSelect: 'none',
+                    border: `1px solid color-mix(in srgb, ${accentColor} 27%, transparent)`, color: `color-mix(in srgb, ${accentColor} 80%, transparent)`,
+                    bgcolor: `color-mix(in srgb, ${accentColor} 5%, transparent)`, cursor: 'pointer', userSelect: 'none',
                     whiteSpace: 'nowrap', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
-                    '&:hover': { bgcolor: `${accentColor}1a`, color: accentColor } }}>
+                    '&:hover': { bgcolor: `color-mix(in srgb, ${accentColor} 10%, transparent)`, color: accentColor } }}>
                   {s}
                 </Box>
               ))}
@@ -1200,7 +1200,7 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
             <InputLabel sx={lblSx}>優先度</InputLabel>
             <Select value={f.priority} onChange={set('priority') as any} label="優先度" sx={selSx} MenuProps={{ PaperProps: { sx: menuPpr } }}>
               {(Object.entries(PRIORITY_CFG) as [TaskPriority, typeof PRIORITY_CFG[TaskPriority]][]).map(([k, v]) => (
-                <MenuItem key={k} value={k} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>{v.label}</MenuItem>
+                <MenuItem key={k} value={k} sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -1208,7 +1208,7 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
             <InputLabel sx={lblSx}>ステータス</InputLabel>
             <Select value={f.status} onChange={set('status') as any} label="ステータス" sx={selSx} MenuProps={{ PaperProps: { sx: menuPpr } }}>
               {(Object.entries(STATUS_CFG) as [TaskStatus, typeof STATUS_CFG[TaskStatus]][]).map(([k, v]) => (
-                <MenuItem key={k} value={k} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>{v.label}</MenuItem>
+                <MenuItem key={k} value={k} sx={{ '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -1217,7 +1217,7 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
         {/* AIタスク: 開始日時（任意） */}
         {isAiTask ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 0.3 }}>
+            <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, letterSpacing: 0.3 }}>
               開始日時（任意）
             </Typography>
             <Box sx={{ display: 'flex', gap: 1.5 }}>
@@ -1241,13 +1241,13 @@ const TaskSidePanel: React.FC<TaskSidePanelProps> = ({ initial, onClose, onSave,
       </Box>
 
       {/* Footer */}
-      <Box sx={{ px: 2.5, py: 1.75, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 1, justifyContent: 'flex-end', flexShrink: 0 }}>
-        <Button onClick={onClose} sx={{ color: 'rgba(255,255,255,0.5)', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem' }}>
+      <Box sx={{ px: 2.5, py: 1.75, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', gap: 1, justifyContent: 'flex-end', flexShrink: 0 }}>
+        <Button onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem' }}>
           キャンセル
         </Button>
         <Button onClick={() => onSave(f, needsProject ? selectedProjectId : undefined)} disabled={!valid} variant="contained"
           sx={{ bgcolor: '#00BFFF', color: '#000', fontWeight: 700, textTransform: 'none', borderRadius: 2, fontSize: '0.78rem',
-            '&:hover': { bgcolor: '#4facfe' }, '&:disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' } }}>
+            '&:hover': { bgcolor: '#4facfe' }, '&:disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
           {initial ? '保存' : '追加'}
         </Button>
       </Box>
@@ -1293,24 +1293,24 @@ const AiHistoryPanel: React.FC<AiHistoryPanelProps> = ({ uid, projectOptions, de
   }, [uid]);
 
   return (
-    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.08)', bgcolor: '#0c1219', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'var(--brand-surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         <HistoryRoundedIcon sx={{ fontSize: 14, color: '#00BFFF' }}/>
-        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#fff', flex: 1 }}>AIタスク履歴</Typography>
-        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--brand-fg)', flex: 1 }}>AIタスク履歴</Typography>
+        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon sx={{ fontSize: 16 }}/>
         </IconButton>
       </Box>
 
       {/* プロジェクト選択（追加先） */}
       {projectOptions && projectOptions.length > 0 && (
-        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', mb: 0.5 }}>追加先プロジェクト</Typography>
+        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+          <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 0.5 }}>追加先プロジェクト</Typography>
           <Box
             component="select"
             value={selectedPid}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedPid(e.target.value)}
-            sx={{ width: '100%', fontSize: 12, color: '#fff', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '6px', px: 1, py: 0.5, outline: 'none', '& option': { bgcolor: '#1a1f2b' } }}
+            sx={{ width: '100%', fontSize: 12, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.14)', borderRadius: '6px', px: 1, py: 0.5, outline: 'none', '& option': { bgcolor: 'var(--brand-surface2)' } }}
           >
             {projectOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Box>
@@ -1324,19 +1324,19 @@ const AiHistoryPanel: React.FC<AiHistoryPanelProps> = ({ uid, projectOptions, de
           </Box>
         )}
         {!loading && history.length === 0 && (
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', py: 4 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)', textAlign: 'center', py: 4 }}>
             履歴がありません
           </Typography>
         )}
         {history.map((item, i) => (
-          <Box key={i} sx={{ px: 2, py: 1.25, borderBottom: '1px solid rgba(255,255,255,0.05)', '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+          <Box key={i} sx={{ px: 2, py: 1.25, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' } }}>
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: '0.78rem', color: '#fff', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                <Typography sx={{ fontSize: '0.78rem', color: 'var(--brand-fg)', lineHeight: 1.4, wordBreak: 'break-word' }}>
                   {item.title}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)' }}>
+                  <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                     {item.count}回
                   </Typography>
                   {item.hasChat && (
@@ -1357,7 +1357,7 @@ const AiHistoryPanel: React.FC<AiHistoryPanelProps> = ({ uid, projectOptions, de
                 </Button>
                 <Button size="small" variant="outlined"
                   onClick={() => onAddTask(item.title, selectedPid)}
-                  sx={{ fontSize: '0.62rem', textTransform: 'none', py: 0.25, px: 0.75, minWidth: 0, borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.6)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                  sx={{ fontSize: '0.62rem', textTransform: 'none', py: 0.25, px: 0.75, minWidth: 0, borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.5)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                   タスクに追加
                 </Button>
               </Box>
@@ -1399,23 +1399,23 @@ const UserHistoryPanel: React.FC<UserHistoryPanelProps> = ({ uid, projectOptions
   }, [uid]);
 
   return (
-    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.08)', bgcolor: '#0c1219', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-        <HistoryRoundedIcon sx={{ fontSize: 14, color: '#a18cd1' }}/>
-        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#fff', flex: 1 }}>ユーザータスク履歴</Typography>
-        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+    <Box sx={{ width: 320, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'var(--brand-surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        <HistoryRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#48327c, #a18cd1)' }}/>
+        <Typography sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--brand-fg)', flex: 1 }}>ユーザータスク履歴</Typography>
+        <IconButton size="small" onClick={onClose} sx={{ p: '4px', color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon sx={{ fontSize: 16 }}/>
         </IconButton>
       </Box>
 
       {projectOptions && projectOptions.length > 0 && (
-        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', mb: 0.5 }}>追加先プロジェクト</Typography>
+        <Box sx={{ px: 2, py: 1, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+          <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 0.5 }}>追加先プロジェクト</Typography>
           <Box
             component="select"
             value={selectedPid}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedPid(e.target.value)}
-            sx={{ width: '100%', fontSize: 12, color: '#fff', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '6px', px: 1, py: 0.5, outline: 'none', '& option': { bgcolor: '#1a1f2b' } }}
+            sx={{ width: '100%', fontSize: 12, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.14)', borderRadius: '6px', px: 1, py: 0.5, outline: 'none', '& option': { bgcolor: 'var(--brand-surface2)' } }}
           >
             {projectOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Box>
@@ -1425,27 +1425,27 @@ const UserHistoryPanel: React.FC<UserHistoryPanelProps> = ({ uid, projectOptions
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={24} sx={{ color: '#a18cd1' }}/>
+            <CircularProgress size={24} sx={{ color: 'light-dark(#48327c, #a18cd1)' }}/>
           </Box>
         )}
         {!loading && history.length === 0 && (
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center', py: 4 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)', textAlign: 'center', py: 4 }}>
             履歴がありません
           </Typography>
         )}
         {history.map((item, i) => (
-          <Box key={i} sx={{ px: 2, py: 1.25, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 1, '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+          <Box key={i} sx={{ px: 2, py: 1.25, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', display: 'flex', alignItems: 'center', gap: 1, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' } }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.78rem', color: '#fff', lineHeight: 1.4, wordBreak: 'break-word' }}>
+              <Typography sx={{ fontSize: '0.78rem', color: 'var(--brand-fg)', lineHeight: 1.4, wordBreak: 'break-word' }}>
                 {item.title}
               </Typography>
-              <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', mt: 0.25 }}>
+              <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', mt: 0.25 }}>
                 {item.count}回作成
               </Typography>
             </Box>
             <Button size="small" variant="outlined"
               onClick={() => onAddTask(item.title, selectedPid)}
-              sx={{ fontSize: '0.62rem', textTransform: 'none', py: 0.25, px: 0.75, minWidth: 0, flexShrink: 0, borderColor: 'rgba(161,140,209,0.4)', color: '#a18cd1', '&:hover': { borderColor: '#a18cd1', bgcolor: 'rgba(161,140,209,0.08)' } }}>
+              sx={{ fontSize: '0.62rem', textTransform: 'none', py: 0.25, px: 0.75, minWidth: 0, flexShrink: 0, borderColor: 'rgba(161,140,209,0.4)', color: 'light-dark(#48327c, #a18cd1)', '&:hover': { borderColor: '#a18cd1', bgcolor: 'rgba(161,140,209,0.08)' } }}>
               タスクに追加
             </Button>
           </Box>
@@ -1470,7 +1470,7 @@ const SplitResizeHandle: React.FC<{ onMouseDown: (e: React.MouseEvent) => void; 
       <Box sx={{
         width: active ? 3 : 2,
         alignSelf: 'stretch',
-        backgroundColor: active ? 'rgba(0,191,255,0.55)' : 'rgba(255,255,255,0.07)',
+        backgroundColor: active ? 'rgba(0,191,255,0.55)' : 'rgb(var(--brand-fg-rgb) / 0.07)',
         borderRadius: 1,
         transition: 'all 0.12s',
       }}/>
@@ -1501,7 +1501,7 @@ const StackedResizeHandle: React.FC<{ onMouseDown: (e: React.MouseEvent) => void
         height: active ? 3 : 2,
         alignSelf: 'stretch',
         width: '100%',
-        backgroundColor: active ? 'rgba(0,191,255,0.55)' : 'rgba(255,255,255,0.07)',
+        backgroundColor: active ? 'rgba(0,191,255,0.55)' : 'rgb(var(--brand-fg-rgb) / 0.07)',
         borderRadius: 1,
         transition: 'all 0.12s',
       }}/>
@@ -1948,23 +1948,23 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
 
   // ── Reusable calendar panel ───────────────────────────────────────────────
   const calendarPanel = (
-    <Paper sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <Paper sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Calendar header label */}
       <Box sx={{ px: 2, pt: 1.25, pb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
         <CalendarMonthRoundedIcon sx={{ fontSize: 14, color: '#43e97b' }}/>
         <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 1, color: '#43e97b', textTransform: 'uppercase' }}>
           スケジュール（予定）
         </Typography>
-        <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)', ml: 0.5 }}>
+        <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', ml: 0.5 }}>
           日付・時間が確定したイベント
         </Typography>
       </Box>
 
       {/* Calendar toolbar — 1行 */}
-      <Box sx={{ borderBottom: '1px solid rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.04)', bgcolor: 'rgba(255,255,255,0.02)',
+      <Box sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.04)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.75, gap: 1, flexWrap: 'nowrap' }}>
         {/* ビュー切替 */}
-        <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', flexShrink: 0 }}>
           {([
             { id: 'month' as CalView, Icon: CalendarMonthRoundedIcon,    label: '月' },
             { id: 'week'  as CalView, Icon: CalendarViewWeekRoundedIcon, label: '週' },
@@ -1973,28 +1973,28 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
             <Button key={id} size="small" startIcon={<Icon sx={{ fontSize: '14px !important' }}/>}
               onClick={() => setCalView(id)}
               sx={{ textTransform: 'none', fontWeight: calView===id ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                color:   calView===id ? '#fff' : 'rgba(255,255,255,0.45)',
-                bgcolor: calView===id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#fff' } }}>
+                color:   calView===id ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                bgcolor: calView===id ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'var(--brand-fg)' } }}>
               {label}
             </Button>
           ))}
         </Box>
         {/* 日付ナビゲーション */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          <IconButton onClick={() => navigateCal(-1)} sx={{ color: 'rgba(255,255,255,0.6)', p: 0, width: 20, height: 20, '&:hover': { color: '#fff', bgcolor: 'transparent' } }}>
+          <IconButton onClick={() => navigateCal(-1)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', p: 0, width: 20, height: 20, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'transparent' } }}>
             <ChevronLeftRoundedIcon sx={{ fontSize: 16 }}/>
           </IconButton>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: '#fff', minWidth: 130, textAlign: 'center', lineHeight: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.78rem', color: 'var(--brand-fg)', minWidth: 130, textAlign: 'center', lineHeight: 1 }}>
             {calLabel}
           </Typography>
-          <IconButton onClick={() => navigateCal(1)} sx={{ color: 'rgba(255,255,255,0.6)', p: 0, width: 20, height: 20, '&:hover': { color: '#fff', bgcolor: 'transparent' } }}>
+          <IconButton onClick={() => navigateCal(1)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', p: 0, width: 20, height: 20, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'transparent' } }}>
             <ChevronRightRoundedIcon sx={{ fontSize: 16 }}/>
           </IconButton>
           <Button size="small" onClick={() => setCalDate(new Date())}
             sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.63rem', px: 0.75, py: 0, height: 20, minWidth: 0, borderRadius: 1.5,
-              border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)',
-              '&:hover': { border: '1px solid rgba(255,255,255,0.35)', color: '#fff' } }}>
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', color: 'rgb(var(--brand-fg-rgb) / 0.7)',
+              '&:hover': { border: '1px solid rgb(var(--brand-fg-rgb) / 0.35)', color: 'var(--brand-fg)' } }}>
             今日
           </Button>
         </Box>
@@ -2036,25 +2036,25 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
 
   // ── User task panel ───────────────────────────────────────────────────────
   const userTaskPanel = (
-    <Paper sx={{ bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <Paper sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', borderRadius: 3, overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <Box sx={{ px: 2, pt: 1.25, pb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <PersonRoundedIcon sx={{ fontSize: 14, color: '#a18cd1' }}/>
-        <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 1, color: '#a18cd1', textTransform: 'uppercase' }}>
+        <PersonRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#48327c, #a18cd1)' }}/>
+        <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 1, color: 'light-dark(#48327c, #a18cd1)', textTransform: 'uppercase' }}>
           ユーザータスク
         </Typography>
-        <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)', ml: 0.5 }}>
+        <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', ml: 0.5 }}>
           自分で実行・確認する項目
         </Typography>
         {pendingN > 0 && (
           <Box sx={{ ml: 'auto', px: 1, py: 0.25, bgcolor: 'rgba(161,140,209,0.12)', border: '1px solid rgba(161,140,209,0.25)', borderRadius: 1.5 }}>
-            <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#a18cd1' }}>{pendingN} 件未完了</Typography>
+            <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: 'light-dark(#48327c, #a18cd1)' }}>{pendingN} 件未完了</Typography>
           </Box>
         )}
       </Box>
 
-      <Box sx={{ borderBottom: '1px solid rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.04)', bgcolor: 'rgba(255,255,255,0.02)',
+      <Box sx={{ borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.04)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.75, gap: 1 }}>
-        <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', flexShrink: 0 }}>
           {([
             { key: 'all'         as UserTaskFilter, label: 'すべて' },
             { key: 'todo'        as UserTaskFilter, label: '未着手' },
@@ -2063,10 +2063,10 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
           ]).map(({ key, label }) => (
             <Button key={key} size="small" onClick={() => setUserTaskFilter(key)}
               sx={{ textTransform: 'none', fontWeight: userTaskFilter===key ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                color:   userTaskFilter===key ? '#a18cd1' : 'rgba(255,255,255,0.45)',
+                color:   userTaskFilter===key ? 'light-dark(#48327c, #a18cd1)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                 bgcolor: userTaskFilter===key ? 'rgba(161,140,209,0.14)' : 'transparent',
                 border:  `1px solid ${userTaskFilter===key ? 'rgba(161,140,209,0.35)' : 'transparent'}`,
-                '&:hover': { bgcolor: 'rgba(161,140,209,0.08)', color: '#a18cd1' } }}>
+                '&:hover': { bgcolor: 'rgba(161,140,209,0.08)', color: 'light-dark(#48327c, #a18cd1)' } }}>
               {label}
             </Button>
           ))}
@@ -2075,14 +2075,14 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
           <Tooltip title="ユーザータスクの実行履歴" placement="top">
             <IconButton size="small"
               onClick={() => setSidePanel(sidePanel?.kind === 'user-history' ? null : { kind: 'user-history' })}
-              sx={{ color: sidePanel?.kind === 'user-history' ? '#a18cd1' : 'rgba(255,255,255,0.4)', bgcolor: sidePanel?.kind === 'user-history' ? 'rgba(161,140,209,0.1)' : 'transparent', borderRadius: 1.5, '&:hover': { color: '#a18cd1', bgcolor: 'rgba(161,140,209,0.1)' } }}>
+              sx={{ color: sidePanel?.kind === 'user-history' ? 'light-dark(#48327c, #a18cd1)' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: sidePanel?.kind === 'user-history' ? 'rgba(161,140,209,0.1)' : 'transparent', borderRadius: 1.5, '&:hover': { color: 'light-dark(#48327c, #a18cd1)', bgcolor: 'rgba(161,140,209,0.1)' } }}>
               <HistoryRoundedIcon sx={{ fontSize: 16 }}/>
             </IconButton>
           </Tooltip>
           <Button size="small" startIcon={<AddRoundedIcon sx={{ fontSize: '14px !important' }}/>}
             onClick={() => setSidePanel({ kind: 'new-task', initialType: 'manual' })}
             sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.72rem', px: 1.25, py: 0.375,
-              bgcolor: 'rgba(161,140,209,0.12)', color: '#a18cd1', border: '1px solid rgba(161,140,209,0.3)', borderRadius: 2, flexShrink: 0,
+              bgcolor: 'rgba(161,140,209,0.12)', color: 'light-dark(#48327c, #a18cd1)', border: '1px solid rgba(161,140,209,0.3)', borderRadius: 2, flexShrink: 0,
               '&:hover': { bgcolor: 'rgba(161,140,209,0.2)' } }}>
             ユーザータスクを追加
           </Button>
@@ -2091,11 +2091,11 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {loadingT ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={24} sx={{ color: '#a18cd1' }}/></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={24} sx={{ color: 'light-dark(#48327c, #a18cd1)' }}/></Box>
         ) : filteredUserTasks.length === 0 ? (
           <Box sx={{ py: 4, textAlign: 'center' }}>
-            <PersonRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.12)', mb: 1 }}/>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>
+            <PersonRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.12)', mb: 1 }}/>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontWeight: 600 }}>
               {userTaskFilter === 'all' ? 'ユーザータスクがありません' : '該当するタスクはありません'}
             </Typography>
           </Box>
@@ -2114,7 +2114,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
         <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 1, color: '#00BFFF', textTransform: 'uppercase' }}>
           AIタスク
         </Typography>
-        <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)', ml: 0.5 }}>
+        <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)', ml: 0.5 }}>
           AIが自動実行する項目
         </Typography>
         <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
@@ -2134,7 +2134,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
 
       <Box sx={{ borderBottom: '1px solid rgba(0,191,255,0.08)', borderTop: '1px solid rgba(0,191,255,0.05)', bgcolor: 'rgba(0,191,255,0.02)' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, pt: 1, pb: 0.625, gap: 1 }}>
-          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', flexShrink: 0 }}>
             {([
               { key: 'all'         as AITaskFilter, label: 'すべて' },
               { key: 'todo'        as AITaskFilter, label: '未着手' },
@@ -2143,7 +2143,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
             ]).map(({ key, label }) => (
               <Button key={key} size="small" onClick={() => setAiTaskFilter(key)}
                 sx={{ textTransform: 'none', fontWeight: aiTaskFilter===key ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color:   aiTaskFilter===key ? '#00BFFF' : 'rgba(255,255,255,0.45)',
+                  color:   aiTaskFilter===key ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   bgcolor: aiTaskFilter===key ? 'rgba(0,191,255,0.14)' : 'transparent',
                   border:  `1px solid ${aiTaskFilter===key ? 'rgba(0,191,255,0.35)' : 'transparent'}`,
                   '&:hover': { bgcolor: 'rgba(0,191,255,0.08)', color: '#00BFFF' } }}>
@@ -2155,7 +2155,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
             <Tooltip title="AIタスクの実行履歴" placement="top">
               <IconButton size="small"
                 onClick={() => setSidePanel(sidePanel?.kind === 'ai-history' ? null : { kind: 'ai-history' })}
-                sx={{ color: sidePanel?.kind === 'ai-history' ? '#00BFFF' : 'rgba(255,255,255,0.4)', bgcolor: sidePanel?.kind === 'ai-history' ? 'rgba(0,191,255,0.1)' : 'transparent', borderRadius: 1.5, '&:hover': { color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.1)' } }}>
+                sx={{ color: sidePanel?.kind === 'ai-history' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: sidePanel?.kind === 'ai-history' ? 'rgba(0,191,255,0.1)' : 'transparent', borderRadius: 1.5, '&:hover': { color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.1)' } }}>
                 <HistoryRoundedIcon sx={{ fontSize: 16 }}/>
               </IconButton>
             </Tooltip>
@@ -2176,7 +2176,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
         ) : filteredAiTasks.length === 0 ? (
           <Box sx={{ py: 4, textAlign: 'center' }}>
             <AutoAwesomeRoundedIcon sx={{ fontSize: 36, color: 'rgba(0,191,255,0.15)', mb: 1 }}/>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>
+            <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontWeight: 600 }}>
               {aiTaskFilter === 'all' ? 'AIタスクがありません' : '該当するAIタスクはありません'}
             </Typography>
           </Box>
@@ -2233,11 +2233,11 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
                 <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#a18cd1', flexShrink: 0 }}/>
-                <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 0.5, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'uppercase' }}>
                   アカウントサイト
                 </Typography>
-                <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.25)', mx: 0.5 }}>／</Typography>
-                <Typography sx={{ fontSize: '0.67rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)' }}>
+                <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.25)', mx: 0.5 }}>／</Typography>
+                <Typography sx={{ fontSize: '0.67rem', fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                   プロジェクト:
                 </Typography>
               </Box>
@@ -2248,10 +2248,10 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
                   size="small"
                   onClick={() => setProjectFilter(null)}
                   sx={{ height: 22, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer',
-                    bgcolor: projectFilter === null ? 'rgba(161,140,209,0.18)' : 'rgba(255,255,255,0.05)',
-                    color:   projectFilter === null ? '#a18cd1' : 'rgba(255,255,255,0.45)',
+                    bgcolor: projectFilter === null ? 'rgba(161,140,209,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                    color:   projectFilter === null ? 'light-dark(#48327c, #a18cd1)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                     border:  `1px solid ${projectFilter === null ? 'rgba(161,140,209,0.4)' : 'transparent'}`,
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' } }}
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' } }}
                 />
                 {allProjects.map(p => (
                   <Chip
@@ -2260,10 +2260,10 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
                     size="small"
                     onClick={() => setProjectFilter(p.id)}
                     sx={{ height: 22, fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', maxWidth: 120,
-                      bgcolor: projectFilter === p.id ? 'rgba(161,140,209,0.18)' : 'rgba(255,255,255,0.05)',
-                      color:   projectFilter === p.id ? '#a18cd1' : 'rgba(255,255,255,0.45)',
+                      bgcolor: projectFilter === p.id ? 'rgba(161,140,209,0.18)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                      color:   projectFilter === p.id ? 'light-dark(#48327c, #a18cd1)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                       border:  `1px solid ${projectFilter === p.id ? 'rgba(161,140,209,0.4)' : 'transparent'}`,
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', color: '#fff' } }}
+                      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' } }}
                   />
                 ))}
               </Box>
@@ -2272,7 +2272,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
             /* ── Project mode: project name badge ── */
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#00BFFF', flexShrink: 0 }}/>
-              <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 0.5, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
                 プロジェクト
               </Typography>
               <Box sx={{ px: 1.25, py: 0.25, bgcolor: 'rgba(0,191,255,0.1)', border: '1px solid rgba(0,191,255,0.25)', borderRadius: 1.5 }}>
@@ -2287,8 +2287,8 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
           {overdueN > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5,
               bgcolor: 'rgba(250,112,154,0.08)', border: '1px solid rgba(250,112,154,0.2)', borderRadius: 2, flexShrink: 0 }}>
-              <AccessAlarmsRoundedIcon sx={{ fontSize: 13, color: '#fa709a' }}/>
-              <Typography sx={{ fontSize: '0.7rem', color: '#fa709a', fontWeight: 700 }}>期限超過 {overdueN} 件</Typography>
+              <AccessAlarmsRoundedIcon sx={{ fontSize: 13, color: 'light-dark(#a80637, #fa709a)' }}/>
+              <Typography sx={{ fontSize: '0.7rem', color: 'light-dark(#a80637, #fa709a)', fontWeight: 700 }}>期限超過 {overdueN} 件</Typography>
             </Box>
           )}
           {aiWaiting > 0 && (
@@ -2303,14 +2303,14 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
         {/* Right: task panel mode + layout toggle */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
           {/* タスクパネル表示モード */}
-          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.35)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.09)' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.09)' }}>
             <Tooltip title="ユーザー＋AIの両方を表示">
               <Button size="small" startIcon={<TableRowsRoundedIcon sx={{ fontSize: '14px !important' }}/>}
                 onClick={() => setTaskPanelMode('both')}
                 sx={{ textTransform: 'none', fontWeight: taskPanelMode==='both' ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color:   taskPanelMode==='both' ? '#fff' : 'rgba(255,255,255,0.45)',
-                  bgcolor: taskPanelMode==='both' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#fff' } }}>
+                  color:   taskPanelMode==='both' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  bgcolor: taskPanelMode==='both' ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'var(--brand-fg)' } }}>
                 両方
               </Button>
             </Tooltip>
@@ -2318,9 +2318,9 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
               <Button size="small" startIcon={<PersonRoundedIcon sx={{ fontSize: '14px !important' }}/>}
                 onClick={() => setTaskPanelMode('user')}
                 sx={{ textTransform: 'none', fontWeight: taskPanelMode==='user' ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color:   taskPanelMode==='user' ? '#a18cd1' : 'rgba(255,255,255,0.45)',
+                  color:   taskPanelMode==='user' ? 'light-dark(#48327c, #a18cd1)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   bgcolor: taskPanelMode==='user' ? 'rgba(161,140,209,0.14)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(161,140,209,0.1)', color: '#a18cd1' } }}>
+                  '&:hover': { bgcolor: 'rgba(161,140,209,0.1)', color: 'light-dark(#48327c, #a18cd1)' } }}>
                 ユーザー
               </Button>
             </Tooltip>
@@ -2328,7 +2328,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
               <Button size="small" startIcon={<AutoAwesomeRoundedIcon sx={{ fontSize: '14px !important' }}/>}
                 onClick={() => setTaskPanelMode('ai')}
                 sx={{ textTransform: 'none', fontWeight: taskPanelMode==='ai' ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color:   taskPanelMode==='ai' ? '#00BFFF' : 'rgba(255,255,255,0.45)',
+                  color:   taskPanelMode==='ai' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   bgcolor: taskPanelMode==='ai' ? 'rgba(0,191,255,0.14)' : 'transparent',
                   '&:hover': { bgcolor: 'rgba(0,191,255,0.08)', color: '#00BFFF' } }}>
                 AI
@@ -2337,14 +2337,14 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
           </Box>
 
           {/* レイアウト切替 */}
-          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.35)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.09)' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.09)' }}>
             <Tooltip title="左右分割（カレンダー ｜ タスク）">
               <Button size="small" startIcon={<ViewColumnRoundedIcon sx={{ fontSize: '14px !important' }}/>}
                 onClick={() => setLayoutMode('split')}
                 sx={{ textTransform: 'none', fontWeight: layoutMode==='split' ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color:   layoutMode==='split' ? '#fff' : 'rgba(255,255,255,0.45)',
-                  bgcolor: layoutMode==='split' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#fff' } }}>
+                  color:   layoutMode==='split' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  bgcolor: layoutMode==='split' ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'var(--brand-fg)' } }}>
                 分割
               </Button>
             </Tooltip>
@@ -2352,9 +2352,9 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
               <Button size="small" startIcon={<TableRowsRoundedIcon sx={{ fontSize: '14px !important' }}/>}
                 onClick={() => setLayoutMode('stacked')}
                 sx={{ textTransform: 'none', fontWeight: layoutMode==='stacked' ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color:   layoutMode==='stacked' ? '#fff' : 'rgba(255,255,255,0.45)',
-                  bgcolor: layoutMode==='stacked' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#fff' } }}>
+                  color:   layoutMode==='stacked' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  bgcolor: layoutMode==='stacked' ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'var(--brand-fg)' } }}>
                 上下
               </Button>
             </Tooltip>
@@ -2426,18 +2426,18 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
       <Dialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#131920', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, color: '#fff', minWidth: 320 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, color: 'var(--brand-fg)', minWidth: 320 } }}
       >
         <DialogContent sx={{ px: 3, pt: 3, pb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2.5 }}>
             <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(250,112,154,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25 }}>
-              <DeleteRoundedIcon sx={{ fontSize: 18, color: '#fa709a' }}/>
+              <DeleteRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#a80637, #fa709a)' }}/>
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff', mb: 0.75 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--brand-fg)', mb: 0.75 }}>
                 {deleteTarget?.kind === 'task' ? 'タスクを削除しますか？' : '予定を削除しますか？'}
               </Typography>
-              <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.65 }}>
+              <Typography sx={{ fontSize: '0.78rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.65 }}>
                 「{deleteTarget?.kind === 'task'
                   ? deleteTarget.item.title
                   : deleteTarget?.kind === 'schedule'
@@ -2448,8 +2448,8 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
           </Box>
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
             <Button onClick={() => setDeleteTarget(null)}
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', px: 2, borderRadius: 2,
-                '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' } }}>
+              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', px: 2, borderRadius: 2,
+                '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
               キャンセル
             </Button>
             <Button variant="contained" onClick={async () => {
@@ -2459,7 +2459,7 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
               setDeleteTarget(null);
             }}
               sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.8rem', px: 2.5, borderRadius: 2,
-                bgcolor: '#fa709a', color: '#fff', boxShadow: 'none', '&:hover': { bgcolor: '#f04e7a', boxShadow: 'none' } }}>
+                bgcolor: '#fa709a', color: 'var(--brand-fg)', boxShadow: 'none', '&:hover': { bgcolor: '#f04e7a', boxShadow: 'none' } }}>
               削除する
             </Button>
           </Box>

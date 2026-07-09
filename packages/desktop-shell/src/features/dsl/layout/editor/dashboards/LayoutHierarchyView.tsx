@@ -69,8 +69,8 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
   if (!isInitializing && sections.length === 0) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, height: '100%', gap: 2, py: 6 }}>
-        <ShapeLineRoundedIcon sx={{ fontSize: 40, color: 'rgba(148,163,184,0.25)' }} />
-        <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 500, fontSize: 13 }}>
+        <ShapeLineRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--slate-ink-rgb) / 0.25)' }} />
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontWeight: 500, fontSize: 13 }}>
           {emptyMessage}
         </Typography>
       </Box>
@@ -89,7 +89,7 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
         transition: 'opacity 0.2s ease',
         '&::-webkit-scrollbar': { width: 4 },
         '&::-webkit-scrollbar-track': { background: 'transparent' },
-        '&::-webkit-scrollbar-thumb': { background: 'rgba(148,163,184,0.18)', borderRadius: 2 },
+        '&::-webkit-scrollbar-thumb': { background: 'rgb(var(--slate-ink-rgb) / 0.18)', borderRadius: 2 },
       }}
     >
       {sections.map(({ base, plans }) => (
@@ -111,10 +111,10 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
               <Box sx={{ px: 0.85, py: '1px', borderRadius: 999, background: 'rgba(52,211,153,0.16)' }}>
                 <Typography sx={{ fontSize: 10, fontWeight: 800, color: '#34d399', letterSpacing: 0.5 }}>BASE</Typography>
               </Box>
-              <Typography sx={{ fontSize: 14, fontWeight: 760, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 760, color: 'var(--brand-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {base.title || base.name || 'Untitled Layout'}
               </Typography>
-              <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', flexShrink: 0 }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.6)', flexShrink: 0 }}>
                 {plans.length} プラン
               </Typography>
               <Box className="open-hint" sx={{ display: 'flex', alignItems: 'center', gap: 0.3, ml: 0.5, opacity: 0, transition: 'opacity 0.15s', flexShrink: 0 }}>
@@ -128,12 +128,12 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
                 sx={{
                   flexShrink: 0, display: 'flex', alignItems: 'center', gap: 0.3,
                   px: 1, py: '3px', borderRadius: 999, cursor: 'pointer',
-                  border: '1px solid rgba(56,189,248,0.35)', color: '#38bdf8',
+                  border: '1px solid rgba(56,189,248,0.35)', color: 'light-dark(#0676a8, #38bdf8)',
                   '&:hover': { background: 'rgba(56,189,248,0.12)', borderColor: 'rgba(56,189,248,0.6)' },
                 }}
               >
                 <AddRoundedIcon sx={{ fontSize: 14 }} />
-                <Typography sx={{ fontSize: 11, fontWeight: 500, color: '#38bdf8' }}>プラン</Typography>
+                <Typography sx={{ fontSize: 11, fontWeight: 500, color: 'light-dark(#0676a8, #38bdf8)' }}>プラン</Typography>
               </Box>
             )}
             {onDeleteBase && (
@@ -142,7 +142,7 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
                   size="small"
                   className="base-delete"
                   onClick={(e) => { e.stopPropagation(); onDeleteBase(base); }}
-                  sx={{ flexShrink: 0, opacity: 0, transition: 'opacity 0.15s', color: 'rgba(148,163,184,0.7)', '&:hover': { color: '#ff4d4f' } }}
+                  sx={{ flexShrink: 0, opacity: 0, transition: 'opacity 0.15s', color: 'rgb(var(--slate-ink-rgb) / 0.7)', '&:hover': { color: '#ff4d4f' } }}
                 >
                   <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
                 </IconButton>
@@ -151,7 +151,7 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
           </Box>
 
           {plans.length === 0 ? (
-            <Typography sx={{ pl: 1, fontSize: 11, color: 'rgba(148,163,184,0.45)' }}>
+            <Typography sx={{ pl: 1, fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.45)' }}>
               プランがありません
             </Typography>
           ) : (
@@ -161,14 +161,14 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75, '&:hover .opt-add': { opacity: 1 } }}>
                   <Box
                     onClick={() => onOpenNode?.(plan)}
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', '&:hover .plan-name': { color: '#fff' } }}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 0.75, cursor: 'pointer', '&:hover .plan-name': { color: 'var(--brand-fg)' } }}
                   >
                     <Typography sx={{ fontSize: 10, fontWeight: 800, color: '#00BFFF', letterSpacing: 0.4 }}>PLAN</Typography>
-                    <Typography className="plan-name" sx={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(229,231,235,0.85)', transition: 'color 0.15s' }}>
+                    <Typography className="plan-name" sx={{ fontSize: 12.5, fontWeight: 600, color: 'light-dark(rgba(31,41,55,0.85), rgba(229,231,235,0.85))', transition: 'color 0.15s' }}>
                       {plan.name || plan.title || 'Plan'}
                     </Typography>
                     {options.length > 0 && (
-                      <Typography sx={{ fontSize: 10.5, color: 'rgba(148,163,184,0.55)' }}>
+                      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--slate-ink-rgb) / 0.55)' }}>
                         · {options.length} オプション
                       </Typography>
                     )}
@@ -180,12 +180,12 @@ export const LayoutHierarchyView: React.FC<LayoutHierarchyViewProps> = ({
                       sx={{
                         display: 'flex', alignItems: 'center', gap: 0.2, px: 0.75, py: '1px', borderRadius: 999,
                         cursor: 'pointer', opacity: 0, transition: 'opacity 0.15s',
-                        border: '1px solid rgba(244,114,182,0.35)', color: '#f472b6',
+                        border: '1px solid rgba(244,114,182,0.35)', color: 'light-dark(#a10d5a, #f472b6)',
                         '&:hover': { background: 'rgba(244,114,182,0.12)', borderColor: 'rgba(244,114,182,0.6)' },
                       }}
                     >
                       <AddRoundedIcon sx={{ fontSize: 13 }} />
-                      <Typography sx={{ fontSize: 10.5, fontWeight: 500, color: '#f472b6' }}>オプション</Typography>
+                      <Typography sx={{ fontSize: 10.5, fontWeight: 500, color: 'light-dark(#a10d5a, #f472b6)' }}>オプション</Typography>
                     </Box>
                   )}
                 </Box>

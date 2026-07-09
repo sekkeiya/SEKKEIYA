@@ -395,7 +395,7 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
       sx={{
         position: 'absolute',
         inset: 0,
-        bgcolor: '#0a0c12',
+        bgcolor: 'var(--brand-bg)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 10,
@@ -407,16 +407,16 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
         data-no-dismiss="true"
         sx={{
           position: 'sticky', top: 0, zIndex: 20,
-          background: 'rgba(2,6,23,0.92)',
+          background: 'rgb(var(--slate-deep-rgb) / 0.92)',
           backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(148,163,184,0.18)',
+          borderBottom: '1px solid rgb(var(--slate-ink-rgb) / 0.18)',
           flexShrink: 0,
         }}
       >
         {/* Top bar */}
         <Box sx={{ minHeight: 58, px: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 160 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.85)', lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)', lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Project Layouts
             </Typography>
             <Typography sx={{ fontSize: 18, fontWeight: 760, color: '#00BFFF', lineHeight: 1.2 }}>
@@ -429,15 +429,15 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
           <Box sx={{
             display: 'flex', alignItems: 'center', gap: 1,
             padding: '7px 10px', borderRadius: 999,
-            border: '1px solid rgba(148,163,184,0.30)',
-            background: 'rgba(15,23,42,0.62)',
+            border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)',
+            background: 'rgb(var(--slate-panel-rgb) / 0.62)',
             width: 'min(400px, 100%)', minWidth: 160,
           }}>
-            <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(148,163,184,0.9)' }} />
+            <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }} />
             <input
               type="text"
               placeholder="Search layouts..."
-              style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: '#e5e7eb', fontSize: 12 }}
+              style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--brand-fg)', fontSize: 12 }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onPointerDown={(e) => e.stopPropagation()}
@@ -452,7 +452,7 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
             onClick={() => useAutoLayoutStore.getState().openRulesDialog()}
             sx={{
               textTransform: 'none', fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0,
-              color: '#a78bfa', border: '1px solid rgba(167,139,250,0.35)',
+              color: 'light-dark(#2f07a6, #a78bfa)', border: '1px solid rgba(167,139,250,0.35)',
               borderRadius: 999, px: 1.5, py: 0.5,
               '&:hover': { bgcolor: 'rgba(167,139,250,0.1)', borderColor: 'rgba(167,139,250,0.6)' },
             }}
@@ -461,8 +461,8 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
           </Button>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.85)' }}>View</Typography>
-            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgba(148,163,184,0.22)' } }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)' }}>View</Typography>
+            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)' } }}>
               {([
                 { key: 'flat', label: 'Base' },
                 { key: 'tree', label: '階層' },
@@ -474,8 +474,8 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
                     color: '#0b1220', background: 'rgba(0,191,255,0.9)', borderColor: 'rgba(0,191,255,0.9)',
                     padding: '3px 10px', fontSize: 11, '&:hover': { background: 'rgba(0,191,255,0.95)' },
                   } : {
-                    color: 'rgba(229,231,235,0.9)', background: 'rgba(15,23,42,0.32)',
-                    borderColor: 'rgba(148,163,184,0.22)', padding: '3px 10px', fontSize: 11,
+                    color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))', background: 'rgb(var(--slate-panel-rgb) / 0.32)',
+                    borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)', padding: '3px 10px', fontSize: 11,
                   }}
                 >
                   {m.label}
@@ -485,8 +485,8 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.85)' }}>Density</Typography>
-            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgba(148,163,184,0.22)' } }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)' }}>Density</Typography>
+            <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { textTransform: 'none', borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)' } }}>
               {DENSITY_PRESETS.map((p) => (
                 <Button
                   key={p.key}
@@ -495,8 +495,8 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
                     color: '#0b1220', background: 'rgba(0,191,255,0.9)', borderColor: 'rgba(0,191,255,0.9)',
                     padding: '3px 10px', fontSize: 11, '&:hover': { background: 'rgba(0,191,255,0.95)' },
                   } : {
-                    color: 'rgba(229,231,235,0.9)', background: 'rgba(15,23,42,0.32)',
-                    borderColor: 'rgba(148,163,184,0.22)', padding: '3px 10px', fontSize: 11,
+                    color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))', background: 'rgb(var(--slate-panel-rgb) / 0.32)',
+                    borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)', padding: '3px 10px', fontSize: 11,
                   }}
                 >
                   {p.label}
@@ -578,16 +578,16 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
               onClick={() => !deleting && setDeleteTarget(null)}
               sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.55)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Box onClick={(e) => e.stopPropagation()} sx={{ width: 440, bgcolor: '#1a1e27', p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
-                <Typography sx={{ color: '#fff', mb: 2, fontWeight: 700, fontSize: 18 }}>
+              <Box onClick={(e) => e.stopPropagation()} sx={{ width: 440, bgcolor: 'var(--brand-surface2)', p: 4, borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+                <Typography sx={{ color: 'var(--brand-fg)', mb: 2, fontWeight: 700, fontSize: 18 }}>
                   {deleteTarget.kind === 'base' ? 'Base を削除' : deleteTarget.kind === 'plan' ? 'Plan を削除' : 'Option を削除'}
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: deleteTarget.planCount + deleteTarget.optionCount > 0 ? 1.5 : 3, fontSize: 14 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: deleteTarget.planCount + deleteTarget.optionCount > 0 ? 1.5 : 3, fontSize: 14 }}>
                   「{deleteTarget.name}」を削除しますか？この操作は元に戻せません。
                 </Typography>
                 {(deleteTarget.planCount > 0 || deleteTarget.optionCount > 0) && (
                   <Box sx={{ mb: 3, p: 1.5, borderRadius: 2, bgcolor: 'rgba(255,77,79,0.08)', border: '1px solid rgba(255,77,79,0.25)' }}>
-                    <Typography sx={{ color: '#ff8a8c', fontSize: 13 }}>
+                    <Typography sx={{ color: 'light-dark(#ad0003, #ff8a8c)', fontSize: 13 }}>
                       紐づく
                       {deleteTarget.planCount > 0 ? ` ${deleteTarget.planCount} 件の Plan` : ''}
                       {deleteTarget.planCount > 0 && deleteTarget.optionCount > 0 ? ' と' : ''}
@@ -597,7 +597,7 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
                   </Box>
                 )}
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                  <Typography onClick={() => !deleting && setDeleteTarget(null)} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}>キャンセル</Typography>
+                  <Typography onClick={() => !deleting && setDeleteTarget(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}>キャンセル</Typography>
                   <Typography onClick={handleDeleteConfirm} sx={{ color: '#ff4d4f', fontSize: 13, cursor: deleting ? 'not-allowed' : 'pointer', py: 1, fontWeight: 600, opacity: deleting ? 0.5 : 1 }}>
                     {deleting ? '削除中…' : '削除'}
                   </Typography>

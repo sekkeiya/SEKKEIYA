@@ -25,12 +25,12 @@ const uuid = () =>
 const normUrl = (u?: string | null) => (u || '').trim().toLowerCase().replace(/\/+$/, '');
 
 const STATUS_CHIP: Record<string, { color: string; bg: string }> = {
-  verified: { color: '#86efac', bg: 'rgba(34,197,94,0.12)' },
-  experimental: { color: '#fcd34d', bg: 'rgba(245,158,11,0.12)' },
-  reference: { color: '#93c5fd', bg: 'rgba(59,130,246,0.12)' },
+  verified: { color: 'light-dark(#149944, #86efac)', bg: 'rgba(34,197,94,0.12)' },
+  experimental: { color: 'light-dark(#ab8303, #fcd34d)', bg: 'rgba(245,158,11,0.12)' },
+  reference: { color: 'light-dark(#0352aa, #93c5fd)', bg: 'rgba(59,130,246,0.12)' },
 };
 
-export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filter = DEFAULT_REGISTRY_FILTER }) => {
+export const SourceRegistryList: React.FC<{ filter?: RegistryFilter; focus?: 'all' | 'catalog' }> = ({ filter = DEFAULT_REGISTRY_FILTER, focus = 'all' }) => {
   const entries = useDskStore((s) => s.entries);
   const upsert = useDskStore((s) => s.upsert);
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
       setStatus((s) => ({ ...s, [src.id]: '索引化を開始…' }));
       const { crawlSiteEntry } = await import('../catalog/crawlSiteToCatalog');
       const { meta } = await crawlSiteEntry(
-        // 索引商品には S.Models 正典カテゴリ/タグを付与（無指定時は S.Library カテゴリを流用）。
+        // 索引商品には S.Model 正典カテゴリ/タグを付与（無指定時は S.Library カテゴリを流用）。
         { localId: entry.localId, title: entry.title, sourceUrl: entry.sourceUrl, category: src.modelCategory ?? src.category, tags: src.modelTags ?? src.tags },
         {
           maxDepth: src.crossCategories ? 3 : 0,
@@ -102,12 +102,14 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
   };
 
   // フィルタ適用済みのセクション（空セクションは非表示）。
+  // focus='catalog' のときはメーカー電子カタログ（isCatalog）グループのみに絞る。
   const visibleSections = SOURCE_SECTIONS
     .filter((sec) => !filter.kinds.length || filter.kinds.includes(sec.kind))
     .map((sec) => {
-      const filteredEntries = applyFilter(sec.groups.flatMap((g) => g.entries), filter, isAdded);
+      const baseGroups = focus === 'catalog' ? sec.groups.filter((g) => g.isCatalog) : sec.groups;
+      const filteredEntries = applyFilter(baseGroups.flatMap((g) => g.entries), filter, isAdded);
       const ids = new Set(filteredEntries.map((e) => e.id));
-      const groups = sec.groups
+      const groups = baseGroups
         .map((g) => ({ ...g, entries: g.entries.filter((e) => ids.has(e.id)) }))
         // 並び替え適用順を維持するため filteredEntries の順序でソート
         .map((g) => ({ ...g, entries: filteredEntries.filter((e) => g.entries.some((x) => x.id === e.id)) }))
@@ -132,12 +134,12 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
         >
           表示中をすべて追加（{allRemain}）
         </Button>
-        <Typography sx={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)' }}>{totalShown} 件表示</Typography>
+        <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{totalShown} 件表示</Typography>
         {batchActive && (
           <>
-            <Typography sx={{ fontSize: 11.5, color: '#7dd3fc', ml: 'auto' }}>{batchInfo}</Typography>
+            <Typography sx={{ fontSize: 11.5, color: 'light-dark(#0474a9, #7dd3fc)', ml: 'auto' }}>{batchInfo}</Typography>
             <Button size="small" variant="outlined" startIcon={<StopRoundedIcon sx={{ fontSize: 16 }} />} onClick={() => { cancelRef.current = true; }}
-              sx={{ color: '#fca5a5', borderColor: 'rgba(248,113,113,0.5)' }}>中断</Button>
+              sx={{ color: 'light-dark(#a80606, #fca5a5)', borderColor: 'rgba(248,113,113,0.5)' }}>中断</Button>
           </>
         )}
       </Box>
@@ -154,18 +156,18 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
         return (
           <Box key={sec.kind} sx={{
             mb: 2.5, borderRadius: 2.5, overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)',
           }}>
             {/* セクションヘッダ */}
             <Box sx={{
               display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25,
-              borderLeft: `3px solid ${accent}`, bgcolor: 'rgba(255,255,255,0.03)',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              borderLeft: `3px solid ${accent}`, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+              borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
             }}>
               <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: accent }} />
-              <Typography sx={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{sec.label}</Typography>
-              <Chip label={`${filteredEntries.length}`} size="small" sx={{ height: 18, fontSize: 10, color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.08)' }} />
-              <Typography noWrap sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', flex: 1, minWidth: 0 }}>{sec.description}</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 800, color: 'var(--brand-fg)' }}>{sec.label}</Typography>
+              <Chip label={`${filteredEntries.length}`} size="small" sx={{ height: 18, fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
+              <Typography noWrap sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', flex: 1, minWidth: 0 }}>{sec.description}</Typography>
               <Button
                 size="small" variant="text" disabled={busy || remain === 0}
                 startIcon={<PlaylistAddRoundedIcon sx={{ fontSize: 16 }} />}
@@ -180,7 +182,7 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
               {groups.map((group) => (
                 <Box key={group.site} sx={{ mb: 1.5, '&:last-child': { mb: 0 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>{group.site}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>{group.site}</Typography>
                     <Tooltip title="サイトを開く">
                       <Box component="span" onClick={() => openExternalUrl(group.homeUrl)} sx={{ display: 'inline-flex', cursor: 'pointer', color: accent }}>
                         <OpenInNewRoundedIcon sx={{ fontSize: 13 }} />
@@ -198,13 +200,13 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
                       return (
                         <Box key={src.id} sx={{
                           display: 'flex', alignItems: 'center', gap: 1, p: 1.1, borderRadius: 1.5,
-                          bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                          bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                           transition: 'border-color 0.15s, background 0.15s',
-                          '&:hover': { borderColor: `${accent}66`, bgcolor: 'rgba(255,255,255,0.05)' },
+                          '&:hover': { borderColor: `${accent}66`, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
                         }}>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 700 }}>{src.genre}</Typography>
-                            <Typography noWrap sx={{ fontSize: 10, color: itemBusy ? accent : 'rgba(255,255,255,0.35)' }}>
+                            <Typography noWrap sx={{ fontSize: 10, color: itemBusy ? accent : 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
                               {itemBusy && st ? st : src.url.replace(/^https?:\/\//, '')}
                             </Typography>
                           </Box>
@@ -212,8 +214,8 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
                             <Chip label={STATUS_LABEL[stt]} size="small" sx={{ height: 16, fontSize: 9, color: chip.color, bgcolor: chip.bg }} />
                           )}
                           {added && !itemBusy ? (
-                            <Chip icon={<CheckRoundedIcon sx={{ fontSize: 13, color: '#86efac !important' }} />} label="追加済み" size="small"
-                              sx={{ height: 24, fontSize: 11, fontWeight: 700, color: '#86efac', bgcolor: 'rgba(34,197,94,0.12)' }} />
+                            <Chip icon={<CheckRoundedIcon sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac) !important' }} />} label="追加済み" size="small"
+                              sx={{ height: 24, fontSize: 11, fontWeight: 700, color: 'light-dark(#149944, #86efac)', bgcolor: 'rgba(34,197,94,0.12)' }} />
                           ) : (
                             <Button
                               size="small" variant="outlined" disabled={busy}
@@ -235,7 +237,7 @@ export const SourceRegistryList: React.FC<{ filter?: RegistryFilter }> = ({ filt
         );
       })}
 
-      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', mt: 1 }}>
+      <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>
         「確認済」=巡回検証済み（FLYMEe）/「実験的」=巡回するが精度はサイト次第 /「参照」=ブックマーク登録のみ。
         家具は追加でそのまま索引化まで進みます（隠しWebView競合回避のため1件ずつ）。
       </Typography>

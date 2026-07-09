@@ -20,10 +20,10 @@ import { useDsdStore } from '../store/useDsdStore';
 import { BRAND } from '../../../styles/theme';
 
 const TEMPLATE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: '#aed581' },
-  site:   { label: '敷地・周辺',   icon: <PlaceRoundedIcon   sx={{ fontSize: 14 }} />, color: '#4dd0e1' },
-  layout: { label: 'ゾーニング',   icon: <RouteRoundedIcon   sx={{ fontSize: 14 }} />, color: '#ffb74d' },
-  env:    { label: '環境・風・音', icon: <AirRoundedIcon     sx={{ fontSize: 14 }} />, color: '#80cbc4' },
+  sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: 'light-dark(#5a822b, #aed581)' },
+  site:   { label: '敷地・周辺',   icon: <PlaceRoundedIcon   sx={{ fontSize: 14 }} />, color: 'light-dark(#198694, #4dd0e1)' },
+  layout: { label: 'ゾーニング',   icon: <RouteRoundedIcon   sx={{ fontSize: 14 }} />, color: 'light-dark(#ad6700, #ffb74d)' },
+  env:    { label: '環境・風・音', icon: <AirRoundedIcon     sx={{ fontSize: 14 }} />, color: 'light-dark(#327b74, #80cbc4)' },
 };
 
 const FORMAT_META: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -185,18 +185,18 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
       <Box sx={{
         display: 'flex', alignItems: 'center', gap: 1.5, mb: 2,
         p: 1.5, borderRadius: 1.5,
-        bgcolor: `${meta.color}0d`,
-        border: `1px solid ${meta.color}33`,
+        bgcolor: `color-mix(in srgb, ${meta.color} 5%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${meta.color} 20%, transparent)`,
       }}>
         <Box sx={{
           width: 36, height: 36, borderRadius: 1.5, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          bgcolor: `${meta.color}22`, color: meta.color,
+          bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color,
         }}>
           {React.cloneElement(meta.icon as React.ReactElement, { sx: { fontSize: 20 } })}
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3,
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)', lineHeight: 1.3,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selectedItem.diagramTitle || 'Untitled Diagram'}
           </Typography>
@@ -205,8 +205,8 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
             size="small"
             sx={{
               height: 18, fontSize: '0.62rem', fontWeight: 600, mt: 0.5,
-              bgcolor: `${meta.color}22`, color: meta.color,
-              border: `1px solid ${meta.color}44`,
+              bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color,
+              border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)`,
             }}
           />
         </Box>
@@ -219,7 +219,7 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
           <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
             最終更新
           </Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
             {formatDate(updatedAt)}
           </Typography>
         </Box>
@@ -228,14 +228,14 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
             <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>
               作成日
             </Typography>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
               {formatDate(createdAt)}
             </Typography>
           </Box>
         )}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
       {/* Category */}
       <Box sx={{ mb: 2 }}>
@@ -251,13 +251,13 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
           variant="outlined"
           sx={{
             '& .MuiOutlinedInput-root': {
-              fontSize: 12, color: '#fff',
-              bgcolor: 'rgba(255,255,255,0.04)',
-              '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-              '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+              fontSize: 12, color: 'var(--brand-fg)',
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
+              '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+              '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
               '&.Mui-focused fieldset': { borderColor: meta.color },
             },
-            '& input::placeholder': { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
+            '& input::placeholder': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 12 },
           }}
         />
       </Box>
@@ -276,10 +276,10 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
                 deleteIcon={<CloseRoundedIcon sx={{ fontSize: '12px !important' }} />}
                 sx={{
                   height: 22, fontSize: '0.7rem',
-                  bgcolor: 'rgba(255,255,255,0.07)',
-                  color: 'rgba(255,255,255,0.75)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ef5350' } },
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)',
+                  color: 'rgb(var(--brand-fg-rgb) / 0.75)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+                  '& .MuiChip-deleteIcon': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: '#ef5350' } },
                 }}
               />
             ))}
@@ -295,18 +295,18 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
           variant="outlined"
           sx={{
             '& .MuiOutlinedInput-root': {
-              fontSize: 12, color: '#fff',
-              bgcolor: 'rgba(255,255,255,0.04)',
-              '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-              '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+              fontSize: 12, color: 'var(--brand-fg)',
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
+              '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+              '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
               '&.Mui-focused fieldset': { borderColor: meta.color },
             },
-            '& input::placeholder': { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
+            '& input::placeholder': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 12 },
           }}
         />
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
       {/* Visibility */}
       <Box sx={{ mb: 2 }}>
@@ -315,11 +315,11 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           px: 1.5, py: 1,
           borderRadius: 1.5,
-          bgcolor: isPublic ? 'rgba(174,213,129,0.07)' : 'rgba(255,255,255,0.03)',
-          border: `1px solid ${isPublic ? 'rgba(174,213,129,0.25)' : 'rgba(255,255,255,0.07)'}`,
+          bgcolor: isPublic ? 'rgba(174,213,129,0.07)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+          border: `1px solid ${isPublic ? 'rgba(174,213,129,0.25)' : 'rgb(var(--brand-fg-rgb) / 0.07)'}`,
           transition: 'all 0.2s',
         }}>
-          <Typography sx={{ fontSize: 12, color: isPublic ? '#aed581' : 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+          <Typography sx={{ fontSize: 12, color: isPublic ? 'light-dark(#5a822b, #aed581)' : 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 600 }}>
             {isPublic ? '公開' : '非公開'}
           </Typography>
           <Switch
@@ -327,14 +327,14 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
             onChange={e => handleVisibilityChange(e.target.checked)}
             size="small"
             sx={{
-              '& .MuiSwitch-switchBase.Mui-checked': { color: '#aed581' },
+              '& .MuiSwitch-switchBase.Mui-checked': { color: 'light-dark(#5a822b, #aed581)' },
               '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: '#aed58188' },
             }}
           />
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
       {/* Actions */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -345,10 +345,10 @@ const DiagramStatePanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) =>
           startIcon={<EditRoundedIcon />}
           onClick={handleOpenInEditor}
           sx={{
-            bgcolor: `${meta.color}22`, color: meta.color,
-            border: `1px solid ${meta.color}44`,
+            bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color,
+            border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)`,
             justifyContent: 'flex-start', fontSize: 12, fontWeight: 600,
-            '&:hover': { bgcolor: `${meta.color}33` },
+            '&:hover': { bgcolor: `color-mix(in srgb, ${meta.color} 20%, transparent)` },
             boxShadow: 'none',
           }}
         >
@@ -408,8 +408,8 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
       {selectedItem.thumbnailUrl && (
         <Box sx={{
           width: '100%', aspectRatio: '16/9',
-          bgcolor: `${templateMeta.color}10`,
-          borderRadius: 2, border: `1px solid ${templateMeta.color}33`,
+          bgcolor: `color-mix(in srgb, ${templateMeta.color} 6%, transparent)`,
+          borderRadius: 2, border: `1px solid color-mix(in srgb, ${templateMeta.color} 20%, transparent)`,
           overflow: 'hidden', mb: 2,
         }}>
           <Box component="img"
@@ -421,11 +421,11 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
 
       {/* Title */}
       <SectionLabel>タイトル</SectionLabel>
-      <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#fff', lineHeight: 1.4, mb: 2 }}>
+      <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'var(--brand-fg)', lineHeight: 1.4, mb: 2 }}>
         {selectedItem.title || 'Untitled'}
       </Typography>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
       {/* Meta */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
@@ -439,8 +439,8 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
             size="small"
             sx={{
               height: 22, fontSize: '0.68rem', fontWeight: 600,
-              bgcolor: `${templateMeta.color}18`, color: templateMeta.color,
-              border: `1px solid ${templateMeta.color}44`,
+              bgcolor: `color-mix(in srgb, ${templateMeta.color} 9%, transparent)`, color: templateMeta.color,
+              border: `1px solid color-mix(in srgb, ${templateMeta.color} 27%, transparent)`,
               '& .MuiChip-icon': { color: templateMeta.color, ml: 0.5 },
             }}
           />
@@ -455,9 +455,9 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
             size="small"
             sx={{
               height: 22, fontSize: '0.68rem',
-              bgcolor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              '& .MuiChip-icon': { color: 'rgba(255,255,255,0.5)', ml: 0.5 },
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', color: 'rgb(var(--brand-fg-rgb) / 0.7)',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+              '& .MuiChip-icon': { color: 'rgb(var(--brand-fg-rgb) / 0.5)', ml: 0.5 },
             }}
           />
         </Box>
@@ -466,7 +466,7 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
             <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               サイズ
             </Typography>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
               {formatSize(selectedItem.fileSize)}
             </Typography>
           </Box>
@@ -475,13 +475,13 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
           <Typography variant="caption" sx={{ fontWeight: 600, fontSize: 10, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             作成日
           </Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
             {formatDate(selectedItem.createdAt)}
           </Typography>
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', mb: 2 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 2 }} />
 
       {/* Actions */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -492,10 +492,10 @@ const ExportItemPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) => {
           startIcon={<DownloadRoundedIcon />}
           onClick={handleDownload}
           sx={{
-            bgcolor: `${templateMeta.color}22`, color: templateMeta.color,
-            border: `1px solid ${templateMeta.color}44`,
+            bgcolor: `color-mix(in srgb, ${templateMeta.color} 13%, transparent)`, color: templateMeta.color,
+            border: `1px solid color-mix(in srgb, ${templateMeta.color} 27%, transparent)`,
             justifyContent: 'flex-start', fontSize: 12, fontWeight: 600,
-            '&:hover': { bgcolor: `${templateMeta.color}33` },
+            '&:hover': { bgcolor: `color-mix(in srgb, ${templateMeta.color} 20%, transparent)` },
             boxShadow: 'none',
           }}
         >
@@ -528,11 +528,11 @@ export const DsdRightPanel: React.FC = () => {
   if (!selectedItem) {
     return (
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+        <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
           アイテムを選択するとプロパティが表示されます。
         </Typography>
         <Box sx={{ p: 2, bgcolor: 'rgba(174,213,129,0.05)', borderRadius: 1, border: '1px dashed rgba(174,213,129,0.2)' }}>
-          <Typography variant="caption" sx={{ color: '#aed581', display: 'block', mb: 0.5 }}>S.Diagram ライブラリ</Typography>
+          <Typography variant="caption" sx={{ color: 'light-dark(#5a822b, #aed581)', display: 'block', mb: 0.5 }}>S.Diagram ライブラリ</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.78rem', lineHeight: 1.6 }}>
             カードをクリックするとプロパティが表示されます。ダブルクリックするとエディタが開きます。
           </Typography>

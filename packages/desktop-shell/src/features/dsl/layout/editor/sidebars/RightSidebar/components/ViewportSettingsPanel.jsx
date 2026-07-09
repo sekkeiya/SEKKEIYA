@@ -37,7 +37,7 @@ const SPEED_ICONS = [
 function SubHeader({ children, action }) {
   return (
     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 22, mb: 0.6 }}>
-      <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: alpha("#fff", 0.5) }}>
+      <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>
         {children}
       </Typography>
       {action}
@@ -105,8 +105,8 @@ export default function ViewportSettingsPanel() {
             width: "100%",
             "& .MuiToggleButton-root": {
               flex: 1, py: 0.5, gap: 0.5, fontSize: 11, fontWeight: 800, textTransform: "none",
-              color: alpha("#fff", 0.65), border: `1px solid ${alpha("#fff", 0.14)}`,
-              "&.Mui-selected": { color: "#fff", background: alpha(accent, 0.22), borderColor: alpha(accent, 0.6),
+              color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)", border: `1px solid ${alpha("#fff", 0.14)}`,
+              "&.Mui-selected": { color: "var(--brand-fg)", background: alpha(accent, 0.22), borderColor: alpha(accent, 0.6),
                 "&:hover": { background: alpha(accent, 0.3) } },
             },
           }}
@@ -127,7 +127,7 @@ export default function ViewportSettingsPanel() {
         >
           家具を半透明
         </SubHeader>
-        <Typography sx={{ fontSize: 9.5, color: alpha("#fff", 0.4), lineHeight: 1.5 }}>
+        <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.5 }}>
           家具をゴースト表示にして、奥の床・壁・天井の面を選びやすくします（Material/面ラベル作業向け）。
         </Typography>
       </Box>
@@ -173,7 +173,7 @@ export default function ViewportSettingsPanel() {
         >
           俯瞰レベル線（GL / 各階FL）
         </SubHeader>
-        <Typography sx={{ fontSize: 9.5, color: alpha("#fff", 0.4), lineHeight: 1.5 }}>
+        <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.5 }}>
           俯瞰ビューに GL・各階の床レベル線を表示専用で重ねます（編集は「自動ラベル → 断面で高さを設定」）。
         </Typography>
       </Box>
@@ -209,7 +209,7 @@ export default function ViewportSettingsPanel() {
                   onClick={() => setSpeedMode?.(m.id)}
                   sx={{
                     width: 34, height: 34, borderRadius: 1,
-                    color: active ? "#fff" : alpha("#fff", 0.72),
+                    color: active ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 72%, transparent)",
                     bgcolor: active ? alpha(accent, 0.85) : alpha("#fff", 0.05),
                     border: `1px solid ${active ? accent : alpha("#fff", 0.12)}`,
                     "&:hover": { bgcolor: active ? accent : alpha("#fff", 0.1) },
@@ -220,7 +220,7 @@ export default function ViewportSettingsPanel() {
               </Tooltip>
             );
           })}
-          <Box sx={{ ml: 0.5, px: 0.85, py: 0.35, borderRadius: 0.8, bgcolor: alpha("#000", 0.35) }}>
+          <Box sx={{ ml: 0.5, px: 0.85, py: 0.35, borderRadius: 0.8, bgcolor: "color-mix(in srgb, var(--brand-bg) 35%, transparent)" }}>
             <Typography sx={{ fontSize: 10.5, fontWeight: 900, opacity: 0.85 }}>
               x{Number(speedMul || 1).toFixed(1)}
             </Typography>

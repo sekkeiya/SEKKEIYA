@@ -40,7 +40,7 @@ export default function AppLayout() {
   const user = isAuthed ? { uid: "user", displayName: "User" } : null;
 
   return (
-    <Box sx={{ display: "flex", width: "100vw", height: "100vh", overflow: "hidden", backgroundColor: "#02040a" }}>
+    <Box sx={{ display: "flex", width: "100vw", height: "100vh", overflow: "hidden", backgroundColor: "var(--brand-bg)" }}>
       {/* 1. グローバルミニサイドバー (100vh) */}
       <Box sx={{ flexShrink: 0, zIndex: 1200 }}>
         <MiniSidebar

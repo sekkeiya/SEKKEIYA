@@ -33,18 +33,18 @@ export default function LayoutCandidateGalleryDialog({ onAdopt, onReject, onRege
       onClose={() => setOpen(false)}
       maxWidth="md"
       fullWidth
-      PaperProps={{ sx: { bgcolor: "#0b1020", color: "#fff", borderRadius: 2, border: `1px solid ${alpha(ACCENT, 0.4)}`, backgroundImage: "none" } }}
+      PaperProps={{ sx: { bgcolor: "var(--brand-surface)", color: "var(--brand-fg)", borderRadius: 2, border: `1px solid ${alpha(ACCENT, 0.4)}`, backgroundImage: "none" } }}
     >
       <DialogTitle sx={{ p: 2, pb: 1.5 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <AutoFixHighRoundedIcon sx={{ fontSize: 20, color: ACCENT }} />
           <Box sx={{ flex: 1 }}>
             <Typography sx={{ fontSize: "0.95rem", fontWeight: 800 }}>レイアウト候補</Typography>
-            <Typography sx={{ fontSize: "0.68rem", color: alpha("#fff", 0.55) }}>
+            <Typography sx={{ fontSize: "0.68rem", color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
               {candidates.length} 案。平面図を比較して採用する案を選んでください。
             </Typography>
           </Box>
-          <IconButton onClick={() => setOpen(false)} size="small" sx={{ color: alpha("#fff", 0.6) }}>
+          <IconButton onClick={() => setOpen(false)} size="small" sx={{ color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }}>
             <CloseRoundedIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Stack>
@@ -54,7 +54,7 @@ export default function LayoutCandidateGalleryDialog({ onAdopt, onReject, onRege
 
       <DialogContent sx={{ p: 1.5 }}>
         {candidates.length === 0 ? (
-          <Typography sx={{ fontSize: "0.8rem", color: alpha("#fff", 0.6), p: 2, textAlign: "center" }}>
+          <Typography sx={{ fontSize: "0.8rem", color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)", p: 2, textAlign: "center" }}>
             候補がありません。自動レイアウトを実行すると、生成した案がここに表示されます。
           </Typography>
         ) : (
@@ -65,12 +65,12 @@ export default function LayoutCandidateGalleryDialog({ onAdopt, onReject, onRege
                 <Box sx={{ width: "100%", aspectRatio: "1.414 / 1", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                   {c.image
                     ? <Box component="img" src={c.image} alt={c.label} sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                    : <Typography sx={{ fontSize: "0.7rem", color: "#888" }}>平面図なし</Typography>}
+                    : <Typography sx={{ fontSize: "0.7rem", color: "rgb(var(--brand-fg-rgb) / 0.65)" }}>平面図なし</Typography>}
                 </Box>
                 <Stack sx={{ p: 1 }} spacing={0.75}>
                   <Typography sx={{ fontSize: "0.78rem", fontWeight: 700 }}>
                     {c.label}
-                    <Typography component="span" sx={{ fontSize: "0.64rem", color: alpha("#fff", 0.45), ml: 0.75 }}>
+                    <Typography component="span" sx={{ fontSize: "0.64rem", color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", ml: 0.75 }}>
                       {c.items.length}点
                     </Typography>
                   </Typography>
@@ -84,7 +84,7 @@ export default function LayoutCandidateGalleryDialog({ onAdopt, onReject, onRege
                     </Button>
                     <IconButton
                       size="small" onClick={() => onReject(c)} title="不採用（削除）"
-                      sx={{ color: alpha("#fff", 0.5), border: `1px solid ${alpha("#fff", 0.15)}`, borderRadius: 1, "&:hover": { color: "#f87171", borderColor: alpha("#f87171", 0.5) } }}
+                      sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", border: `1px solid ${alpha("#fff", 0.15)}`, borderRadius: 1, "&:hover": { color: "light-dark(#a50808, #f87171)", borderColor: alpha("#f87171", 0.5) } }}
                     >
                       <DeleteOutlineRoundedIcon sx={{ fontSize: 17 }} />
                     </IconButton>
@@ -101,13 +101,13 @@ export default function LayoutCandidateGalleryDialog({ onAdopt, onReject, onRege
           <Button
             onClick={onRegenerate}
             variant="outlined" startIcon={<ReplayRoundedIcon sx={{ fontSize: 16 }} />}
-            sx={{ textTransform: "none", color: alpha("#fff", 0.8), borderColor: alpha("#fff", 0.2) }}
+            sx={{ textTransform: "none", color: "color-mix(in srgb, var(--brand-fg) 80%, transparent)", borderColor: alpha("#fff", 0.2) }}
           >
             もう一度生成
           </Button>
         )}
         <Box sx={{ flex: 1 }} />
-        <Button onClick={() => setOpen(false)} sx={{ textTransform: "none", color: alpha("#fff", 0.7) }}>
+        <Button onClick={() => setOpen(false)} sx={{ textTransform: "none", color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
           閉じる
         </Button>
       </DialogActions>

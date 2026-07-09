@@ -75,7 +75,7 @@ function normalize(kind: GalleryKind, docId: string, x: any, ref: GalleryRef, au
 // followingIds === null → 全公開 / [] → フォロー0人（空） / [...] → フォロー中
 type Following = string[] | null;
 
-// S.Models: ルート assets コレクション
+// S.Model: ルート assets コレクション
 // DssRightPanel と同じシンプルな複合クエリ（type + visibility）を使用
 async function fetchModels(following: Following): Promise<GalleryItem[]> {
   const col = collection(db, 'assets');
@@ -120,7 +120,7 @@ async function fetchLayouts(following: Following): Promise<GalleryItem[]> {
   });
 }
 
-// S.Presentations / S.Create / S.Diagram: collectionGroup('workFiles') を appScope で判別
+// S.Slide / S.Create / S.Diagram: collectionGroup('workFiles') を appScope で判別
 async function fetchWorkFiles(
   kind: 'presentation' | 'furniture' | 'diagram' | 'image' | 'portfolio',
   appScope: string,

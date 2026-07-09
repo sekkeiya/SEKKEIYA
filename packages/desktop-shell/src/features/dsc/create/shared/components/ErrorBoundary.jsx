@@ -28,7 +28,7 @@ export class ErrorBoundary extends React.Component {
             flexDirection: 'column', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            bgcolor: '#0a0a0a', 
+            bgcolor: 'var(--brand-bg)', 
             color: 'error.main',
             p: 4,
             textAlign: 'center'

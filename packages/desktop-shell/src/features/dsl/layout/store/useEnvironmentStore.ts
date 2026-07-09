@@ -32,9 +32,9 @@ export const TERRAIN_PRESET_DEFAULTS: Record<
 > = {
   grass: { color: "#4f7a3a", roughness: 1 },
   dirt: { color: "#7a5a3a", roughness: 1 },
-  concrete: { color: "#9c9c9c", roughness: 0.78 },
+  concrete: { color: "rgb(var(--brand-fg-rgb) / 0.65)", roughness: 0.78 },
   stone: { color: "#8a8580", roughness: 0.92 },
-  snow: { color: "#eef5fa", roughness: 0.6 },
+  snow: { color: "var(--brand-fg)", roughness: 0.6 },
   water: { color: "#3f7ea0", roughness: 0.08 },
 };
 

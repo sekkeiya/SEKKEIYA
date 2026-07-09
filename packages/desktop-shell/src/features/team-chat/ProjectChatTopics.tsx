@@ -46,15 +46,15 @@ const ProjectChatTopics: React.FC<{ projectId: string; activeTopicId?: string; o
         onClick={() => onSelect(id)}
         sx={{
           display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.6, mx: 0.5, borderRadius: 1, cursor: 'pointer',
-          color: active ? '#fff' : 'rgba(255,255,255,0.75)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.75)',
           bgcolor: active ? 'rgba(138,180,248,0.16)' : 'transparent',
-          '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.2)' : 'rgba(255,255,255,0.06)' },
+          '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
-        <ChatBubbleOutlineRoundedIcon sx={{ fontSize: '0.9rem', color: active ? '#8ab4f8' : 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
+        <ChatBubbleOutlineRoundedIcon sx={{ fontSize: '0.9rem', color: active ? 'light-dark(#0a45a4, #8ab4f8)' : 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography noWrap sx={{ fontSize: 12.5, fontWeight: active ? 600 : 400 }}>{label}</Typography>
-          {last && <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)' }}>{last}</Typography>}
+          {last && <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{last}</Typography>}
         </Box>
       </Box>
     );
@@ -63,11 +63,11 @@ const ProjectChatTopics: React.FC<{ projectId: string; activeTopicId?: string; o
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', px: 1.5, pt: 1.25, pb: 0.5 }}>
-        <Typography sx={{ flex: 1, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+        <Typography sx={{ flex: 1, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600 }}>
           チャット
         </Typography>
         <Tooltip title="新規チャット">
-          <IconButton size="small" onClick={() => setAdding(a => !a)} sx={{ color: 'rgba(255,255,255,0.45)', p: 0.25, '&:hover': { color: '#8ab4f8' } }}>
+          <IconButton size="small" onClick={() => setAdding(a => !a)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', p: 0.25, '&:hover': { color: 'light-dark(#0a45a4, #8ab4f8)' } }}>
             <AddRoundedIcon sx={{ fontSize: '1rem' }} />
           </IconButton>
         </Tooltip>
@@ -84,11 +84,11 @@ const ProjectChatTopics: React.FC<{ projectId: string; activeTopicId?: string; o
             placeholder="チャット名（例: 設計の相談）"
             sx={{
               flex: 1,
-              '& .MuiInputBase-root': { color: '#fff', fontSize: 12, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1 },
-              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.15)' },
+              '& .MuiInputBase-root': { color: 'var(--brand-fg)', fontSize: 12, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1 },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
             }}
           />
-          <IconButton size="small" onClick={create} disabled={creating || !newName.trim()} sx={{ color: '#8ab4f8' }}>
+          <IconButton size="small" onClick={create} disabled={creating || !newName.trim()} sx={{ color: 'light-dark(#0a45a4, #8ab4f8)' }}>
             {creating ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <AddRoundedIcon sx={{ fontSize: '1.05rem' }} />}
           </IconButton>
         </Box>
@@ -97,7 +97,7 @@ const ProjectChatTopics: React.FC<{ projectId: string; activeTopicId?: string; o
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 1 }}>
         {renderRow(undefined, 'メインチャット')}
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}><CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.3)' }} /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}><CircularProgress size={16} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} /></Box>
         ) : (
           topics.map(t => renderRow(t.id, t.name, t.lastMessage))
         )}

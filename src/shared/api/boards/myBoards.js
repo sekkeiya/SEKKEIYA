@@ -149,7 +149,7 @@ export const updateMyBoardVisibility = async ({
     nextVisibility,
     planId = "free",
 }) => {
-    throw new Error("Visibility update is not supported directly from this UI in Sekkeiya yet. Use S.Models settings.");
+    throw new Error("Visibility update is not supported directly from this UI in Sekkeiya yet. Use S.Model settings.");
 };
 
 /* ============================== D: Delete ============================== */

@@ -118,8 +118,8 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
         flexDirection: 'column',
         borderRadius: 2,
         overflow: 'hidden',
-        border: `1.5px solid ${isSelected ? DSL_ACCENT : hovered ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)'}`,
-        background: isSelected ? alpha(DSL_ACCENT, 0.06) : 'rgba(255,255,255,0.02)',
+        border: `1.5px solid ${isSelected ? DSL_ACCENT : hovered ? 'rgb(var(--brand-fg-rgb) / 0.22)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
+        background: isSelected ? alpha(DSL_ACCENT, 0.06) : 'rgb(var(--brand-fg-rgb) / 0.02)',
         cursor: 'pointer',
         transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
         boxShadow: isSelected
@@ -169,13 +169,13 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
             sx={{
               display: 'flex', alignItems: 'center', gap: 0.4,
               px: 0.75, py: 0.25, borderRadius: 0.75,
-              background: alpha('#000', 0.65), backdropFilter: 'blur(4px)',
+              background: "color-mix(in srgb, var(--brand-bg) 65%, transparent)", backdropFilter: 'blur(4px)',
             }}
           >
             {isVideo
-              ? <MovieRoundedIcon sx={{ fontSize: 10, color: alpha('#fff', 0.85) }} />
-              : <ImageRoundedIcon sx={{ fontSize: 10, color: alpha('#fff', 0.85) }} />}
-            <Typography sx={{ fontSize: 9, fontWeight: 700, color: alpha('#fff', 0.85), lineHeight: 1 }}>
+              ? <MovieRoundedIcon sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)" }} />
+              : <ImageRoundedIcon sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)" }} />}
+            <Typography sx={{ fontSize: 9, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)", lineHeight: 1 }}>
               {isVideo ? 'Movie' : 'Image'}
             </Typography>
           </Box>
@@ -190,7 +190,7 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
               backdropFilter: 'blur(4px)',
             }}
           >
-            <Typography sx={{ fontSize: 9, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+            <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'var(--brand-fg)', lineHeight: 1 }}>
               {isCycles ? 'Cycles' : '標準'}
             </Typography>
           </Box>
@@ -199,8 +199,8 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
         {/* Duration badge (video) */}
         {isVideo && item.durationSec != null && (
           <Box sx={{ position: 'absolute', bottom: 5, right: 5 }}>
-            <Box sx={{ px: 0.75, py: 0.25, borderRadius: 0.75, background: alpha('#000', 0.72) }}>
-              <Typography sx={{ fontSize: 10, fontWeight: 600, color: '#fff', lineHeight: 1 }}>
+            <Box sx={{ px: 0.75, py: 0.25, borderRadius: 0.75, background: "color-mix(in srgb, var(--brand-bg) 72%, transparent)" }}>
+              <Typography sx={{ fontSize: 10, fontWeight: 600, color: 'var(--brand-fg)', lineHeight: 1 }}>
                 {formatDuration(item.durationSec)}
               </Typography>
             </Box>
@@ -231,13 +231,13 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
                 onClick={handleOpenInNew}
                 sx={{
                   width: 26, height: 26,
-                  background: 'rgba(15,23,42,0.85)',
+                  background: 'rgb(var(--slate-panel-rgb) / 0.85)',
                   backdropFilter: 'blur(6px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  '&:hover': { background: 'rgba(30,41,59,0.95)' },
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+                  '&:hover': { background: 'rgb(var(--slate-800-rgb) / 0.95)' },
                 }}
               >
-                <OpenInNewRoundedIcon sx={{ fontSize: 13, color: '#e2e8f0' }} />
+                <OpenInNewRoundedIcon sx={{ fontSize: 13, color: 'var(--brand-fg)' }} />
               </IconButton>
             </Tooltip>
           )}
@@ -267,12 +267,12 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
         }}
       >
         <Typography sx={{
-          fontSize: 12, fontWeight: 700, color: '#e2e8f0',
+          fontSize: 12, fontWeight: 700, color: 'var(--brand-fg)',
           lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {item.shotName || item.id}
         </Typography>
-        <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.38), lineHeight: 1.2 }}>
+        <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", lineHeight: 1.2 }}>
           {item.width}×{item.height} px
         </Typography>
         <Typography sx={{
@@ -281,7 +281,7 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
         }}>
           {item.planName}
         </Typography>
-        <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.28), lineHeight: 1.2, mt: 0.25 }}>
+        <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 28%, transparent)", lineHeight: 1.2, mt: 0.25 }}>
           {formatDate(item.createdAt)}
         </Typography>
 
@@ -296,7 +296,7 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
               justifyContent: 'flex-end',
               gap: 0.4,
               px: 0.75,
-              background: 'linear-gradient(to top, rgba(2,6,23,0.96) 70%, rgba(2,6,23,0))',
+              background: 'linear-gradient(to top, rgb(var(--slate-deep-rgb) / 0.96) 70%, rgb(var(--slate-deep-rgb) / 0))',
               opacity: hovered ? 1 : 0,
               transition: 'opacity 0.15s',
               pointerEvents: hovered ? 'auto' : 'none',
@@ -311,14 +311,14 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
                 disabled={acting}
                 sx={{
                   width: 28, height: 28,
-                  background: 'rgba(15,23,42,0.8)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  '&:hover': { background: 'rgba(30,41,59,0.95)' },
+                  background: 'rgb(var(--slate-panel-rgb) / 0.8)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+                  '&:hover': { background: 'rgb(var(--slate-800-rgb) / 0.95)' },
                 }}
               >
                 {isPublic
                   ? <PublicRoundedIcon sx={{ fontSize: 14, color: '#34d399' }} />
-                  : <LockRoundedIcon sx={{ fontSize: 14, color: '#fbbf24' }} />}
+                  : <LockRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#aa7c03, #fbbf24)' }} />}
               </IconButton>
             </Tooltip>
 
@@ -330,13 +330,13 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
                 disabled={acting || !!(item as any).isHero}
                 sx={{
                   width: 28, height: 28,
-                  background: 'rgba(15,23,42,0.8)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  '&:hover': { background: 'rgba(30,41,59,0.95)' },
+                  background: 'rgb(var(--slate-panel-rgb) / 0.8)',
+                  border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+                  '&:hover': { background: 'rgb(var(--slate-800-rgb) / 0.95)' },
                   '&.Mui-disabled': { opacity: 0.4 },
                 }}
               >
-                <StarRoundedIcon sx={{ fontSize: 14, color: (item as any).isHero ? '#f59e0b' : '#94a3b8' }} />
+                <StarRoundedIcon sx={{ fontSize: 14, color: (item as any).isHero ? '#f59e0b' : 'rgb(var(--brand-fg-rgb) / 0.65)' }} />
               </IconButton>
             </Tooltip>
 
@@ -351,8 +351,8 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
                 disabled={acting}
                 sx={{
                   width: 28, height: 28,
-                  background: confirmDelete ? 'rgba(239,68,68,0.25)' : 'rgba(15,23,42,0.8)',
-                  border: `1px solid ${confirmDelete ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                  background: confirmDelete ? 'rgba(239,68,68,0.25)' : 'rgb(var(--slate-panel-rgb) / 0.8)',
+                  border: `1px solid ${confirmDelete ? 'rgba(239,68,68,0.5)' : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
                   transition: 'background 0.15s, border-color 0.15s',
                   '&:hover': {
                     background: confirmDelete ? 'rgba(239,68,68,0.45)' : 'rgba(239,68,68,0.2)',
@@ -362,7 +362,7 @@ export const DslRenderCard: React.FC<DslRenderCardProps> = ({
               >
                 {confirmDelete
                   ? <WarningAmberRoundedIcon sx={{ fontSize: 14, color: '#ef4444' }} />
-                  : <DeleteOutlineRoundedIcon sx={{ fontSize: 14, color: '#f87171' }} />}
+                  : <DeleteOutlineRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#a50808, #f87171)' }} />}
               </IconButton>
             </Tooltip>
           </Box>

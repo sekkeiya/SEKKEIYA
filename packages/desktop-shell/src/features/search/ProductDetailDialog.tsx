@@ -12,8 +12,8 @@ import type { ProductResultItem } from './ProductResultGrid';
 
 const EDGE_BTN = {
   position: 'absolute' as const, top: '50%', transform: 'translateY(-50%)', zIndex: 3,
-  color: '#e2e8f0', bgcolor: 'rgba(0,0,0,0.45)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
-  '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)', bgcolor: 'rgba(0,0,0,0.25)' },
+  color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.45)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+  '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))' },
 };
 
 export const ProductDetailDialog: React.FC<{
@@ -48,12 +48,12 @@ export const ProductDetailDialog: React.FC<{
       open={open}
       onClose={onClose}
       maxWidth={false}
-      slotProps={{ paper: { sx: { bgcolor: '#0c0f18', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, width: 880, maxWidth: 'calc(100vw - 32px)', height: '82vh', m: 2 } } }}
+      slotProps={{ paper: { sx: { bgcolor: 'var(--brand-bg)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, width: 880, maxWidth: 'calc(100vw - 32px)', height: '82vh', m: 2 } } }}
     >
       <Box sx={{ position: 'relative', height: '100%', display: 'flex' }}>
         <IconButton
           size="small" onClick={onClose}
-          sx={{ position: 'absolute', top: 6, right: 6, zIndex: 4, color: 'rgba(255,255,255,0.7)', bgcolor: 'rgba(0,0,0,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(0,0,0,0.6)' } }}
+          sx={{ position: 'absolute', top: 6, right: 6, zIndex: 4, color: 'rgb(var(--brand-fg-rgb) / 0.7)', bgcolor: 'rgba(0,0,0,0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.6)' } }}
         >
           <CloseRoundedIcon sx={{ fontSize: 18 }} />
         </IconButton>

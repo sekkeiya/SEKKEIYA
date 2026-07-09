@@ -23,7 +23,7 @@ import { useChatProductResultsStore } from '../../store/useChatProductResultsSto
 import { useLightboxStore } from '../../store/useLightboxStore';
 import { DEFAULT_CATEGORY_MAP } from '../../store/useUserSettingsStore';
 
-// 検索語から S.Models 正典カテゴリの「詳細サブタイプ」を絞り込み候補として返す（非ブロッキングのチップ用）。
+// 検索語から S.Model 正典カテゴリの「詳細サブタイプ」を絞り込み候補として返す（非ブロッキングのチップ用）。
 function refineSuggestions(query: string): string[] {
   const q = (query || '').toLowerCase().trim();
   if (!q) return [];
@@ -54,8 +54,8 @@ const OptionRow: React.FC<{
     sx={{
       display: 'flex', alignItems: 'flex-start', gap: 1,
       p: 1, borderRadius: 1.5,
-      border: `1px solid ${selected ? 'rgba(255,215,64,0.6)' : 'rgba(255,255,255,0.12)'}`,
-      bgcolor: selected ? 'rgba(255,215,64,0.1)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${selected ? 'rgba(255,215,64,0.6)' : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
+      bgcolor: selected ? 'rgba(255,215,64,0.1)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
       cursor: disabled ? 'default' : 'pointer',
       opacity: disabled && !selected ? 0.45 : 1,
       transition: 'all 0.12s',
@@ -65,16 +65,16 @@ const OptionRow: React.FC<{
     <Box sx={{
       flexShrink: 0, width: 18, height: 18, mt: '1px', borderRadius: '4px',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      bgcolor: selected ? ACCENT : 'rgba(255,255,255,0.08)',
-      color: selected ? '#1a1f2b' : 'rgba(255,255,255,0.6)',
+      bgcolor: selected ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.08)',
+      color: selected ? '#1a1f2b' : 'rgb(var(--brand-fg-rgb) / 0.6)',
       fontSize: '0.6rem', fontWeight: 700,
     }}>
       {selected ? <CheckRoundedIcon sx={{ fontSize: '0.8rem' }} /> : index + 1}
     </Box>
     <Box sx={{ minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#fff', lineHeight: 1.3 }}>{label}</Typography>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand-fg)', lineHeight: 1.3 }}>{label}</Typography>
       {description && (
-        <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4, mt: 0.25 }}>
+        <Typography sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.55)', lineHeight: 1.4, mt: 0.25 }}>
           {description}
         </Typography>
       )}
@@ -92,18 +92,18 @@ const OtherRow: React.FC<{
   <Box sx={{
     display: 'flex', alignItems: 'flex-start', gap: 1,
     p: 1, borderRadius: 1.5,
-    border: '1px solid rgba(255,255,255,0.12)', bgcolor: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
   }}>
     <Box sx={{
       flexShrink: 0, width: 18, height: 18, mt: '1px', borderRadius: '4px',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: '0.6rem', fontWeight: 700,
+      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: '0.6rem', fontWeight: 700,
     }}>
       {index + 1}
     </Box>
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#fff', lineHeight: 1.3, mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <EditRoundedIcon sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }} />
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand-fg)', lineHeight: 1.3, mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <EditRoundedIcon sx={{ fontSize: '0.8rem', color: 'rgb(var(--brand-fg-rgb) / 0.6)' }} />
         その他（自由入力）
       </Typography>
       <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-end' }}>
@@ -116,11 +116,11 @@ const OtherRow: React.FC<{
           fullWidth
           multiline
           maxRows={3}
-          InputProps={{ disableUnderline: false, sx: { fontSize: '0.72rem', color: '#fff', '&:before': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover:not(.Mui-disabled):before': { borderColor: 'rgba(255,255,255,0.4)' }, '&:after': { borderColor: ACCENT } } }}
+          InputProps={{ disableUnderline: false, sx: { fontSize: '0.72rem', color: 'var(--brand-fg)', '&:before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&:hover:not(.Mui-disabled):before': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' }, '&:after': { borderColor: ACCENT } } }}
         />
         <Button
           size="small" variant="contained" disabled={!value.trim()} onClick={onSubmit}
-          sx={{ minWidth: 'auto', px: 1, py: 0.4, bgcolor: ACCENT, color: '#1a1f2b', '&:hover': { bgcolor: '#ffe082' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.35)' } }}
+          sx={{ minWidth: 'auto', px: 1, py: 0.4, bgcolor: ACCENT, color: '#1a1f2b', '&:hover': { bgcolor: '#ffe082' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.35)' } }}
         >
           <SendRoundedIcon sx={{ fontSize: '0.85rem' }} />
         </Button>
@@ -139,10 +139,10 @@ const MaterialSourcePickerInChat: React.FC<{
   const [open, setOpen] = useState(false);
   if (resolved) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
         <CheckCircleRoundedIcon sx={{ fontSize: '0.85rem', color: '#66bb6a' }} />
         ソース選択済み
-        {resolvedData && <Typography component="span" sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)' }}>（生成: {resolvedData.created}件）</Typography>}
+        {resolvedData && <Typography component="span" sx={{ fontSize: '0.65rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>（生成: {resolvedData.created}件）</Typography>}
       </Box>
     );
   }
@@ -182,14 +182,14 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
     };
     return (
       <Box sx={{ width: '100%', mt: 0.75 }}>
-        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', mb: 0.75 }}>
+        <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.75 }}>
           「{ui.query}」の検索結果 {ui.count} 件
         </Typography>
         {refine.length > 0 && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
             {refine.map((r) => (
               <Box key={r} onClick={() => searchRefine(r)}
-                sx={{ px: 1, py: 0.35, borderRadius: 10, cursor: 'pointer', border: '1px solid rgba(125,211,252,0.4)', color: '#7dd3fc', fontSize: '0.66rem', fontWeight: 700, '&:hover': { bgcolor: 'rgba(125,211,252,0.12)' } }}>
+                sx={{ px: 1, py: 0.35, borderRadius: 10, cursor: 'pointer', border: '1px solid rgba(125,211,252,0.4)', color: 'light-dark(#0474a9, #7dd3fc)', fontSize: '0.66rem', fontWeight: 700, '&:hover': { bgcolor: 'rgba(125,211,252,0.12)' } }}>
                 {r}
               </Box>
             ))}
@@ -198,7 +198,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
         {items && items.length > 0 ? (
           <ProductResultGrid items={items} minTile={108} />
         ) : (
-          <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>
+          <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             （結果はセッション内のみ保持されます。もう一度検索すると再表示できます）
           </Typography>
         )}
@@ -219,6 +219,16 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
       if (ui.intent === 'furniture_source') {
         useAIChatStore.getState().resolveMessageUi(ui.toolUseId, { resolved: { ids: [id] } });
         await useCoreOrchestrator.getState().resolveFurnitureSourceChoice(id, ui.context ?? {});
+        return;
+      }
+      // 特別分岐: 「ボード」種別の確認。選択後に種別を明示した発話で通常フローへ流す
+      // （プレゼンへの誤誘導を避けるため、モデルには曖昧なまま渡さない）。
+      if (ui.intent === 'board_type') {
+        useAIChatStore.getState().resolveMessageUi(ui.toolUseId, { resolved: { ids: [id] } });
+        const followUp = id === 'research_board'
+          ? 'Research & Memo の新しいボードを作成してください。'
+          : '新しいプレゼンボード（S.Slide）を作成してください。';
+        sendMessage(followUp, { source: 'sidebar_chat' });
         return;
       }
       const ok = await resumeWithChoice(ui.toolUseId, [id]);
@@ -242,7 +252,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
       return (
         <Box sx={{ width: '100%', maxWidth: '92%', mt: 0.75 }}>
           {ui.prompt && (
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'rgba(255,255,255,0.85)', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'rgb(var(--brand-fg-rgb) / 0.85)', mb: 0.75 }}>
               {ui.prompt}
             </Typography>
           )}
@@ -253,7 +263,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
             ))}
           </Box>
           {resolvedText && (
-            <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+            <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
               <CheckCircleRoundedIcon sx={{ fontSize: '0.85rem', color: ACCENT }} />
               「{resolvedText}」と回答
             </Box>
@@ -282,7 +292,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
       return (
         <Box sx={{ width: '100%', maxWidth: '92%', mt: 0.75 }}>
           {ui.prompt && (
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'rgba(255,255,255,0.85)', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'rgb(var(--brand-fg-rgb) / 0.85)', mb: 0.75 }}>
               {ui.prompt}
             </Typography>
           )}
@@ -308,7 +318,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
     return (
       <Box sx={{ width: '100%', maxWidth: '92%', mt: 0.75 }}>
         {ui.prompt && (
-          <Typography sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'rgba(255,255,255,0.85)', mb: 0.75 }}>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 500, color: 'rgb(var(--brand-fg-rgb) / 0.85)', mb: 0.75 }}>
             {ui.prompt}
           </Typography>
         )}
@@ -331,7 +341,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
     return (
       <Box sx={{ width: '100%', maxWidth: '92%', mt: 0.75 }}>
         {resolved ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
             <CheckCircleRoundedIcon sx={{ fontSize: '0.85rem', color: '#66bb6a' }} />
             {ui.resolved?.count ?? 0} 枚選択済み
           </Box>
@@ -358,19 +368,19 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
         }}>
           <ViewInArRoundedIcon sx={{ fontSize: '1rem', color: '#66bb6a', flexShrink: 0 }} />
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)' }}>
+            <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
               {ui.total - ui.skipped} 件の3D生成を開始しました（バックグラウンド）
             </Typography>
             {ui.skipped > 0 && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                <Typography sx={{ fontSize: '0.6rem', color: '#ffb74d' }}>
+                <Typography sx={{ fontSize: '0.6rem', color: 'light-dark(#ad6700, #ffb74d)' }}>
                   あと {ui.skipped} 件は今月の上限により実行できません
                 </Typography>
                 <Button
                   size="small"
                   variant="text"
                   onClick={() => useAppStore.getState().openUserSettings(2)}
-                  sx={{ fontSize: '0.58rem', textTransform: 'none', color: '#ffb74d', p: '1px 4px', minWidth: 0, textDecoration: 'underline', lineHeight: 1.2 }}
+                  sx={{ fontSize: '0.58rem', textTransform: 'none', color: 'light-dark(#ad6700, #ffb74d)', p: '1px 4px', minWidth: 0, textDecoration: 'underline', lineHeight: 1.2 }}
                 >
                   プランを確認
                 </Button>
@@ -395,7 +405,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
     return (
       <Box sx={{ width: '100%', maxWidth: '92%', mt: 0.75 }}>
         {resolved ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
             <CheckCircleRoundedIcon sx={{ fontSize: '0.85rem', color: '#66bb6a' }} />
             {ui.resolved?.count ?? 0} 件選択済み
           </Box>
@@ -405,12 +415,12 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
             bgcolor: 'rgba(255,215,64,0.06)', border: '1px solid rgba(255,215,64,0.3)',
             borderRadius: 2, px: 1.25, py: 0.75,
           }}>
-            <ViewInArRoundedIcon sx={{ fontSize: '1rem', color: '#ffd740', flexShrink: 0 }} />
+            <ViewInArRoundedIcon sx={{ fontSize: '1rem', color: 'light-dark(#ad8900, #ffd740)', flexShrink: 0 }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)' }}>
-                S.Models で家具を選択してください（候補 {ui.candidateCount} 件）
+              <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
+                S.Model で家具を選択してください（候補 {ui.candidateCount} 件）
               </Typography>
-              <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.45)', mt: 0.25 }}>
+              <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', mt: 0.25 }}>
                 カードにチェックを入れ「プロジェクトに追加」を押すと完了します
               </Typography>
             </Box>
@@ -422,13 +432,13 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
                   if (activeProject) {
                     useAppStore.getState().setModelsScope('global_models');
                     import('../../features/launcher/launchWorkspace').then(({ launchWorkspace }) => {
-                      launchWorkspace({ appScope: '3dss', projectId: activeProject.id, workspaceId: 'models', workspaceName: 'S.Models' });
+                      launchWorkspace({ appScope: '3dss', projectId: activeProject.id, workspaceId: 'models', workspaceName: 'S.Model' });
                     });
                   }
                 }}
-                sx={{ fontSize: '0.65rem', textTransform: 'none', color: '#ffd740', borderColor: 'rgba(255,215,64,0.4)', flexShrink: 0, '&:hover': { borderColor: '#ffd740' } }}
+                sx={{ fontSize: '0.65rem', textTransform: 'none', color: 'light-dark(#ad8900, #ffd740)', borderColor: 'rgba(255,215,64,0.4)', flexShrink: 0, '&:hover': { borderColor: '#ffd740' } }}
               >
-                S.Models を開く
+                S.Model を開く
               </Button>
             )}
           </Box>
@@ -461,11 +471,11 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
         }}>
           <TextureRoundedIcon sx={{ fontSize: '1rem', color: '#ec407a', flexShrink: 0 }} />
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.85)' }}>
+            <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
               {ui.created} 件のマテリアルを生成しました
             </Typography>
             {ui.skipped > 0 && (
-              <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)', mt: 0.25 }}>
+              <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)', mt: 0.25 }}>
                 重複スキップ: {ui.skipped} 件
               </Typography>
             )}
@@ -488,7 +498,7 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
     const renders = ui.renders ?? [];
     return (
       <Box sx={{ width: '100%', mt: 0.75 }}>
-        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', mb: 0.75 }}>
+        <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.75 }}>
           レンダリング結果 {renders.length} 枚
         </Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 0.75 }}>
@@ -504,8 +514,8 @@ export const ChatUiRenderer: React.FC<{ ui: ChatUi }> = ({ ui }) => {
               )}
               sx={{
                 width: '100%', aspectRatio: '16 / 10', objectFit: 'cover',
-                borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.12)',
-                cursor: 'pointer', bgcolor: 'rgba(255,255,255,0.04)',
+                borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+                cursor: 'pointer', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)',
                 transition: 'transform 0.12s, border-color 0.12s',
                 '&:hover': { transform: 'scale(1.02)', borderColor: 'rgba(125,211,252,0.6)' },
               }}

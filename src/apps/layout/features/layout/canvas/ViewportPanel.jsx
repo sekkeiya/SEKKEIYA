@@ -606,10 +606,10 @@ export default function ViewportPanel({
               )}
 
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="center" sx={{ mt: 2 }}>
-                <Tooltip title={!isBaseSelected ? "先にTopBarでBaseを作成してください" : "S.Modelsから躯体（建物本体）を選択"}>
+                <Tooltip title={!isBaseSelected ? "先にTopBarでBaseを作成してください" : "S.Modelから躯体（建物本体）を選択"}>
                   <span>
                     <Button variant="outlined" size="small" sx={btnSx} disabled={!isBaseSelected} onClick={() => onOpenSelectBase?.()}>
-                      躯体を選択（S.Models）
+                      躯体を選択（S.Model）
                     </Button>
                   </span>
                 </Tooltip>

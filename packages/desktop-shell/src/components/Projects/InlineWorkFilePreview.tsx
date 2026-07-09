@@ -139,7 +139,7 @@ export const InlineWorkFilePreview: React.FC<Props> = ({ fileId, storagePath, fi
       {isLoading && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <CircularProgress sx={{ color: '#00BFFF' }} />
-          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.9rem' }}>
             3Dプレビューを生成中... (少し時間がかかります)
           </Typography>
         </Box>
@@ -149,7 +149,7 @@ export const InlineWorkFilePreview: React.FC<Props> = ({ fileId, storagePath, fi
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, p: 3, textAlign: 'center' }}>
           <ErrorOutlineIcon sx={{ color: '#f44336', fontSize: 48, mb: 1 }} />
           <Typography sx={{ color: '#f44336', fontWeight: 600 }}>プレビュー表示エラー</Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.5)', maxWidth: 400 }}>{error}</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', maxWidth: 400 }}>{error}</Typography>
         </Box>
       )}
 
@@ -162,7 +162,7 @@ export const InlineWorkFilePreview: React.FC<Props> = ({ fileId, storagePath, fi
       {onClose && (
         <IconButton 
           onClick={onClose} 
-          sx={{ position: 'absolute', top: 8, right: 8, color: '#fff', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
+          sx={{ position: 'absolute', top: 8, right: 8, color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' } }}
         >
           <CloseRoundedIcon />
         </IconButton>

@@ -11,7 +11,7 @@ import LayersRoundedIcon from '@mui/icons-material/LayersRounded';
 import { useDspStore } from '../store/useDspStore';
 
 const ACCENT = '#29b6f6';
-const DOCK_BG = alpha('#070b18', 0.78);
+const DOCK_BG = 'light-dark(rgba(255,255,255,0.88), rgba(7,11,24,0.78))';
 
 type TabKey = 'slides' | 'outline';
 
@@ -82,7 +82,7 @@ export const DspEditorDock: React.FC = () => {
           p: 0.75,
           bgcolor: DOCK_BG,
           backdropFilter: 'blur(14px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           borderRadius: 2.5,
           boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
         }}
@@ -96,11 +96,11 @@ export const DspEditorDock: React.FC = () => {
               width: 32,
               height: 32,
               borderRadius: 1.5,
-              color: showProjectBrowser ? ACCENT : 'rgba(255,255,255,0.45)',
+              color: showProjectBrowser ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
               bgcolor: showProjectBrowser ? 'rgba(41,182,246,0.14)' : 'transparent',
               '&:hover': {
-                color: showProjectBrowser ? ACCENT : 'rgba(255,255,255,0.85)',
-                bgcolor: showProjectBrowser ? 'rgba(41,182,246,0.2)' : 'rgba(255,255,255,0.08)',
+                color: showProjectBrowser ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                bgcolor: showProjectBrowser ? 'rgba(41,182,246,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
               },
               transition: 'all 0.15s',
             }}
@@ -109,7 +109,7 @@ export const DspEditorDock: React.FC = () => {
           </IconButton>
         </Tooltip>
 
-        <Divider sx={{ width: 20, borderColor: 'rgba(255,255,255,0.1)', my: 0.25 }} />
+        <Divider sx={{ width: 20, borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', my: 0.25 }} />
 
         {/* タブ切り替えボタン */}
         {TABS.map(t => {
@@ -123,11 +123,11 @@ export const DspEditorDock: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 1.5,
-                  color: isActive ? ACCENT : 'rgba(255,255,255,0.4)',
+                  color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.4)',
                   bgcolor: isActive ? 'rgba(41,182,246,0.14)' : 'transparent',
                   '&:hover': {
-                    color: isActive ? ACCENT : 'rgba(255,255,255,0.85)',
-                    bgcolor: isActive ? 'rgba(41,182,246,0.2)' : 'rgba(255,255,255,0.08)',
+                    color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                    bgcolor: isActive ? 'rgba(41,182,246,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
                   },
                   transition: 'all 0.15s',
                 }}
@@ -154,7 +154,7 @@ export const DspEditorDock: React.FC = () => {
           p: 0.75,
           bgcolor: DOCK_BG,
           backdropFilter: 'blur(14px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           borderRadius: 2.5,
           boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
         }}
@@ -174,11 +174,11 @@ export const DspEditorDock: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 1.5,
-                  color: isActive ? ACCENT : 'rgba(255,255,255,0.45)',
+                  color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
                   bgcolor: isActive ? 'rgba(41,182,246,0.14)' : 'transparent',
                   '&:hover': {
-                    color: isActive ? ACCENT : 'rgba(255,255,255,0.85)',
-                    bgcolor: isActive ? 'rgba(41,182,246,0.2)' : 'rgba(255,255,255,0.08)',
+                    color: isActive ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                    bgcolor: isActive ? 'rgba(41,182,246,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
                   },
                   transition: 'all 0.15s',
                 }}
@@ -189,7 +189,7 @@ export const DspEditorDock: React.FC = () => {
           );
         })}
 
-        <Divider sx={{ width: 20, borderColor: 'rgba(255,255,255,0.1)', my: 0.25 }} />
+        <Divider sx={{ width: 20, borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', my: 0.25 }} />
 
         <Tooltip title="レイヤー" placement="left" arrow>
           <IconButton
@@ -199,11 +199,11 @@ export const DspEditorDock: React.FC = () => {
               width: 32,
               height: 32,
               borderRadius: 1.5,
-              color: showRightSidebar && inspectorActiveTopTab === 'layers' ? ACCENT : 'rgba(255,255,255,0.45)',
+              color: showRightSidebar && inspectorActiveTopTab === 'layers' ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
               bgcolor: showRightSidebar && inspectorActiveTopTab === 'layers' ? 'rgba(41,182,246,0.14)' : 'transparent',
               '&:hover': {
-                color: showRightSidebar && inspectorActiveTopTab === 'layers' ? ACCENT : 'rgba(255,255,255,0.85)',
-                bgcolor: showRightSidebar && inspectorActiveTopTab === 'layers' ? 'rgba(41,182,246,0.2)' : 'rgba(255,255,255,0.08)',
+                color: showRightSidebar && inspectorActiveTopTab === 'layers' ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                bgcolor: showRightSidebar && inspectorActiveTopTab === 'layers' ? 'rgba(41,182,246,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
               },
               transition: 'all 0.15s',
             }}

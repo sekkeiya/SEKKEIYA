@@ -4,7 +4,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppStore } from '../store/useAppStore';
 import { WorkspacePanelContainer } from '../shared/layout/workspace/WorkspacePanelContainer';
 import { WorkspaceProvider } from '../shared/layout/workspace/WorkspaceContext';
-import { darkDesktopTheme } from '../styles/theme';
+import { useAppTheme } from '../styles/useAppTheme';
 
 const SCOPE_TO_WS: Record<string, string> = {
   '3dss': 'models',
@@ -16,6 +16,7 @@ const SCOPE_TO_WS: Record<string, string> = {
 };
 
 export const StandaloneWorkspace = () => {
+  const appTheme = useAppTheme();
   const params = new URLSearchParams(window.location.search);
   const scope = params.get('standalone') ?? '';
   const initialProjectId = params.get('projectId');
@@ -44,7 +45,7 @@ export const StandaloneWorkspace = () => {
   }, []);
 
   return (
-    <ThemeProvider theme={darkDesktopTheme}>
+    <ThemeProvider theme={appTheme}>
       <CssBaseline />
       <WorkspaceProvider>
         <Box sx={{ height: '100vh', overflow: 'hidden', bgcolor: 'background.default' }}>
@@ -52,7 +53,7 @@ export const StandaloneWorkspace = () => {
             <WorkspacePanelContainer />
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <CircularProgress size={32} sx={{ color: '#90caf9' }} />
+              <CircularProgress size={32} sx={{ color: 'light-dark(#095fa5, #90caf9)' }} />
             </Box>
           )}
         </Box>

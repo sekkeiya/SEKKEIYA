@@ -7,7 +7,8 @@
  * 記事を読みながらAIと議論 → 議論を踏まえてAIが記事を生成する。
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Chip, CircularProgress, IconButton, Tooltip, Button, Dialog, DialogContent } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, IconButton, Tooltip, Button, Dialog, DialogContent, TextField } from '@mui/material';
+import PersonSearchRoundedIcon from '@mui/icons-material/PersonSearchRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
@@ -19,12 +20,12 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../lib/firebase/client';
 import { useDsbStore } from './store/useDsbStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { DEFAULT_SOURCE_SITES, recommendSourcesForCategories, type BlogSourceSite } from './types';
+import { DEFAULT_SOURCE_SITES, recommendSourcesForCategories, NOTABLE_NAMES, titleMatchesAlias, type BlogSourceSite } from './types';
 import { openReader } from './lib/openReader';
 import { LIBRARY_ADDED_EVENT } from './lib/articleToLibrary';
 import { isTauri } from '../../lib/platform';
 import { getLocalKnowledge } from '../dsk/api/knowledgeApi';
-import { loadBlogFeedSources, saveBlogFeedSources, loadCustomFeedSources, saveCustomFeedSources } from './api/blogApi';
+import { loadBlogFeedSources, saveBlogFeedSources, loadCustomFeedSources, saveCustomFeedSources, loadBlogNameFilters, saveBlogNameFilters } from './api/blogApi';
 import { FeedSourcePicker } from './FeedSourcePicker';
 import { BRAND } from '../../styles/theme';
 
@@ -77,7 +78,13 @@ function prewarmArticles(list: FeedItem[], sites: BlogSourceSite[]) {
   } catch { /* noop */ }
 }
 
-export const BlogNewsFeed: React.FC = () => {
+interface BlogNewsFeedProps {
+  /** 公式ブログモード: アカウント固有の導線（投稿予定ウィジェット・「AIと議論して書く」）を隠し、
+   *  ニュースの閲覧/インスピレーション用サーフェスとして使う。 */
+  official?: boolean;
+}
+
+export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) => {
   const uid = useAuthStore((s: any) => s.currentUser?.uid as string | undefined);
   const displayName = useAuthStore((s: any) => s.currentUser?.displayName as string | undefined);
   const { startNew, updateDraft } = useDsbStore();
@@ -87,6 +94,12 @@ export const BlogNewsFeed: React.FC = () => {
   const [error, setError] = useState('');
   const [group, setGroup] = useState<string>('すべて');
   const [siteFilter, setSiteFilter] = useState<string>(''); // 媒体名（空=グループ内すべて）
+
+  // 👤 人物・会社フィルタ: 著名辞書(NOTABLE_NAMES)の自動検出チップ＋ユーザー追加のウォッチ名
+  const [nameFilter, setNameFilter] = useState<string>('');       // 選択中のラベル（空=絞り込みなし）
+  const [customNames, setCustomNames] = useState<string[]>([]);   // ユーザー追加分（Firestore永続化）
+  const [addingName, setAddingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   // 📡 ユーザーが紐づけたソース（SEKKEIYAはおすすめ提示まで・購読はユーザーの選択）。
   // undefined=読込中 / null=未選択（初回はソース選択画面を出す） / []以上=選択済み
@@ -99,8 +112,8 @@ export const BlogNewsFeed: React.FC = () => {
   useEffect(() => {
     if (!uid) return;
     let alive = true;
-    void Promise.all([loadBlogFeedSources(uid), loadCustomFeedSources(uid)])
-      .then(([s, customs]) => { if (alive) { setCustomSources(customs); setSources(s); } })
+    void Promise.all([loadBlogFeedSources(uid), loadCustomFeedSources(uid), loadBlogNameFilters(uid)])
+      .then(([s, customs, names]) => { if (alive) { setCustomSources(customs); setSources(s); setCustomNames(names); } })
       .catch(() => { if (alive) setSources(null); });
     return () => { alive = false; };
   }, [uid]);
@@ -296,12 +309,47 @@ export const BlogNewsFeed: React.FC = () => {
     [group, subscribedSites],
   );
 
+  // 👤 人物・会社チップ: カスタム（常に表示）＋著名辞書のうち現在のフィードに記事がある人物・会社
+  const nameChips = useMemo(() => {
+    const custom = customNames.map((n) => ({ label: n, aliases: [n], kind: 'ウォッチ' as const, custom: true }));
+    const detected = NOTABLE_NAMES
+      .filter((n) => !customNames.includes(n.label))
+      .filter((n) => items.some((it) => n.aliases.some((a) => titleMatchesAlias(it.title, a))))
+      .map((n) => ({ label: n.label, aliases: n.aliases, kind: n.kind, custom: false }));
+    return [...custom, ...detected];
+  }, [items, customNames]);
+
+  // ウォッチ名の追加/削除（Firestore永続化）
+  const handleAddName = async (raw: string) => {
+    const n = raw.trim();
+    setAddingName(false);
+    setNameInput('');
+    if (!n || !uid || customNames.includes(n)) return;
+    const next = [...customNames, n];
+    setCustomNames(next);
+    setNameFilter(n);
+    try { await saveBlogNameFilters(uid, next); }
+    catch (e) { console.error('[BlogNewsFeed] save name filters failed', e); }
+  };
+  const handleRemoveName = async (n: string) => {
+    if (!uid) return;
+    const next = customNames.filter((x) => x !== n);
+    setCustomNames(next);
+    if (nameFilter === n) setNameFilter('');
+    try { await saveBlogNameFilters(uid, next); }
+    catch (e) { console.error('[BlogNewsFeed] save name filters failed', e); }
+  };
+
   const filtered = useMemo(() => items.filter((it) => {
     const meta = siteMeta.get(it.source);
     if (group !== 'すべて' && meta?.group !== group) return false;
     if (siteFilter && it.source !== siteFilter) return false;
+    if (nameFilter) {
+      const aliases = nameChips.find((c) => c.label === nameFilter)?.aliases ?? [nameFilter];
+      if (!aliases.some((a) => titleMatchesAlias(it.title, a))) return false;
+    }
     return true;
-  }), [items, group, siteFilter, siteMeta]);
+  }), [items, group, siteFilter, siteMeta, nameFilter, nameChips]);
 
   // 記事を SEKKEIYA Reader で開く。開く前に表示中の並びをプレイリストとして保存し、
   // Reader 側の連続読み上げ（読了→次の記事へ自動遷移）に使う。
@@ -337,22 +385,22 @@ export const BlogNewsFeed: React.FC = () => {
           <NewspaperRoundedIcon sx={{ fontSize: 19, color: ACCENT }} />
         </Box>
         <Box sx={{ flex: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>ホーム</Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1.2 }}>ホーム</Typography>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
             建築・インテリアの気になる記事から、AIと議論してあなたの記事を書けます
           </Typography>
         </Box>
         <Tooltip title="表示するメディアを選ぶ（紐づけの追加・解除）">
           <span>
             <IconButton onClick={() => setManageOpen(true)} disabled={!uid || sources === undefined}
-              sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: ACCENT } }}>
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: ACCENT } }}>
               <RssFeedRoundedIcon />
             </IconButton>
           </span>
         </Tooltip>
         <Tooltip title="フィードを更新">
           <span>
-            <IconButton onClick={() => void load(true)} disabled={loading} sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: ACCENT } }}>
+            <IconButton onClick={() => void load(true)} disabled={loading} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: ACCENT } }}>
               <RefreshRoundedIcon />
             </IconButton>
           </span>
@@ -374,7 +422,7 @@ export const BlogNewsFeed: React.FC = () => {
       ) : (
       <>
       {/* 今週書くもの（投稿スケジュール連携。実行で 記事表示→読み上げ→AI議論 が始まる） */}
-      {dueThisWeek.length > 0 && (
+      {!official && dueThisWeek.length > 0 && (
         <Box sx={{ mt: 1.5, px: 1.5, py: 1.25, borderRadius: 2, bgcolor: 'rgba(229,115,115,0.06)', border: `1px solid ${ACCENT}44` }}>
           <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: ACCENT, mb: 0.75 }}>
             ✍ 今週書くもの
@@ -382,12 +430,12 @@ export const BlogNewsFeed: React.FC = () => {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             {dueThisWeek.map((s) => (
               <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: 10.5, color: s.overdue ? '#ef9a9a' : 'rgba(255,255,255,0.45)', width: 96, flexShrink: 0 }}>
+                <Typography sx={{ fontSize: 10.5, color: s.overdue ? 'light-dark(#961818, #ef9a9a)' : 'rgb(var(--brand-fg-rgb) / 0.45)', width: 96, flexShrink: 0 }}>
                   {s.overdue ? '期限超過' : `${s.date.slice(5).replace('-', '/')}${s.time ? ` ${s.time}` : ''}`}
                 </Typography>
-                <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, color: '#fff', flex: 1, minWidth: 0 }}>{s.title}</Typography>
+                <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, color: 'var(--brand-fg)', flex: 1, minWidth: 0 }}>{s.title}</Typography>
                 {s.category && (
-                  <Chip label={s.category} size="small" sx={{ height: 18, fontSize: 10, bgcolor: `${ACCENT}22`, color: '#f3c0c0', flexShrink: 0 }} />
+                  <Chip label={s.category} size="small" sx={{ height: 18, fontSize: 10, bgcolor: `${ACCENT}22`, color: 'var(--brand-fg)', flexShrink: 0 }} />
                 )}
                 <Button size="small" variant="outlined" onClick={() => startScheduleItem(s)}
                   sx={{ color: ACCENT, borderColor: `${ACCENT}55`, textTransform: 'none', fontSize: 11, px: 1.25, py: 0, flexShrink: 0,
@@ -404,15 +452,15 @@ export const BlogNewsFeed: React.FC = () => {
       {suggestions.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.5, flexWrap: 'wrap',
           px: 1.5, py: 1, borderRadius: 2, bgcolor: 'rgba(206,147,216,0.07)', border: '1px solid rgba(206,147,216,0.25)' }}>
-          <AutoAwesomeRoundedIcon sx={{ fontSize: 15, color: '#ce93d8' }} />
-          <Typography sx={{ fontSize: 11.5, color: '#ce93d8', fontWeight: 700 }}>
+          <AutoAwesomeRoundedIcon sx={{ fontSize: 15, color: 'light-dark(#742e7f, #ce93d8)' }} />
+          <Typography sx={{ fontSize: 11.5, color: 'light-dark(#742e7f, #ce93d8)', fontWeight: 700 }}>
             あなたのカテゴリに合いそうなメディア:
           </Typography>
           {suggestions.map(([name, matched]) => (
             <Tooltip key={name} title={`カテゴリ「${matched.join('・')}」に関連。クリックで紐づけ`}>
               <Chip label={`＋ ${name}`} size="small" onClick={() => void handleSaveSources([...(sources || []), name])}
                 sx={{ cursor: 'pointer', height: 21, fontSize: 10.5, fontWeight: 700,
-                  bgcolor: 'transparent', color: '#ce93d8', border: '1px solid rgba(206,147,216,0.5)',
+                  bgcolor: 'transparent', color: 'light-dark(#742e7f, #ce93d8)', border: '1px solid rgba(206,147,216,0.5)',
                   '&:hover': { bgcolor: 'rgba(206,147,216,0.15)' } }} />
             </Tooltip>
           ))}
@@ -425,15 +473,15 @@ export const BlogNewsFeed: React.FC = () => {
           <Chip key={g} label={g} size="small"
             onClick={() => { setGroup(g); setSiteFilter(''); }}
             sx={{ cursor: 'pointer', fontWeight: 700, fontSize: 11.5,
-              bgcolor: group === g ? '#fff' : 'rgba(255,255,255,0.05)',
-              color: group === g ? '#000' : 'rgba(255,255,255,0.65)',
-              border: `1px solid ${group === g ? '#fff' : 'rgba(255,255,255,0.14)'}`,
-              '&:hover': { bgcolor: group === g ? '#fff' : 'rgba(255,255,255,0.12)' } }} />
+              bgcolor: group === g ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+              color: group === g ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.65)',
+              border: `1px solid ${group === g ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+              '&:hover': { bgcolor: group === g ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
         ))}
       </Box>
 
       {/* 媒体フィルタ */}
-      <Box sx={{ display: 'flex', gap: 0.6, mb: 2.5, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 0.6, mb: 1, flexWrap: 'wrap' }}>
         {groupSites.map((s) => {
           const on = siteFilter === s.name;
           return (
@@ -451,11 +499,54 @@ export const BlogNewsFeed: React.FC = () => {
         })}
       </Box>
 
+      {/* 👤 人物・会社フィルタ（設計者/デザイナー/企業名。辞書検出＋ユーザー追加のウォッチ名） */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mb: 2.5, flexWrap: 'wrap' }}>
+        <Tooltip title="設計者・デザイナー・会社名で絞り込み。フィードのタイトルに登場する人物・会社を自動検出します">
+          <PersonSearchRoundedIcon sx={{ fontSize: 15, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+        </Tooltip>
+        {nameChips.map((c) => {
+          const on = nameFilter === c.label;
+          return (
+            <Tooltip key={c.label} title={c.custom ? 'あなたのウォッチ名（クリックで絞り込み）' : `${c.kind}名で絞り込み`} arrow>
+              <Chip label={c.label} size="small"
+                onClick={() => setNameFilter(on ? '' : c.label)}
+                onDelete={c.custom ? () => void handleRemoveName(c.label) : undefined}
+                sx={{ cursor: 'pointer', fontSize: 10.5, height: 22,
+                  bgcolor: on ? `hsl(${hueOf(c.label)},45%,60%)` : 'transparent',
+                  color: on ? '#000' : `hsl(${hueOf(c.label)},45%,72%)`,
+                  fontWeight: on ? 800 : 600,
+                  border: `1px ${c.custom ? 'dashed' : 'solid'} hsl(${hueOf(c.label)},45%,60%)`,
+                  '& .MuiChip-deleteIcon': { fontSize: 14, color: on ? '#000' : `hsl(${hueOf(c.label)},45%,72%)` },
+                  '&:hover': { bgcolor: on ? `hsl(${hueOf(c.label)},45%,60%)` : `hsl(${hueOf(c.label)},45%,60%,0.15)` } }} />
+            </Tooltip>
+          );
+        })}
+        {addingName ? (
+          <TextField autoFocus size="small" value={nameInput} placeholder="人物・会社名"
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !(e.nativeEvent as any).isComposing) { e.preventDefault(); void handleAddName(nameInput); }
+              if (e.key === 'Escape') { setAddingName(false); setNameInput(''); }
+            }}
+            onBlur={() => void handleAddName(nameInput)}
+            sx={{ width: 150, '& .MuiOutlinedInput-root': { height: 24, fontSize: 11, color: 'var(--brand-fg)',
+              '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' } } }} />
+        ) : (
+          <Tooltip title="気になる設計者・デザイナー・会社名を追加（保存され、次回以降も使えます）">
+            <Chip label="＋人物・会社を追加" size="small" onClick={() => setAddingName(true)}
+              sx={{ cursor: 'pointer', fontSize: 10.5, height: 22, fontWeight: 600,
+                bgcolor: 'transparent', color: 'rgb(var(--brand-fg-rgb) / 0.45)',
+                border: '1px dashed rgb(var(--brand-fg-rgb) / 0.25)',
+                '&:hover': { color: ACCENT, borderColor: `${ACCENT}88` } }} />
+          </Tooltip>
+        )}
+      </Box>
+
       {/* フィード */}
       {sources.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <RssFeedRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.2)', mb: 1 }} />
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', mb: 2 }}>
+          <RssFeedRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.2)', mb: 1 }} />
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 2 }}>
             メディアが紐づけられていません。おすすめから選んで記事を表示しましょう。
           </Typography>
           <Button variant="outlined" size="small" startIcon={<RssFeedRoundedIcon />}
@@ -467,11 +558,11 @@ export const BlogNewsFeed: React.FC = () => {
       ) : loading && items.length === 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 10, gap: 1.5 }}>
           <CircularProgress size={26} sx={{ color: ACCENT }} />
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>各メディアの最新記事を取得中…</Typography>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>各メディアの最新記事を取得中…</Typography>
         </Box>
       ) : error && items.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', mb: 2 }}>{error}</Typography>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 2 }}>{error}</Typography>
           <Button onClick={() => void load(true)} variant="outlined" size="small"
             sx={{ color: ACCENT, borderColor: `${ACCENT}66`, textTransform: 'none' }}>再試行</Button>
         </Box>
@@ -502,47 +593,49 @@ export const BlogNewsFeed: React.FC = () => {
                       color: `hsl(${hueOf(it.source)},60%,72%)`,
                       border: `1px solid hsl(${hueOf(it.source)},60%,55%,0.4)` }} />
                   {meta?.lang === 'en' && (
-                    <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.15)', px: 0.5, borderRadius: 0.75 }}>EN</Typography>
+                    <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', px: 0.5, borderRadius: 0.75 }}>EN</Typography>
                   )}
                   {savedUrls.has(it.url) && (
                     <Tooltip title="S.Library に知識として追加済みの記事です">
                       <Chip icon={<BookmarkAddedRoundedIcon sx={{ fontSize: '12px !important' }} />} label="追加済み" size="small"
                         sx={{ height: 18, fontSize: 10, fontWeight: 800,
-                          bgcolor: 'rgba(129,199,132,0.14)', color: '#a5d6a7',
+                          bgcolor: 'rgba(129,199,132,0.14)', color: 'rgb(var(--brand-fg-rgb) / 0.65)',
                           border: '1px solid rgba(129,199,132,0.4)',
-                          '& .MuiChip-icon': { color: '#a5d6a7' } }} />
+                          '& .MuiChip-icon': { color: 'rgb(var(--brand-fg-rgb) / 0.65)' } }} />
                     </Tooltip>
                   )}
                   <Box sx={{ flex: 1 }} />
-                  <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)' }}>{fmtDate(it.date)}</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{fmtDate(it.date)}</Typography>
                 </Box>
                 {/* タイトル（クリックで元記事へ） */}
                 <Typography onClick={() => openArticle(it)}
-                  sx={{ color: 'rgba(255,255,255,0.88)', fontWeight: 700, fontSize: 13, lineHeight: 1.55, cursor: 'pointer', flex: 1,
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.88)', fontWeight: 700, fontSize: 13, lineHeight: 1.55, cursor: 'pointer', flex: 1,
                     display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                    '&:hover': { color: '#fff', textDecoration: 'underline', textDecorationColor: `${ACCENT}88` } }}>
+                    '&:hover': { color: 'var(--brand-fg)', textDecoration: 'underline', textDecorationColor: `${ACCENT}88` } }}>
                   {it.title}
                 </Typography>
                 {/* アクション */}
                 <Box className="feed-actions" sx={{ display: 'flex', gap: 0.75, opacity: { xs: 1, md: 0.55 }, transition: 'opacity .15s' }}>
                   <Button size="small" startIcon={<OpenInNewRoundedIcon sx={{ fontSize: '13px !important' }} />}
                     onClick={() => openArticle(it)}
-                    sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none', fontSize: 11, px: 1, minWidth: 0, '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.06)' } }}>
+                    sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', fontSize: 11, px: 1, minWidth: 0, '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}>
                     記事を読む
                   </Button>
-                  <Button size="small" startIcon={<ForumRoundedIcon sx={{ fontSize: '13px !important' }} />}
-                    onClick={() => discussAndWrite(it)}
-                    sx={{ color: ACCENT, textTransform: 'none', fontSize: 11, px: 1, minWidth: 0, fontWeight: 700,
-                      '&:hover': { bgcolor: `${ACCENT}1a` } }}>
-                    AIと議論して書く
-                  </Button>
+                  {!official && (
+                    <Button size="small" startIcon={<ForumRoundedIcon sx={{ fontSize: '13px !important' }} />}
+                      onClick={() => discussAndWrite(it)}
+                      sx={{ color: ACCENT, textTransform: 'none', fontSize: 11, px: 1, minWidth: 0, fontWeight: 700,
+                        '&:hover': { bgcolor: `${ACCENT}1a` } }}>
+                      AIと議論して書く
+                    </Button>
+                  )}
                 </Box>
                 </Box>
               </Box>
             );
           })}
           {filtered.length === 0 && (
-            <Typography sx={{ gridColumn: '1/-1', textAlign: 'center', py: 6, fontSize: 12.5, color: 'rgba(255,255,255,0.4)' }}>
+            <Typography sx={{ gridColumn: '1/-1', textAlign: 'center', py: 6, fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               この条件の記事はありません。
             </Typography>
           )}
@@ -550,7 +643,7 @@ export const BlogNewsFeed: React.FC = () => {
       )}
 
       {/* 取り扱い注意の明記 */}
-      <Typography sx={{ mt: 3, fontSize: 10.5, color: 'rgba(255,255,255,0.3)', textAlign: 'center', lineHeight: 1.7 }}>
+      <Typography sx={{ mt: 3, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.3)', textAlign: 'center', lineHeight: 1.7 }}>
         表示はあなたが紐づけたメディアの RSS 公開情報（タイトル・リンク・サムネイル）に基づきます。記事の著作権は各メディアに帰属します。<br />
         記事を書く際は要約・引用の範囲で、出典リンクが自動で付きます。
       </Typography>
@@ -559,7 +652,7 @@ export const BlogNewsFeed: React.FC = () => {
 
       {/* ソース管理ダイアログ（紐づけの追加・解除） */}
       <Dialog open={manageOpen} onClose={() => !sourcesSaving && setManageOpen(false)} maxWidth="md" fullWidth
-        PaperProps={{ sx: { bgcolor: '#12151d', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3 } }}>
         <DialogContent sx={{ p: 3 }}>
           <FeedSourcePicker categories={categories} current={sources ?? []} customSources={customSources} saving={sourcesSaving}
             onSave={(n) => void handleSaveSources(n)} onCancel={() => setManageOpen(false)}

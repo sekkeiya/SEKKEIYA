@@ -13,9 +13,9 @@ const ZONE_CATEGORIES = [
   { value: "collab",    label: "Collab（協働）",       color: "#10b981" },
   { value: "lounge",    label: "Lounge（休憩）",       color: "#f59e0b" },
   { value: "meeting",   label: "Meeting（会議）",       color: "#ef4444" },
-  { value: "reception", label: "Reception（受付）",     color: "#8b5cf6" },
-  { value: "focus",     label: "Focus（集中）",         color: "#ec4899" },
-  { value: "other",     label: "Other（その他）",       color: "#94a3b8" },
+  { value: "reception", label: "Reception（受付）",     color: "light-dark(#3809a4, #8b5cf6)" },
+  { value: "focus",     label: "Focus（集中）",         color: "light-dark(#9d1056, #ec4899)" },
+  { value: "other",     label: "Other（その他）",       color: "rgb(var(--brand-fg-rgb) / 0.65)" },
 ];
 
 const ZONE_COLORS = [
@@ -30,22 +30,22 @@ function pickColor(existingCount) {
 const dialogPaperSx = {
   background: "rgba(14, 18, 36, 0.97)",
   backdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)",
   borderRadius: 3,
   minWidth: 380,
-  color: "#fff",
+  color: "var(--brand-fg)",
 };
 
 const fieldSx = {
   "& .MuiInputBase-root": {
-    background: "rgba(255,255,255,0.06)",
+    background: "rgb(var(--brand-fg-rgb) / 0.06)",
     borderRadius: 1.5,
-    color: "#fff",
+    color: "var(--brand-fg)",
     fontSize: 13,
   },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.15)" },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.5)", fontSize: 13 },
-  "& .MuiSelect-icon": { color: "rgba(255,255,255,0.5)" },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgb(var(--brand-fg-rgb) / 0.15)" },
+  "& .MuiInputLabel-root": { color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 13 },
+  "& .MuiSelect-icon": { color: "rgb(var(--brand-fg-rgb) / 0.5)" },
 };
 
 /**
@@ -115,18 +115,18 @@ export default function ZoneCreateDialog({
   return (
     <Dialog open={open} onClose={onCancel} PaperProps={{ sx: dialogPaperSx }}>
       <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
-        <GridOnRoundedIcon sx={{ fontSize: 20, color: "#a78bfa" }} />
+        <GridOnRoundedIcon sx={{ fontSize: 20, color: "light-dark(#2f07a6, #a78bfa)" }} />
         <Typography sx={{ fontWeight: 800, fontSize: 15 }}>ゾーンを作成</Typography>
         {pendingRect && (
           <Chip
             size="small"
             label={`${pendingRect.width.toFixed(1)}m × ${pendingRect.depth.toFixed(1)}m`}
-            sx={{ ml: "auto", fontSize: 11, height: 20, background: alpha("#7c3aed", 0.25), color: "#c4b5fd", border: `1px solid ${alpha("#7c3aed", 0.4)}` }}
+            sx={{ ml: "auto", fontSize: 11, height: 20, background: alpha("#7c3aed", 0.25), color: "light-dark(#2705a9, #c4b5fd)", border: `1px solid ${alpha("#7c3aed", 0.4)}` }}
           />
         )}
       </DialogTitle>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
+      <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.08)" }} />
 
       <DialogContent sx={{ pt: 2.5, pb: 1 }}>
         <Stack spacing={2.5}>
@@ -160,7 +160,7 @@ export default function ZoneCreateDialog({
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
                 sx={fieldSx}
-                inputProps={{ style: { color: "#fff" } }}
+                inputProps={{ style: { color: "var(--brand-fg)" } }}
               />
             )}
           </Stack>
@@ -182,10 +182,10 @@ export default function ZoneCreateDialog({
                     fontSize: 11.5,
                     height: 26,
                     fontWeight: category === cat.value ? 800 : 500,
-                    background: category === cat.value ? alpha(cat.color, 0.3) : alpha("#fff", 0.06),
-                    border: `1px solid ${category === cat.value ? alpha(cat.color, 0.6) : alpha("#fff", 0.12)}`,
-                    color: category === cat.value ? "#fff" : alpha("#fff", 0.65),
-                    "&:hover": { background: alpha(cat.color, 0.2) },
+                    background: category === cat.value ? `color-mix(in srgb, ${cat.color} 30%, transparent)` : alpha("#fff", 0.06),
+                    border: `1px solid ${category === cat.value ? `color-mix(in srgb, ${cat.color} 60%, transparent)` : alpha("#fff", 0.12)}`,
+                    color: category === cat.value ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 65%, transparent)",
+                    "&:hover": { background: `color-mix(in srgb, ${cat.color} 20%, transparent)` },
                   }}
                 />
               ))}
@@ -203,7 +203,7 @@ export default function ZoneCreateDialog({
               value={zoneName}
               onChange={(e) => setZoneName(e.target.value)}
               sx={fieldSx}
-              inputProps={{ style: { color: "#fff" } }}
+              inputProps={{ style: { color: "var(--brand-fg)" } }}
               placeholder="Zone 名を入力"
             />
           </Stack>
@@ -218,7 +218,7 @@ export default function ZoneCreateDialog({
               type="number"
               value={targetSeats}
               onChange={(e) => setTargetSeats(Math.max(1, Number(e.target.value)))}
-              inputProps={{ min: 1, style: { color: "#fff", width: 80 } }}
+              inputProps={{ min: 1, style: { color: "var(--brand-fg)", width: 80 } }}
               sx={{ ...fieldSx, width: 100 }}
             />
           </Stack>
@@ -226,10 +226,10 @@ export default function ZoneCreateDialog({
         </Stack>
       </DialogContent>
 
-      <Divider sx={{ mt: 2, borderColor: "rgba(255,255,255,0.08)" }} />
+      <Divider sx={{ mt: 2, borderColor: "rgb(var(--brand-fg-rgb) / 0.08)" }} />
 
       <DialogActions sx={{ px: 2.5, py: 1.5, gap: 1 }}>
-        <Button onClick={onCancel} size="small" sx={{ color: alpha("#fff", 0.55), fontSize: 12 }}>
+        <Button onClick={onCancel} size="small" sx={{ color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", fontSize: 12 }}>
           キャンセル
         </Button>
         <Button
@@ -242,7 +242,7 @@ export default function ZoneCreateDialog({
             fontWeight: 700,
             px: 2.5,
             borderRadius: 1.5,
-            "&:hover": { background: selectedCat?.color ? alpha(selectedCat.color, 0.8) : "#6d28d9" },
+            "&:hover": { background: selectedCat?.color ? `color-mix(in srgb, ${selectedCat.color} 80%, transparent)` : "#6d28d9" },
           }}
         >
           作成する

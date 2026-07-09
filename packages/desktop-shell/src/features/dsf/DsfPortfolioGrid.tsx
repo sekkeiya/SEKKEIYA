@@ -33,7 +33,7 @@ export const DsfPortfolioGrid: React.FC<DsfPortfolioGridProps> = ({ portfolios, 
 
   if (visible.length === 0) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.4)', gap: 1.5 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgb(var(--brand-fg-rgb) / 0.4)', gap: 1.5 }}>
         <MenuBookRoundedIcon sx={{ fontSize: 48, opacity: 0.5 }} />
         <Typography sx={{ fontSize: 14 }}>ポートフォリオがまだありません</Typography>
         <Typography sx={{ fontSize: 12, opacity: 0.7 }}>右上の「アップロード」から PDF を追加できます</Typography>

@@ -1,6 +1,6 @@
 // WalkthroughAvatarModel.jsx
 //
-// 三人称ウォークスルーで S.Models 登録キャラクター(.glb)を表示するアバター。
+// 三人称ウォークスルーで S.Model 登録キャラクター(.glb)を表示するアバター。
 // Phase B: GLB にアニメーション(idle/walk/run)があれば再生する。
 //
 // - SkeletonUtils.clone でスキン付きメッシュ/スケルトンを正しく複製

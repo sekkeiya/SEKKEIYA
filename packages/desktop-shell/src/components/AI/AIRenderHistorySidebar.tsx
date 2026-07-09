@@ -51,15 +51,15 @@ const AIRenderHistorySidebar: React.FC = () => {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <Typography sx={{ px: 1.5, pt: 1.25, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, flexShrink: 0 }}>
+      <Typography sx={{ px: 1.5, pt: 1.25, pb: 0.5, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, flexShrink: 0 }}>
         レンダー履歴
       </Typography>
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 1, pb: 1 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 3 }}><CircularProgress size={18} sx={{ color: 'rgba(255,255,255,0.4)' }} /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 3 }}><CircularProgress size={18} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} /></Box>
         ) : items.length === 0 ? (
-          <Typography sx={{ px: 1, pt: 2, fontSize: 11.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
-            まだレンダー結果がありません。生成して「AI Drive に保存」すると、ここに表示されます。
+          <Typography sx={{ px: 1, pt: 2, fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.6 }}>
+            まだレンダー結果がありません。生成して「SEKKEIYA Drive に保存」すると、ここに表示されます。
           </Typography>
         ) : (
           items.map((it) => {
@@ -73,11 +73,11 @@ const AIRenderHistorySidebar: React.FC = () => {
                   display: 'flex', alignItems: 'center', gap: 1, p: 0.75, mb: 0.5, borderRadius: 1, cursor: 'pointer',
                   border: `1px solid ${active ? 'rgba(52,152,219,0.6)' : 'transparent'}`,
                   bgcolor: active ? 'rgba(52,152,219,0.12)' : 'transparent',
-                  '&:hover': { bgcolor: active ? 'rgba(52,152,219,0.16)' : 'rgba(255,255,255,0.06)' },
+                  '&:hover': { bgcolor: active ? 'rgba(52,152,219,0.16)' : 'rgb(var(--brand-fg-rgb) / 0.06)' },
                 }}
               >
-                <Box component="img" src={it.thumb} alt={it.name} sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover', flexShrink: 0, bgcolor: '#0d1018' }} />
-                <Typography sx={{ fontSize: 11.5, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</Typography>
+                <Box component="img" src={it.thumb} alt={it.name} sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover', flexShrink: 0, bgcolor: 'var(--brand-bg)' }} />
+                <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</Typography>
               </Box>
             );
           })

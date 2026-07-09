@@ -275,7 +275,7 @@ function makeNewItemFromPayload(payload: any, glbRaw: string, defaultY: number =
     dimensionsMm: payload?.dimensionsMm || payload?.dimensions || null,
     dimensionSource: payload?.dimensionSource || null,
 
-    // ウォークスルーのメタデータ（S.Models の extendedMetadata 由来）を引き継ぐ。
+    // ウォークスルーのメタデータ（S.Model の extendedMetadata 由来）を引き継ぐ。
     //  ・gimmicks（複数・新スキーマ）/ gimmick（単一・後方互換）
     //  ・anim（常時アニメ）/ info（ⓘ アイテム情報）
     gimmicks: payload?.gimmicks || null,
@@ -367,8 +367,6 @@ export default function LayoutShell({
   const editorMode = useEditorModeStore((s) => s.editorMode);
   // Material モード中は展開図カラムが常時開くため、フローティングドックを右オフセットする
   const dockRightInset = editorMode === "material" ? ELEVATION_WIDTH : 0;
-  const enterWalkthrough = useEditorModeStore((s) => s.enterWalkthrough);
-  const exitWalkthrough = useEditorModeStore((s) => s.exitWalkthrough);
   const isWalkthroughMode = editorMode === "walkthrough";
 
   // ウォークスルー中は左右サイドバーを畳んで没入させ、終了時に元の状態へ戻す。
@@ -2764,14 +2762,6 @@ export default function LayoutShell({
   }, [handleAddToLayout]);
 
   // =========================
-  // ✅ Preview → ウォークスルーモード起動
-  // =========================
-  const handlePreviewClick = useCallback(() => {
-    if (isWalkthroughMode) exitWalkthrough();
-    else enterWalkthrough();
-  }, [isWalkthroughMode, enterWalkthrough, exitWalkthrough]);
-
-  // =========================
   // ✅ 共有：ウォークスルーの共有リンクを作成（公開範囲付き）
   // =========================
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -2912,7 +2902,7 @@ export default function LayoutShell({
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
         minHeight: 0,
-        background: "#060914",
+        background: "var(--brand-bg)",
         overflow: "hidden",
       }}
     >
@@ -2921,7 +2911,6 @@ export default function LayoutShell({
         onClickFile={handleClickFile}
         onClickEdit={handleClickEdit}
         onClickHelp={handleClickHelp}
-        onClickPreview={handlePreviewClick}
         onClickProductionPreview={() => setPresentationOpen(true)}
         onClickShare={() => setShareDialogOpen(true)}
         onClickImportLocal={handleImportLocalModel}
@@ -3039,8 +3028,8 @@ export default function LayoutShell({
             projectId ? (
               <LayoutDashboard projectId={projectId} />
             ) : (
-              <Box sx={{ position: "absolute", inset: 0, zIndex: 10, pointerEvents: "auto", display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0a0c12' }}>
-                <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 16 }}>左側のサイドバーからProjectを選択してください</Typography>
+              <Box sx={{ position: "absolute", inset: 0, zIndex: 10, pointerEvents: "auto", display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--brand-bg)' }}>
+                <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 16 }}>左側のサイドバーからProjectを選択してください</Typography>
               </Box>
             )
           )}
@@ -3198,13 +3187,13 @@ export default function LayoutShell({
       >
         <Alert severity="info" icon={false} sx={{ 
           bgcolor: 'rgba(0, 0, 0, 0.8)', 
-          color: '#fff', 
+          color: 'var(--brand-fg)', 
           border: '1px solid rgba(167, 139, 250, 0.5)',
           alignItems: 'center',
           boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <CircularProgress size={16} sx={{ color: '#a78bfa' }} />
+            <CircularProgress size={16} sx={{ color: 'light-dark(#2f07a6, #a78bfa)' }} />
             <Typography variant="body2" sx={{ fontWeight: 500 }}>{progressMessage}</Typography>
           </Box>
         </Alert>
@@ -3223,7 +3212,7 @@ export default function LayoutShell({
             maxWidth: 'calc(100% - 32px)',
             backgroundColor: 'rgba(15, 10, 30, 0.92)',
             backdropFilter: 'blur(12px)',
-            color: '#fff',
+            color: 'var(--brand-fg)',
             px: 2, py: 1.25,
             zIndex: 20,
             display: 'flex',
@@ -3255,13 +3244,13 @@ export default function LayoutShell({
             sx={{
               width: 160,
               flexShrink: 1,
-              backgroundColor: 'rgba(255,255,255,0.05)',
+              backgroundColor: 'rgb(var(--brand-fg-rgb) / 0.05)',
               borderRadius: 1,
               '& .MuiOutlinedInput-root': {
-                color: '#fff',
+                color: 'var(--brand-fg)',
                 fontSize: '0.8rem',
                 height: '32px',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' },
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
                 '&:hover fieldset': { borderColor: 'rgba(167,139,250,0.5)' },
               },
             }}
@@ -3271,7 +3260,7 @@ export default function LayoutShell({
             <Button 
               size="small"
               variant="outlined" 
-              sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(167, 139, 250, 0.5)', color: '#fff' }}
+              sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(167, 139, 250, 0.5)', color: 'var(--brand-fg)' }}
               onClick={async () => {
                 // 却下 → rejectionCount インクリメント
                 recordSetOutcome(feedbackMatchedSetIds, 'rejectionCount');
@@ -3295,7 +3284,7 @@ export default function LayoutShell({
             <Button 
               size="small"
               variant="outlined" 
-              sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(167, 139, 250, 0.5)', color: '#fff' }}
+              sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(167, 139, 250, 0.5)', color: 'var(--brand-fg)' }}
               onClick={openSwapDialog}
             >
               家具を変える

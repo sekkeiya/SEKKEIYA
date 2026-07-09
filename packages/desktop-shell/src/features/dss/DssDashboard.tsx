@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Box, Button, ButtonGroup, Typography, Dialog, Chip, Switch, Modal, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Switch, Modal, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SortRoundedIcon from '@mui/icons-material/SortRounded';
@@ -42,20 +42,22 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { SEARCH_ENGINES, runProductSearch, getModelQueryImage, type SearchEngine } from './utils/productImageSearch';
 import { runLensSearch, appendRelatedLinks, appendCatalogLinks, bulkRegisterLensLinks, type LensResult, type LensDiag, type BulkRegisterProgress, type CatalogLink } from './utils/lensResultsSearch';
 import { bulkAiAutoFill, type AiAutoFillProgress } from './utils/bulkAiAutoFill';
+import { DssFurnitureGraph } from './graph/DssFurnitureGraph';
 import { openModelInDcc, canPlaceInDcc, type DccApp } from './utils/dccPlacement';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import AutoAwesomeMotionRoundedIcon from '@mui/icons-material/AutoAwesomeMotionRounded';
 import ThreeDRotationRoundedIcon from '@mui/icons-material/ThreeDRotationRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { Snackbar, Alert } from '@mui/material';
 import { LensResultsDialog } from './components/LensResultsDialog';
 import { searchCatalogByImage, getCatalogSources, type CatalogMatch, type CatalogIndexMeta } from './catalog/searchCatalog';
 import { CatalogMatchDialog } from './catalog/CatalogMatchDialog';
 
 const CLOUD_FILTER_TABS: { key: CloudFilter; label: string; color: string }[] = [
-  { key: 'all', label: 'すべて', color: '#9ca3af' },
-  { key: 'cloud', label: 'クラウド保存済み', color: '#38bdf8' },
-  { key: 'public', label: '公開', color: '#a78bfa' },
-  { key: 'private', label: '非公開', color: '#fb923c' },
+  { key: 'all', label: 'すべて', color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+  { key: 'cloud', label: 'クラウド保存済み', color: 'light-dark(#0676a8, #38bdf8)' },
+  { key: 'public', label: '公開', color: 'light-dark(#2f07a6, #a78bfa)' },
+  { key: 'private', label: '非公開', color: 'light-dark(#aa4e03, #fb923c)' },
   { key: 'local', label: 'ローカルのみ', color: '#16a34a' },
 ];
 
@@ -548,7 +550,7 @@ export const DssDashboard: React.FC<{
   const [deleteModel, setDeleteModel] = useState<any | null>(null);
   const [detailModel, setDetailModel] = useState<any | null>(null);
   const [detailNavDir, setDetailNavDir] = useState<1 | -1>(1);
-  const [viewMode, setViewMode] = useState<'assets' | 'layout'>('assets');
+  const [viewMode, setViewMode] = useState<'assets' | 'layout' | 'graph'>('assets');
 
   // Public Projects のソート（新着順 / 人気順）
   const isGlobalProjectsScope = ['global_projects', 'global_following_projects'].includes(modelsScope);
@@ -693,6 +695,29 @@ export const DssDashboard: React.FC<{
       setPanelSelection(payload.workspaceId, null);
     }
   }, [payload?.workspaceId, setPanelSelection]);
+
+  // ── 選択中モデルの一括削除 ──────────────────────────────────────────
+  // 削除アイコンと同じ条件（公開/非公開/ボード）でのみ有効。
+  const canBulkDelete = cardContext === 'publicModels' || cardContext === 'privateModels' || cardContext === 'boardModels';
+  const bulkDeletableCount = useMemo(
+    () => (canBulkDelete ? gridItemsRef.current.filter((m) => selectedIds.includes(m.id)).length : 0),
+    [selectedIds, canBulkDelete],
+  );
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteBusy, setBulkDeleteBusy] = useState(false);
+
+  const handleBulkDelete = useCallback(async () => {
+    const chosen = gridItemsRef.current.filter((m) => selectedIds.includes(m.id));
+    if (chosen.length === 0) return;
+    setBulkDeleteBusy(true);
+    for (const m of chosen) {
+      // eslint-disable-next-line no-await-in-loop
+      await handleDeleteConfirm(m);
+    }
+    setBulkDeleteBusy(false);
+    setBulkDeleteOpen(false);
+    handleClearSelection();
+  }, [selectedIds, handleClearSelection]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Ctrl/Cmd+A=全選択, Esc=選択解除（入力中は無視。このタブがアクティブな時のみ）。
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
@@ -964,15 +989,15 @@ export const DssDashboard: React.FC<{
 
   return (
     <Box sx={styles.root}>
-      {/* S.Modelsに保存ボタン押下後、GLBファイル取得〜ダイアログ開くまでのローディングオーバーレイ */}
+      {/* S.Modelに保存ボタン押下後、GLBファイル取得〜ダイアログ開くまでのローディングオーバーレイ */}
       {uploadPreparing && (
         <Box sx={{
           position: 'absolute', inset: 0, zIndex: 1200,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: 2, bgcolor: 'rgba(10,12,18,0.72)', backdropFilter: 'blur(4px)',
         }}>
-          <CircularProgress size={40} thickness={3} sx={{ color: 'rgba(255,255,255,0.7)' }} />
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+          <CircularProgress size={40} thickness={3} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
             モデルを読み込んでいます…
           </Typography>
         </Box>
@@ -1054,15 +1079,15 @@ export const DssDashboard: React.FC<{
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         width: 32, height: 32, borderRadius: '8px',
                         cursor: 'pointer',
-                        color: 'rgba(255,255,255,0.7)',
-                        border: '1px solid rgba(255,255,255,0.15)',
+                        color: 'rgb(var(--brand-fg-rgb) / 0.7)',
+                        border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
                         transition: 'all 0.15s',
-                        '&:hover': { color: '#fff', background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.3)' },
+                        '&:hover': { color: 'var(--brand-fg)', background: 'rgb(var(--brand-fg-rgb) / 0.1)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
                       }}
                     >
                       <ArrowBackRoundedIcon sx={{ fontSize: 18 }} />
                     </Box>
-                    <Typography sx={{ fontSize: 22, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+                    <Typography sx={{ fontSize: 22, fontWeight: 700, color: 'var(--brand-fg)', lineHeight: 1 }}>
                       {viewingPublicProjectName || 'Public Project'}
                     </Typography>
                   </Box>
@@ -1075,9 +1100,9 @@ export const DssDashboard: React.FC<{
                       }}
                       sx={{
                         fontSize: 24, fontWeight: 700, cursor: 'pointer',
-                        color: ['global_models', 'global_projects'].includes(modelsScope) ? '#fff' : 'rgba(255,255,255,0.4)',
+                        color: ['global_models', 'global_projects'].includes(modelsScope) ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                         transition: 'color 0.2s',
-                        '&:hover': { color: '#fff' }
+                        '&:hover': { color: 'var(--brand-fg)' }
                       }}
                     >
                       Explore
@@ -1089,9 +1114,9 @@ export const DssDashboard: React.FC<{
                       }}
                       sx={{
                         fontSize: 24, fontWeight: 700, cursor: 'pointer',
-                        color: ['global_following_models', 'global_following_projects'].includes(modelsScope) ? '#fff' : 'rgba(255,255,255,0.4)',
+                        color: ['global_following_models', 'global_following_projects'].includes(modelsScope) ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                         transition: 'color 0.2s',
-                        '&:hover': { color: '#fff' }
+                        '&:hover': { color: 'var(--brand-fg)' }
                       }}
                     >
                       Following
@@ -1136,14 +1161,14 @@ export const DssDashboard: React.FC<{
                       width: 38,
                       height: 38,
                       borderRadius: 999,
-                      border: '1px solid rgba(148,163,184,0.30)',
-                      background: 'rgba(15,23,42,0.62)',
-                      color: canImageSearch ? '#93c5fd' : 'rgba(148,163,184,0.5)',
+                      border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)',
+                      background: 'rgb(var(--slate-panel-rgb) / 0.62)',
+                      color: canImageSearch ? 'light-dark(#0352aa, #93c5fd)' : 'rgb(var(--slate-ink-rgb) / 0.5)',
                       '&:hover': { background: 'rgba(96,165,250,0.18)', borderColor: 'rgba(96,165,250,0.6)' },
                     }}
                   >
                     {imgSearchBusy
-                      ? <CircularProgress size={18} sx={{ color: '#93c5fd' }} />
+                      ? <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
                       : <PhotoCameraRoundedIcon sx={{ fontSize: 20 }} />}
                   </IconButton>
                 </span>
@@ -1158,12 +1183,12 @@ export const DssDashboard: React.FC<{
                 const cnt = (n: number) => (n > 0 ? `（${n}）` : '');
                 const actionBtnSx = (bg: string, hover: string) => ({
                   textTransform: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
-                  minWidth: 0, px: 1.25, py: 0.5, borderRadius: 999, bgcolor: bg, color: '#fff',
+                  minWidth: 0, px: 1.25, py: 0.5, borderRadius: 999, bgcolor: bg, color: 'var(--brand-fg)',
                   '& .MuiButton-startIcon': { mr: 0.5, ml: 0 },
                   '&:hover': { bgcolor: hover },
-                  '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.35)' },
+                  '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.35)' },
                 });
-                const divider = <Box sx={{ width: '1px', height: 20, bgcolor: 'rgba(148,163,184,0.25)', flexShrink: 0 }} />;
+                const divider = <Box sx={{ width: '1px', height: 20, bgcolor: 'rgb(var(--slate-ink-rgb) / 0.25)', flexShrink: 0 }} />;
                 return (
                 <Box
                   data-no-dismiss="true"
@@ -1172,14 +1197,14 @@ export const DssDashboard: React.FC<{
                     position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 1200,
                     display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: 0.75, px: 1.5, py: 0.85, borderRadius: 999,
                     maxWidth: 'min(94vw, 1040px)', width: 'max-content', overflowX: 'auto',
-                    bgcolor: 'rgba(15,23,42,0.97)', border: '1px solid rgba(148,163,184,0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+                    bgcolor: 'rgb(var(--slate-panel-rgb) / 0.97)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
                     '&::-webkit-scrollbar': { height: 0 },
                   }}
                 >
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: '#e5e7eb', whiteSpace: 'nowrap', flexShrink: 0, pl: 0.5 }}>{selectedIds.length}件選択</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)', whiteSpace: 'nowrap', flexShrink: 0, pl: 0.5 }}>{selectedIds.length}件選択</Typography>
                   <Typography
                     onClick={handleClearSelection}
-                    sx={{ fontSize: 11.5, color: 'rgba(148,163,184,0.9)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { color: '#fff' } }}
+                    sx={{ fontSize: 11.5, color: 'rgb(var(--slate-ink-rgb) / 0.9)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { color: 'var(--brand-fg)' } }}
                   >
                     解除
                   </Typography>
@@ -1211,11 +1236,22 @@ export const DssDashboard: React.FC<{
                       </Button>
                     </span>
                   </Tooltip>
+                  {canBulkDelete && (
+                    <Tooltip title="選択モデルをまとめて削除">
+                      <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+                        <Button size="small" variant="contained" disabled={bulkDeletableCount === 0}
+                          startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+                          onClick={() => setBulkDeleteOpen(true)} sx={actionBtnSx('#dc2626', '#b91c1c')}>
+                          削除{cnt(bulkDeletableCount)}
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  )}
                   {divider}
                   <Tooltip title="選択モデルを Rhino へ配置（開いて取り込み）">
                     <span style={{ flexShrink: 0, display: 'inline-flex' }}>
                       <Button size="small" variant="contained" disabled={rhinoCount === 0 || dccBusy !== null}
-                        startIcon={dccBusy === 'rhino' ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />}
+                        startIcon={dccBusy === 'rhino' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />}
                         onClick={() => handlePlaceInDcc('rhino')} sx={actionBtnSx('#0d9488', '#0f766e')}>
                         Rhino{cnt(rhinoCount)}
                       </Button>
@@ -1224,7 +1260,7 @@ export const DssDashboard: React.FC<{
                   <Tooltip title="選択モデルを Blender へ配置（開いて取り込み）">
                     <span style={{ flexShrink: 0, display: 'inline-flex' }}>
                       <Button size="small" variant="contained" disabled={blenderCount === 0 || dccBusy !== null}
-                        startIcon={dccBusy === 'blender' ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 16 }} />}
+                        startIcon={dccBusy === 'blender' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 16 }} />}
                         onClick={() => handlePlaceInDcc('blender')} sx={actionBtnSx('#ea7317', '#c2620f')}>
                         Blender{cnt(blenderCount)}
                       </Button>
@@ -1243,46 +1279,46 @@ export const DssDashboard: React.FC<{
                 open={bulkOpen}
                 onClose={() => { if (!bulkProgress || bulkDone || bulkProgress.phase === 'error') setBulkOpen(false); }}
                 maxWidth="xs" fullWidth
-                slotProps={{ paper: { sx: { bgcolor: '#0b1220', color: '#e5e7eb', border: '1px solid rgba(148,163,184,0.22)', borderRadius: 2 } } }}
+                slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2 } } }}
               >
                 <Box sx={{ p: 2.5 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 1.5 }}>{bulkMode === 'catalog' ? 'カタログを一括自動登録' : '関連URLを一括自動登録'}</Typography>
                   {!bulkDone && bulkProgress && bulkProgress.phase !== 'error' && (
                     <>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                        <CircularProgress size={18} sx={{ color: '#93c5fd' }} />
+                        <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
                         <Typography sx={{ fontSize: 13 }}>
                           {bulkProgress.index + 1} / {bulkProgress.total} 件目
                           {bulkProgress.phase === 'search' ? '：検索中…' : bulkProgress.phase === 'register' ? '：登録中…' : ''}
                         </Typography>
                       </Box>
-                      <Typography noWrap sx={{ fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>{bulkProgress.title}</Typography>
+                      <Typography noWrap sx={{ fontSize: 12, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>{bulkProgress.title}</Typography>
                     </>
                   )}
                   {!bulkDone && bulkProgress && bulkProgress.phase === 'error' && (
-                    <Typography sx={{ fontSize: 13, color: '#fca5a5', whiteSpace: 'pre-wrap' }}>{bulkProgress.message}</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)', whiteSpace: 'pre-wrap' }}>{bulkProgress.message}</Typography>
                   )}
                   {!bulkDone && !bulkProgress && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <CircularProgress size={18} sx={{ color: '#93c5fd' }} />
+                      <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
                       <Typography sx={{ fontSize: 13 }}>準備中…</Typography>
                     </Box>
                   )}
                   {bulkDone && (
                     <Box>
-                      <Typography sx={{ fontSize: 13, color: '#86efac', mb: 1 }}>
+                      <Typography sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac)', mb: 1 }}>
                         完了：{bulkDone.models} 件のモデルに合計 {bulkDone.links} 件の{bulkMode === 'catalog' ? 'カタログ' : '関連URL'}を登録しました。
                       </Typography>
                       <Box sx={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         {bulkDone.rows.map((r, i) => (
                           <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
-                            <Box component="span" sx={{ color: r.added > 0 ? '#86efac' : '#fca5a5', fontWeight: 700, minWidth: 44 }}>
+                            <Box component="span" sx={{ color: r.added > 0 ? 'light-dark(#149944, #86efac)' : 'light-dark(#a80606, #fca5a5)', fontWeight: 700, minWidth: 44 }}>
                               {r.added > 0 ? `+${r.added}` : '0件'}
                             </Box>
-                            <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(229,231,235,0.9)' }}>
+                            <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
                               {r.title}
                             </Box>
-                            {r.error && <Box component="span" sx={{ color: 'rgba(251,146,60,0.9)', fontSize: 11 }}>{r.error}</Box>}
+                            {r.error && <Box component="span" sx={{ color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))', fontSize: 11 }}>{r.error}</Box>}
                           </Box>
                         ))}
                       </Box>
@@ -1290,7 +1326,7 @@ export const DssDashboard: React.FC<{
                   )}
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
                     {!bulkDone && bulkProgress?.phase !== 'error' && (
-                      <Button onClick={cancelBulk} sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
+                      <Button onClick={cancelBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
                     )}
                     {(bulkDone || bulkProgress?.phase === 'error') && (
                       <Button onClick={() => setBulkOpen(false)} variant="contained" sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}>閉じる</Button>
@@ -1304,43 +1340,43 @@ export const DssDashboard: React.FC<{
                 open={aiBulkOpen}
                 onClose={() => { if (aiBulkDone || aiBulkProgress?.phase === 'error') setAiBulkOpen(false); }}
                 maxWidth="xs" fullWidth
-                slotProps={{ paper: { sx: { bgcolor: '#0b1220', color: '#e5e7eb', border: '1px solid rgba(148,163,184,0.22)', borderRadius: 2 } } }}
+                slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2 } } }}
               >
                 <Box sx={{ p: 2.5 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 1.5 }}>AIで寸法・カテゴリを一括自動入力</Typography>
                   {!aiBulkDone && aiBulkProgress && aiBulkProgress.phase !== 'error' && (
                     <>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                        <CircularProgress size={18} sx={{ color: '#c4b5fd' }} />
+                        <CircularProgress size={18} sx={{ color: 'light-dark(#2705a9, #c4b5fd)' }} />
                         <Typography sx={{ fontSize: 13 }}>{aiBulkProgress.index + 1} / {aiBulkProgress.total} 件目：解析中…</Typography>
                       </Box>
-                      <Typography noWrap sx={{ fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>{aiBulkProgress.title}</Typography>
+                      <Typography noWrap sx={{ fontSize: 12, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>{aiBulkProgress.title}</Typography>
                     </>
                   )}
                   {!aiBulkDone && aiBulkProgress?.phase === 'error' && (
-                    <Typography sx={{ fontSize: 13, color: '#fca5a5', whiteSpace: 'pre-wrap' }}>{aiBulkProgress.message}</Typography>
+                    <Typography sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)', whiteSpace: 'pre-wrap' }}>{aiBulkProgress.message}</Typography>
                   )}
                   {!aiBulkDone && !aiBulkProgress && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <CircularProgress size={18} sx={{ color: '#c4b5fd' }} />
+                      <CircularProgress size={18} sx={{ color: 'light-dark(#2705a9, #c4b5fd)' }} />
                       <Typography sx={{ fontSize: 13 }}>準備中…</Typography>
                     </Box>
                   )}
                   {aiBulkDone && (
                     <Box>
-                      <Typography sx={{ fontSize: 13, color: '#86efac', mb: 1 }}>
+                      <Typography sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac)', mb: 1 }}>
                         完了：{aiBulkDone.models} 件のモデルに寸法・カテゴリ等を自動入力しました。
                       </Typography>
                       <Box sx={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         {aiBulkDone.rows.map((r, i) => (
                           <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
-                            <Box component="span" sx={{ color: r.fields > 0 ? '#86efac' : '#fca5a5', fontWeight: 700, minWidth: 56 }}>
+                            <Box component="span" sx={{ color: r.fields > 0 ? 'light-dark(#149944, #86efac)' : 'light-dark(#a80606, #fca5a5)', fontWeight: 700, minWidth: 56 }}>
                               {r.fields > 0 ? `${r.fields}項目` : '0項目'}
                             </Box>
-                            <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(229,231,235,0.9)' }}>
+                            <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
                               {r.title}
                             </Box>
-                            {r.error && <Box component="span" sx={{ color: 'rgba(251,146,60,0.9)', fontSize: 11 }}>{r.error}</Box>}
+                            {r.error && <Box component="span" sx={{ color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))', fontSize: 11 }}>{r.error}</Box>}
                           </Box>
                         ))}
                       </Box>
@@ -1348,7 +1384,7 @@ export const DssDashboard: React.FC<{
                   )}
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
                     {!aiBulkDone && aiBulkProgress?.phase !== 'error' && (
-                      <Button onClick={cancelAiBulk} sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
+                      <Button onClick={cancelAiBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
                     )}
                     {(aiBulkDone || aiBulkProgress?.phase === 'error') && (
                       <Button onClick={() => setAiBulkOpen(false)} variant="contained" sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}>閉じる</Button>
@@ -1375,6 +1411,26 @@ export const DssDashboard: React.FC<{
                         sx={viewMode === 'layout' ? styles.densityBtnActive : styles.densityBtn}
                       >
                         Layout
+                      </Button>
+                    </ButtonGroup>
+                  </Box>
+                )}
+
+                {!isGlobalProjectsScope && (
+                  <Box sx={styles.viewBlock}>
+                    <Box sx={styles.miniLabel}>Graph</Box>
+                    <ButtonGroup size="small" variant="outlined" sx={styles.densityGroup}>
+                      <Button
+                        onClick={() => setViewMode('assets')}
+                        sx={viewMode !== 'graph' ? styles.densityBtnActive : styles.densityBtn}
+                      >
+                        Grid
+                      </Button>
+                      <Button
+                        onClick={() => setViewMode('graph')}
+                        sx={viewMode === 'graph' ? styles.densityBtnActive : styles.densityBtn}
+                      >
+                        Graph
                       </Button>
                     </ButtonGroup>
                   </Box>
@@ -1413,18 +1469,18 @@ export const DssDashboard: React.FC<{
                 {breadcrumb.segs.map((seg, i) => (
                   <React.Fragment key={`${seg.label}-${i}`}>
                     {i > 0 && (
-                      <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, mx: 0.25, userSelect: 'none' }}>›</Typography>
+                      <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 13, mx: 0.25, userSelect: 'none' }}>›</Typography>
                     )}
                     <Box
                       onClick={seg.onClick}
                       title={seg.path}
                       sx={{
                         display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.4, borderRadius: 1.5, cursor: 'pointer',
-                        bgcolor: seg.active ? 'rgba(22,163,74,0.2)' : 'rgba(255,255,255,0.04)',
-                        color: seg.active ? '#fff' : 'rgba(255,255,255,0.7)',
+                        bgcolor: seg.active ? 'rgba(22,163,74,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
+                        color: seg.active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
                         fontSize: 12.5, fontWeight: seg.active ? 600 : 500,
                         transition: 'background-color 0.15s',
-                        '&:hover': { bgcolor: seg.active ? 'rgba(22,163,74,0.25)' : 'rgba(255,255,255,0.08)' },
+                        '&:hover': { bgcolor: seg.active ? 'rgba(22,163,74,0.25)' : 'rgb(var(--brand-fg-rgb) / 0.08)' },
                       }}
                     >
                       {i === 0 ? <FolderRoundedIcon sx={{ fontSize: 14 }} /> : <FolderOpenRoundedIcon sx={{ fontSize: 14 }} />}
@@ -1433,12 +1489,12 @@ export const DssDashboard: React.FC<{
                   </React.Fragment>
                 ))}
                 {breadcrumb.absPath && (
-                  <Typography noWrap title={breadcrumb.absPath} sx={{ ml: 1, color: 'rgba(255,255,255,0.3)', fontSize: 10.5, maxWidth: 280, direction: 'rtl', textAlign: 'left' }}>
+                  <Typography noWrap title={breadcrumb.absPath} sx={{ ml: 1, color: 'rgb(var(--brand-fg-rgb) / 0.3)', fontSize: 10.5, maxWidth: 280, direction: 'rtl', textAlign: 'left' }}>
                     {breadcrumb.absPath}
                   </Typography>
                 )}
                 {/* クラウド状態の絞り込みチップ */}
-                <Box sx={{ width: '1px', height: 18, bgcolor: 'rgba(255,255,255,0.12)', mx: 0.75 }} />
+                <Box sx={{ width: '1px', height: 18, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', mx: 0.75 }} />
                 {CLOUD_FILTER_TABS.map(tab => {
                   const active = cloudFilter === tab.key;
                   return (
@@ -1447,11 +1503,11 @@ export const DssDashboard: React.FC<{
                       onClick={() => setCloudFilter(tab.key)}
                       sx={{
                         px: 1, py: 0.35, borderRadius: 1.5, cursor: 'pointer', fontSize: 11.5, fontWeight: active ? 700 : 500,
-                        color: active ? '#fff' : 'rgba(255,255,255,0.6)',
-                        bgcolor: active ? tab.color : 'rgba(255,255,255,0.05)',
+                        color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                        bgcolor: active ? tab.color : 'rgb(var(--brand-fg-rgb) / 0.05)',
                         border: `1px solid ${active ? tab.color : 'transparent'}`,
                         transition: 'all 0.15s',
-                        '&:hover': { bgcolor: active ? tab.color : 'rgba(255,255,255,0.1)' },
+                        '&:hover': { bgcolor: active ? tab.color : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                       }}
                     >
                       {tab.label}
@@ -1470,32 +1526,32 @@ export const DssDashboard: React.FC<{
                   
                   {searchFilters.type && searchFilters.type !== 'ALL' && (
                     <motion.div key="filter-type" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
-                      <Chip size="small" label={`Primary: ${searchFilters.type}`} onDelete={() => setSearchFilters({type: 'ALL', category: 'ALL', subCategory: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      <Chip size="small" label={`Primary: ${searchFilters.type}`} onDelete={() => setSearchFilters({type: 'ALL', category: 'ALL', subCategory: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   )}
                   {searchFilters.wantsReady && (
                     <motion.div key="filter-wantsReady" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
-                      <Chip size="small" label="既製品家具" onDelete={() => setSearchFilters({wantsReady: false})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      <Chip size="small" label="既製品家具" onDelete={() => setSearchFilters({wantsReady: false})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   )}
                   {searchFilters.wantsCustom && (
                     <motion.div key="filter-wantsCustom" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
-                      <Chip size="small" label="造作家具" onDelete={() => setSearchFilters({wantsCustom: false})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      <Chip size="small" label="造作家具" onDelete={() => setSearchFilters({wantsCustom: false})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   )}
                   {searchFilters.category && searchFilters.category !== 'ALL' && (
                     <motion.div key="filter-category" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
-                      <Chip size="small" label={`Category: ${searchFilters.category}`} onDelete={() => setSearchFilters({category: 'ALL', subCategory: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      <Chip size="small" label={`Category: ${searchFilters.category}`} onDelete={() => setSearchFilters({category: 'ALL', subCategory: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   )}
                   {searchFilters.subCategory && searchFilters.subCategory !== 'ALL' && (
                     <motion.div key="filter-subcategory" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
-                      <Chip size="small" label={`Sub: ${searchFilters.subCategory}`} onDelete={() => setSearchFilters({subCategory: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      <Chip size="small" label={`Sub: ${searchFilters.subCategory}`} onDelete={() => setSearchFilters({subCategory: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   )}
                   {searchFilters.format && searchFilters.format !== 'ALL' && (
                     <motion.div key="filter-format" layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
-                      <Chip size="small" label={`Format: ${searchFilters.format}`} onDelete={() => setSearchFilters({format: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      <Chip size="small" label={`Format: ${searchFilters.format}`} onDelete={() => setSearchFilters({format: 'ALL'})} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   )}
                   {searchFilters.tags && typeof searchFilters.tags === 'string' && searchFilters.tags.split(/[\s,]+/).filter(Boolean).map((t: string) => (
@@ -1503,7 +1559,7 @@ export const DssDashboard: React.FC<{
                       <Chip size="small" label={t} onDelete={() => {
                         const newTags = searchFilters.tags.split(/[\s,]+/).filter((tt: string) => tt !== t).join(' ');
                         setSearchFilters({tags: newTags});
-                      }} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: '#a5d6a7', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
+                      }} sx={{ bgcolor: 'rgba(165, 214, 167, 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.65)', border: '1px solid rgba(165, 214, 167, 0.3)' }} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -1527,7 +1583,7 @@ export const DssDashboard: React.FC<{
                   size="small" 
                   variant="contained" 
                   startIcon={<CloudUploadIcon />} 
-                  sx={{ ...styles.actionBtn, bgcolor: '#29b6f6', color: '#fff', '&:hover': { bgcolor: '#0288d1' } }}
+                  sx={{ ...styles.actionBtn, bgcolor: '#29b6f6', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0288d1' } }}
                   onClick={() => setUploadDialogOpen(true)}
                 >
                   Upload
@@ -1583,6 +1639,14 @@ export const DssDashboard: React.FC<{
                   isInitializing={isInitializing}
                   badgeColor={payload?.themeColor}
                 />
+              ) : viewMode === 'graph' && !pickerIsOpen ? (
+                <DssFurnitureGraph
+                  items={dedupedItemsForGrid}
+                  centerId={selectedItem?.id ?? null}
+                  selectedId={selectedItem?.id ?? null}
+                  onSelectModel={(raw) => handleSelectModel(raw)}
+                  height="100%"
+                />
               ) : viewMode === 'layout' && isProjectModelsScope ? (
                 <DssGroupedModelsGrid
                   groups={groupedLayoutAssets}
@@ -1632,17 +1696,17 @@ export const DssDashboard: React.FC<{
         <Box sx={{
           position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
           zIndex: 200, display: 'flex', alignItems: 'center', gap: 1.5,
-          bgcolor: '#1a1f2b', border: '1px solid rgba(255,215,64,0.5)',
+          bgcolor: 'var(--brand-surface2)', border: '1px solid rgba(255,215,64,0.5)',
           borderRadius: 3, px: 2.5, py: 1.25, boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
         }}>
-          <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.85)', mr: 1 }}>
-            <Box component="span" sx={{ color: '#ffd740', fontWeight: 700 }}>{pickerSelectedIds.length}</Box>
-            {' 件選択中 — SEKKEIYA Chat から家具を選んでいます'}
+          <Box sx={{ fontSize: '0.75rem', color: 'rgb(var(--brand-fg-rgb) / 0.85)', mr: 1 }}>
+            <Box component="span" sx={{ color: 'light-dark(#ad8900, #ffd740)', fontWeight: 700 }}>{pickerSelectedIds.length}</Box>
+            {' 件選択中 — SEKKEIYA OS から家具を選んでいます'}
           </Box>
           <Button
             size="small" variant="outlined"
             onClick={pickerCancel}
-            sx={{ fontSize: '0.7rem', textTransform: 'none', color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.25)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)' } }}
+            sx={{ fontSize: '0.7rem', textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
           >
             キャンセル
           </Button>
@@ -1650,7 +1714,7 @@ export const DssDashboard: React.FC<{
             size="small" variant="contained"
             disabled={pickerSelectedIds.length === 0}
             onClick={pickerConfirm}
-            sx={{ fontSize: '0.7rem', textTransform: 'none', bgcolor: '#ffd740', color: '#1a1f2b', fontWeight: 700, '&:hover': { bgcolor: '#ffe082' }, '&.Mui-disabled': { bgcolor: 'rgba(255,215,64,0.25)', color: 'rgba(255,255,255,0.3)' } }}
+            sx={{ fontSize: '0.7rem', textTransform: 'none', bgcolor: '#ffd740', color: '#1a1f2b', fontWeight: 700, '&:hover': { bgcolor: '#ffe082' }, '&.Mui-disabled': { bgcolor: 'rgba(255,215,64,0.25)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}
           >
             {pickerSelectedIds.length}件をプロジェクトに追加
           </Button>
@@ -1715,13 +1779,51 @@ export const DssDashboard: React.FC<{
         isBoardModels={modelsScope === 'project_models' || modelsScope === 'team_project_models'}
       />
 
+      {/* 一括削除の確認ダイアログ */}
+      <Dialog
+        open={bulkDeleteOpen}
+        onClose={() => { if (!bulkDeleteBusy) setBulkDeleteOpen(false); }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', border: '1px solid rgba(220,38,38,0.35)' } }}
+      >
+        <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'center', gap: 1, color: '#dc2626' }}>
+          <DeleteOutlineRoundedIcon /> まとめて削除
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            選択中の {bulkDeletableCount} 件のモデルを{cardContext === 'boardModels' ? 'このボードから' : ''}削除しますか？
+          </Typography>
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(220,38,38,0.1)', borderRadius: 1, border: '1px dashed rgba(220,38,38,0.3)' }}>
+            <Typography variant="caption" sx={{ color: 'rgba(220,38,38,0.85)' }}>
+              {cardContext === 'boardModels'
+                ? '※モデル自体は削除されず、このボード（プロジェクト）との共有リンクが解除されます。'
+                : '※この操作は取り消せません。選択したモデルがリストから削除されます。'}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDeleteOpen(false)} color="inherit" disabled={bulkDeleteBusy}>キャンセル</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleteBusy || bulkDeletableCount === 0}
+            startIcon={bulkDeleteBusy ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : undefined}
+            sx={{ fontWeight: 600 }}
+          >
+            {bulkDeleteBusy ? '削除中…' : `${bulkDeletableCount} 件を削除`}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* 画像検索メニュー（カメラ）＋ Lens/カタログ ダイアログ：グリッド/詳細の両方で使えるよう常時描画 */}
       <Menu
         anchorEl={imgSearchAnchor}
         open={Boolean(imgSearchAnchor)}
         onClose={() => setImgSearchAnchor(null)}
         onClick={(e) => e.stopPropagation()}
-        slotProps={{ paper: { sx: { bgcolor: '#0f172a', color: '#e5e7eb', border: '1px solid rgba(148,163,184,0.22)', minWidth: 230 } } }}
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', minWidth: 230 } } }}
       >
         <MenuItem disabled sx={{ opacity: 0.7, fontSize: 11, py: 0.5 }}>
           {selectedItem ? (selectedItem.title || selectedItem.name || '選択中のモデル') : '選択中のモデル'} を検索
@@ -1732,28 +1834,28 @@ export const DssDashboard: React.FC<{
             onClick={() => (eng.key === 'lens' ? handleLensSearch() : handleRunImageSearch(eng.key))}
             sx={{ fontSize: 13 }}
           >
-            <ListItemIcon sx={{ color: '#93c5fd', minWidth: 32 }}>
+            <ListItemIcon sx={{ color: 'light-dark(#0352aa, #93c5fd)', minWidth: 32 }}>
               <ImageSearchRoundedIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText
               primaryTypographyProps={{ fontSize: 13 }}
               secondary={eng.key === 'lens' ? '結果を一覧表示 → 関連URLに登録' : undefined}
-              secondaryTypographyProps={{ fontSize: 10, color: 'rgba(148,163,184,0.85)' }}
+              secondaryTypographyProps={{ fontSize: 10, color: 'rgb(var(--slate-ink-rgb) / 0.85)' }}
             >
               {eng.label}
             </ListItemText>
           </MenuItem>
         ))}
-        <Divider sx={{ borderColor: 'rgba(148,163,184,0.18)', my: 0.5 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--slate-ink-rgb) / 0.18)', my: 0.5 }} />
         <MenuItem disabled sx={{ opacity: 0.7, fontSize: 11, py: 0.5 }}>ローカル照合</MenuItem>
         <MenuItem onClick={handleSearchCatalog} sx={{ fontSize: 13 }}>
-          <ListItemIcon sx={{ color: '#86efac', minWidth: 32 }}>
+          <ListItemIcon sx={{ color: 'light-dark(#149944, #86efac)', minWidth: 32 }}>
             <MenuBookRoundedIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText primaryTypographyProps={{ fontSize: 13 }}>S.Library カタログで探す</ListItemText>
         </MenuItem>
         {imgSearchError && (
-          <MenuItem disabled sx={{ color: '#fca5a5', fontSize: 11, whiteSpace: 'normal', maxWidth: 260 }}>
+          <MenuItem disabled sx={{ color: 'light-dark(#a80606, #fca5a5)', fontSize: 11, whiteSpace: 'normal', maxWidth: 260 }}>
             {imgSearchError}
           </MenuItem>
         )}
@@ -1806,9 +1908,9 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 20,
-    background: 'rgba(2,6,23,0.92)',
+    background: 'rgb(var(--slate-deep-rgb) / 0.92)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(148,163,184,0.18)',
+    borderBottom: '1px solid rgb(var(--slate-ink-rgb) / 0.18)',
     minWidth: 0,
     flexShrink: 0,
   },
@@ -1828,7 +1930,7 @@ const styles = {
   },
   breadcrumb: {
     fontSize: 11,
-    color: 'rgba(148,163,184,0.85)',
+    color: 'rgb(var(--slate-ink-rgb) / 0.85)',
     lineHeight: 1.2,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -1839,7 +1941,7 @@ const styles = {
     fontWeight: 760,
     letterSpacing: 0.2,
     lineHeight: 1.2,
-    color: '#e2e8f0',
+    color: 'var(--brand-fg)',
   },
   searchWrap: {
     display: 'flex',
@@ -1847,19 +1949,19 @@ const styles = {
     gap: 1,
     padding: '7px 10px',
     borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.30)',
-    background: 'rgba(15,23,42,0.62)',
+    border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.62)',
     width: 'min(560px, 100%)',
     minWidth: 220,
   },
-  searchIcon: { fontSize: 18, color: 'rgba(148,163,184,0.9)' },
+  searchIcon: { fontSize: 18, color: 'rgb(var(--slate-ink-rgb) / 0.9)' },
   searchInput: {
     width: '100%',
     minWidth: 0,
     border: 'none',
     outline: 'none',
     background: 'transparent',
-    color: '#e5e7eb',
+    color: 'var(--brand-fg)',
     fontSize: 12,
   },
   viewBlock: {
@@ -1868,17 +1970,17 @@ const styles = {
     alignItems: 'flex-end',
     gap: '4px',
   },
-  miniLabel: { fontSize: 11, color: 'rgba(148,163,184,0.85)' },
+  miniLabel: { fontSize: 11, color: 'rgb(var(--slate-ink-rgb) / 0.85)' },
   densityGroup: {
     '& .MuiButton-root': {
       textTransform: 'none',
-      borderColor: 'rgba(148,163,184,0.22)',
+      borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)',
     },
   },
   densityBtn: {
-    color: 'rgba(229,231,235,0.9)',
-    background: 'rgba(15,23,42,0.32)',
-    borderColor: 'rgba(148,163,184,0.22)',
+    color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))',
+    background: 'rgb(var(--slate-panel-rgb) / 0.32)',
+    borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)',
     padding: '3px 10px',
     fontSize: 11,
   },
@@ -1901,24 +2003,24 @@ const styles = {
   selectFilter: {
     height: 28,
     fontSize: 12,
-    color: '#e2e8f0',
-    background: 'rgba(15,23,42,0.62)',
+    color: 'var(--brand-fg)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.62)',
     boxShadow: 'none',
-    '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148,163,184,0.22)' },
+    '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--slate-ink-rgb) / 0.22)' },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(96,165,250,0.6)' },
-    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148,163,184,0.45)' },
-    '.MuiSvgIcon-root': { color: 'rgba(148,163,184,0.85)' }
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--slate-ink-rgb) / 0.45)' },
+    '.MuiSvgIcon-root': { color: 'rgb(var(--slate-ink-rgb) / 0.85)' }
   },
   chip: {
     borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.28)',
-    background: 'rgba(15,23,42,0.48)',
-    color: '#e5e7eb',
+    border: '1px solid rgb(var(--slate-ink-rgb) / 0.28)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.48)',
+    color: 'var(--brand-fg)',
     fontSize: 11,
     height: 28,
-    '&:hover': { background: 'rgba(15,23,42,0.62)' },
+    '&:hover': { background: 'rgb(var(--slate-panel-rgb) / 0.62)' },
   },
-  dividerV: { borderColor: 'rgba(148,163,184,0.14)', mx: 0.5 },
+  dividerV: { borderColor: 'rgb(var(--slate-ink-rgb) / 0.14)', mx: 0.5 },
   actionsRight: {
     display: 'flex',
     alignItems: 'center',
@@ -1928,13 +2030,13 @@ const styles = {
   actionBtn: {
     textTransform: 'none',
     borderRadius: 999,
-    border: '1px solid rgba(148,163,184,0.22)',
-    background: 'rgba(15,23,42,0.52)',
-    color: '#e5e7eb',
+    border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)',
+    background: 'rgb(var(--slate-panel-rgb) / 0.52)',
+    color: 'var(--brand-fg)',
     fontSize: 11,
     padding: '4px 12px',
     height: 30,
-    '&:hover': { background: 'rgba(15,23,42,0.70)' },
+    '&:hover': { background: 'rgb(var(--slate-panel-rgb) / 0.70)' },
   },
   content: {
     flex: 1,

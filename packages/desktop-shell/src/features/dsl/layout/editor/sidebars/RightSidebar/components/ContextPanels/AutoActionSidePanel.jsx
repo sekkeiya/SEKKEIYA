@@ -52,7 +52,7 @@ function RoleSelectChips() {
 
   return (
     <Box sx={{ mb: 1.5 }}>
-      <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.5), letterSpacing: 0.4, mb: 0.75 }}>
+      <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", letterSpacing: 0.4, mb: 0.75 }}>
         役割で面を選択
       </Typography>
       {total === 0 ? (
@@ -76,8 +76,8 @@ function RoleSelectChips() {
                   cursor: n ? "pointer" : "default",
                   background: alpha(color, n ? 0.16 : 0.05),
                   border: `1px solid ${alpha(color, n ? 0.5 : 0.18)}`,
-                  color: n ? "#fff" : alpha("#fff", 0.4),
-                  "&:hover": n ? { background: alpha(color, 0.28) } : {},
+                  color: n ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
+                  "&:hover": n ? { background: `color-mix(in srgb, ${color} 28%, transparent)` } : {},
                 }}
               />
             );
@@ -112,7 +112,7 @@ function BuildingSpecFields({ accent }) {
 
   const fieldSx = {
     flex: 1,
-    "& .MuiInputBase-root": { height: 32, fontSize: 12.5, color: "#fff", background: alpha("#fff", 0.05), borderRadius: 1 },
+    "& .MuiInputBase-root": { height: 32, fontSize: 12.5, color: "var(--brand-fg)", background: alpha("#fff", 0.05), borderRadius: 1 },
     "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.12) },
     "& input": { textAlign: "right", py: 0 },
   };
@@ -122,7 +122,7 @@ function BuildingSpecFields({ accent }) {
   const renderRow = (label, hint, value, onChange) => (
     <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.9 }}>
       <Tooltip title={hint} placement="left" arrow>
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: alpha("#fff", 0.75), width: 64, flexShrink: 0 }}>{label}</Typography>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)", width: 64, flexShrink: 0 }}>{label}</Typography>
       </Tooltip>
       <TextField
         type="number" size="small" value={value} sx={fieldSx}
@@ -137,7 +137,7 @@ function BuildingSpecFields({ accent }) {
     <Box sx={{ mb: 1.5 }}>
       <Stack direction="row" alignItems="center" spacing={0.6} sx={{ mb: 0.9 }}>
         <HeightRoundedIcon sx={{ fontSize: 14, color: alpha(accent, 0.95) }} />
-        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.5), letterSpacing: 0.4 }}>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", letterSpacing: 0.4 }}>
           建物の高さ設定
         </Typography>
       </Stack>
@@ -146,7 +146,7 @@ function BuildingSpecFields({ accent }) {
       <Divider sx={{ borderColor: alpha("#fff", 0.06), my: 1 }} />
 
       {/* 基準レベル：FL±0(1F床)=0 を基準に、GL・各階 FL を相対値で扱う */}
-      <Typography sx={{ fontSize: 10, fontWeight: 700, color: alpha("#fff", 0.42), letterSpacing: 0.4, mb: 0.25 }}>
+      <Typography sx={{ fontSize: 10, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 42%, transparent)", letterSpacing: 0.4, mb: 0.25 }}>
         基準レベル（FL±0 基準）
       </Typography>
       <Typography sx={{ fontSize: 9, opacity: 0.45, mb: 0.75, lineHeight: 1.5 }}>
@@ -156,7 +156,7 @@ function BuildingSpecFields({ accent }) {
       {/* 1FL = FL±0（基準・固定） */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.9 }}>
         <Tooltip title="1F の床 = FL±0。設計の基準レベル（常に 0）。" placement="left" arrow>
-          <Typography sx={{ fontSize: 11, fontWeight: 800, color: alpha("#38bdf8", 0.95), width: 64, flexShrink: 0 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 800, color: "light-dark(rgba(6,118,168,0.95), rgba(56,189,248,0.95))", width: 64, flexShrink: 0 }}>
             1FL (FL±0)
           </Typography>
         </Tooltip>
@@ -166,7 +166,7 @@ function BuildingSpecFields({ accent }) {
           InputProps={{ endAdornment: <Typography sx={{ fontSize: 10.5, opacity: 0.5, ml: 0.5 }}>mm</Typography> }}
         />
         <Chip label="基準" size="small" sx={{ height: 18, fontSize: 9, fontWeight: 800, borderRadius: 0.8,
-          background: alpha("#38bdf8", 0.18), border: `1px solid ${alpha("#38bdf8", 0.4)}`, color: alpha("#fff", 0.85) }} />
+          background: alpha("#38bdf8", 0.18), border: `1px solid ${alpha("#38bdf8", 0.4)}`, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)" }} />
       </Stack>
 
       {/* GL（FL±0 からの相対。負＝下） */}
@@ -179,7 +179,7 @@ function BuildingSpecFields({ accent }) {
       {(floors || []).map((f, i) => (i === 0 ? null : (
         <Stack key={i} direction="row" alignItems="center" spacing={1} sx={{ mb: 0.9 }}>
           <Tooltip title={`${f.name}：${i + 1} 階の床。FL±0 からの相対高さ。`} placement="left" arrow>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: alpha("#38bdf8", 0.95), width: 64, flexShrink: 0 }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: "light-dark(rgba(6,118,168,0.95), rgba(56,189,248,0.95))", width: 64, flexShrink: 0 }}>
               {f.name}
             </Typography>
           </Tooltip>
@@ -191,7 +191,7 @@ function BuildingSpecFields({ accent }) {
           <Typography sx={{ fontSize: 10, opacity: 0.4, width: 36, flexShrink: 0 }}>{(f.flMm / 1000).toFixed(2)}m</Typography>
           <IconButton
             size="small" onClick={() => removeFloor(i)}
-            sx={{ p: 0.25, color: alpha("#fff", 0.55) }}
+            sx={{ p: 0.25, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}
           >
             <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
           </IconButton>
@@ -200,7 +200,7 @@ function BuildingSpecFields({ accent }) {
 
       <Button
         size="small" startIcon={<AddRoundedIcon sx={{ fontSize: 15 }} />} onClick={addFloor}
-        sx={{ mt: 0.25, mb: 1, fontSize: 11, fontWeight: 700, color: alpha("#38bdf8", 0.95), textTransform: "none",
+        sx={{ mt: 0.25, mb: 1, fontSize: 11, fontWeight: 700, color: "light-dark(rgba(6,118,168,0.95), rgba(56,189,248,0.95))", textTransform: "none",
               "&:hover": { background: alpha("#38bdf8", 0.1) } }}
       >
         階を追加（+{(floorHeightMm / 1000).toFixed(1)}m）
@@ -215,7 +215,7 @@ function BuildingSpecFields({ accent }) {
           mb: 1, fontSize: 11.5, fontWeight: 800, textTransform: "none", borderRadius: 1.2,
           ...(heightSetupActive
             ? { background: accent, color: "#0b1020", "&:hover": { background: accent } }
-            : { color: alpha("#fff", 0.85), borderColor: alpha(accent, 0.5), "&:hover": { borderColor: accent, background: alpha(accent, 0.1) } }),
+            : { color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)", borderColor: alpha(accent, 0.5), "&:hover": { borderColor: accent, background: alpha(accent, 0.1) } }),
         }}
       >
         {heightSetupActive ? "俯瞰ビューに戻す" : "断面で高さを設定"}
@@ -313,7 +313,7 @@ function SectionMiniMap({ accent }) {
         height: 22, fontSize: 10.5, fontWeight: 800, borderRadius: 1, cursor: "pointer",
         background: alpha(color, axis === a ? 0.3 : 0.08),
         border: `1px solid ${alpha(color, axis === a ? 0.9 : 0.25)}`,
-        color: axis === a ? "#fff" : alpha("#fff", 0.6),
+        color: axis === a ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 60%, transparent)",
       }}
     />
   );
@@ -321,7 +321,7 @@ function SectionMiniMap({ accent }) {
   return (
     <Box sx={{ mt: 1.25 }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.6 }}>
-        <Typography sx={{ fontSize: 10, fontWeight: 700, color: alpha("#fff", 0.42), letterSpacing: 0.4 }}>
+        <Typography sx={{ fontSize: 10, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 42%, transparent)", letterSpacing: 0.4 }}>
           断面位置（平面図）
         </Typography>
         <Stack direction="row" spacing={0.5}>
@@ -376,7 +376,7 @@ const META = {
   },
   autoFurMat: {
     title: "自動家具マテリアル",
-    icon: <StyleRoundedIcon sx={{ fontSize: 16, color: "#a78bfa" }} />,
+    icon: <StyleRoundedIcon sx={{ fontSize: 16, color: "light-dark(#2f07a6, #a78bfa)" }} />,
     accent: "#a78bfa",
     desc: "家具に登録されたマテリアルバリアントを、スタイルに合わせて自動選択・一括付与します。",
     target: "対象：マテリアルバリアントが登録された配置済み家具。",
@@ -384,7 +384,7 @@ const META = {
   },
   autoLabel: {
     title: "自動ラベル",
-    icon: <CategoryRoundedIcon sx={{ fontSize: 16, color: "#22d3ee" }} />,
+    icon: <CategoryRoundedIcon sx={{ fontSize: 16, color: "light-dark(#0c8da1, #22d3ee)" }} />,
     accent: "#22d3ee",
     desc: "躯体を3Dスキャンして 床・内壁・外壁・天井 を自動判定し、面ラベル＋コリジョンを付与します。",
     target: "対象：読み込み済みの躯体メッシュ全体。自動マテリアル／ウォークスルーの当たり判定の前提になります。",
@@ -392,7 +392,7 @@ const META = {
   },
   autoLighting: {
     title: "自動ライティング",
-    icon: <LightbulbRoundedIcon sx={{ fontSize: 16, color: "#fbbf24" }} />,
+    icon: <LightbulbRoundedIcon sx={{ fontSize: 16, color: "light-dark(#aa7c03, #fbbf24)" }} />,
     accent: "#fbbf24",
     desc: "室内の広さ・天井高からムード別の照明を一括生成します（ピン留め以外を置換）。",
     target: "対象：室内ジオメトリ。ピン留めしたライトは保持されます。",
@@ -400,7 +400,7 @@ const META = {
   },
   autoReplace: {
     title: "自動家具差し替え",
-    icon: <SwapHorizRoundedIcon sx={{ fontSize: 16, color: "#fb923c" }} />,
+    icon: <SwapHorizRoundedIcon sx={{ fontSize: 16, color: "light-dark(#aa4e03, #fb923c)" }} />,
     accent: "#fb923c",
     desc: "配置・向きは固定したまま、家具を同カテゴリの別アイテムにスタイルへ合わせて差し替えます。",
     target: "対象：配置済みの家具。レイアウトは維持して見た目だけ変えたいときに。",
@@ -430,7 +430,7 @@ export default function AutoActionSidePanel({ kind }) {
     : "#60a5fa";
 
   return (
-    <Box sx={{ height: "100%", overflow: "auto", p: 1.5, color: "#fff" }}>
+    <Box sx={{ height: "100%", overflow: "auto", p: 1.5, color: "var(--brand-fg)" }}>
       {/* ヘッダー */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.25 }}>
         {meta.icon}
@@ -448,7 +448,7 @@ export default function AutoActionSidePanel({ kind }) {
       {/* 利用可能な選択肢（情報表示。実行はボトムバーのホバーから） */}
       {options && (
         <Box sx={{ mb: 1.5 }}>
-          <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.45), letterSpacing: 0.4, mb: 0.75 }}>
+          <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", letterSpacing: 0.4, mb: 0.75 }}>
             {meta.optionsLabel}
           </Typography>
           <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -461,7 +461,7 @@ export default function AutoActionSidePanel({ kind }) {
                   height: 24, fontSize: 11.5, fontWeight: 700, borderRadius: 1,
                   background: alpha(accent, 0.12),
                   border: `1px solid ${alpha(accent, 0.35)}`,
-                  color: alpha("#fff", 0.9),
+                  color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
                 }}
               />
             ))}
@@ -476,12 +476,12 @@ export default function AutoActionSidePanel({ kind }) {
       <Divider sx={{ borderColor: alpha("#fff", 0.08), my: 1.25 }} />
 
       {/* 最後の実行結果 */}
-      <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.45), letterSpacing: 0.4, mb: 0.75 }}>
+      <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", letterSpacing: 0.4, mb: 0.75 }}>
         最後の実行結果
       </Typography>
       {lastResult ? (
-        <Box sx={{ borderRadius: 1.5, p: 1, background: alpha(resultColor, 0.1), border: `1px solid ${alpha(resultColor, 0.4)}` }}>
-          <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.92), lineHeight: 1.6 }}>{lastResult.msg}</Typography>
+        <Box sx={{ borderRadius: 1.5, p: 1, background: `color-mix(in srgb, ${resultColor} 10%, transparent)`, border: `1px solid ${`color-mix(in srgb, ${resultColor} 40%, transparent)`}` }}>
+          <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 92%, transparent)", lineHeight: 1.6 }}>{lastResult.msg}</Typography>
           <Typography sx={{ fontSize: 10, opacity: 0.45, mt: 0.5 }}>{relTime(lastResult.at)}</Typography>
         </Box>
       ) : (

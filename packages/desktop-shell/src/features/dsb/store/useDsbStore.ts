@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { BlogArticle, BlogStatus, BlogSchedule } from '../types';
+import type { BlogArticle, BlogStatus, BlogSchedule, ReaderBlockLite } from '../types';
 import { listBlogArticles, saveBlogArticle, deleteBlogArticle, loadBlogCategories, saveBlogCategories, syncCommunityMirror } from '../api/blogApi';
 import { listBlogSchedules, saveBlogSchedule, deleteBlogSchedule } from '../api/scheduleApi';
 import { newBlogDraft, slugify } from '../lib/blogUtils';
@@ -14,7 +14,8 @@ export interface SaveDraftResult {
 }
 
 type EditorMode = 'list' | 'edit';
-type DsbView = 'feed' | 'overview' | 'schedule' | 'list' | 'categories';
+// schedule = プロジェクトの Schedules & Tasks 画面 / plan = 投稿計画カレンダー(BlogScheduleView)
+type DsbView = 'feed' | 'overview' | 'schedule' | 'plan' | 'list' | 'categories';
 type StatusFilter = 'all' | BlogStatus;
 
 interface DsbState {
@@ -34,6 +35,22 @@ interface DsbState {
   // 管理者(hello@sekkeiya.com)のみ 'official' に切替できる。シェル/見た目は共通、データ源だけ切り替える。
   blogScope: 'account' | 'official';
 
+  // 📖 リーダー↔議論パネルの橋渡し（議論ファースト時）。リーダーが抽出した本文・画像を
+  // 議論パネルがインタビューの素材として参照し、参照した箇所へリーダーをスクロールできる。
+  readerBlocks: ReaderBlockLite[];      // リーダーが公開中の抽出ブロック
+  readerArticleUrl: string | null;      // そのブロックがどの記事のものか（取り違え防止）
+  focusReaderBlock: { index: number; nonce: number } | null; // スクロール要求（nonceで毎回発火）
+  setReaderBlocks: (url: string, blocks: ReaderBlockLite[]) => void;
+  focusReaderBlockAt: (index: number) => void;
+
+  // ✍ 「議論から記事を生成」実行中（DsbEditor が執筆モードへ切替え、執筆演出を出す）
+  generating: boolean;
+  setGenerating: (v: boolean) => void;
+
+  // 🖼 記事画像の生成進捗（null=生成していない）。エディタの生成中アニメーションが購読する
+  imageGen: { done: number; total: number } | null;
+  setImageGen: (v: { done: number; total: number } | null) => void;
+
   setBlogScope: (s: 'account' | 'official') => void;
   setView: (v: DsbView) => void;
   setSearch: (s: string) => void;
@@ -44,7 +61,7 @@ interface DsbState {
 
   refresh: (uid: string) => Promise<void>;
   loadSchedules: (uid: string) => Promise<void>;
-  addSchedule: (uid: string, input: { date: string; title: string; category?: string; note?: string; articleId?: string | null }) => Promise<void>;
+  addSchedule: (uid: string, input: { date: string; time?: string | null; title: string; category?: string; note?: string; articleId?: string | null }) => Promise<void>;
   updateSchedule: (uid: string, id: string, patch: Partial<BlogSchedule>) => Promise<void>;
   removeSchedule: (uid: string, id: string) => Promise<void>;
   loadCategories: (uid: string) => Promise<void>;
@@ -56,7 +73,8 @@ interface DsbState {
   startEdit: (id: string) => void;
   updateDraft: (patch: Partial<BlogArticle>) => void;
   cancelEdit: () => void;
-  saveDraft: (uid: string) => Promise<SaveDraftResult>;
+  /** 保存＋（公開なら）dual-publish。既定は一覧へ戻る。keepEditing で編集を維持し、保存後の記事を draft に残す。 */
+  saveDraft: (uid: string, opts?: { keepEditing?: boolean }) => Promise<SaveDraftResult>;
   /** 作業中の自動保存。下書き内容をクラウド(正本)へ静かに保存（公開連携はしない）。編集状態は維持。保存したら true。 */
   saveWorkingDraft: (uid: string) => Promise<boolean>;
   /** 一覧のインスペクターから記事の設定を部分更新して保存（フルエディタを開かずに）。公開状態に変わる場合は dual-publish も実施。 */
@@ -69,8 +87,11 @@ const setBlogDirty = (dirty: boolean) => {
   try { useAppStore.getState().setScopeDirty('3dsb', dirty); } catch { /* noop */ }
 };
 // 自動保存に値する内容があるか（空の新規ドラフトは作らない）。
+// ★AIとの議論ログ・題材記事も「内容」に含める: 議論ファーストで本文が空のまま議論しても
+//   下書きとして保存され、リロード/クラッシュで対話が失われない。
 const hasContent = (a: BlogArticle | null): boolean =>
-  !!a && !!((a.title && a.title.trim()) || (a.bodyMarkdown && a.bodyMarkdown.trim()) || (a.excerpt && a.excerpt.trim()));
+  !!a && !!((a.title && a.title.trim()) || (a.bodyMarkdown && a.bodyMarkdown.trim()) || (a.excerpt && a.excerpt.trim())
+    || (a.aiDialogue && a.aiDialogue.length > 0) || (a.sourceRefs && a.sourceRefs.length > 0));
 
 export const useDsbStore = create<DsbState>((set, get) => ({
   articles: [],
@@ -86,6 +107,18 @@ export const useDsbStore = create<DsbState>((set, get) => ({
   categories: [],
   siteActiveBlogCat: null,
   blogScope: 'account',
+  readerBlocks: [],
+  readerArticleUrl: null,
+  focusReaderBlock: null,
+
+  setReaderBlocks: (url, blocks) => set({ readerArticleUrl: url, readerBlocks: blocks }),
+  focusReaderBlockAt: (index) => set((s) => ({ focusReaderBlock: { index, nonce: (s.focusReaderBlock?.nonce ?? 0) + 1 } })),
+
+  generating: false,
+  setGenerating: (generating) => set({ generating }),
+
+  imageGen: null,
+  setImageGen: (imageGen) => set({ imageGen }),
 
   setBlogScope: (blogScope) => set({ blogScope }),
   setView: (view) => set({ view }),
@@ -196,6 +229,7 @@ export const useDsbStore = create<DsbState>((set, get) => ({
     const schedule: BlogSchedule = {
       id: crypto.randomUUID(),
       date: input.date,
+      time: input.time ?? null,
       title: input.title.trim(),
       category: input.category,
       note: input.note,
@@ -229,6 +263,10 @@ export const useDsbStore = create<DsbState>((set, get) => ({
   startNew: (uid, authorName, defaultCategory) => {
     const draft = newBlogDraft({ authorUid: uid, authorName });
     set({ mode: 'edit', draft: defaultCategory ? { ...draft, category: defaultCategory } : draft });
+    // 「AIと議論して書く」等では直後（同tick）に updateDraft({sourceRefs}) が入るため、
+    // 次tickで即永続化 → その時点で記事一覧に下書きとして現れる。
+    // まっさらな新規（title/本文/議論/題材すべて空）は hasContent が弾くので一覧は汚れない。
+    setTimeout(() => { void get().saveWorkingDraft(uid).catch(() => { /* best-effort */ }); }, 0);
   },
 
   startEdit: (id) => {
@@ -246,7 +284,7 @@ export const useDsbStore = create<DsbState>((set, get) => ({
 
   cancelEdit: () => { setBlogDirty(false); set({ mode: 'list', draft: null }); },
 
-  saveDraft: async (uid) => {
+  saveDraft: async (uid, opts) => {
     const draft = get().draft;
     if (!uid || !draft) return { published: false, knowledgeSynced: false };
     const now = new Date().toISOString();
@@ -288,7 +326,10 @@ export const useDsbStore = create<DsbState>((set, get) => ({
     }
 
     setBlogDirty(false);
-    set({ mode: 'list', draft: null });
+    // keepEditing: 編集を維持し、保存後の記事（publishedAt/libraryEntryId 反映済み）を draft に残す。
+    // 既定: 一覧へ戻る。
+    if (opts?.keepEditing) set({ draft: { ...article } });
+    else set({ mode: 'list', draft: null });
     await get().refresh(uid);
     return { published, knowledgeSynced, knowledgeError };
   },

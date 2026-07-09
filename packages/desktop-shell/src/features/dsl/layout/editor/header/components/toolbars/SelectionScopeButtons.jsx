@@ -63,7 +63,7 @@ export default function SelectionScopeButtons() {
             px: 1,
             border: "none",
             borderRadius: 0.75,
-            color: alpha("#fff", 0.65),
+            color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)",
             fontSize: 11,
             fontWeight: 800,
             textTransform: "none",
@@ -72,24 +72,24 @@ export default function SelectionScopeButtons() {
             minWidth: 0,
             "&:hover": {
               background: alpha("#fff", 0.06),
-              color: alpha("#fff", 0.9),
+              color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)",
             },
             "&.Mui-selected": {
               background: alpha(accent, 0.22),
-              color: alpha("#fff", 0.95),
+              color: "color-mix(in srgb, var(--brand-fg) 95%, transparent)",
               "&:hover": {
                 background: alpha(accent, 0.3),
               },
             },
             "&.Mui-disabled": {
-              color: alpha("#fff", 0.22),
+              color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)",
               background: alpha("#fff", 0.02),
               cursor: "not-allowed",
               pointerEvents: "auto", // not-allowed カーソルとツールチップを出すため
               "& svg": { opacity: 0.4 },
               "&:hover": {
                 background: alpha("#fff", 0.02),
-                color: alpha("#fff", 0.22),
+                color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)",
               },
             },
           },

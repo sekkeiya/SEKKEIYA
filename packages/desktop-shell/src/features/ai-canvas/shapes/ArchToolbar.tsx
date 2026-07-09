@@ -87,9 +87,9 @@ const RibbonToolButton = ({ icon, label, value, activeTool, onChange }: { icon: 
     sx={{ 
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       minWidth: '44px', height: '48px', p: 0.5, borderRadius: 1, flexShrink: 0,
-      color: activeTool === value ? '#fff' : BRAND.sub,
-      bgcolor: activeTool === value ? 'rgba(255,255,255,0.1)' : 'transparent',
-      '&:hover': { bgcolor: activeTool === value ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)' },
+      color: activeTool === value ? 'var(--brand-fg)' : BRAND.sub,
+      bgcolor: activeTool === value ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+      '&:hover': { bgcolor: activeTool === value ? 'rgb(var(--brand-fg-rgb) / 0.15)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
       '& .MuiSvgIcon-root': { fontSize: '1.2rem' }
     }}
   >
@@ -107,7 +107,7 @@ const RibbonActionButton = ({ icon, label, onClick, disabled, color, bgcolor }: 
       minWidth: '44px', height: '48px', p: 0.5, borderRadius: 1, flexShrink: 0,
       color: disabled ? BRAND.sub2 : (color || BRAND.text), 
       bgcolor: bgcolor || 'transparent',
-      '&:hover': { bgcolor: bgcolor ? (bgcolor + 'dd') : 'rgba(255,255,255,0.05)' },
+      '&:hover': { bgcolor: bgcolor ? (bgcolor + 'dd') : 'rgb(var(--brand-fg-rgb) / 0.05)' },
       '& .MuiSvgIcon-root': { fontSize: '1.2rem' }
     }}
   >
@@ -341,7 +341,7 @@ export function ArchToolbar() {
         {showLeftScroll && (
           <IconButton 
             onClick={() => handleScroll(-300)} 
-            sx={{ position: 'absolute', left: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '3px 0 6px rgba(0,0,0,0.2)', borderRadius: 0, height: '88px', width: '32px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
+            sx={{ position: 'absolute', left: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '3px 0 6px light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 0, height: '88px', width: '32px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
           >
             <ChevronLeftIcon />
           </IconButton>
@@ -362,7 +362,7 @@ export function ArchToolbar() {
           display: 'flex', 
           alignItems: 'center', 
           overflowX: 'auto', 
-          bgcolor: 'rgba(0,0,0,0.1)',
+          bgcolor: 'light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))',
           // Sleek horizontal scrollbar
           '&::-webkit-scrollbar': { height: '6px' },
           '&::-webkit-scrollbar-track': { background: 'transparent' },
@@ -408,11 +408,11 @@ export function ArchToolbar() {
         {tabIndex === 1 && (
           <>
             <RibbonGroup label="ゾーニング">
-              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: '#FBC02D' }} />} label="LDK" onClick={() => addZoning('LDK', '#FFF9C4')} />
-              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: '#BDBDBD' }} />} label="ｴﾝﾄﾗﾝｽ" onClick={() => addZoning('エントランス', '#F5F5F5')} />
-              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: '#81D4FA' }} />} label="水回り" onClick={() => addZoning('水回り', '#E1F5FE')} />
-              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: '#A5D6A7' }} />} label="寝室" onClick={() => addZoning('寝室', '#E8F5E9')} />
-              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: '#BCAAA4' }} />} label="和室" onClick={() => addZoning('和室', '#D7CCC8')} />
+              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: 'light-dark(#aa7a03, #FBC02D)' }} />} label="LDK" onClick={() => addZoning('LDK', '#FFF9C4')} />
+              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)' }} />} label="ｴﾝﾄﾗﾝｽ" onClick={() => addZoning('エントランス', '#F5F5F5')} />
+              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: 'light-dark(#0774a7, #81D4FA)' }} />} label="水回り" onClick={() => addZoning('水回り', '#E1F5FE')} />
+              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)' }} />} label="寝室" onClick={() => addZoning('寝室', '#E8F5E9')} />
+              <RibbonActionButton icon={<AddBoxRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)' }} />} label="和室" onClick={() => addZoning('和室', '#D7CCC8')} />
             </RibbonGroup>
 
             <RibbonGroup label="図面記号・計測">
@@ -458,7 +458,7 @@ export function ArchToolbar() {
 
             <RibbonGroup label="環境インサイト">
               <RibbonActionButton icon={<WbSunnyOutlinedIcon sx={{ color: '#FFB300' }} />} label="日照・採光" onClick={() => {}} />
-              <RibbonActionButton icon={<AirOutlinedIcon sx={{ color: '#4FC3F7' }} />} label="通風" onClick={() => {}} />
+              <RibbonActionButton icon={<AirOutlinedIcon sx={{ color: 'light-dark(#0875a6, #4FC3F7)' }} />} label="通風" onClick={() => {}} />
               <RibbonActionButton icon={<ParkOutlinedIcon sx={{ color: '#66BB6A' }} />} label="植栽" onClick={() => {}} />
             </RibbonGroup>
 
@@ -493,7 +493,7 @@ export function ArchToolbar() {
                   sx={{ 
                     height: 36,
                     '& .MuiToggleButton-root': { color: BRAND.sub, borderColor: BRAND.line, px: 2 },
-                    '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgba(255,255,255,0.15) !important' } 
+                    '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15) !important' } 
                   }}
                 >
                   <ToggleButton value={0}>無地</ToggleButton>
@@ -513,7 +513,7 @@ export function ArchToolbar() {
                 sx={{ 
                   height: 36,
                   '& .MuiToggleButton-root': { color: BRAND.sub, borderColor: BRAND.line, px: 2, textTransform: 'none', fontSize: '13px' },
-                  '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgba(255,255,255,0.15) !important' } 
+                  '& .Mui-selected': { color: '#fff !important', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15) !important' } 
                 }}
               >
                 <ToggleButton value="default">標準</ToggleButton>
@@ -534,7 +534,7 @@ export function ArchToolbar() {
         {showRightScroll && (
           <IconButton 
             onClick={() => handleScroll(300)} 
-            sx={{ position: 'absolute', right: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '-3px 0 6px rgba(0,0,0,0.2)', borderRadius: 0, height: '88px', width: '32px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
+            sx={{ position: 'absolute', right: 0, zIndex: 2, bgcolor: BRAND.bg, boxShadow: '-3px 0 6px light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 0, height: '88px', width: '32px', '&:hover': { bgcolor: BRAND.bg, opacity: 0.9 } }}
           >
             <ChevronRightIcon />
           </IconButton>

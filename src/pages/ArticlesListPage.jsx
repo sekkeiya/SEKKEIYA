@@ -21,7 +21,7 @@ const GradText = ({ children }) => (
 );
 
 // フォールバック（categories コレクション未整備時）。実際は Firestore から動的に読み込む。
-const CATEGORIES_FALLBACK = ['すべて', 'AI News', 'SEKKEIYA', 'S.Models', 'S.Layout', 'S.Presentations', 'Desktop', 'Workflow', 'Tips / Learn'];
+const CATEGORIES_FALLBACK = ['すべて', 'AI News', 'SEKKEIYA', 'S.Model', 'S.Layout', 'S.Slide', 'Desktop', 'Workflow', 'Tips / Learn'];
 
 const containerVariants = {
   hidden: { opacity: 0 },

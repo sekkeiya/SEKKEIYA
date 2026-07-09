@@ -51,7 +51,7 @@ function ScopeItem({ icon, label, active, onClick, color, onRenameClick, onDelet
         <IconButton
           size="small"
           onClick={(e) => { e.stopPropagation(); onExpandClick?.(e); }}
-          sx={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 1, p: 0.25, color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' } }}
+          sx={{ position: 'absolute', left: 4, top: '50%', transform: 'translateY(-50%)', zIndex: 1, p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' } }}
         >
           {expandIcon}
         </IconButton>
@@ -62,19 +62,19 @@ function ScopeItem({ icon, label, active, onClick, color, onRenameClick, onDelet
           display: 'flex', alignItems: 'center',
           pl: expandIcon ? 3.5 : 1.25, pr: 1.25, py: 0.75,
           borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <Box sx={{
           width: 20, height: 20, borderRadius: 1.5,
-          bgcolor: color || 'rgba(255,255,255,0.1)',
+          bgcolor: color || 'rgb(var(--brand-fg-rgb) / 0.1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0,
         }}>
-          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? '#fff' : 'rgba(255,255,255,0.7)' } })}
+          {React.cloneElement(icon as React.ReactElement<any>, { sx: { fontSize: 14, color: color ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' } })}
         </Box>
         <Typography sx={{
-          color: active ? '#ffffff' : 'rgba(255,255,255,0.7)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
           fontSize: 12, fontWeight: active ? 600 : 500,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
@@ -90,8 +90,8 @@ function ScopeItem({ icon, label, active, onClick, color, onRenameClick, onDelet
             sx={{
               position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
               opacity: active ? 1 : 0,
-              color: 'rgba(255,255,255,0.5)',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' },
+              color: 'rgb(var(--brand-fg-rgb) / 0.5)',
+              '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
               '.MuiCardActionArea-root:hover + &': { opacity: 1 },
             }}
           >
@@ -101,7 +101,7 @@ function ScopeItem({ icon, label, active, onClick, color, onRenameClick, onDelet
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={() => setAnchorEl(null)}
-            PaperProps={{ sx: { bgcolor: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' } }}
+            PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}
           >
             {onRenameClick && (
               <MenuItem onClick={() => { setAnchorEl(null); onRenameClick(); }} sx={{ fontSize: 13, py: 1 }}>名前を変更</MenuItem>
@@ -238,11 +238,11 @@ function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenam
               sx={{
                 display: 'flex', alignItems: 'center', px: 1, py: 0.5,
                 borderRadius: 1.5, cursor: renamingId === f.id ? 'default' : 'pointer',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
                 '&:hover .furn-actions': { opacity: 1 },
               }}
             >
-              <ViewInArIcon sx={{ fontSize: 12, mr: 1, color: 'rgba(255,167,38,0.6)', flexShrink: 0 }} />
+              <ViewInArIcon sx={{ fontSize: 12, mr: 1, color: 'light-dark(rgba(173,103,0,0.6), rgba(255,167,38,0.6))', flexShrink: 0 }} />
 
               {renamingId === f.id ? (
                 <InputBase
@@ -256,16 +256,16 @@ function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenam
                   }}
                   disabled={isProcessingFurniture}
                   sx={{
-                    flex: 1, fontSize: 11, color: '#fff',
+                    flex: 1, fontSize: 11, color: 'var(--brand-fg)',
                     '& input': { p: 0, py: '1px', px: '4px',
-                      bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1,
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', borderRadius: 1,
                       border: '1px solid rgba(255,167,38,0.5)' },
                   }}
                   onClick={e => e.stopPropagation()}
                 />
               ) : (
                 <Typography
-                  sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                 >
                   {f.name}
                 </Typography>
@@ -280,7 +280,7 @@ function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenam
                     <IconButton
                       size="small"
                       onClick={e => { e.stopPropagation(); handleFurnitureRenameStart(f, e); }}
-                      sx={{ p: 0.25, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+                      sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
                     >
                       <EditRoundedIcon sx={{ fontSize: 12 }} />
                     </IconButton>
@@ -289,7 +289,7 @@ function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenam
                     <IconButton
                       size="small"
                       onClick={e => { e.stopPropagation(); setDeletingItem(f); }}
-                      sx={{ p: 0.25, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#ff4d4f', bgcolor: 'rgba(255,77,79,0.1)' } }}
+                      sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: '#ff4d4f', bgcolor: 'rgba(255,77,79,0.1)' } }}
                     >
                       <DeleteOutlineRoundedIcon sx={{ fontSize: 12 }} />
                     </IconButton>
@@ -303,12 +303,12 @@ function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenam
             onClick={handleNewFurniture}
             sx={{
               display: 'flex', alignItems: 'center', px: 1, py: 0.75, borderRadius: 1.5, mt: 0.5,
-              cursor: 'pointer', border: '1px dashed rgba(255,255,255,0.15)',
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.3)' },
+              cursor: 'pointer', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.15)',
+              '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
             }}
           >
-            <AddRoundedIcon sx={{ fontSize: 12, mr: 1, color: 'rgba(255,255,255,0.6)' }} />
-            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 500 }}>
+            <AddRoundedIcon sx={{ fontSize: 12, mr: 1, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }} />
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 11, fontWeight: 500 }}>
               新規造作
             </Typography>
           </Box>
@@ -317,15 +317,15 @@ function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenam
 
       {deletingItem && (
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.55)', zIndex: 1400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ width: 380, bgcolor: '#1a1e27', p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#fff', mb: 1.5, fontWeight: 700, fontSize: 15 }}>造作家具を削除</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3, fontSize: 13 }}>
+          <Box sx={{ width: 380, bgcolor: 'var(--brand-surface2)', p: 4, borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 1.5, fontWeight: 700, fontSize: 15 }}>造作家具を削除</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 3, fontSize: 13 }}>
               「{deletingItem.name}」を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
               <Typography
                 onClick={() => !isProcessingFurniture && setDeletingItem(null)}
-                sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}
               >
                 キャンセル
               </Typography>
@@ -464,21 +464,21 @@ export const DscSidebar: React.FC = () => {
 
       {/* ── Header + Search ── */}
       <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', mb: 1.5 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', mb: 1.5 }}>
           3D SHAPE CREATE
         </Typography>
         <Box sx={{
           display: 'flex', alignItems: 'center',
-          bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, px: 1.5, py: 0.5,
-          border: '1px solid rgba(255,255,255,0.05)',
-          '&:focus-within': { borderColor: 'rgba(255,255,255,0.15)' },
+          bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.5, py: 0.5,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' },
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase
             placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 12, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }}
           />
         </Box>
       </Box>
@@ -503,7 +503,7 @@ export const DscSidebar: React.FC = () => {
           />
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.07)', mx: 1.5, my: 1 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
 
         {/* ── パーソナルスコープ (Public Furniture / Private Furniture) ── */}
         <Box sx={{ mb: 2 }}>
@@ -526,7 +526,7 @@ export const DscSidebar: React.FC = () => {
         {/* ── My Projects ── */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
               My Projects
             </Typography>
           </Box>
@@ -546,7 +546,7 @@ export const DscSidebar: React.FC = () => {
         {/* ── Team Projects ── */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
               Team Projects
             </Typography>
           </Box>
@@ -568,7 +568,7 @@ export const DscSidebar: React.FC = () => {
       <Dialog
         open={isCreateDialogOpen}
         onClose={() => !isCreating && setIsCreateDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 400 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 400 } }}
       >
         <DialogTitle sx={{ pb: 1 }}>
           {createProjectType === 'my' ? '新規マイプロジェクト作成' : '新規チームプロジェクト作成'}
@@ -580,13 +580,13 @@ export const DscSidebar: React.FC = () => {
           <TextField
             autoFocus margin="dense" label="プロジェクト名" type="text" fullWidth variant="outlined"
             value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} disabled={isCreating}
-            InputProps={{ style: { color: '#fff' } }}
-            InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
-            sx={{ mt: 1, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
+            InputProps={{ style: { color: 'var(--brand-fg)' } }}
+            InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
+            sx={{ mt: 1, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleCreateProject} disabled={isCreating || !newProjectName.trim()} variant="contained"
             sx={{ bgcolor: ACCENT, color: '#000', '&:hover': { bgcolor: '#fb8c00' } }}>
             {isCreating ? '作成中...' : '作成'}
@@ -597,14 +597,14 @@ export const DscSidebar: React.FC = () => {
       {/* Rename Project Dialog */}
       {activeRenameProject && (
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ width: 400, bgcolor: '#1a1e27', p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#fff', mb: 2, fontWeight: 700 }}>プロジェクト名を変更</Typography>
+          <Box sx={{ width: 400, bgcolor: 'var(--brand-surface2)', p: 4, borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 2, fontWeight: 700 }}>プロジェクト名を変更</Typography>
             <InputBase fullWidth autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)} disabled={isProcessing}
-              sx={{ bgcolor: 'rgba(0,0,0,0.2)', color: '#fff', px: 2, py: 1, borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', mb: 3 }}
+              sx={{ bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', color: 'var(--brand-fg)', px: 2, py: 1, borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', mb: 3 }}
               onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSubmit(); }}
             />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Typography onClick={() => setActiveRenameProject(null)} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}>キャンセル</Typography>
+              <Typography onClick={() => setActiveRenameProject(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}>キャンセル</Typography>
               <Typography onClick={handleRenameSubmit} sx={{ color: ACCENT, fontSize: 13, cursor: isProcessing || !renameValue.trim() ? 'not-allowed' : 'pointer', py: 1, fontWeight: 600, opacity: isProcessing || !renameValue.trim() ? 0.5 : 1 }}>保存</Typography>
             </Box>
           </Box>
@@ -614,13 +614,13 @@ export const DscSidebar: React.FC = () => {
       {/* Delete Project Dialog */}
       {activeDeleteProject && (
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ width: 400, bgcolor: '#1a1e27', p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#fff', mb: 2, fontWeight: 700 }}>プロジェクトを削除</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3, fontSize: 14 }}>
+          <Box sx={{ width: 400, bgcolor: 'var(--brand-surface2)', p: 4, borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 2, fontWeight: 700 }}>プロジェクトを削除</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 3, fontSize: 14 }}>
               「{activeDeleteProject.name}」を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Typography onClick={() => setActiveDeleteProject(null)} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}>キャンセル</Typography>
+              <Typography onClick={() => setActiveDeleteProject(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}>キャンセル</Typography>
               <Typography onClick={handleDeleteSubmit} sx={{ color: '#ff4d4f', fontSize: 13, cursor: isProcessing ? 'not-allowed' : 'pointer', py: 1, fontWeight: 600, opacity: isProcessing ? 0.5 : 1 }}>削除</Typography>
             </Box>
           </Box>

@@ -19,17 +19,17 @@ import { WorkFileRepository } from '../../projects/workFileRepository';
 function DscEmptyState() {
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.35)', mb: 2, fontSize: 12, lineHeight: 1.6 }}>
+      <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.35)', mb: 2, fontSize: 12, lineHeight: 1.6 }}>
         アイテムをクリックすると<br />プロパティが表示されます。
       </Typography>
       <Box sx={{
-        p: 2, bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 1.5,
+        p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 1.5,
         border: '1px dashed rgba(255,167,38,0.15)',
       }}>
-        <Typography variant="caption" sx={{ color: '#ffa726', fontWeight: 600, display: 'block', mb: 0.5 }}>
+        <Typography variant="caption" sx={{ color: 'light-dark(#ad6700, #ffa726)', fontWeight: 600, display: 'block', mb: 0.5 }}>
           3DSC Workspace
         </Typography>
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, lineHeight: 1.5 }}>
+        <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 11, lineHeight: 1.5 }}>
           Generative parameters, style prompts, and mesh exports.
         </Typography>
       </Box>
@@ -64,10 +64,10 @@ function DscItemInfo({
 
       {/* Thumbnail */}
       <Box sx={{
-        height: 160, bgcolor: '#0d1117', flexShrink: 0,
+        height: 160, bgcolor: 'var(--brand-bg)', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
       }}>
         {item.thumbnailUrl ? (
           <Box
@@ -77,14 +77,14 @@ function DscItemInfo({
             sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         ) : (
-          <ViewInArIcon sx={{ fontSize: 52, color: 'rgba(255,167,38,0.12)' }} />
+          <ViewInArIcon sx={{ fontSize: 52, color: 'light-dark(rgba(173,103,0,0.12), rgba(255,167,38,0.12))' }} />
         )}
       </Box>
 
       <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
         {/* Name */}
-        <Typography sx={{ color: '#fff', fontSize: 14, fontWeight: 700, lineHeight: 1.4 }}>
+        <Typography sx={{ color: 'var(--brand-fg)', fontSize: 14, fontWeight: 700, lineHeight: 1.4 }}>
           {item.name || '名称未設定'}
         </Typography>
 
@@ -92,33 +92,33 @@ function DscItemInfo({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
           {projectName && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <FolderRoundedIcon sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{projectName}</Typography>
+              <FolderRoundedIcon sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{projectName}</Typography>
             </Box>
           )}
           {partsCount > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <ViewInArIcon sx={{ fontSize: 11, color: 'rgba(255,167,38,0.5)', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{partsCount} パーツ</Typography>
+              <ViewInArIcon sx={{ fontSize: 11, color: 'light-dark(rgba(173,103,0,0.5), rgba(255,167,38,0.5))', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{partsCount} パーツ</Typography>
             </Box>
           )}
           {(updatedStr || createdStr) && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CalendarTodayRoundedIcon sx={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+              <CalendarTodayRoundedIcon sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.25)', flexShrink: 0 }} />
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                 {updatedStr ? `更新: ${updatedStr}` : `作成: ${createdStr}`}
               </Typography>
             </Box>
           )}
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
         {/* ── 公開設定 ── */}
         <Box>
           <Typography sx={{
             fontSize: 10, fontWeight: 600, letterSpacing: 0.8,
-            color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', mb: 1,
+            color: 'rgb(var(--brand-fg-rgb) / 0.3)', textTransform: 'uppercase', mb: 1,
           }}>
             公開設定
           </Typography>
@@ -138,9 +138,9 @@ function DscItemInfo({
                 '&:hover': { bgcolor: 'rgba(46,204,113,0.2)' },
                 cursor: 'default',
               } : {
-                borderColor: 'rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.35)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.35)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
                 fontSize: 11,
                 '&:hover': { borderColor: 'rgba(46,204,113,0.35)', color: '#2ecc71', bgcolor: 'rgba(46,204,113,0.06)' },
               }}
@@ -156,17 +156,17 @@ function DscItemInfo({
               disabled={isUpdatingVisibility}
               sx={!isPublic ? {
                 bgcolor: 'rgba(255,167,38,0.12)',
-                color: '#ffa726',
+                color: 'light-dark(#ad6700, #ffa726)',
                 border: '1px solid rgba(255,167,38,0.35)',
                 fontWeight: 700, fontSize: 11,
                 '&:hover': { bgcolor: 'rgba(255,167,38,0.2)' },
                 cursor: 'default',
               } : {
-                borderColor: 'rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.35)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.35)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
                 fontSize: 11,
-                '&:hover': { borderColor: 'rgba(255,167,38,0.35)', color: '#ffa726', bgcolor: 'rgba(255,167,38,0.06)' },
+                '&:hover': { borderColor: 'rgba(255,167,38,0.35)', color: 'light-dark(#ad6700, #ffa726)', bgcolor: 'rgba(255,167,38,0.06)' },
               }}
             >
               非公開
@@ -174,14 +174,14 @@ function DscItemInfo({
           </Box>
           {/* 現在の状態ラベル */}
           <Typography sx={{
-            fontSize: 10, color: isPublic ? 'rgba(46,204,113,0.6)' : 'rgba(255,167,38,0.5)',
+            fontSize: 10, color: isPublic ? 'rgba(46,204,113,0.6)' : 'light-dark(rgba(173,103,0,0.5), rgba(255,167,38,0.5))',
             mt: 0.75, textAlign: 'center',
           }}>
             {isUpdatingVisibility ? '更新中...' : isPublic ? '公開中 — Furniture で表示されます' : '非公開 — Private Furniture のみ'}
           </Typography>
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)' }} />
 
         {/* Actions */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

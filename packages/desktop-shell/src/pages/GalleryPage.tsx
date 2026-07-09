@@ -19,7 +19,7 @@ import { KIND_META, type GalleryItem, type GalleryKind } from '../features/galle
 import type { GalleryDensity } from '../features/gallery/useGalleryStore';
 
 const KIND_APP: Record<GalleryKind, string> = {
-  model:        'S.Models',
+  model:        'S.Model',
   layout:       'S.Layout',
   presentation: 'S.Present',
   furniture:    'S.Create',
@@ -75,7 +75,7 @@ const GalleryPage: React.FC = () => {
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" flexWrap="wrap" gap={2}>
           {!isMobile && (
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: '#fff', letterSpacing: 0.5, mb: 0.25 }}>
+              <Typography variant="h5" sx={{ fontWeight: 900, color: 'var(--brand-fg)', letterSpacing: 0.5, mb: 0.25 }}>
                 {kind === 'all' ? 'すべての公開作品' : KIND_META[kind].label}
               </Typography>
               <Typography sx={{ color: BRAND.sub2, fontSize: '0.82rem' }}>
@@ -101,7 +101,7 @@ const GalleryPage: React.FC = () => {
                 ),
                 sx: {
                   borderRadius: isMobile ? 999 : 2,
-                  bgcolor: isMobile ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                  bgcolor: isMobile ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'rgb(var(--brand-fg-rgb) / 0.04)',
                   border: `1px solid ${BRAND.line}`,
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   '& .MuiInputBase-input': { color: BRAND.text, ...(isMobile && { py: 0.75, fontSize: '0.85rem' }) },
@@ -124,8 +124,8 @@ const GalleryPage: React.FC = () => {
                 sx={{
                   '& .MuiToggleButton-root': {
                     color: BRAND.sub2, borderColor: BRAND.line, py: 0.5, px: 1.25,
-                    '&.Mui-selected': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)' },
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+                    '&.Mui-selected': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' },
                   },
                 }}
               >
@@ -145,14 +145,14 @@ const GalleryPage: React.FC = () => {
         <Box sx={{ flex: 1, overflowY: 'auto', p: isMobile ? 0.5 : { xs: 3, md: 4 } }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
-              <CircularProgress sx={{ color: '#5dade2' }} />
+              <CircularProgress sx={{ color: 'light-dark(#1a6393, #5dade2)' }} />
             </Box>
           ) : error ? (
             <Box sx={{ py: 6, textAlign: 'center' }}>
-              <Typography sx={{ color: '#f1948a', mb: 2 }}>読み込みに失敗しました。</Typography>
+              <Typography sx={{ color: 'light-dark(#9b2013, #f1948a)', mb: 2 }}>読み込みに失敗しました。</Typography>
               <Typography
                 onClick={() => window.location.reload()}
-                sx={{ color: '#5dade2', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+                sx={{ color: 'light-dark(#1a6393, #5dade2)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 再読み込み
               </Typography>
@@ -194,7 +194,7 @@ const GalleryPage: React.FC = () => {
 };
 
 // ────────────────────────────────────────────────────────────────────────────
-// GalleryCard  S.Models スタイル：ホバーで下からオーバーレイ
+// GalleryCard  S.Model スタイル：ホバーで下からオーバーレイ
 // ────────────────────────────────────────────────────────────────────────────
 const GalleryCard: React.FC<{
   item: GalleryItem;
@@ -215,7 +215,7 @@ const GalleryCard: React.FC<{
         onClick={() => onSelect(item)}
         sx={{
           position: 'relative', width: '100%', aspectRatio: '1 / 1',
-          bgcolor: '#0b0f16', overflow: 'hidden', cursor: 'pointer',
+          bgcolor: 'var(--brand-bg)', overflow: 'hidden', cursor: 'pointer',
           WebkitTapHighlightColor: 'transparent', '&:active': { opacity: 0.8 },
         }}
       >
@@ -226,7 +226,7 @@ const GalleryCard: React.FC<{
             sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CollectionsRoundedIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.1)' }} />
+            <CollectionsRoundedIcon sx={{ fontSize: 32, color: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
           </Box>
         )}
       </Box>
@@ -245,20 +245,20 @@ const GalleryCard: React.FC<{
         overflow: 'hidden',
         cursor: 'pointer',
         border: `1px solid ${selected ? meta.color : BRAND.line}`,
-        boxShadow: selected ? `0 0 0 2px ${meta.color}44` : 'none',
+        boxShadow: selected ? `0 0 0 2px color-mix(in srgb, ${meta.color} 27%, transparent)` : 'none',
         transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
-        bgcolor: '#0e131c',
+        bgcolor: 'var(--brand-surface)',
         '&:hover': {
           transform: 'translateY(-3px)',
           boxShadow: selected
-            ? `0 10px 28px rgba(0,0,0,0.5), 0 0 0 2px ${meta.color}44`
+            ? `0 10px 28px rgba(0,0,0,0.5), 0 0 0 2px color-mix(in srgb, ${meta.color} 27%, transparent)`
             : '0 10px 28px rgba(0,0,0,0.5)',
-          borderColor: selected ? meta.color : 'rgba(255,255,255,0.18)',
+          borderColor: selected ? meta.color : 'rgb(var(--brand-fg-rgb) / 0.18)',
         },
       }}
     >
       {/* サムネイル */}
-      <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: '#0b0f16', overflow: 'hidden' }}>
+      <Box sx={{ width: '100%', aspectRatio: '1 / 1', bgcolor: 'var(--brand-bg)', overflow: 'hidden' }}>
         {item.thumbnailUrl ? (
           <Box
             component="img"
@@ -272,7 +272,7 @@ const GalleryCard: React.FC<{
           />
         ) : (
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CollectionsRoundedIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.1)' }} />
+            <CollectionsRoundedIcon sx={{ fontSize: 40, color: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
           </Box>
         )}
       </Box>
@@ -284,7 +284,7 @@ const GalleryCard: React.FC<{
         sx={{
           position: 'absolute', top: 8, left: 8, height: 20,
           bgcolor: 'rgba(11,15,22,0.78)', color: meta.color, fontWeight: 700, fontSize: 10,
-          border: `1px solid ${meta.color}55`, backdropFilter: 'blur(6px)',
+          border: `1px solid color-mix(in srgb, ${meta.color} 33%, transparent)`, backdropFilter: 'blur(6px)',
           pointerEvents: 'none',
         }}
       />
@@ -299,19 +299,19 @@ const GalleryCard: React.FC<{
           transition: 'transform 0.22s cubic-bezier(0.4,0,0.2,1)',
         }}
       >
-        <Typography noWrap sx={{ fontWeight: 700, color: '#fff', fontSize: '0.88rem', mb: 0.75 }}>
+        <Typography noWrap sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.88rem', mb: 0.75 }}>
           {item.title}
         </Typography>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Stack
             direction="row" spacing={0.75} alignItems="center"
             onClick={(e) => { e.stopPropagation(); onAuthor(item.author.id); }}
-            sx={{ cursor: 'pointer', minWidth: 0, '&:hover .author-name': { color: '#fff' } }}
+            sx={{ cursor: 'pointer', minWidth: 0, '&:hover .author-name': { color: 'var(--brand-fg)' } }}
           >
             <Avatar src={item.author.photoURL || undefined} sx={{ width: 18, height: 18, fontSize: 9, bgcolor: 'primary.main', flexShrink: 0 }}>
               {(item.author.displayName || 'U')[0]?.toUpperCase()}
             </Avatar>
-            <Typography className="author-name" noWrap sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem', transition: 'color 0.15s' }}>
+            <Typography className="author-name" noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: '0.72rem', transition: 'color 0.15s' }}>
               {item.author.displayName || '不明'}
             </Typography>
           </Stack>
@@ -321,8 +321,8 @@ const GalleryCard: React.FC<{
             size="small"
             onClick={(e) => { e.stopPropagation(); onOpen(item); }}
             sx={{
-              color: 'rgba(255,255,255,0.5)', p: 0.5,
-              '&:hover': { color: meta.color, bgcolor: `${meta.color}22` },
+              color: 'rgb(var(--brand-fg-rgb) / 0.5)', p: 0.5,
+              '&:hover': { color: meta.color, bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)` },
             }}
             title={`${KIND_APP[item.kind]} で開く`}
           >
@@ -360,9 +360,9 @@ const GalleryDetailPanel: React.FC<{
         <Chip
           label={meta.label}
           size="small"
-          sx={{ height: 22, bgcolor: `${meta.color}1a`, color: meta.color, fontWeight: 700, fontSize: 11, border: `1px solid ${meta.color}44` }}
+          sx={{ height: 22, bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`, color: meta.color, fontWeight: 700, fontSize: 11, border: `1px solid color-mix(in srgb, ${meta.color} 27%, transparent)` }}
         />
-        <IconButton size="small" onClick={onClose} sx={{ color: BRAND.sub2, '&:hover': { color: '#fff' } }}>
+        <IconButton size="small" onClick={onClose} sx={{ color: BRAND.sub2, '&:hover': { color: 'var(--brand-fg)' } }}>
           <CloseRoundedIcon fontSize="small" />
         </IconButton>
       </Stack>
@@ -371,7 +371,7 @@ const GalleryDetailPanel: React.FC<{
       <Box
         sx={{
           mx: 2, borderRadius: 2, overflow: 'hidden',
-          aspectRatio: '1/1', bgcolor: '#0b0f16', mb: 2.5,
+          aspectRatio: '1/1', bgcolor: 'var(--brand-bg)', mb: 2.5,
           border: `1px solid ${BRAND.line}`,
         }}
       >
@@ -380,13 +380,13 @@ const GalleryDetailPanel: React.FC<{
             sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CollectionsRoundedIcon sx={{ fontSize: 56, color: 'rgba(255,255,255,0.1)' }} />
+            <CollectionsRoundedIcon sx={{ fontSize: 56, color: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
           </Box>
         )}
       </Box>
 
       {/* タイトル */}
-      <Typography sx={{ px: 2, fontWeight: 800, color: '#fff', fontSize: '1.05rem', lineHeight: 1.35, mb: 2 }}>
+      <Typography sx={{ px: 2, fontWeight: 800, color: 'var(--brand-fg)', fontSize: '1.05rem', lineHeight: 1.35, mb: 2 }}>
         {item.title}
       </Typography>
 
@@ -394,7 +394,7 @@ const GalleryDetailPanel: React.FC<{
       <Stack
         direction="row" spacing={1.25} alignItems="center"
         onClick={() => onAuthor(item.author.id)}
-        sx={{ px: 2, mb: 2.5, cursor: 'pointer', '&:hover .author-name': { color: '#fff' } }}
+        sx={{ px: 2, mb: 2.5, cursor: 'pointer', '&:hover .author-name': { color: 'var(--brand-fg)' } }}
       >
         <Avatar src={item.author.photoURL || undefined} sx={{ width: 30, height: 30, fontSize: 13, bgcolor: 'primary.main' }}>
           {(item.author.displayName || 'U')[0]?.toUpperCase()}
@@ -413,7 +413,7 @@ const GalleryDetailPanel: React.FC<{
           <Stack direction="row" flexWrap="wrap" gap={0.75}>
             {item.tags.map(tag => (
               <Chip key={tag} label={tag} size="small"
-                sx={{ height: 20, fontSize: 11, bgcolor: 'rgba(255,255,255,0.05)', color: BRAND.sub, border: `1px solid ${BRAND.line}` }} />
+                sx={{ height: 20, fontSize: 11, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: BRAND.sub, border: `1px solid ${BRAND.line}` }} />
             ))}
           </Stack>
         </Box>

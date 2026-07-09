@@ -31,7 +31,7 @@ export default function CreateLandingPage() {
             S.Create
           </Typography>
           <Typography variant="h5" color="text.secondary" sx={{ mb: 4, maxWidth: 800, mx: 'auto' }}>
-            画像から3Dモデルを生成し、S.Models に保存し、S.Layout ですぐ活用
+            画像から3Dモデルを生成し、S.Model に保存し、S.Layout ですぐ活用
           </Typography>
           {isAuthed ? (
             <Stack direction="row" spacing={2} justifyContent="center">
@@ -90,7 +90,7 @@ export default function CreateLandingPage() {
               <CloudUploadIcon color="secondary" sx={{ fontSize: 48, mb: 2 }} />
               <Typography variant="h5" gutterBottom>貯める (Share)</Typography>
               <Typography color="text.secondary">
-                生成したモデルは S.Models にシームレスに保存。あなたのプロジェクト資産として管理できます。
+                生成したモデルは S.Model にシームレスに保存。あなたのプロジェクト資産として管理できます。
               </Typography>
             </Paper>
           </Grid>

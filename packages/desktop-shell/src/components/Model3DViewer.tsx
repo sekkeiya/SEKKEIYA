@@ -54,7 +54,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({ modelUrl, open, onClose }
     <Box
       sx={{
         position: 'fixed', inset: 0, zIndex: 13000,
-        bgcolor: '#05080d',
+        bgcolor: 'var(--brand-bg)',
         display: 'flex', flexDirection: 'column',
       }}
     >
@@ -69,7 +69,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({ modelUrl, open, onClose }
           sx={{
             display: 'inline-flex', alignItems: 'center', gap: 0.5,
             border: 'none', cursor: 'pointer', WebkitTapHighlightColor: 'transparent',
-            bgcolor: 'rgba(0,0,0,0.55)', color: '#fff',
+            bgcolor: 'rgba(0,0,0,0.55)', color: 'var(--brand-fg)',
             borderRadius: 999, pl: 1, pr: 1.5, py: 0.75,
             backdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
             '&:active': { opacity: 0.8 },
@@ -79,7 +79,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({ modelUrl, open, onClose }
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'inherit' }}>戻る</Typography>
         </Box>
 
-        <IconButton onClick={onClose} sx={{ color: '#fff', bgcolor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', '&:active': { bgcolor: 'rgba(0,0,0,0.7)' } }}>
+        <IconButton onClick={onClose} sx={{ color: 'var(--brand-fg)', bgcolor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', '&:active': { bgcolor: 'rgba(0,0,0,0.7)' } }}>
           <CloseRoundedIcon />
         </IconButton>
       </Box>
@@ -88,14 +88,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({ modelUrl, open, onClose }
       <Box sx={{ flex: 1, position: 'relative' }}>
         {loadError ? (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>3D を表示できませんでした</Typography>
+            <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>3D を表示できませんでした</Typography>
           </Box>
         ) : (
           <ModelErrorBoundary onError={() => setLoadError(true)}>
             <Suspense
               fallback={
                 <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CircularProgress sx={{ color: 'rgba(144,202,249,0.7)' }} />
+                  <CircularProgress sx={{ color: 'light-dark(rgba(9,95,165,0.7), rgba(144,202,249,0.7))' }} />
                 </Box>
               }
             >
@@ -137,7 +137,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({ modelUrl, open, onClose }
 
         {/* 操作ヒント */}
         <Box sx={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 12px)', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>ドラッグで回転 ・ ピンチでズーム</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>ドラッグで回転 ・ ピンチでズーム</Typography>
         </Box>
       </Box>
     </Box>

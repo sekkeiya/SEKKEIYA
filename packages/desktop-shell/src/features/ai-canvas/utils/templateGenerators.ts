@@ -177,7 +177,7 @@ export const spawnZoningConceptTemplate = (editor: Editor, startPoint: { x: numb
       x: x + 300,
       y: y + 200,
       parentId: frameId,
-      props: { w: 200, h: 200, text: 'LDK', color: '#FFF9C4' }
+      props: { w: 200, h: 200, text: 'LDK', color: 'light-dark(#ad9c00, #FFF9C4)' }
     } as any);
 
     editor.createShape({
@@ -185,7 +185,7 @@ export const spawnZoningConceptTemplate = (editor: Editor, startPoint: { x: numb
       x: x + 350,
       y: y + 450,
       parentId: frameId,
-      props: { w: 100, h: 100, text: 'ENT', color: '#F5F5F5' }
+      props: { w: 100, h: 100, text: 'ENT', color: 'var(--brand-fg)' }
     } as any);
 
     editor.createShape({
@@ -193,7 +193,7 @@ export const spawnZoningConceptTemplate = (editor: Editor, startPoint: { x: numb
       x: x + 100,
       y: y + 200,
       parentId: frameId,
-      props: { w: 150, h: 150, text: 'BATH', color: '#E1F5FE' }
+      props: { w: 150, h: 150, text: 'BATH', color: 'var(--brand-fg)' }
     } as any);
 
     editor.createShapes([

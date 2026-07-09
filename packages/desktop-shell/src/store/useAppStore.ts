@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import type { DesktopProject, WorkspacePayload, WorkspaceLaunchPayload, ActivityItem } from '../features/projects/types';
 import type { AppScope } from '../shared/layout/workspace/types';
 export type ModelsScope = 'global_models' | 'global_following_models' | 'global_projects' | 'global_following_projects' | 'my_public_models' | 'my_private_models' | 'project_models' | 'team_project_models' | 'view_public_project_models' | 'local_models';
-export type DspScope = 'global_presentations' | 'global_projects' | 'my_public_presentations' | 'my_private_presentations' | 'project_presentations' | 'team_project_presentations';
+export type DspScope = 'global_presentations' | 'global_projects' | 'my_public_presentations' | 'my_private_presentations' | 'project_presentations' | 'team_project_presentations' | 'my_templates';
+
+/** テンプレ下書き用の隠しワークスペース名。プロジェクト一覧からは除外される（表示しない）。 */
+export const TEMPLATE_WORKSPACE_NAME = '📋 テンプレート下書き';
 export type DslScope = 'global_layouts' | 'global_following_layouts' | 'global_projects' | 'my_public_layouts' | 'my_private_layouts' | 'project_layouts' | 'team_project_layouts';
 export type DsdScope = 'global_diagrams' | 'global_projects' | 'my_public_diagrams' | 'my_private_diagrams' | 'project_diagrams' | 'team_project_diagrams';
 export type DsrScope = 'global_drawings' | 'global_projects' | 'my_public_drawings' | 'my_private_drawings' | 'project_drawings' | 'team_project_drawings';
@@ -98,6 +101,10 @@ interface AppState {
   dsmtScope: DsmtScope;
   activeDiagramId: string | null;
   isAIChatOpen: boolean;
+  /** SEKKEIYA OS を独立ネイティブ窓（ポップアウト）へ切り出しているか。true の間は本体内チャットは
+   *  開かない（会話は1箇所＝ポップアウト窓に集約する）。窓を閉じると false に戻る。 */
+  isChatPoppedOut: boolean;
+  setChatPoppedOut: (v: boolean) => void;
   /** SEKKEIYA Chat を右ドックから切り離してフローティング表示にしているか。 */
   isAIChatDetached: boolean;
   /** フローティング・チャットをピン留めして開いたまま維持しているか（未ピンはホバーを外すと自動収納）。 */
@@ -149,10 +156,10 @@ interface AppState {
   /** FloatingPanel 等から新規タスク作成を起動するための pending state。'manual'|'ai'|null */
   pendingOpenNewTask: string | null;
   setPendingOpenNewTask: (type: string | null) => void;
-  /** ウォークスルー等から S.Models のモデル詳細を開くための pending state（model オブジェクト）。 */
+  /** ウォークスルー等から S.Model のモデル詳細を開くための pending state（model オブジェクト）。 */
   pendingModelDetail: any | null;
   setPendingModelDetail: (model: any | null) => void;
-  /** S.Models のアップロード完了後に自動で戻る画面（例: S.Layout からの画像→3D生成）。 */
+  /** S.Model のアップロード完了後に自動で戻る画面（例: S.Layout からの画像→3D生成）。 */
   pendingReturnView: { mainView: any; workspaceId: string | null; appScope: any } | null;
   setPendingReturnView: (v: { mainView: any; workspaceId: string | null; appScope: any } | null) => void;
   /** ProjectHome の現在タブ（プロジェクト切り替え後も維持）。'home' | 'workfiles' | 'schedule' | 'memo' */
@@ -171,7 +178,7 @@ interface AppState {
   /** 子アプリ（タブ scope）ごとの未保存フラグ。タブ上の「作業中」ドット表示に使う。 */
   dirtyScopes: Record<string, boolean>;
   setScopeDirty: (scope: string, dirty: boolean) => void;
-  /** 現在 S.Presentation エディターで開いているプレゼン（青ハイライト表示用）。 */
+  /** 現在 S.Slide エディターで開いているプレゼン（青ハイライト表示用）。 */
   dspOpenSession: { projectId: string; workFileId: string } | null;
   setDspOpenSession: (info: { projectId: string; workFileId: string } | null) => void;
   /** 未保存の作業内容を保持しているプレゼン（サイドバーの「作業中」ドット表示用）。workFileId → { projectId } */
@@ -204,8 +211,13 @@ interface AppState {
   setDsrShellMode: (mode: 'dashboard' | 'editor') => void;
   dsmShellMode: 'dashboard' | 'editor';
   setDsmShellMode: (mode: 'dashboard' | 'editor') => void;
+  dsiShellMode: 'dashboard' | 'editor';
+  setDsiShellMode: (mode: 'dashboard' | 'editor') => void;
   dspGlobalFilter: 'following' | 'all';
   setDspGlobalFilter: (filter: 'following' | 'all') => void;
+  /** S.Slide の種別フィルタ（すべて/スライド/無限ボード）。ビュー横断で共有し、テンプレ⇄プレゼン切替時も保持する。 */
+  dspTypeFilter: 'all' | 'presentation' | 'canvas';
+  setDspTypeFilter: (v: 'all' | 'presentation' | 'canvas') => void;
   dsdGlobalFilter: 'following' | 'all';
   setDsdGlobalFilter: (filter: 'following' | 'all') => void;
   dsmtGlobalFilter: 'following' | 'all';
@@ -328,6 +340,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeDiagramId: null,
   setActiveDiagramId: (activeDiagramId) => set({ activeDiagramId }),
   isAIChatOpen: false,
+  isChatPoppedOut: false,
+  setChatPoppedOut: (v) => set(v ? { isChatPoppedOut: true, isAIChatOpen: false } : { isChatPoppedOut: false }),
   isAIChatDetached: false,
   isAIChatPinned: false,
   isChatVoiceModeOn: (() => { try { return localStorage.getItem('sekkeiya-chat-voice-mode') === '1'; } catch { return false; } })(),
@@ -409,7 +423,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setCanvasCurrentPageId: (id) => set({ canvasCurrentPageId: id }),
   lastCanvasAiPrompt: null,
   triggerCanvasAiPrompt: (text) => set({ lastCanvasAiPrompt: { text, timestamp: Date.now() } }),
-  selectedLlmModel: 'claude-sonnet-4-6',
+  selectedLlmModel: 'auto', // 既定は自動振り分け（軽い会話=Haiku / 実務・重要=Sonnet）
   setSelectedLlmModel: (model) => set({ selectedLlmModel: model }),
   aiTaskOuterRight: 0,
   aiTaskInnerRight: 0,
@@ -440,8 +454,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setDsrShellMode: (mode) => set({ dsrShellMode: mode }),
   dsmShellMode: 'dashboard',
   setDsmShellMode: (mode) => set({ dsmShellMode: mode }),
+  dsiShellMode: 'dashboard',
+  setDsiShellMode: (mode) => set({ dsiShellMode: mode }),
   dspGlobalFilter: 'following',
   setDspGlobalFilter: (filter) => set({ dspGlobalFilter: filter }),
+  dspTypeFilter: 'all',
+  setDspTypeFilter: (v) => set({ dspTypeFilter: v }),
   dsdGlobalFilter: 'all',
   setDsdGlobalFilter: (filter) => set({ dsdGlobalFilter: filter }),
   dsmtGlobalFilter: 'all',
@@ -524,8 +542,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   setDsfScope: (scope) => set({ dsfScope: scope }),
   setDsmScope: (scope) => set({ dsmScope: scope }),
   setDsmtScope: (scope) => set({ dsmtScope: scope }),
-  toggleAIChat: () => set((state) => ({ isAIChatOpen: !state.isAIChatOpen })),
-  setAIChatOpen: (open) => set({ isAIChatOpen: open }),
+  // ポップアウト窓へ切り出している間は本体内チャットを開かせない（会話を1箇所に集約）。
+  // 閉じる方向（open=false / トグルで閉じる）は常に許可する。
+  // toggleAIChat はユーザー操作の想定なので、開こうとしたら既存のポップアウト窓を前面に出して応答する
+  // （setAIChatOpen(true) は自動オープン等プログラム用途があるため、こちらは無反応＝フォーカスを奪わない）。
+  toggleAIChat: () => set((state) => {
+    if (state.isChatPoppedOut && !state.isAIChatOpen) {
+      import('../utils/openChatWindow').then(m => m.focusChatWindowIfOpen()).catch(() => {});
+      return {};
+    }
+    return { isAIChatOpen: !state.isAIChatOpen };
+  }),
+  setAIChatOpen: (open) => set((state) => (open && state.isChatPoppedOut ? {} : { isAIChatOpen: open })),
   toggleAIChatDetached: () => set((state) => ({ isAIChatDetached: !state.isAIChatDetached })),
   setAIChatDetached: (v) => set({ isAIChatDetached: v }),
   toggleAIChatPinned: () => set((state) => ({ isAIChatPinned: !state.isAIChatPinned })),
@@ -540,6 +568,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // 同期的に開く（イベントハンドラ内で即時表示。useEffect を介さない）。
     // 既に開いていれば set しない（無駄な再描画を防ぐ）。
     const st = get();
+    // ポップアウト窓へ切り出している間は本体内チャットを開かない。
+    if (st.isChatPoppedOut) return;
     if (st.isAIChatDetached && st.isAIChatOpen) return;
     const patch: Partial<AppState> = {};
     if (!st.isAIChatDetached) patch.isAIChatDetached = true;
@@ -592,12 +622,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleProjectSidebar: () => set((state) => ({ isProjectSidebarOpen: !state.isProjectSidebarOpen })),
   setProjectSidebarOpen: (open) => set({ isProjectSidebarOpen: open }),
   setProjects: (projects) => {
-    set({ projects });
+    // テンプレ下書き用の隠しワークスペースは一覧に載せない（全サイドバー/ピッカーから除外）。
+    // ただし有効性チェックは raw（隠しWS含む）で行い、下書き編集中に activeProjectId を消さない。
+    const visible = projects.filter(p => (p as any)?.name !== TEMPLATE_WORKSPACE_NAME);
+    set({ projects: visible });
     const state = get();
     if (!state.isInitialized) {
       // ログイン後の最初のダッシュボード＝アカウントサイト（マイページ）
-      if (projects.length > 0) {
-        set({ activeProjectId: projects[0].id, currentMainView: 'my-site', isInitialized: true });
+      if (visible.length > 0) {
+        set({ activeProjectId: visible[0].id, currentMainView: 'my-site', isInitialized: true });
       } else {
         set({ isInitialized: true, currentMainView: 'my-site' });
       }
@@ -653,9 +686,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const found = project.workspaces?.find(ws => ws.workspaceId === activeWorkspaceId || (ws as any).id === activeWorkspaceId);
     if (!found) {
       const standardMap: Record<string, object> = {
-        'models': { workspaceId: 'models', id: 'models', name: 'S.Models', workspaceType: '3dss' },
+        'models': { workspaceId: 'models', id: 'models', name: 'S.Model', workspaceType: '3dss' },
         'layout': { workspaceId: 'layout', id: 'layout', name: 'S.Layout', workspaceType: '3dsl' },
-        'presents': { workspaceId: 'presents', id: 'presents', name: 'S.Presentations', workspaceType: '3dsp' },
+        'presents': { workspaceId: 'presents', id: 'presents', name: 'S.Slide', workspaceType: '3dsp' },
         'create': { workspaceId: 'create', id: 'create', name: 'S.Create', workspaceType: '3dsc' },
         'canvas': { workspaceId: 'canvas', id: 'canvas', name: 'AI Canvas', workspaceType: 'canvas' },
         'diagram': { workspaceId: 'diagram', id: 'diagram', name: 'S.Diagram', workspaceType: '3dsd' },

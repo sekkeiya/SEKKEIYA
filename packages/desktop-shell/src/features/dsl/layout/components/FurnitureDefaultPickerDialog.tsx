@@ -1,6 +1,6 @@
 /**
  * FurnitureDefaultPickerDialog.tsx
- * 指定カテゴリのデフォルト家具を S.Models から選ぶピッカー。
+ * 指定カテゴリのデフォルト家具を S.Model から選ぶピッカー。
  * LayoutRulesPanel の「デフォルト家具」タブから呼ばれる。
  */
 
@@ -25,7 +25,7 @@ interface Props {
   onSelect: (asset: { entityId: string; title: string; thumbnailUrl?: string; widthMm?: number; depthMm?: number }) => void;
 }
 
-const line = 'rgba(255,255,255,0.1)';
+const line = 'rgb(var(--brand-fg-rgb) / 0.1)';
 
 export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect }: Props) {
   const [assets, setAssets] = useState<any[]>([]);
@@ -134,9 +134,9 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
       PaperProps={{
         sx: {
           borderRadius: 3,
-          background: '#16161e',
+          background: 'var(--brand-surface)',
           border: `1px solid ${line}`,
-          color: '#fff',
+          color: 'var(--brand-fg)',
           height: '70vh',
           display: 'flex',
           flexDirection: 'column',
@@ -147,7 +147,7 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
         <Typography sx={{ fontWeight: 800, fontSize: 15 }}>
           デフォルト家具を選択：{category?.label}
         </Typography>
-        <Typography sx={{ fontSize: 12, color: alpha('#fff', 0.4), mt: 0.25 }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mt: 0.25 }}>
           自動レイアウト時にこのカテゴリのプレースホルダーとして使用されます
         </Typography>
       </DialogTitle>
@@ -162,13 +162,13 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchRoundedIcon sx={{ fontSize: 18, color: alpha('#fff', 0.4) }} />
+                <SearchRoundedIcon sx={{ fontSize: 18, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }} />
               </InputAdornment>
             ),
           }}
           sx={{
             '& .MuiOutlinedInput-root': {
-              color: '#fff', fontSize: 13,
+              color: 'var(--brand-fg)', fontSize: 13,
               '& fieldset': { borderColor: line },
               '&:hover fieldset': { borderColor: alpha('#fff', 0.3) },
               '&.Mui-focused fieldset': { borderColor: '#a78bfa' },
@@ -180,11 +180,11 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
       <DialogContent sx={{ p: 2, flex: 1, overflow: 'auto' }}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <CircularProgress size={28} sx={{ color: '#a78bfa' }} />
+            <CircularProgress size={28} sx={{ color: 'light-dark(#2f07a6, #a78bfa)' }} />
           </Box>
         ) : filtered.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <Typography sx={{ fontSize: 13, color: alpha('#fff', 0.4) }}>
+            <Typography sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>
               {search ? '検索結果がありません' : 'モデルが見つかりません'}
             </Typography>
           </Box>
@@ -217,12 +217,12 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
                       />
                     ) : (
                       <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: alpha('#fff', 0.05) }}>
-                        <Typography sx={{ fontSize: 10, color: alpha('#fff', 0.3) }}>No Image</Typography>
+                        <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }}>No Image</Typography>
                       </Box>
                     )}
                     {isSelected && (
                       <Box sx={{ position: 'absolute', top: 4, right: 4 }}>
-                        <CheckCircleRoundedIcon sx={{ fontSize: 18, color: '#a78bfa', filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.8))' }} />
+                        <CheckCircleRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#2f07a6, #a78bfa)', filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.8))' }} />
                       </Box>
                     )}
                     <Box sx={{
@@ -230,7 +230,7 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
                       px: 0.75, py: 0.5,
                       background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
                     }}>
-                      <Typography sx={{ fontSize: 9.5, color: '#fff', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      <Typography sx={{ fontSize: 9.5, color: 'var(--brand-fg)', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                         {asset.title || asset.name || 'Untitled'}
                       </Typography>
                     </Box>
@@ -243,14 +243,14 @@ export function FurnitureDefaultPickerDialog({ open, onClose, category, onSelect
       </DialogContent>
 
       <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 1, borderTop: `1px solid ${line}`, gap: 1 }}>
-        <Button onClick={onClose} sx={{ color: alpha('#fff', 0.7), '&:hover': { background: alpha('#fff', 0.06) } }}>
+        <Button onClick={onClose} sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", '&:hover': { background: alpha('#fff', 0.06) } }}>
           キャンセル
         </Button>
         <Button
           variant="contained"
           disabled={!selected}
           onClick={handleConfirm}
-          sx={{ borderRadius: 1, fontWeight: 800, background: '#7c3aed', '&:hover': { background: '#6d28d9' }, '&.Mui-disabled': { background: alpha('#7c3aed', 0.3), color: alpha('#fff', 0.3) } }}
+          sx={{ borderRadius: 1, fontWeight: 800, background: '#7c3aed', '&:hover': { background: '#6d28d9' }, '&.Mui-disabled': { background: alpha('#7c3aed', 0.3), color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" } }}
         >
           このモデルをデフォルトに設定
         </Button>

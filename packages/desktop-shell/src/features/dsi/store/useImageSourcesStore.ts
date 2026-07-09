@@ -29,13 +29,23 @@ interface ImageSourcesState {
   loading: boolean;
   /** 素材リストの再走査トリガ。ソース変更のたびに +1。 */
   reloadKey: number;
-  /** グリッドのソース別フィルタ（null = すべて）。 */
+  /** グリッドのソース別フィルタ（null = すべて）。ソース切替時はサブフォルダ選択を解除。 */
   sourceFilter: string | null;
   setSourceFilter: (id: string | null) => void;
+
+  /** グリッドのサブフォルダ別フィルタ（ソース内の相対パス。null = ソース全体）。 */
+  subfolderFilter: string | null;
+  setSubfolderFilter: (path: string | null) => void;
+  /** ソース＋サブフォルダを一括選択（フォルダツリーのノードクリック）。 */
+  selectNode: (sourceId: string | null, subfolder: string | null) => void;
 
   /** ソースID → 走査済み素材数。サイドバーの枚数バッジ用。 */
   counts: Record<string, number>;
   setCounts: (counts: Record<string, number>) => void;
+
+  /** ソースID → サブフォルダ相対パス → 直下の件数。サイドバーのフォルダツリー用。 */
+  subfolderCounts: Record<string, Record<string, number>>;
+  setSubfolderCounts: (m: Record<string, Record<string, number>>) => void;
 
   /** Rust から最新のソース一覧を取得。 */
   refresh: () => Promise<void>;
@@ -59,10 +69,17 @@ export const useImageSourcesStore = create<ImageSourcesState>((set, get) => ({
   loading: false,
   reloadKey: 0,
   sourceFilter: null,
-  setSourceFilter: (sourceFilter) => set({ sourceFilter }),
+  setSourceFilter: (sourceFilter) => set({ sourceFilter, subfolderFilter: null }),
+
+  subfolderFilter: null,
+  setSubfolderFilter: (subfolderFilter) => set({ subfolderFilter }),
+  selectNode: (sourceId, subfolder) => set({ sourceFilter: sourceId, subfolderFilter: subfolder }),
 
   counts: {},
   setCounts: (counts) => set({ counts }),
+
+  subfolderCounts: {},
+  setSubfolderCounts: (subfolderCounts) => set({ subfolderCounts }),
 
   refresh: async () => {
     const core = await tauriCore();
@@ -98,8 +115,8 @@ export const useImageSourcesStore = create<ImageSourcesState>((set, get) => ({
     if (!core) return;
     try {
       await core.invoke('remove_image_source', { id });
-      // フィルタ中のソースを外したら全件表示へ戻す。
-      if (get().sourceFilter === id) set({ sourceFilter: null });
+      // フィルタ中のソースを外したら全件表示へ戻す（サブフォルダ選択も解除）。
+      if (get().sourceFilter === id) set({ sourceFilter: null, subfolderFilter: null });
       await get().refresh();
       set((s) => ({ reloadKey: s.reloadKey + 1 }));
     } catch (e) {

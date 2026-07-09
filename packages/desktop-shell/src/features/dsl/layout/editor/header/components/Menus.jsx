@@ -124,10 +124,10 @@ export default function Menus({
     () => ({
       mt: 1,
       borderRadius: 2,
-      background: alpha("#0b1022", 0.92),
+      background: "color-mix(in srgb, var(--brand-surface) 92%, transparent)",
       border: `1px solid ${alpha("#fff", 0.10)}`,
       backdropFilter: "blur(10px)",
-      color: "#fff",
+      color: "var(--brand-fg)",
       minWidth: 240,
     }),
     []
@@ -255,7 +255,7 @@ export default function Menus({
         <Divider sx={{ my: 0.75, borderColor: alpha("#fff", 0.08) }} />
 
         <MenuItem onClick={handleNewBase} disabled={!createBase || creatingBase} sx={{ ...menuItemSx, fontWeight: 900 }}>
-          <ListItemIcon sx={{ minWidth: 28, color: "#fff" }}>
+          <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
             {creatingBase ? <CircularProgress size={16} /> : <AddRoundedIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText primary="+ New Base" primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }} />
@@ -275,7 +275,7 @@ export default function Menus({
             primary="Delete Base"
             secondary={selectedBaseId ? currentBaseLabel : ""}
             primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }}
-            secondaryTypographyProps={{ fontSize: 11, color: alpha("#fff", 0.55) }}
+            secondaryTypographyProps={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}
           />
         </MenuItem>
       </Menu>
@@ -333,7 +333,7 @@ export default function Menus({
           disabled={!createPlan || creatingPlan || !canCreatePlan}
           sx={{ ...menuItemSx, fontWeight: 900 }}
         >
-          <ListItemIcon sx={{ minWidth: 28, color: "#fff" }}>
+          <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
             {creatingPlan ? <CircularProgress size={16} /> : <AddRoundedIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText primary="+ New Plan" primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }} />
@@ -353,7 +353,7 @@ export default function Menus({
             primary="Delete Plan"
             secondary={selectedPlanId ? currentPlanLabel : ""}
             primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }}
-            secondaryTypographyProps={{ fontSize: 11, color: alpha("#fff", 0.55) }}
+            secondaryTypographyProps={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}
           />
         </MenuItem>
       </Menu>
@@ -373,7 +373,7 @@ export default function Menus({
           </MenuItem>
         ) : optionsLoading ? (
           <MenuItem disabled sx={{ mx: 0.75, my: 0.25, borderRadius: 1.5, opacity: 0.7 }}>
-            <ListItemIcon sx={{ minWidth: 28, color: "#fff" }}>
+            <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
               <CircularProgress size={16} />
             </ListItemIcon>
             <ListItemText primary="Loading options..." primaryTypographyProps={{ fontWeight: 800, fontSize: 13 }} />
@@ -418,7 +418,7 @@ export default function Menus({
           disabled={!createOption || creatingOption || !canCreateOption}
           sx={{ ...menuItemSx, fontWeight: 900 }}
         >
-          <ListItemIcon sx={{ minWidth: 28, color: "#fff" }}>
+          <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
             {creatingOption ? <CircularProgress size={16} /> : <AddRoundedIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText primary="+ New Option" primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }} />
@@ -438,7 +438,7 @@ export default function Menus({
             primary="Delete Option"
             secondary={selectedOptionId ? currentOptionLabel : ""}
             primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }}
-            secondaryTypographyProps={{ fontSize: 11, color: alpha("#fff", 0.55) }}
+            secondaryTypographyProps={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}
           />
         </MenuItem>
       </Menu>

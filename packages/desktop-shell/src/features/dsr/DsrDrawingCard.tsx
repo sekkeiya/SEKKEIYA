@@ -41,18 +41,18 @@ export const DsrDrawingCard: React.FC<DsrCardProps> = ({ item, variant, active, 
         borderRadius: 2,
         overflow: 'hidden',
         cursor: 'pointer',
-        bgcolor: 'rgba(255,255,255,0.03)',
-        border: `1px solid ${active ? ACCENT : 'rgba(255,255,255,0.08)'}`,
+        bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+        border: `1px solid ${active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
         boxShadow: active ? `0 0 0 1px ${ACCENT}` : 'none',
         transition: 'border-color 0.15s, transform 0.15s',
-        '&:hover': { borderColor: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)', '& .dsr-card-actions': { opacity: 1 } },
+        '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', transform: 'translateY(-2px)', '& .dsr-card-actions': { opacity: 1 } },
       }}
     >
       {/* Thumbnail */}
       <Box sx={{
         aspectRatio: '4 / 3',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        bgcolor: 'rgba(0,0,0,0.25)',
+        bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))',
         position: 'relative',
       }}>
         {variant === 'set' ? (
@@ -68,15 +68,15 @@ export const DsrDrawingCard: React.FC<DsrCardProps> = ({ item, variant, active, 
             <PictureAsPdfRoundedIcon sx={{ fontSize: 44, color: '#ef5350', opacity: 0.85 }} />
           )
         ) : (
-          <ImageRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.4)' }} />
+          <ImageRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
         )}
 
         {/* Format / child-count badge */}
         <Box sx={{ position: 'absolute', top: 6, left: 6, display: 'flex', gap: 0.5 }}>
           {variant === 'set' ? (
-            <Chip size="small" label={`${setCount} 枚`} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: '#fff' }} />
+            <Chip size="small" label={`${setCount} 枚`} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)' }} />
           ) : item.format ? (
-            <Chip size="small" label={String(item.format).toUpperCase()} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: '#fff' }} />
+            <Chip size="small" label={String(item.format).toUpperCase()} sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(0,0,0,0.6)', color: 'var(--brand-fg)' }} />
           ) : null}
         </Box>
 
@@ -85,7 +85,7 @@ export const DsrDrawingCard: React.FC<DsrCardProps> = ({ item, variant, active, 
           <Box className="dsr-card-actions" sx={{ position: 'absolute', top: 4, right: 4, opacity: 0, transition: 'opacity 0.15s' }}>
             <Tooltip title="削除" placement="top">
               <IconButton size="small" onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#ff4d4f', bgcolor: 'rgba(0,0,0,0.7)' } }}>
+                sx={{ bgcolor: 'rgba(0,0,0,0.55)', color: 'rgb(var(--brand-fg-rgb) / 0.8)', '&:hover': { color: '#ff4d4f', bgcolor: 'rgba(0,0,0,0.7)' } }}>
                 <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
               </IconButton>
             </Tooltip>
@@ -95,10 +95,10 @@ export const DsrDrawingCard: React.FC<DsrCardProps> = ({ item, variant, active, 
 
       {/* Meta */}
       <Box sx={{ px: 1.25, py: 1 }}>
-        <Typography noWrap sx={{ color: '#fff', fontSize: 12.5, fontWeight: 600 }}>{title}</Typography>
+        <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 12.5, fontWeight: 600 }}>{title}</Typography>
         {category && (
           <Chip size="small" label={category}
-            sx={{ mt: 0.5, height: 18, fontSize: 10, color: '#fff', bgcolor: `${CATEGORY_COLOR[category] || 'rgba(255,255,255,0.15)'}33`, border: `1px solid ${CATEGORY_COLOR[category] || 'rgba(255,255,255,0.2)'}55` }} />
+            sx={{ mt: 0.5, height: 18, fontSize: 10, color: 'var(--brand-fg)', bgcolor: `${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.15)'}33`, border: `1px solid ${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.2)'}55` }} />
         )}
       </Box>
     </Box>

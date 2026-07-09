@@ -132,24 +132,24 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
         ) : (
         <>
         {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
                 Drawing Library
               </Typography>
               {isProjectsMode ? (
-                <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>公開プロジェクト</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>公開プロジェクト</Typography>
               ) : openSet ? (
-                <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.3)' }} />} sx={{ mt: 0.25 }}>
+                <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />} sx={{ mt: 0.25 }}>
                   <Link component="button" underline="hover" onClick={() => setOpenSetId(null)}
-                    sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20, fontWeight: 700, '&:hover': { color: '#fff' } }}>
+                    sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 20, fontWeight: 700, '&:hover': { color: 'var(--brand-fg)' } }}>
                     図面
                   </Link>
-                  <Typography sx={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>{openSet.title || 'セット'}</Typography>
+                  <Typography sx={{ color: 'var(--brand-fg)', fontSize: 20, fontWeight: 700 }}>{openSet.title || 'セット'}</Typography>
                 </Breadcrumbs>
               ) : (
-                <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>図面</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>図面</Typography>
               )}
             </Box>
 
@@ -160,7 +160,7 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
                     variant="outlined" size="small" startIcon={<CreateNewFolderRoundedIcon />}
                     disabled={!canWrite}
                     onClick={() => { setNewSetName(''); setSetDialogOpen(true); }}
-                    sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgba(255,255,255,0.3)', borderColor: 'rgba(255,255,255,0.1)' } }}
+                    sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
                   >
                     新規セット
                   </Button>
@@ -172,7 +172,7 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
                     variant="contained" size="small" startIcon={<CloudUploadRoundedIcon />}
                     disabled={!canWrite}
                     onClick={() => setUploadOpen(true)}
-                    sx={{ bgcolor: ACCENT, color: '#000', '&:hover': { bgcolor: '#80cbc4' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                    sx={{ bgcolor: ACCENT, color: '#000', '&:hover': { bgcolor: '#80cbc4' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
                   >
                     アップロード
                   </Button>
@@ -192,10 +192,10 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
                   onClick={() => setCategoryFilter(tab.key)}
                   sx={{
                     px: 1.5, py: 0.5, borderRadius: 1.5, cursor: 'pointer', fontSize: 12, fontWeight: active ? 600 : 500,
-                    color: active ? '#000' : 'rgba(255,255,255,0.7)',
-                    bgcolor: active ? ACCENT : 'rgba(255,255,255,0.05)',
+                    color: active ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+                    bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
                     transition: 'background-color 0.15s',
-                    '&:hover': { bgcolor: active ? ACCENT : 'rgba(255,255,255,0.1)' },
+                    '&:hover': { bgcolor: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.1)' },
                   }}
                 >
                   {tab.label}
@@ -213,18 +213,18 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
               {(projects || []).map((p: any) => (
                 <Box key={p.id} onClick={() => onOpenProject?.(p)}
                   sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 2, borderRadius: 2, cursor: 'pointer',
-                    bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                     transition: 'border-color 0.15s, transform 0.15s',
-                    '&:hover': { borderColor: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' } }}>
+                    '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', transform: 'translateY(-2px)' } }}>
                   <FolderSpecialRoundedIcon sx={{ fontSize: 28, color: ACCENT }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography noWrap sx={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
-                    <Typography noWrap sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
+                    <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 13, fontWeight: 600 }}>{p.name || 'プロジェクト'}</Typography>
+                    <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 11 }}>{p.ownerName || ''}</Typography>
                   </Box>
                 </Box>
               ))}
               {(projects || []).length === 0 && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 13, gridColumn: '1 / -1', textAlign: 'center', mt: 4 }}>
                   公開プロジェクトがありません
                 </Typography>
               )}
@@ -245,7 +245,7 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
 
       {/* Right info panel */}
       {!isProjectsMode && (
-        <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(0,0,0,0.15)' }}>
+        <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
           <DsrRightPanel
             item={selectedItem}
             sets={canWrite ? sets : []}
@@ -269,7 +269,7 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
 
       {/* Create set dialog */}
       <Dialog open={setDialogOpen} onClose={() => !creatingSet && setSetDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: '#0f172a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 400 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 400 } }}>
         <DialogTitle sx={{ pb: 1 }}>新規セット作成</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -279,12 +279,12 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
             autoFocus margin="dense" label="セット名" fullWidth variant="outlined"
             value={newSetName} onChange={(e) => setNewSetName(e.target.value)} disabled={creatingSet}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateSet(); }}
-            InputProps={{ style: { color: '#fff' } }} InputLabelProps={{ style: { color: 'rgba(255,255,255,0.7)' } }}
-            sx={{ mt: 1, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' }, '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
+            InputProps={{ style: { color: 'var(--brand-fg)' } }} InputLabelProps={{ style: { color: 'rgb(var(--brand-fg-rgb) / 0.7)' } }}
+            sx={{ mt: 1, '& .MuiOutlinedInput-root': { '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' }, '&.Mui-focused fieldset': { borderColor: ACCENT } } }}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button onClick={() => setSetDialogOpen(false)} disabled={creatingSet} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setSetDialogOpen(false)} disabled={creatingSet} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleCreateSet} disabled={creatingSet || !newSetName.trim()} variant="contained"
             sx={{ bgcolor: ACCENT, color: '#000', '&:hover': { bgcolor: '#80cbc4' } }}>
             {creatingSet ? '作成中...' : '作成'}
@@ -294,24 +294,24 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
 
       {/* Delete confirm dialog */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#1a1e27', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 420 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 420 } }}>
         <DialogTitle sx={{ pb: 1 }}>削除の確認</DialogTitle>
         <DialogContent>
           {deleteTarget?.type === 'drawing-set' ? (
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
               セット「{deleteTarget?.title || 'セット'}」を削除します。中の図面も一緒に削除しますか？<br />
               「セットのみ削除」を選ぶと、中の図面はトップ階層に残ります。
             </Typography>
           ) : (
-            <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
               「{deleteTarget?.title || deleteTarget?.name || 'この図面'}」を削除しますか？この操作は元に戻せません。
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           {deleteTarget?.type === 'drawing-set' && (
-            <Button onClick={() => handleConfirmDelete(false)} disabled={deleting} sx={{ color: '#fff' }}>
+            <Button onClick={() => handleConfirmDelete(false)} disabled={deleting} sx={{ color: 'var(--brand-fg)' }}>
               セットのみ削除
             </Button>
           )}

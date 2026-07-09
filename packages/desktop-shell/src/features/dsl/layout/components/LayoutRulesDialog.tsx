@@ -17,7 +17,7 @@ import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import { useAutoLayoutStore } from '../store/useAutoLayoutStore';
 import { DssSetFurnitureGrid } from '../../../dss/components/DssSetFurnitureGrid';
 
-const LINE = 'rgba(255,255,255,0.1)';
+const LINE = 'rgb(var(--brand-fg-rgb) / 0.1)';
 
 interface Props {
   projectId?: string | null;
@@ -35,9 +35,9 @@ export function LayoutRulesDialog({ projectId: _projectId }: Props) {
       PaperProps={{
         sx: {
           borderRadius: 3,
-          background: '#16161e',
+          background: 'var(--brand-surface)',
           border: `1px solid ${LINE}`,
-          color: '#fff',
+          color: 'var(--brand-fg)',
           height: '90vh',
           width: '95vw',
           maxWidth: 1400,
@@ -55,17 +55,17 @@ export function LayoutRulesDialog({ projectId: _projectId }: Props) {
           py: 1.5, px: 2.5, flexShrink: 0,
         }}
       >
-        <TuneRoundedIcon sx={{ fontSize: 20, color: '#a78bfa' }} />
+        <TuneRoundedIcon sx={{ fontSize: 20, color: 'light-dark(#2f07a6, #a78bfa)' }} />
         <Typography sx={{ fontWeight: 800, fontSize: 16, flex: 1 }}>
           レイアウトルール設定
         </Typography>
-        <Typography sx={{ fontSize: 12, color: alpha('#fff', 0.4), mr: 1 }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mr: 1 }}>
           セット家具と配置ルールを管理する — Auto Layout はここで定義したセットを使用します
         </Typography>
         <IconButton
           size="small"
           onClick={onClose}
-          sx={{ color: alpha('#fff', 0.5), '&:hover': { color: '#fff' } }}
+          sx={{ color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", '&:hover': { color: 'var(--brand-fg)' } }}
         >
           <CloseRoundedIcon sx={{ fontSize: 18 }} />
         </IconButton>

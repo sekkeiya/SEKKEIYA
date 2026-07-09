@@ -101,15 +101,15 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
 
   const getStatus = (fileId: string) => {
     const binding = bindings[fileId];
-    if (!binding) return { label: "クラウドのみ", color: "#fff", bgcolor: "rgba(255,255,255,0.1)" };
+    if (!binding) return { label: "クラウドのみ", color: "var(--brand-fg)", bgcolor: "rgb(var(--brand-fg-rgb) / 0.1)" };
     if (binding.existsLocally) return { label: "ローカル接続済", color: "#43e97b", bgcolor: "rgba(67, 233, 123, 0.1)" };
-    return { label: "未リンク", color: "#fa709a", bgcolor: "rgba(250, 112, 154, 0.1)" };
+    return { label: "未リンク", color: "light-dark(#a80637, #fa709a)", bgcolor: "rgba(250, 112, 154, 0.1)" };
   };
 
   return (
     <Box sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="subtitle1" sx={{ color: "#fff", fontWeight: 800 }}>
+        <Typography variant="subtitle1" sx={{ color: "var(--brand-fg)", fontWeight: 800 }}>
           作業ライン構造 (Work Files)
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
@@ -131,14 +131,14 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
       </Box>
 
       {loading ? (
-        <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>読み込み中...</Typography>
+        <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: 13 }}>読み込み中...</Typography>
       ) : workFiles.length === 0 ? (
         <Paper sx={{ p: 3, bgcolor: "rgba(0,191,255,0.05)", border: "1px dashed rgba(0,191,255,0.3)", borderRadius: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <AutoAwesomeRoundedIcon sx={{ fontSize: 32, color: "#00BFFF", mb: 1.5, opacity: 0.8 }} />
-          <Typography sx={{ color: "#fff", fontWeight: 700, mb: 1, fontSize: 15 }}>
+          <Typography sx={{ color: "var(--brand-fg)", fontWeight: 700, mb: 1, fontSize: 15 }}>
             3Dソフトウェアでの作業を開始
           </Typography>
-          <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13, mb: 3, lineHeight: 1.6 }}>
+          <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: 13, mb: 3, lineHeight: 1.6 }}>
             プロジェクトが作成されました。まずはWork Fileを作成して、Rhinoなどのソフトウェアを起動しましょう。
           </Typography>
           <Button 
@@ -167,20 +167,20 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
                 onClick={() => setExpandedId(isExpanded ? null : file.id)}
                 sx={{ 
                   p: 1.5, 
-                  bgcolor: isExpanded ? "rgba(0,191,255,0.05)" : "rgba(255,255,255,0.02)", 
-                  border: `1px solid ${isExpanded ? "rgba(0,191,255,0.3)" : "rgba(255,255,255,0.08)"}`, 
+                  bgcolor: isExpanded ? "rgba(0,191,255,0.05)" : "rgb(var(--brand-fg-rgb) / 0.02)", 
+                  border: `1px solid ${isExpanded ? "rgba(0,191,255,0.3)" : "rgb(var(--brand-fg-rgb) / 0.08)"}`, 
                   borderRadius: 3,
                   cursor: "pointer",
                   transition: "all 0.2s",
                   "&:hover": {
-                    bgcolor: isExpanded ? "rgba(0,191,255,0.05)" : "rgba(255,255,255,0.05)",
+                    bgcolor: isExpanded ? "rgba(0,191,255,0.05)" : "rgb(var(--brand-fg-rgb) / 0.05)",
                     borderColor: "rgba(0,191,255,0.3)"
                   }
                 }}
               >
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                  <Typography variant="subtitle2" sx={{ color: "#fff", fontWeight: 700, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, mr: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                    <AccountTreeRoundedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.5)" }} />
+                  <Typography variant="subtitle2" sx={{ color: "var(--brand-fg)", fontWeight: 700, fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, mr: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <AccountTreeRoundedIcon sx={{ fontSize: 16, color: "rgb(var(--brand-fg-rgb) / 0.5)" }} />
                     {file.name}
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -195,12 +195,12 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
                         fontWeight: 700
                       }} 
                     />
-                    <ExpandMoreRoundedIcon sx={{ color: "rgba(255,255,255,0.5)", fontSize: 20, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                    <ExpandMoreRoundedIcon sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", fontSize: 20, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                   </Box>
                 </Box>
                 
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)" }}>
+                  <Typography variant="caption" sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)" }}>
                     最終更新: {new Date(file.updatedAt).toLocaleDateString()}
                   </Typography>
                   
@@ -215,15 +215,15 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
                         py: 0.4,
                         px: 1.5,
                         borderRadius: 2,
-                        borderColor: "rgba(255,255,255,0.2)",
-                        color: "rgba(255,255,255,0.7)",
+                        borderColor: "rgb(var(--brand-fg-rgb) / 0.2)",
+                        color: "rgb(var(--brand-fg-rgb) / 0.7)",
                         fontWeight: 700,
                         fontSize: "0.7rem",
                         textTransform: "none",
                         "&:hover": {
-                          borderColor: "rgba(255,255,255,0.5)",
-                          color: "#fff",
-                          bgcolor: "rgba(255,255,255,0.05)"
+                          borderColor: "rgb(var(--brand-fg-rgb) / 0.5)",
+                          color: "var(--brand-fg)",
+                          bgcolor: "rgb(var(--brand-fg-rgb) / 0.05)"
                         }
                       }}
                     >
@@ -240,19 +240,19 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
                         py: 0.4,
                         px: 1.5,
                         borderRadius: 2,
-                        bgcolor: "rgba(255,255,255,0.1)",
-                        color: "#fff",
+                        bgcolor: "rgb(var(--brand-fg-rgb) / 0.1)",
+                        color: "var(--brand-fg)",
                         fontWeight: 800,
                         fontSize: "0.7rem",
                         textTransform: "none",
                         boxShadow: "none",
                         "&:hover": {
-                          bgcolor: "rgba(255,255,255,0.2)",
+                          bgcolor: "rgb(var(--brand-fg-rgb) / 0.2)",
                           boxShadow: "none"
                         },
                         "&.Mui-disabled": {
-                          bgcolor: "rgba(255,255,255,0.05)",
-                          color: "rgba(255,255,255,0.2)"
+                          bgcolor: "rgb(var(--brand-fg-rgb) / 0.05)",
+                          color: "rgb(var(--brand-fg-rgb) / 0.2)"
                         }
                       }}
                     >
@@ -262,7 +262,7 @@ export const OverviewRightWorkFiles: React.FC<Props> = ({ project, onOpenWorkFil
                 </Box>
 
                 <Collapse in={isExpanded} unmountOnExit>
-                  <Box sx={{ mt: 2, pt: 1, borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+                  <Box sx={{ mt: 2, pt: 1, borderTop: "1px dashed rgb(var(--brand-fg-rgb) / 0.1)" }}>
                     <OverviewTimeline 
                       projectId={project.id} 
                       projectName={project?.name}
@@ -351,14 +351,14 @@ const OverviewTimeline: React.FC<{ projectId: string, projectName?: string, file
     }
   };
 
-  if (loading) return <CircularProgress size={16} sx={{ color: "rgba(255,255,255,0.3)", m: 1 }} />;
+  if (loading) return <CircularProgress size={16} sx={{ color: "rgb(var(--brand-fg-rgb) / 0.3)", m: 1 }} />;
 
   return (
     <Box>
       {versions.length === 0 ? (
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.4)", mt: 1 }}>履歴はありません</Typography>
+        <Typography variant="body2" sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", mt: 1 }}>履歴はありません</Typography>
       ) : (
-        <Box sx={{ mt: 1, position: "relative", pl: 1.5, "&::before": { content: '""', position: "absolute", left: 7, top: 4, bottom: 8, width: 2, bgcolor: "rgba(255,255,255,0.08)", borderRadius: 1 } }}>
+        <Box sx={{ mt: 1, position: "relative", pl: 1.5, "&::before": { content: '""', position: "absolute", left: 7, top: 4, bottom: 8, width: 2, bgcolor: "rgb(var(--brand-fg-rgb) / 0.08)", borderRadius: 1 } }}>
           {versions.map((ver, idx) => {
             const isCurrent = idx === 0;
             const displayName = ver.name;
@@ -372,14 +372,14 @@ const OverviewTimeline: React.FC<{ projectId: string, projectName?: string, file
                   mb: 1.5,
                   p: 1.5,
                   borderRadius: 2,
-                  bgcolor: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  bgcolor: "rgb(var(--brand-fg-rgb) / 0.02)",
+                  border: "1px solid rgb(var(--brand-fg-rgb) / 0.05)",
                   transition: "all 0.2s"
                 }}
               >
                 <Box sx={{ 
                   position: "absolute", left: -21, top: 12, width: 8, height: 8, borderRadius: "50%", 
-                  bgcolor: isCurrent ? "#00BFFF" : "rgba(255,255,255,0.2)",
+                  bgcolor: isCurrent ? "#00BFFF" : "rgb(var(--brand-fg-rgb) / 0.2)",
                   boxShadow: isCurrent ? "0 0 10px rgba(0,191,255,0.6)" : "none",
                   border: "2px solid #080c14"
                 }} />
@@ -387,17 +387,17 @@ const OverviewTimeline: React.FC<{ projectId: string, projectName?: string, file
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
                   <Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Typography variant="subtitle2" sx={{ color: isCurrent ? "#fff" : "rgba(255,255,255,0.7)", fontWeight: isCurrent ? 800 : 500, fontSize: "0.75rem" }}>
+                      <Typography variant="subtitle2" sx={{ color: isCurrent ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", fontWeight: isCurrent ? 800 : 500, fontSize: "0.75rem" }}>
                         {displayName}
                       </Typography>
                     </Box>
-                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.6rem" }}>
+                    <Typography variant="caption" sx={{ color: "rgb(var(--brand-fg-rgb) / 0.4)", fontSize: "0.6rem" }}>
                       {ver.createdAt.toLocaleString('ja-JP')}
                     </Typography>
                   </Box>
                 </Box>
                 
-                <Typography variant="body2" sx={{ mb: 1, color: "rgba(255,255,255,0.6)", fontSize: "0.7rem" }}>
+                <Typography variant="body2" sx={{ mb: 1, color: "rgb(var(--brand-fg-rgb) / 0.6)", fontSize: "0.7rem" }}>
                   {isCurrent ? "最新のローカルフォルダー" : "過去のコピー"}
                 </Typography>
 
@@ -408,7 +408,7 @@ const OverviewTimeline: React.FC<{ projectId: string, projectName?: string, file
                     variant="outlined"
                     onClick={(e) => onPreview(e, ver.path)}
                     startIcon={<VisibilityRoundedIcon sx={{ fontSize: '0.8rem' }}/>}
-                    sx={{ flex: 1, minWidth: 0, py: 0.3, fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", borderColor: "rgba(255,255,255,0.2)", textTransform: "none", "&:hover": { borderColor: "rgba(255,255,255,0.5)", color: "#fff" } }}
+                    sx={{ flex: 1, minWidth: 0, py: 0.3, fontSize: "0.65rem", fontWeight: 700, color: "rgb(var(--brand-fg-rgb) / 0.7)", borderColor: "rgb(var(--brand-fg-rgb) / 0.2)", textTransform: "none", "&:hover": { borderColor: "rgb(var(--brand-fg-rgb) / 0.5)", color: "var(--brand-fg)" } }}
                   >
                     プレビュー
                   </Button>
@@ -418,7 +418,7 @@ const OverviewTimeline: React.FC<{ projectId: string, projectName?: string, file
                     disabled={!hasLocal || isLaunching}
                     onClick={(e) => handleLaunchVersion(e, ver.path)}
                     startIcon={isLaunching ? <CircularProgress size={12} color="inherit" /> : undefined}
-                    sx={{ flex: 1, minWidth: 0, py: 0.3, fontSize: "0.65rem", fontWeight: 700, bgcolor: "rgba(0,191,255,0.15)", color: "#00BFFF", textTransform: "none", boxShadow: "none", "&:hover": { bgcolor: "rgba(0,191,255,0.3)", boxShadow: "none" }, "&.Mui-disabled": { bgcolor: "rgba(255,255,255,0.05)" } }}
+                    sx={{ flex: 1, minWidth: 0, py: 0.3, fontSize: "0.65rem", fontWeight: 700, bgcolor: "rgba(0,191,255,0.15)", color: "#00BFFF", textTransform: "none", boxShadow: "none", "&:hover": { bgcolor: "rgba(0,191,255,0.3)", boxShadow: "none" }, "&.Mui-disabled": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.05)" } }}
                   >
                     {isLaunching ? "起動中..." : "この版で開く"}
                   </Button>

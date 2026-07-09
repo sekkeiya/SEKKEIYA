@@ -22,7 +22,7 @@ export const IndexedProductsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeSource, setActiveSource] = useState<string>('all');
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; sourceId: string } | null>(null);
-  // メインエリア全画面の詳細（S.Models 詳細と同様）。visible 配列内のインデックスで前後送り。
+  // メインエリア全画面の詳細（S.Model 詳細と同様）。visible 配列内のインデックスで前後送り。
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
   const PAGE = 120;
   const [limit, setLimit] = useState(PAGE);
@@ -72,11 +72,11 @@ export const IndexedProductsView: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, pt: 2.5, pb: 1 }}>
         <Inventory2RoundedIcon sx={{ color: ACCENT, fontSize: 22 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.4)' }}>KNOWLEDGE LIBRARY ・ 索引商品</Typography>
-          <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.1 }}>索引済み商品</Typography>
+          <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>KNOWLEDGE LIBRARY ・ 索引商品</Typography>
+          <Typography sx={{ fontSize: 22, fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1.1 }}>索引済み商品</Typography>
         </Box>
         <Tooltip title="再読み込み">
-          <IconButton size="small" onClick={load} sx={{ color: 'rgba(255,255,255,0.6)' }}>
+          <IconButton size="small" onClick={load} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
             <RefreshRoundedIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -104,8 +104,8 @@ export const IndexedProductsView: React.FC = () => {
       </Box>
 
       <Menu anchorEl={menuAnchor?.el} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}
-        slotProps={{ paper: { sx: { bgcolor: '#0f172a', color: '#e5e7eb', border: '1px solid rgba(148,163,184,0.22)' } } }}>
-        <MenuItem onClick={() => menuAnchor && handleDeleteSource(menuAnchor.sourceId)} sx={{ fontSize: 13, color: '#fca5a5' }}>
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)' } } }}>
+        <MenuItem onClick={() => menuAnchor && handleDeleteSource(menuAnchor.sourceId)} sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)' }}>
           <DeleteOutlineRoundedIcon fontSize="small" sx={{ mr: 1 }} /> このソースの索引を削除
         </MenuItem>
       </Menu>
@@ -115,10 +115,10 @@ export const IndexedProductsView: React.FC = () => {
         {detailIndex !== null && visible[detailIndex] ? (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1, mb: 1 }}>
-              <Button startIcon={<ArrowBackRoundedIcon />} onClick={() => setDetailIndex(null)} size="small" sx={{ color: '#cbd5e1' }}>
+              <Button startIcon={<ArrowBackRoundedIcon />} onClick={() => setDetailIndex(null)} size="small" sx={{ color: 'var(--brand-fg)' }}>
                 一覧に戻る
               </Button>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{detailIndex + 1} / {visible.length}</Typography>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{detailIndex + 1} / {visible.length}</Typography>
             </Box>
             <Box sx={{ maxWidth: 560, mx: 'auto' }}>
               <ProductDetailPanel
@@ -131,9 +131,9 @@ export const IndexedProductsView: React.FC = () => {
         ) : loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress size={26} sx={{ color: ACCENT }} /></Box>
         ) : visible.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 8, color: 'rgba(255,255,255,0.5)' }}>
+          <Box sx={{ textAlign: 'center', py: 8, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
             <Typography sx={{ fontSize: 13 }}>索引済みの商品がありません。</Typography>
-            <Typography sx={{ fontSize: 11.5, mt: 0.5, color: 'rgba(255,255,255,0.4)' }}>
+            <Typography sx={{ fontSize: 11.5, mt: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               「Web」エントリで「サイトを商品索引化」、または PDF カタログで「カタログ照合に索引化」を実行してください。
             </Typography>
           </Box>
@@ -146,32 +146,32 @@ export const IndexedProductsView: React.FC = () => {
                   key={it.id}
                   onClick={() => setDetailIndex(i)}
                   sx={{
-                    borderRadius: 2, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 2, overflow: 'hidden', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                     cursor: 'pointer', transition: 'border-color 0.15s, transform 0.1s',
                     '&:hover': { borderColor: 'rgba(38,166,154,0.6)', transform: 'translateY(-2px)' },
                   }}
                 >
-                  <Box sx={{ aspectRatio: '1/1', bgcolor: 'rgba(0,0,0,0.3)' }}>
+                  <Box sx={{ aspectRatio: '1/1', bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))' }}>
                     <img src={it.cropDataUrl} alt={it.label} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </Box>
                   <Box sx={{ p: 1 }}>
-                    <Typography noWrap sx={{ fontSize: 11.5, fontWeight: 600, color: '#fff' }}>{it.label || '商品'}</Typography>
+                    <Typography noWrap sx={{ fontSize: 11.5, fontWeight: 600, color: 'var(--brand-fg)' }}>{it.label || '商品'}</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5, mt: 0.25 }}>
                       {it.sourceType === 'web' ? (
                         <>
-                          <Typography noWrap sx={{ fontSize: 11.5, color: '#86efac', fontWeight: 700 }}>{it.price || ''}</Typography>
+                          <Typography noWrap sx={{ fontSize: 11.5, color: 'light-dark(#149944, #86efac)', fontWeight: 700 }}>{it.price || ''}</Typography>
                           {clickable && (
                             <Tooltip title="購入ページを開く">
                               <IconButton size="small" onClick={(e) => { e.stopPropagation(); openExternalUrl(it.productUrl!); }}
-                                sx={{ p: 0.25, color: '#93c5fd', '&:hover': { color: '#bfdbfe' } }}>
+                                sx={{ p: 0.25, color: 'light-dark(#0352aa, #93c5fd)', '&:hover': { color: 'light-dark(#034dab, #bfdbfe)' } }}>
                                 <OpenInNewRoundedIcon sx={{ fontSize: 14 }} />
                               </IconButton>
                             </Tooltip>
                           )}
                         </>
                       ) : (
-                        <Typography noWrap sx={{ fontSize: 10.5, color: 'rgba(148,163,184,0.9)' }}>p.{it.page} ・ {it.catalogTitle}</Typography>
+                        <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>p.{it.page} ・ {it.catalogTitle}</Typography>
                       )}
                     </Box>
                   </Box>
@@ -183,7 +183,7 @@ export const IndexedProductsView: React.FC = () => {
         {detailIndex === null && !loading && visible.length > limit && (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2.5 }}>
             <Button variant="outlined" size="small" onClick={() => setLimit((n) => n + PAGE)}
-              sx={{ color: '#7dd3fc', borderColor: 'rgba(56,189,248,0.5)', '&:hover': { borderColor: '#38bdf8', bgcolor: 'rgba(56,189,248,0.08)' } }}>
+              sx={{ color: 'light-dark(#0474a9, #7dd3fc)', borderColor: 'rgba(56,189,248,0.5)', '&:hover': { borderColor: '#38bdf8', bgcolor: 'rgba(56,189,248,0.08)' } }}>
               もっと見る（残り {visible.length - limit} 件）
             </Button>
           </Box>
@@ -196,10 +196,10 @@ export const IndexedProductsView: React.FC = () => {
 function chipSx(active: boolean) {
   return {
     height: 28, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-    bgcolor: active ? 'rgba(38,166,154,0.22)' : 'rgba(255,255,255,0.05)',
-    color: active ? '#fff' : 'rgba(255,255,255,0.7)',
+    bgcolor: active ? 'rgba(38,166,154,0.22)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+    color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
     border: active ? '1px solid rgba(38,166,154,0.5)' : '1px solid transparent',
-    '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.45)', fontSize: 16, '&:hover': { color: '#fff' } },
-    '&:hover': { bgcolor: active ? 'rgba(38,166,154,0.28)' : 'rgba(255,255,255,0.08)' },
+    '& .MuiChip-deleteIcon': { color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 16, '&:hover': { color: 'var(--brand-fg)' } },
+    '&:hover': { bgcolor: active ? 'rgba(38,166,154,0.28)' : 'rgb(var(--brand-fg-rgb) / 0.08)' },
   };
 }

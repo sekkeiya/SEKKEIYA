@@ -17,13 +17,13 @@ export const AutosaveSettingsPanel: React.FC = () => {
   return (
     <Box sx={{ flex: 1, overflowY: 'auto', p: 4 }}>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>自動保存</Typography>
-      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.55)', mb: 3 }}>
+      <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 3 }}>
         編集を止めると、各アプリの作業内容をお使いの PC のローカルフォルダ
         （…/SEKKEIYA/Projects/&lt;プロジェクト&gt;/WorkFiles/3DSL・3DSP・3DSC・3DSD）に自動で下書き保存します。
         クラウドへの公開・保存は行わないため、通信量・コストは増えません。
       </Typography>
 
-      <Paper sx={{ p: 3, bgcolor: '#1a1e27', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <Paper sx={{ p: 3, bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
         <Stack spacing={3}>
           <FormControlLabel
             control={

@@ -91,7 +91,7 @@ const SYSTEM_PROMPT =
 "- 「S.Imageから選ぶ」系が選ばれたら open_image_picker({source:'simage', purpose:'3d'}) を呼ぶ。tool_result に選択画像（images:[{id,downloadUrl}], count）が返る。\n" +
 "- 画像が確定したら、選択枚数を簡潔に確認し、そのまま start_3d_generation({imageIds:[...選択画像のid]}) を呼ぶ。imageIds には open_image_picker で返った画像の id をそのまま渡す。\n" +
 "- start_3d_generation の戻り値に skipped>0 があれば「あと○件は今月の上限により実行できません」と日本語で添える。\n" +
-"- start_3d_generation の後は『バックグラウンドで生成を開始しました。完了したものから S.Models に保存されます』と日本語で報告して end_turn する。生成完了をツールで待たない（非ブロッキング）。\n" +
+"- start_3d_generation の後は『バックグラウンドで生成を開始しました。完了したものから S.Model に保存されます』と日本語で報告して end_turn する。生成完了をツールで待たない（非ブロッキング）。\n" +
 "- propose_choices / open_image_picker は『UIを出してユーザー操作を待つ』ツール。呼んだら同じターンで他のツールを重ねず、ユーザーの操作結果（tool_result）を待つ。\n" +
 "- ユーザーが画像選択をキャンセル（tool_result が {cancelled:true}）した場合は、生成を始めず、別の進め方を尋ねるか中断する。\n\n" +
 "# 家具選定フロー\n" +
@@ -99,9 +99,9 @@ const SYSTEM_PROMPT =
 "  1. propose_choices でモデルのスコープを聞く（choices: explore=全公開モデル / following=フォロー中ユーザー / my_public=自分の公開 / my_private=自分の非公開）。\n" +
 "  2. スコープが確定したら、続けて propose_choices で部屋の用途とスタイルをまとめて一問で聞く（choices に主な候補を並べ、その他自由入力も活用）。\n" +
 "  3. furniture_catalog_search で scope・roomType・style を指定して候補を取得する。\n" +
-"  4. propose_choices で選定方法を聞く。choices の1番目は必ず {id:'auto', label:'AIにお任せ', description:'AIが最適な家具を自動選定して追加します'} とする。2番目は {id:'manual', label:'S.Modelsで手動選択', description:'S.Modelsを開いてサムネイルを見ながら自分で選びます'}。\n" +
+"  4. propose_choices で選定方法を聞く。choices の1番目は必ず {id:'auto', label:'AIにお任せ', description:'AIが最適な家具を自動選定して追加します'} とする。2番目は {id:'manual', label:'S.Modelで手動選択', description:'S.Modelを開いてサムネイルを見ながら自分で選びます'}。\n" +
 "  5a. 「AIにお任せ（auto）」の場合: 取得した候補から部屋の用途・スタイルに最適なものを AI が選び、すぐ add_furniture_to_project を呼ぶ。選定理由を日本語で報告する。\n" +
-"  5b. 「手動選択（manual）」の場合: open_furniture_picker({ candidateIds: [...全候補のid] }) を呼ぶ。S.Models が候補モデルのみを表示して開くので、ユーザーが選択・確定する。tool_result に { selected: string[] } が返ったら add_furniture_to_project を呼ぶ。\n" +
+"  5b. 「手動選択（manual）」の場合: open_furniture_picker({ candidateIds: [...全候補のid] }) を呼ぶ。S.Model が候補モデルのみを表示して開くので、ユーザーが選択・確定する。tool_result に { selected: string[] } が返ったら add_furniture_to_project を呼ぶ。\n" +
 "  6. add_furniture_to_project が完了したら「○点をプロジェクトに追加しました」と日本語で報告する。\n" +
 "  7. 続けて propose_choices でサイトへの反映を提案する（choices: [{id:'add_itemspec',label:'アイテムスペックセクションを追加',description:'プロジェクトサイトに選定家具の仕様一覧セクションを作成します'}, {id:'skip',label:'後で'}]）。\n" +
 "  8. 「add_itemspec」が選ばれたら add_section(type:'itemspec', title:'家具・仕様一覧') を呼び、追加した家具リストを body に日本語で記述してから update_section で更新する。\n" +
@@ -110,10 +110,10 @@ const SYSTEM_PROMPT =
 "- 対象プロジェクト ID はシステムプロンプトの [現在のサイト] projectId= から取得する。projectId が '-' の場合は site_snapshot を呼んで確認する。\n\n" +
 "# 自動レイアウトフロー\n" +
 "ユーザーが「レイアウトして」「家具を配置して」「○○プロジェクトをレイアウトしてください」等と言ったら：\n" +
-"1. **いきなり run_auto_layout を呼ぶ**。事前に「どのレイアウトに配置するか」「部屋の用途」「部屋の広さ（何畳）」を聞いてはいけない。run_auto_layout は (a) いま S.Layout で開いている間取りを自動で対象にし、(b) 部屋の寸法をジオメトリから自動導出し、(c) 配置先を Plan 単位で自動解決し、(d) **配置する家具を S.Models の公開/private/プロジェクトの3Dモデルから自動で選定する**。layout_list / layout_create / furniture_catalog_search / open_furniture_picker を事前に呼ぶ必要は無い。\n" +
-"   - 重要: **furniture_catalog_search（索引商品カタログ）は購入用で3Dモデルではないため、レイアウト配置には使わない**。配置に使えるのは S.Models の3Dモデルだけ。\n" +
+"1. **いきなり run_auto_layout を呼ぶ**。事前に「どのレイアウトに配置するか」「部屋の用途」「部屋の広さ（何畳）」を聞いてはいけない。run_auto_layout は (a) いま S.Layout で開いている間取りを自動で対象にし、(b) 部屋の寸法をジオメトリから自動導出し、(c) 配置先を Plan 単位で自動解決し、(d) **配置する家具を S.Model の公開/private/プロジェクトの3Dモデルから自動で選定する**。layout_list / layout_create / furniture_catalog_search / open_furniture_picker を事前に呼ぶ必要は無い。\n" +
+"   - 重要: **furniture_catalog_search（索引商品カタログ）は購入用で3Dモデルではないため、レイアウト配置には使わない**。配置に使えるのは S.Model の3Dモデルだけ。\n" +
 "2. 返り値に needsSelection:true がある場合のみ、配置先が複数あって特定できない。返ってきた candidates を propose_choices で提示する。**その際 label だけを見せ、ID は絶対に表示しない**。ユーザーが選んだら、その id を planId にして run_auto_layout を再実行する。\n" +
-"3. 返り値が noFurniture:true（配置できる3Dモデルが無い）の場合は、手順をフリーテキストで説明して終わらせない。**propose_choices で選択肢ボタンを出す**：choices 例 [{id:'gen3d',label:'カタログ商品から3Dモデルを生成して配置'},{id:'pick',label:'S.Modelsのモデルを選んで使う'},{id:'skip',label:'今回は家具なしで進める'}]。選択に応じて gen3d→furniture_catalog_search で候補を出してから start_3d_generation、pick→open_furniture_picker、を実行する。ID は表示しない。\n" +
+"3. 返り値が noFurniture:true（配置できる3Dモデルが無い）の場合は、手順をフリーテキストで説明して終わらせない。**propose_choices で選択肢ボタンを出す**：choices 例 [{id:'gen3d',label:'カタログ商品から3Dモデルを生成して配置'},{id:'pick',label:'S.Modelのモデルを選んで使う'},{id:'skip',label:'今回は家具なしで進める'}]。選択に応じて gen3d→furniture_catalog_search で候補を出してから start_3d_generation、pick→open_furniture_picker、を実行する。ID は表示しない。\n" +
 "4. 配置できたら「○点の家具を自動配置しました。」と日本語で簡潔に報告して end_turn する。\n" +
 "- run_auto_layout は時間のかかる処理のため、他のツールと同時に呼ばない。\n" +
 "- どうしても確認が必要なときも、フリーテキストで質問せず propose_choices（選択肢ボタン）を使う。ID は見せない。\n\n" +
@@ -341,7 +341,7 @@ const TOOLS = [
   },
   {
     name: "propose_choices",
-    description: "ユーザーにクリック可能な選択肢を提示する（Claude Code 風の縦並びカード）。これを呼ぶとクライアントは選択肢を描画し、ユーザーの操作を待つ。各選択肢には簡潔な description を付けると親切。クライアントは選択肢の末尾に必ず『その他（自由入力）』欄を自動で追加するので、自由入力用や『その他』の項目を choices に含める必要はない。結果は次ターンの tool_result として返る: 選択肢を選んだ場合は {selected:[id...]}、ユーザーが自由入力した場合は {custom:'入力テキスト'}（複数選択時は {selected:[...], custom:'...'} の併用あり）。custom が来たらユーザーの自由な要望なので柔軟に解釈して対応する。これは「UIを出して待つ」ツールなので、同じターンで他のツールと重ねて呼ばない。",
+    description: "クリック可能な選択肢（縦並びカード）を出してユーザー操作を待つ。末尾の『その他（自由入力）』欄は自動追加されるので choices に含めない。各選択肢に簡潔な description を付けると親切。結果は次ターンの tool_result: 選択={selected:[id...]} / 自由入力={custom:'テキスト'}（併用あり。custom は柔軟に解釈）。UIを出して待つツールなので同ターンで他ツールと重ねない。",
     input_schema: {
       type: "object",
       properties: {
@@ -382,7 +382,7 @@ const TOOLS = [
   },
   {
     name: "start_3d_generation",
-    description: "選択済みの画像から3Dモデルのバッチ生成を開始する。非ブロッキングで実行され、各画像が1ジョブになる。今月の残り上限を超える分は自動的に切り捨てて警告する（戻り値の skipped）。imageIds は open_image_picker の結果の画像ID、またはユーザーが明示した画像ID。完了したモデルは自動的に S.Models に保存される。呼んだ後は生成完了をツールで待たず、'バックグラウンドで生成を開始しました。完了したものから S.Models に保存されます' と日本語で報告して end_turn する。",
+    description: "選択済みの画像から3Dモデルのバッチ生成を開始する。非ブロッキングで実行され、各画像が1ジョブになる。今月の残り上限を超える分は自動的に切り捨てて警告する（戻り値の skipped）。imageIds は open_image_picker の結果の画像ID、またはユーザーが明示した画像ID。完了したモデルは自動的に S.Model に保存される。呼んだ後は生成完了をツールで待たず、'バックグラウンドで生成を開始しました。完了したものから S.Model に保存されます' と日本語で報告して end_turn する。",
     input_schema: {
       type: "object",
       properties: {
@@ -396,7 +396,7 @@ const TOOLS = [
   // ─── 家具選定フロー ───────────────────────────────────────────────────────
   {
     name: "furniture_catalog_search",
-    description: "【3Dモデルをプロジェクト/レイアウトに“配置・追加”する用】S.Models の3Dモデルを検索する。『配置して』『プロジェクトに追加』『レイアウトに入れて』等の配置意図のときに使い、propose_choices で確認後 add_furniture_to_project を呼ぶ。\n※単に家具を『探す/見たい/比較したい/買いたい』だけなら、これではなく catalog_product_search（索引済みの実在商品グリッド）を使うこと。実在商品の方が件数が多く確実にヒットする。",
+    description: "【3Dモデルをプロジェクト/レイアウトに“配置・追加”する用】S.Model の3Dモデルを検索する。『配置して』『プロジェクトに追加』『レイアウトに入れて』等の配置意図のときに使い、propose_choices で確認後 add_furniture_to_project を呼ぶ。\n※単に家具を『探す/見たい/比較したい/買いたい』だけなら、これではなく catalog_product_search（索引済みの実在商品グリッド）を使うこと。実在商品の方が件数が多く確実にヒットする。",
     input_schema: {
       type: "object",
       properties: {
@@ -415,7 +415,7 @@ const TOOLS = [
   },
   {
     name: "open_furniture_picker",
-    description: "S.Models を手動ピッカーモードで開く。candidateIds（furniture_catalog_search の結果の id 配列）を渡すと、S.Modelsにその家具だけを絞り込んで表示し、ユーザーが複数選択して「プロジェクトに追加」ボタンを押すと tool_result として { selected: string[] } が返る。キャンセルされた場合は { cancelled: true }。これは「UIを出して待つ」ツールなので同じターンで他のツールと重ねて呼ばない。",
+    description: "S.Model を手動ピッカーモードで開く。candidateIds（furniture_catalog_search の結果の id 配列）を渡すと、S.Modelにその家具だけを絞り込んで表示し、ユーザーが複数選択して「プロジェクトに追加」ボタンを押すと tool_result として { selected: string[] } が返る。キャンセルされた場合は { cancelled: true }。これは「UIを出して待つ」ツールなので同じターンで他のツールと重ねて呼ばない。",
     input_schema: {
       type: "object",
       properties: {
@@ -427,7 +427,7 @@ const TOOLS = [
   },
   {
     name: "add_furniture_to_project",
-    description: "ユーザーが選定した家具をプロジェクトの S.Models に追加する。重複は自動防止（既存なら更新のみ）。完了後 S.Models が自動で開く。projectId はシステムプロンプトの [現在のサイト] projectId= から取得する。scope/roomType/style/selectionMode は学習ログ用に必ず渡す。",
+    description: "ユーザーが選定した家具をプロジェクトの S.Model に追加する。重複は自動防止（既存なら更新のみ）。完了後 S.Model が自動で開く。projectId はシステムプロンプトの [現在のサイト] projectId= から取得する。scope/roomType/style/selectionMode は学習ログ用に必ず渡す。",
     input_schema: {
       type: "object",
       properties: {
@@ -1087,13 +1087,13 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
-  // ─── S.Presentation テンプレート（提案書量産・docs/24）─────────────────────
+  // ─── S.Slide テンプレート（提案書量産・docs/24）─────────────────────
   // ハンドラはクライアント(VERB_MAP: features/dsp/chat/presentationVerbs.ts)が実行する。
   // ここはモデルが tool_use を出せるようにするスキーマ宣言のみ。
   {
     name: "get_open_presentation",
     description:
-      "S.Presentation のエディタで「いま開いているプレゼンテーション」の中身を取得する。" +
+      "S.Slide のエディタで「いま開いているプレゼンテーション」の中身を取得する。" +
       "ユーザーが開いているプレゼンをチャットで編集したいとき、edit_presentation を呼ぶ前に必ずこれで現状を把握する。" +
       "返り値: workFileId / name / canvasSize（width,height）/ pages[]（id・name・要素一覧）。" +
       "各 element は id / type(text|image|shape|…) / x,y,w,h（ピクセル座標）と、text の本文・色・文字サイズ、image の有無、shape の種別などを持つ。" +
@@ -1107,7 +1107,7 @@ const TOOLS = [
   {
     name: "edit_presentation",
     description:
-      "いま S.Presentation で開いているプレゼンテーションを、指定した編集操作(ops)の配列で書き換える。" +
+      "いま S.Slide で開いているプレゼンテーションを、指定した編集操作(ops)の配列で書き換える。" +
       "テンプレートのスロットに縛られず、任意の要素・スライドを自由に編集できる（ユーザーの「こう直して」に応える本命ツール）。" +
       "必ず先に get_open_presentation で現在の element/page の id を把握してから呼ぶこと。" +
       "ops は上から順に適用され、変更はエディタに即反映＆undo一回で戻せる。座標(x,y,w,h)は canvasSize 基準のピクセル。" +
@@ -1168,7 +1168,7 @@ const TOOLS = [
   {
     name: "list_presentation_templates",
     description:
-      "S.Presentation のユーザーテンプレート（提案書などの雛形）と、その「差し替え枠(slot)」の一覧を取得する。" +
+      "S.Slide のユーザーテンプレート（提案書などの雛形）と、その「差し替え枠(slot)」の一覧を取得する。" +
       "テンプレを使って提案書を作る前に必ず呼び、どのテンプレにどんな差し替え枠があるかを把握すること。" +
       "返り値の templates[] は id / name / description / category / visibility / slideCount と " +
       "slots[]（id=差し替えキー / role=意味づけ / kind: text|image / label=表示名 / placeholder）を持つ。" +
@@ -1259,6 +1259,58 @@ const TOOLS = [
       required: ["slides"],
     },
   },
+  // ─── SEKKEIYA Drive 読み取り（Phase 4・docs/drive_search_verbs_agentturn_draft.md）───
+  // ハンドラはクライアント(VERB_MAP: features/drive/chat/driveVerbs.ts)が実行する。
+  // ここはモデルが tool_use を出せるようにするスキーマ宣言のみ。
+  {
+    name: "list_drive_assets",
+    description:
+      "SEKKEIYA Drive（ユーザーの再利用資産の保管庫）から資産を一覧する。" +
+      "子アプリの成果物（3Dモデル・画像/レンダー・マテリアル・テクスチャ・レイアウト・プレゼン・記事など）が集まる場所。" +
+      "種別(kind)やメディア(media)で絞り込め、最近作成順で返る。" +
+      "返り値 assets[] は id / name / kind / url / thumbnailUrl / projectId / tags。" +
+      "url は https 画像URLなので、edit_presentation の set_image / add_image などにそのまま渡してスライド等へ流し込める。" +
+      "キーワードで探したいときは search_drive を使う。",
+    input_schema: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          enum: ["model", "layout", "presentation", "furniture", "diagram", "render", "video", "portfolio", "material", "texture", "article"],
+          description: "アウトプット種別で絞る（任意）。",
+        },
+        media: { type: "string", enum: ["image", "model", "video"], description: "メディア種別で絞る（任意。kind より緩い横断フィルタ）。" },
+        limit: { type: "number", description: "最大件数（既定 20・上限 50）。" },
+        projectId: { type: "string", description: "特定プロジェクトの資産に限定（省略時は全体）。" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "search_drive",
+    description:
+      "SEKKEIYA Drive の資産を、名前・タグ・種別のキーワードで検索する。" +
+      "ユーザーが「Drive にある〇〇の画像／モデルを使って」などと言ったとき、まずこれで該当資産を見つける。" +
+      "query はスペース区切りで複数語を指定でき、全て含む(AND)ものが返る。kind / media で併せて絞れる。" +
+      "返り値 assets[] は id / name / kind / url / thumbnailUrl / projectId / tags（最近作成順）。" +
+      "url は https 画像URLで、edit_presentation の set_image / add_image などにそのまま渡せる。",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "検索キーワード（名前/タグ/種別。スペース区切りは全て含む AND）。" },
+        kind: {
+          type: "string",
+          enum: ["model", "layout", "presentation", "furniture", "diagram", "render", "video", "portfolio", "material", "texture", "article"],
+          description: "アウトプット種別で絞る（任意）。",
+        },
+        media: { type: "string", enum: ["image", "model", "video"], description: "メディア種別で絞る（任意）。" },
+        limit: { type: "number", description: "最大件数（既定 20・上限 50）。" },
+        projectId: { type: "string", description: "特定プロジェクトに限定（省略時は全体）。" },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 /** 中立メッセージ履歴 → Anthropic messages へ変換。 */
@@ -1301,14 +1353,43 @@ function toAnthropicMessages(messages) {
   return out;
 }
 
-exports.agentTurn = async ({ messages, model, memorySection, clientContext }) => {
+// 💰 前置き削減②: 文脈別ツール silo。会話で触れていないドメインのツール群を外し、
+// キャッシュ前置きを小さくする。除外判定は llm/siloTools.js（サーバー側・会話内容から）で行い、
+// index.js が excludeSilos として渡す。キー名は siloTools.js の DEFAULT_SILO_KEYWORDS と一致させる。
+// コア/site編集/schedule/task/3d・image は曖昧な依頼が多いため silo 化しない（常時送信）。
+const SILOS = {
+  research: (n) => n.startsWith("research_board"),
+  slide: (n) => /^(apply_presentation_template|build_slides_from_layout|edit_presentation|get_open_presentation|list_presentation_templates)$/.test(n),
+  layout: (n) => /^(layout_|run_auto_layout$|render_layout$|get_layout_outputs$|furniture_catalog_search$|add_furniture_to_project$|open_furniture_picker$|catalog_product_search$)/.test(n),
+  blog: (n) => /^(blog_|create_blog_draft$)/.test(n),
+  drive: (n) => /^(list_drive_assets|search_drive)$/.test(n),
+  library: (n) => n.startsWith("library_"),
+  local_assets: (n) => n.startsWith("local_assets_"),
+};
+
+exports.agentTurn = async ({ messages, model, memorySection, clientContext, gcalConnected = false, excludeSilos = [] }) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not defined in the environment.");
   const client = new Anthropic({ apiKey });
 
+  // 🗃 安定プレフィックス（SYSTEM_PROMPT・tools）は 1時間TTL でキャッシュ。
+  // これらは全チャット・全ユーザーで不変なので、短い新規チャットを間隔を空けて作っても
+  // 1時間以内なら「書込(2×)」ではなく「読取(0.1×)」で共有される（5分TTLだと毎回書き直しで割高）。
+  const STABLE_TTL = { type: "ephemeral", ttl: "1h" };
+
+  // 💰 前置き削減①: Google Calendar 未接続時は gcal_* ツール(約1.8k tok)を外す。
+  // 未接続ではどれも「接続されていません」エラーを返すだけなので、外しても機能・質は落ちない。
+  let activeTools = gcalConnected ? TOOLS : TOOLS.filter((t) => !t.name.startsWith("gcal_"));
+
+  // 💰 前置き削減②: 指定 silo のツールを外す。未知の silo 名は無視（安全側）。
+  const excluded = (Array.isArray(excludeSilos) ? excludeSilos : []).filter((s) => SILOS[s]);
+  if (excluded.length) {
+    activeTools = activeTools.filter((t) => !excluded.some((s) => SILOS[s](t.name)));
+  }
+
   // ツール定義の最後に cache_control を置く → tools 全体をキャッシュ。
-  const tools = TOOLS.map((t, i) =>
-    i === TOOLS.length - 1 ? { ...t, cache_control: { type: "ephemeral" } } : t
+  const tools = activeTools.map((t, i) =>
+    i === activeTools.length - 1 ? { ...t, cache_control: STABLE_TTL } : t
   );
 
   const anthropicMessages = toAnthropicMessages(messages || []);
@@ -1327,7 +1408,7 @@ exports.agentTurn = async ({ messages, model, memorySection, clientContext }) =>
     model: model || DEFAULT_MODEL,
     max_tokens: 8000,
     system: [
-      { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+      { type: "text", text: SYSTEM_PROMPT, cache_control: STABLE_TTL },
       // 🧠 AIメモリー（ユーザー人物像/プロジェクトの記憶。docs/21 Phase A）。
       // ユーザーごとに内容が変わるため、キャッシュ対象の SYSTEM_PROMPT とは
       // 別ブロックで「後置」する（プレフィックスキャッシュを壊さない）
@@ -1353,6 +1434,7 @@ exports.agentTurn = async ({ messages, model, memorySection, clientContext }) =>
     stopReason: resp.stop_reason,
     text,
     toolCalls,
+    model: model || DEFAULT_MODEL,
     usage: {
       inputTokens: resp.usage?.input_tokens,
       outputTokens: resp.usage?.output_tokens,

@@ -117,13 +117,14 @@ export const layoutVerbs: VerbDef[] = [
   {
     name: 'render_layout',
     description:
-      '指定した間取り（planId）を標準品質でレンダリングし、成果物として保存する。完全にヘッドレス（裏側）で実行されるため S.Layout を開く必要はなく、複数チャットの並行作業でも使える。保存済みのアングルがあればそれを、無ければ自動アングルを使う。保存後は get_layout_outputs で取得し add_asset_to_section でサイトに添付できる。planId は layout_list で取得する。',
+      '指定した間取り（planId）を標準品質でレンダリングし、成果物として保存する。完全にヘッドレス（裏側）で実行されるため S.Layout を開く必要はなく、複数チャットの並行作業でも使える。style（realestate/magazine/catalog）を渡すと撮影スタイルに合わせた自動アングルで撮影する（提案書・プレゼン用）。style 無しなら保存済みアングル→既定アングルの順。保存後は get_layout_outputs で取得し add_asset_to_section でサイトに添付できる。planId は layout_list で取得する。',
     input: {
       type: 'object',
       properties: {
         projectId: { type: 'string', description: '対象プロジェクト ID（省略時はアクティブ）。' },
         planId: { type: 'string', description: 'レンダリング対象プランの ID（layout_list で取得）。省略時はいま S.Layout で開いている間取り。' },
-        count: { type: 'number', description: '生成する枚数（既定3・最大6）。' },
+        count: { type: 'number', description: '生成する枚数（最大6）。省略時は style の既定（不動産6/雑誌5/カタログ6）、style も無ければ 3。' },
+        style: { type: 'string', enum: ['realestate', 'magazine', 'catalog'], description: '撮影スタイル。realestate=不動産（立ち目線・ワイドで広さ）/ magazine=雑誌（座り目線・家具主役）/ catalog=カタログ（寄りで質感）。提案書・プレゼン用の依頼では指定が無ければ realestate。' },
       },
     },
     risk: 'medium',
@@ -160,8 +161,13 @@ export const layoutVerbs: VerbDef[] = [
           });
         }
 
+        // 撮影スタイル（不動産/雑誌/カタログ）。不正値は無視して従来動作。
+        const styleRaw = ctx.input.style as string | undefined;
+        const style = styleRaw === 'realestate' || styleRaw === 'magazine' || styleRaw === 'catalog' ? styleRaw : undefined;
+
         const { renderLayoutHeadless } = await import('./headlessLayoutRenderService');
-        const result = await renderLayoutHeadless(projectId, target.leafId, target.baseId, (ctx.input.count as number) || 3, uid);
+        // count 0/未指定はサービス側で解決（style の既定枚数 or 3）。
+        const result = await renderLayoutHeadless(projectId, target.leafId, target.baseId, (ctx.input.count as number) || 0, uid, style);
 
         // 生成結果（画像）をチャットに画像グリッドで表示する（裏で実行 → 結果はチャット表示）。
         if (result.ok && ctx.sessionId && result.renders && result.renders.length) {
@@ -182,6 +188,7 @@ export const layoutVerbs: VerbDef[] = [
           ok: result.ok,
           planId: result.planId,
           renderCount: result.renderCount,
+          style: style ?? null,
           rendered: !!(result.renders && result.renders.length),
           error: result.error,
           note: 'render_layout はクライアント側で実行される（サーバー不要）。エラーは error をそのまま伝えること。',
@@ -290,7 +297,7 @@ export const layoutVerbs: VerbDef[] = [
           roomWidthMm: roomWidthMm ?? 5000,
           roomDepthMm: roomDepthMm ?? 4000,
           // 0点＝配置できる家具が無い。オーケストレーターが noFurniture を検知して
-          // 「S.Modelsから自動/手動で選ぶ」の分岐UIを提示する（useCoreOrchestrator 側で決定論的に処理）。
+          // 「S.Modelから自動/手動で選ぶ」の分岐UIを提示する（useCoreOrchestrator 側で決定論的に処理）。
           ...(result.placedCount === 0 ? { noFurniture: true } : {}),
         });
       } catch (e: any) {

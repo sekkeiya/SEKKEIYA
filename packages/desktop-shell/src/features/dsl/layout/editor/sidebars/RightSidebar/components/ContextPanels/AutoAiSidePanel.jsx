@@ -16,10 +16,10 @@ import { useAutoLayoutStore } from "../../../../../store/useAutoLayoutStore";
 import { useAiPipelineStore } from "../../../../../store/useAiPipelineStore";
 
 const ACCENT = "#c084fc";
-const line = "rgba(255,255,255,0.1)";
+const line = "rgb(var(--brand-fg-rgb) / 0.1)";
 
 const SectionLabel = ({ children }) => (
-  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: alpha("#fff", 0.45), letterSpacing: 0.4, mb: 0.6 }}>
+  <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", letterSpacing: 0.4, mb: 0.6 }}>
     {children}
   </Typography>
 );
@@ -57,7 +57,7 @@ export default function AutoAiSidePanel() {
   };
 
   return (
-    <Box sx={{ height: "100%", overflow: "auto", p: 1.5, color: "#fff" }}>
+    <Box sx={{ height: "100%", overflow: "auto", p: 1.5, color: "var(--brand-fg)" }}>
       {/* ヘッダー */}
       <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.5 }}>
         <AutoAwesomeRoundedIcon sx={{ fontSize: 15, color: ACCENT }} />
@@ -70,7 +70,7 @@ export default function AutoAiSidePanel() {
 
       {/* 建物タイプ */}
       <FormControl sx={{ mb: 1.5 }}>
-        <FormLabel sx={{ color: alpha("#fff", 0.45), fontSize: 10.5, fontWeight: 700, mb: 0.5, "&.Mui-focused": { color: alpha("#fff", 0.45) } }}>建物タイプ</FormLabel>
+        <FormLabel sx={{ color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontSize: 10.5, fontWeight: 700, mb: 0.5, "&.Mui-focused": { color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" } }}>建物タイプ</FormLabel>
         <RadioGroup row value={buildingType} sx={{ gap: 0.5, flexWrap: "wrap" }}
           onChange={(e) => setBuildingType(e.target.value)}>
           {["residential", "office", "cafe", "hotel"].map((bt) => (
@@ -82,7 +82,7 @@ export default function AutoAiSidePanel() {
 
       {/* 生成モード */}
       <FormControl sx={{ mb: 1.25 }}>
-        <FormLabel sx={{ color: alpha("#fff", 0.45), fontSize: 10.5, fontWeight: 700, mb: 0.5, "&.Mui-focused": { color: alpha("#fff", 0.45) } }}>生成モード</FormLabel>
+        <FormLabel sx={{ color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontSize: 10.5, fontWeight: 700, mb: 0.5, "&.Mui-focused": { color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" } }}>生成モード</FormLabel>
         <RadioGroup value={autoLayoutMode} onChange={(e) => setAutoLayoutMode(e.target.value)}>
           <FormControlLabel value="rules-only" control={<Radio size="small" sx={radioSx} />}
             label={<Typography sx={{ fontSize: 12.5 }}>ルールベース（高速）</Typography>} />
@@ -102,7 +102,7 @@ export default function AutoAiSidePanel() {
             <Box key={st.key}>
               <Stack direction="row" alignItems="center" spacing={0.5} sx={{ py: 0.1 }}>
                 <Typography sx={{ fontSize: 10, opacity: 0.4, width: 18 }}>{i + 1}.</Typography>
-                <Typography sx={{ flex: 1, fontSize: 11.5, fontWeight: on ? 700 : 500, color: on ? "#fff" : alpha("#fff", 0.4) }}>
+                <Typography sx={{ flex: 1, fontSize: 11.5, fontWeight: on ? 700 : 500, color: on ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>
                   {st.label}
                 </Typography>
                 {/* パース生成：品質（標準/Cycles）をスイッチ手前にインライン配置 */}
@@ -115,8 +115,8 @@ export default function AutoAiSidePanel() {
                     sx={{
                       "& .MuiToggleButton-root": {
                         py: 0.05, px: 0.85, fontSize: 9.5, textTransform: "none", fontWeight: 700, lineHeight: 1.6,
-                        border: `1px solid ${alpha("#fff", 0.12)}`, color: alpha("#fff", 0.5),
-                        "&.Mui-selected": { color: "#fff", background: alpha(ACCENT, 0.25), borderColor: alpha(ACCENT, 0.55) },
+                        border: `1px solid ${alpha("#fff", 0.12)}`, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
+                        "&.Mui-selected": { color: "var(--brand-fg)", background: alpha(ACCENT, 0.25), borderColor: alpha(ACCENT, 0.55) },
                       },
                     }}
                   >

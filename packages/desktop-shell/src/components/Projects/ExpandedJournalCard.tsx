@@ -88,13 +88,13 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
     
     const tooltipContent = (
       <Box sx={{ p: 0.5, maxWidth: 300 }}>
-        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#e8eaed', fontWeight: 'bold' }}>
+        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'var(--brand-fg)', fontWeight: 'bold' }}>
           AI Context Snapshot
         </Typography>
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-          <Chip size="small" label={`Level: ${contextLevel}`} sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: '0.7rem', height: 20 }} />
+          <Chip size="small" label={`Level: ${contextLevel}`} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)', fontSize: '0.7rem', height: 20 }} />
           {watchedScopes && watchedScopes.map(scope => (
-            <Chip key={scope} size="small" label={scope} sx={{ bgcolor: 'rgba(138, 180, 248, 0.2)', color: '#8ab4f8', fontSize: '0.7rem', height: 20 }} />
+            <Chip key={scope} size="small" label={scope} sx={{ bgcolor: 'rgba(138, 180, 248, 0.2)', color: 'light-dark(#0a45a4, #8ab4f8)', fontSize: '0.7rem', height: 20 }} />
           ))}
         </Box>
       </Box>
@@ -102,7 +102,7 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
 
     return (
       <Tooltip title={tooltipContent} placement="bottom-start" arrow componentsProps={{ tooltip: { sx: { bgcolor: '#303134', border: '1px solid #5f6368', p: 1 } }, arrow: { sx: { color: '#303134', '&::before': { border: '1px solid #5f6368' } } } }}>
-        <IconButton size="small" sx={{ color: '#9aa0a6', p: 0.5, ml: 1 }}>
+        <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', p: 0.5, ml: 1 }}>
           <InfoOutlinedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
@@ -142,9 +142,9 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
             width: '100%',
             maxWidth: 900,
             maxHeight: '90vh',
-            backgroundColor: '#191919',
+            backgroundColor: 'var(--brand-surface)',
             borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.05)',
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
             boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
             display: 'flex',
             flexDirection: 'column',
@@ -156,11 +156,11 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
           <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', gap: 0.5 }}>
               {isAuthor && (
-                <IconButton size="small" onClick={handleDeleteClick} sx={{ color: '#9aa0a6', '&:hover': { color: '#f28b82', bgcolor: 'rgba(242, 139, 130, 0.1)' } }}>
+                <IconButton size="small" onClick={handleDeleteClick} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', '&:hover': { color: 'light-dark(#9d1c10, #f28b82)', bgcolor: 'rgba(242, 139, 130, 0.1)' } }}>
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               )}
-              <IconButton size="small" onClick={handleCloseWithSave} sx={{ color: '#9aa0a6', '&:hover': { color: '#fff', bgcolor: 'rgba(255, 255, 255, 0.1)' } }}>
+              <IconButton size="small" onClick={handleCloseWithSave} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Box>
@@ -177,7 +177,7 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
                   placeholder="無題"
                   multiline
                   sx={{ 
-                    color: '#fff', 
+                    color: 'var(--brand-fg)', 
                     fontSize: 40, 
                     fontWeight: 800, 
                     lineHeight: 1.2,
@@ -186,32 +186,32 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
                   }}
                 />
               ) : (
-                <Typography variant="h1" sx={{ fontSize: 40, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+                <Typography variant="h1" sx={{ fontSize: 40, fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1.2 }}>
                   {entry.title || "無題"}
                 </Typography>
               )}
             </Box>
 
             {/* Properties */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 4, borderBottom: '1px solid rgba(255,255,255,0.08)', pb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 4, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ color: '#9aa0a6', width: 120, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', width: 120, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <InfoOutlinedIcon fontSize="small" /> 作成日時
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#e8eaed' }}>
+                <Typography variant="body2" sx={{ color: 'var(--brand-fg)' }}>
                   {new Date(entry.createdAt).toLocaleString()}
                 </Typography>
               </Box>
               
               {entry.aiContextSnapshot && (
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <Typography variant="body2" sx={{ color: '#9aa0a6', width: 120, display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', width: 120, display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                     <TitleIcon fontSize="small" /> コンテキスト
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                    <Chip size="small" label={`Level: ${entry.aiContextSnapshot.contextLevel}`} sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', height: 24 }} />
+                    <Chip size="small" label={`Level: ${entry.aiContextSnapshot.contextLevel}`} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', height: 24 }} />
                     {entry.aiContextSnapshot.watchedScopes?.map(scope => (
-                      <Chip key={scope} size="small" label={scope} sx={{ bgcolor: 'rgba(138, 180, 248, 0.15)', color: '#8ab4f8', height: 24 }} />
+                      <Chip key={scope} size="small" label={scope} sx={{ bgcolor: 'rgba(138, 180, 248, 0.15)', color: 'light-dark(#0a45a4, #8ab4f8)', height: 24 }} />
                     ))}
                   </Box>
                 </Box>
@@ -240,18 +240,18 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         PaperProps={{
-          sx: { bgcolor: '#202124', color: '#e8eaed', border: '1px solid #5f6368' }
+          sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid #5f6368' }
         }}
       >
-        <DialogTitle sx={{ color: '#fff' }}>ジャーナルの削除</DialogTitle>
+        <DialogTitle sx={{ color: 'var(--brand-fg)' }}>ジャーナルの削除</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: '#9aa0a6' }}>
+          <DialogContentText sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)' }}>
             本当にこのジャーナルを削除してもよろしいですか？この操作は取り消せません。
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: '#9aa0a6' }}>キャンセル</Button>
-          <Button onClick={confirmDelete} sx={{ color: '#f28b82', fontWeight: 'bold' }}>削除する</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)' }}>キャンセル</Button>
+          <Button onClick={confirmDelete} sx={{ color: 'light-dark(#9d1c10, #f28b82)', fontWeight: 'bold' }}>削除する</Button>
         </DialogActions>
       </Dialog>
     </>

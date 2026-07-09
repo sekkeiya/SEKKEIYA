@@ -32,7 +32,7 @@ async function callGemini(apiKey, prompt) {
 
 // categories コレクションが未整備のときのフォールバック
 const DEFAULT_CATEGORIES = [
-  "AI News", "SEKKEIYA", "S.Models", "S.Layout", "S.Presentations",
+  "AI News", "SEKKEIYA", "S.Model", "S.Layout", "S.Slide",
   "Desktop", "Workflow", "Tips / Learn", "トレンド",
 ];
 

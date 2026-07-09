@@ -86,7 +86,7 @@ const GlobalDragOverlay = () => {
         border: '1px solid #00BFFF',
         borderRadius: 2,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        color: '#fff',
+        color: 'var(--brand-fg)',
       }}
     >
       {getFileIcon(draggingAsset.type)}
@@ -108,10 +108,10 @@ const quickFilters = [
 ];
 const getFileIcon = (type: string) => {
   switch (type) {
-    case 'image': return <ImageRoundedIcon sx={{ color: '#E1BEE7', fontSize: 32 }} />;
-    case 'model': return <ViewInArRoundedIcon sx={{ color: '#81D4FA', fontSize: 32 }} />;
-    case 'pdf': return <PictureAsPdfRoundedIcon sx={{ color: '#FFCDD2', fontSize: 32 }} />;
-    default: return <InsertDriveFileRoundedIcon sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 32 }} />;
+    case 'image': return <ImageRoundedIcon sx={{ color: 'var(--brand-fg)', fontSize: 32 }} />;
+    case 'model': return <ViewInArRoundedIcon sx={{ color: 'light-dark(#0774a7, #81D4FA)', fontSize: 32 }} />;
+    case 'pdf': return <PictureAsPdfRoundedIcon sx={{ color: 'var(--brand-fg)', fontSize: 32 }} />;
+    default: return <InsertDriveFileRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 32 }} />;
   }
 };
 
@@ -146,7 +146,7 @@ const AIDrivePanel: React.FC = () => {
       const p = projects.find(proj => proj.id === pId);
       return p ? p.name : 'Unknown Project';
     }
-    return 'AI Drive';
+    return 'SEKKEIYA Drive';
   };
 
   // Default to the current project scope when opening the AI Drive Panel
@@ -174,21 +174,21 @@ const AIDrivePanel: React.FC = () => {
             sx={{ 
               display: 'flex',
               alignItems: 'center',
-              color: '#fff', 
+              color: 'var(--brand-fg)', 
               textTransform: 'none', 
               p: 0.5,
               px: 1,
               minWidth: 0,
               maxWidth: '100%',
               borderRadius: 2,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } 
+              '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } 
             }}
           >
             <AutoAwesomeRoundedIcon sx={{ color: '#00BFFF', fontSize: 20, mr: 1, flexShrink: 0 }} />
             <Typography noWrap sx={{ fontWeight: 800, fontSize: 14 }}>
               {getScopeLabel()}
             </Typography>
-            <KeyboardArrowDownRoundedIcon sx={{ ml: 0.5, fontSize: 18, color: 'rgba(255,255,255,0.5)', flexShrink: 0 }} />
+            <KeyboardArrowDownRoundedIcon sx={{ ml: 0.5, fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.5)', flexShrink: 0 }} />
           </Button>
 
           <Menu
@@ -197,37 +197,37 @@ const AIDrivePanel: React.FC = () => {
             onClose={handleMenuClose}
             PaperProps={{
               sx: {
-                bgcolor: '#1E1E24',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: 'var(--brand-surface2)',
+                color: 'var(--brand-fg)',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
                 minWidth: 200,
                 mt: 1
               }
             }}
           >
             <MenuItem onClick={() => handleScopeSelect('all')} selected={activeScope === 'all'}>
-              <ListItemIcon><InboxRoundedIcon sx={{ color: 'rgba(255,255,255,0.5)' }} fontSize="small" /></ListItemIcon>
+              <ListItemIcon><InboxRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} fontSize="small" /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: 13 }}>すべてのデータ</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleScopeSelect('current_project')} selected={activeScope === 'current_project'}>
-              <ListItemIcon><FolderSpecialRoundedIcon sx={{ color: 'rgba(255,255,255,0.5)' }} fontSize="small" /></ListItemIcon>
+              <ListItemIcon><FolderSpecialRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} fontSize="small" /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: 13 }}>現在のプロジェクト</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleScopeSelect('my_library')} selected={activeScope === 'my_library'}>
-              <ListItemIcon><FolderRoundedIcon sx={{ color: 'rgba(255,255,255,0.5)' }} fontSize="small" /></ListItemIcon>
+              <ListItemIcon><FolderRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} fontSize="small" /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: 13 }}>マイライブラリ</ListItemText>
             </MenuItem>
             <MenuItem onClick={() => handleScopeSelect('team_library')} selected={activeScope === 'team_library'}>
-              <ListItemIcon><PublicRoundedIcon sx={{ color: 'rgba(255,255,255,0.5)' }} fontSize="small" /></ListItemIcon>
+              <ListItemIcon><PublicRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} fontSize="small" /></ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: 13 }}>チームライブラリ</ListItemText>
             </MenuItem>
-            <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 1 }} />
+            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 1 }} />
             <Box sx={{ px: 2, py: 0.5 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 }}>プロジェクト</Typography>
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.5 }}>プロジェクト</Typography>
             </Box>
             {projects.map(p => (
               <MenuItem key={p.id} onClick={() => handleScopeSelect(`project_${p.id}`)} selected={activeScope === `project_${p.id}`}>
-                <ListItemIcon><FolderRoundedIcon sx={{ color: activeScope === `project_${p.id}` ? '#00BFFF' : 'rgba(255,255,255,0.5)' }} fontSize="small" /></ListItemIcon>
+                <ListItemIcon><FolderRoundedIcon sx={{ color: activeScope === `project_${p.id}` ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.5)' }} fontSize="small" /></ListItemIcon>
                 <ListItemText primaryTypographyProps={{ fontSize: 13, color: activeScope === `project_${p.id}` ? '#00BFFF' : 'inherit' }}>{p.name}</ListItemText>
               </MenuItem>
             ))}
@@ -235,21 +235,21 @@ const AIDrivePanel: React.FC = () => {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.6)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
+          <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
             <SortRoundedIcon fontSize="small" />
           </IconButton>
           <Box sx={{ width: 1, height: 16, bgcolor: BRAND.line, mx: 0.5 }} />
           <IconButton 
             size="small" 
             onClick={() => setViewMode('list')}
-            sx={{ color: viewMode === 'list' ? '#00BFFF' : 'rgba(255,255,255,0.4)', bgcolor: viewMode === 'list' ? 'rgba(0,191,255,0.1)' : 'transparent' }}
+            sx={{ color: viewMode === 'list' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: viewMode === 'list' ? 'rgba(0,191,255,0.1)' : 'transparent' }}
           >
             <ViewListRoundedIcon fontSize="small" />
           </IconButton>
           <IconButton 
             size="small" 
             onClick={() => setViewMode('grid')}
-            sx={{ color: viewMode === 'grid' ? '#00BFFF' : 'rgba(255,255,255,0.4)', bgcolor: viewMode === 'grid' ? 'rgba(0,191,255,0.1)' : 'transparent' }}
+            sx={{ color: viewMode === 'grid' ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.4)', bgcolor: viewMode === 'grid' ? 'rgba(0,191,255,0.1)' : 'transparent' }}
           >
             <AppsRoundedIcon fontSize="small" />
           </IconButton>
@@ -257,14 +257,14 @@ const AIDrivePanel: React.FC = () => {
           <IconButton 
             size="small" 
             onClick={() => setAIDriveExpanded(true)}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
           >
             <OpenInFullRoundedIcon fontSize="small" />
           </IconButton>
           <IconButton 
             size="small" 
             onClick={() => setAIDriveOpen(false)}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
           >
             <CloseRoundedIcon fontSize="small" />
           </IconButton>
@@ -278,15 +278,15 @@ const AIDrivePanel: React.FC = () => {
           {/* Search */}
           <Box sx={{ 
             display: 'flex', alignItems: 'center', bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 3, px: 2, py: 1.5, 
-            border: `1px solid rgba(255,255,255,0.08)`, transition: 'all 0.2s',
+            border: `1px solid rgb(var(--brand-fg-rgb) / 0.08)`, transition: 'all 0.2s',
             '&:focus-within': { borderColor: '#00BFFF', boxShadow: '0 0 0 1px #00BFFF', bgcolor: 'rgba(0,0,0,0.6)' } 
           }}>
-            <SearchRoundedIcon sx={{ color: 'rgba(255,255,255,0.4)', mr: 1.5, fontSize: 20 }} />
+            <SearchRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1.5, fontSize: 20 }} />
             <TextField 
-              placeholder="AI Drive のファイル、モデル、プロジェクトを検索..."
+              placeholder="SEKKEIYA Drive のファイル、モデル、プロジェクトを検索..."
               variant="standard"
               fullWidth
-              InputProps={{ disableUnderline: true, sx: { color: '#fff', fontSize: '14px' } }}
+              InputProps={{ disableUnderline: true, sx: { color: 'var(--brand-fg)', fontSize: '14px' } }}
             />
           </Box>
 
@@ -300,14 +300,14 @@ const AIDrivePanel: React.FC = () => {
                 sx={{
                   height: 32, 
                   px: 0.5,
-                  bgcolor: activeFilter === f.id ? 'rgba(0,191,255,0.15)' : 'rgba(255,255,255,0.05)', 
-                  color: activeFilter === f.id ? '#00BFFF' : 'rgba(255,255,255,0.7)',
+                  bgcolor: activeFilter === f.id ? 'rgba(0,191,255,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.05)', 
+                  color: activeFilter === f.id ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.7)',
                   border: `1px solid ${activeFilter === f.id ? 'rgba(0,191,255,0.3)' : 'transparent'}`, 
                   fontWeight: activeFilter === f.id ? 600 : 500,
                   fontSize: 13,
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  "&:hover": { bgcolor: activeFilter === f.id ? 'rgba(0,191,255,0.2)' : 'rgba(255,255,255,0.1)', color: '#fff' }
+                  "&:hover": { bgcolor: activeFilter === f.id ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)' }
                 }} 
               />
             ))}
@@ -316,7 +316,7 @@ const AIDrivePanel: React.FC = () => {
 
         {/* Content Area */}
         <Box sx={{ px: 3, pb: 3, flexGrow: 1, overflowY: 'auto' }}>
-          <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, mb: 2 }}>ファイル</Typography>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13, fontWeight: 600, mb: 2 }}>ファイル</Typography>
           
           <Box sx={{ display: 'grid', gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(140px, 1fr))' : '1fr', gap: 2 }}>
             {assets.map(asset => (
@@ -335,8 +335,8 @@ const AIDrivePanel: React.FC = () => {
                 }}
                 sx={{ 
                   p: viewMode === 'grid' ? 2 : 1.5, 
-                  bgcolor: 'rgba(255,255,255,0.02)', 
-                  border: `1px solid rgba(255,255,255,0.08)`, 
+                  bgcolor: 'rgb(var(--brand-fg-rgb) / 0.02)', 
+                  border: `1px solid rgb(var(--brand-fg-rgb) / 0.08)`, 
                   borderRadius: 3,
                   cursor: 'grab',
                   position: 'relative',
@@ -346,8 +346,8 @@ const AIDrivePanel: React.FC = () => {
                   alignItems: viewMode === 'grid' ? 'flex-start' : 'center',
                   gap: viewMode === 'grid' ? 1.5 : 2,
                   '&:hover': {
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                    borderColor: 'rgba(255,255,255,0.2)',
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
+                    borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)',
                     transform: viewMode === 'grid' ? 'translateY(-2px)' : 'none'
                   },
                   '&:active': {
@@ -359,7 +359,7 @@ const AIDrivePanel: React.FC = () => {
                   display: 'flex', justifyContent: 'center', alignItems: 'center', 
                   width: viewMode === 'grid' ? '100%' : 48,
                   height: viewMode === 'grid' ? 100 : 48, 
-                  bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 2,
+                  bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2,
                   overflow: 'hidden',
                   flexShrink: 0,
                   position: 'relative'
@@ -389,26 +389,26 @@ const AIDrivePanel: React.FC = () => {
                     sx={{
                       position: 'absolute', top: 4, left: 4,
                       width: 24, height: 24, borderRadius: 1,
-                      bgcolor: 'rgba(255,255,255,0.1)',
+                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'grab', backdropFilter: 'blur(4px)',
                       opacity: 0, transition: 'opacity 0.2s',
                       '.MuiPaper-root:hover &': { opacity: 1 },
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' }
                     }}
                     title="外部アプリ（Rhino等）へドラッグして配置"
                   >
-                    <InsertDriveFileRoundedIcon sx={{ fontSize: 14, color: '#fff' }} />
+                    <InsertDriveFileRoundedIcon sx={{ fontSize: 14, color: 'var(--brand-fg)' }} />
                   </Box>
                 </Box>
                 
                 <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: viewMode === 'grid' ? 'column' : 'row', alignItems: viewMode === 'grid' ? 'flex-start' : 'center', gap: viewMode === 'grid' ? 0.5 : 2, width: '100%' }}>
                   <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%' }}>
-                    <Typography noWrap sx={{ color: '#fff', fontSize: '0.875rem', fontWeight: 600, mb: 0.5, display: 'block', width: '100%' }}>
+                    <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: '0.875rem', fontWeight: 600, mb: 0.5, display: 'block', width: '100%' }}>
                       {asset.name}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      <Typography noWrap sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', display: 'block', width: '100%' }}>
+                      <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.75rem', display: 'block', width: '100%' }}>
                         {asset.updatedAt || asset.createdAt ? new Date(asset.updatedAt || asset.createdAt || 0).toLocaleDateString() : ''} に更新
                       </Typography>
                     </Box>
@@ -416,14 +416,14 @@ const AIDrivePanel: React.FC = () => {
                   
                   {viewMode === 'list' && (
                     <>
-                      <Typography noWrap sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', width: 60, flexShrink: 0 }}>
+                      <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.75rem', width: 60, flexShrink: 0 }}>
                         {asset.size ? `${(Number(asset.size) / 1024 / 1024).toFixed(1)}MB` : '-'}
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: 120, minWidth: 0, flexShrink: 0 }}>
                         <Avatar sx={{ width: 20, height: 20, fontSize: 10, bgcolor: 'primary.main' }}>
                           {asset.ownerId ? asset.ownerId.charAt(0).toUpperCase() : 'U'}
                         </Avatar>
-                        <Typography noWrap sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', minWidth: 0 }}>
+                        <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.75rem', minWidth: 0 }}>
                           {asset.ownerId || 'Unknown'}
                         </Typography>
                       </Box>

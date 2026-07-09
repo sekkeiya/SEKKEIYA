@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, Typography,
   ToggleButtonGroup, ToggleButton, MenuItem, Chip, CircularProgress,
 } from '@mui/material';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import StickyNote2RoundedIcon from '@mui/icons-material/StickyNote2Rounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
@@ -12,7 +13,7 @@ import { listKnownCategories, isWeakCategory, type KnowledgeKind } from '../type
 import { saveKnowledgeEntry, saveUrlSnapshot, fetchUrlContent, readLocalBinaryFile } from '../api/knowledgeApi';
 import { CATALOG_SOURCES } from '../data/catalogSources';
 import { useDskStore } from '../store/useDskStore';
-import { classifyKnowledge } from '../lib/ruleClassify';
+import { classifyKnowledge, looksLikeBook } from '../lib/ruleClassify';
 import { autoEnrichInBackground } from '../lib/autoEnrich';
 import { extractPdfTextWithMeta } from '../../dsf/lib/pdf';
 
@@ -23,7 +24,7 @@ interface AddEntryDialogProps {
   onClose: () => void;
 }
 
-type AddKind = Extract<KnowledgeKind, 'book' | 'url' | 'note'>;
+type AddKind = KnowledgeKind; // 書籍(book) / 書類(pdf) / Web(url) / メモ(note)
 
 const uuid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.floor(Math.random() * 1e9)}`);
@@ -31,7 +32,9 @@ const uuid = () =>
 export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose }) => {
   const upsert = useDskStore(s => s.upsert);
   const entries = useDskStore(s => s.entries);
-  const [kind, setKind] = useState<AddKind>('book');
+  // 既定は「書類」。ユーザーが種別を手で選んだかを覚え、選んでいないときだけ自動判定で書籍へ昇格する。
+  const [kind, setKind] = useState<AddKind>('pdf');
+  const kindTouchedRef = useRef(false);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState<string>('その他');
@@ -52,7 +55,8 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
   }, [entries, category]);
 
   const reset = () => {
-    setKind('book'); setTitle(''); setAuthor(''); setCategory('その他');
+    setKind('pdf'); kindTouchedRef.current = false;
+    setTitle(''); setAuthor(''); setCategory('その他');
     setTagsInput(''); setSourcePath(null); setSourceUrl(''); setBody('');
     setSaveSnapshot(true); setBusy(false); setError(null);
     setClassifying(false); setAutoHint(null);
@@ -85,7 +89,7 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
       const { open: openDialog } = await import('@tauri-apps/plugin-dialog');
       const selected = await openDialog({
         multiple: false,
-        filters: [{ name: 'PDF / 書籍', extensions: ['pdf'] }],
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
       });
       if (typeof selected === 'string') {
         setSourcePath(selected);
@@ -99,6 +103,12 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
           const buf = new Uint8Array(bytes).buffer;
           const meta = await extractPdfTextWithMeta(buf, 5);
           autoClassify({ fileName, text: meta.text });
+          // 種別の自動補正: ユーザーが種別を触っていない（既定の書類のまま）ときだけ、
+          // 内容が書籍らしければ「書籍」へ昇格する。
+          if (!kindTouchedRef.current && kind === 'pdf' && looksLikeBook({ fileName, text: meta.text })) {
+            setKind('book');
+            setAutoHint((h) => (h ? `${h} / 書籍として判定` : '書籍として判定'));
+          }
         } catch (e) {
           console.warn('[AddEntryDialog] auto-classify text extract failed', e);
         } finally {
@@ -163,12 +173,12 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
     try {
       const entry = await saveKnowledgeEntry({
         localId,
-        kind: kind === 'book' ? 'book' : kind, // book は PDF をコピー
+        kind, // book/pdf は Rust 側で PDF を LocalAssets\Documents\PDF にコピー
         title: title.trim(),
         category: finalCategory,
         author: author.trim() || null,
         tags,
-        sourcePath: kind === 'book' ? sourcePath : null,
+        sourcePath: kind === 'book' || kind === 'pdf' ? sourcePath : null,
         sourceUrl: kind === 'url' ? sourceUrl.trim() : null,
         bodyMarkdown: kind === 'note' ? body : null,
       });
@@ -202,29 +212,31 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { bgcolor: '#161a1a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } }}>
       <DialogTitle sx={{ pb: 1, fontSize: 18, fontWeight: 700 }}>知識を追加</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
         <ToggleButtonGroup
-          exclusive value={kind} onChange={(_, v) => { if (v) { setKind(v); setAutoHint(null); } }} size="small" fullWidth
-          sx={{ '& .MuiToggleButton-root': { color: 'rgba(255,255,255,0.6)', borderColor: 'rgba(255,255,255,0.15)', gap: 0.75, py: 1 }, '& .Mui-selected': { color: '#fff !important', bgcolor: `${ACCENT} !important` } }}
+          exclusive value={kind} onChange={(_, v) => { if (v) { setKind(v); kindTouchedRef.current = true; setAutoHint(null); } }} size="small" fullWidth
+          sx={{ '& .MuiToggleButton-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', gap: 0.75, py: 1 }, '& .Mui-selected': { color: '#fff !important', bgcolor: `${ACCENT} !important` } }}
         >
-          <ToggleButton value="book"><MenuBookRoundedIcon sx={{ fontSize: 18 }} />本 / PDF</ToggleButton>
+          <ToggleButton value="book"><MenuBookRoundedIcon sx={{ fontSize: 18 }} />書籍</ToggleButton>
+          <ToggleButton value="pdf"><DescriptionRoundedIcon sx={{ fontSize: 18 }} />書類</ToggleButton>
           <ToggleButton value="url"><LanguageRoundedIcon sx={{ fontSize: 18 }} />Web URL</ToggleButton>
           <ToggleButton value="note"><StickyNote2RoundedIcon sx={{ fontSize: 18 }} />メモ</ToggleButton>
         </ToggleButtonGroup>
 
-        {kind === 'book' && (
+        {(kind === 'book' || kind === 'pdf') && (
           <Box>
             <Button variant="outlined" startIcon={<FolderOpenRoundedIcon />} onClick={pickFile}
               sx={{ color: ACCENT, borderColor: ACCENT, '&:hover': { borderColor: '#4db6ac' } }}>
               PDF を選択
             </Button>
             {sourcePath && (
-              <Typography noWrap sx={{ mt: 1, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{sourcePath}</Typography>
+              <Typography noWrap sx={{ mt: 1, fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>{sourcePath}</Typography>
             )}
-            <Typography sx={{ mt: 1, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-              ※ 選択した PDF は PC\SEKKEIYA\LocalAssets\Documents\PDF にコピーされ、クラウドには上がりません。
+            <Typography sx={{ mt: 1, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
+              書籍＝通読する出版物（本・雑誌）／書類＝カタログ・仕様書などの実務資料。内容から自動判定します（変更可）。
+              <br />※ 選択した PDF は PC\SEKKEIYA\LocalAssets\Documents\PDF にコピーされ、クラウドには上がりません。
             </Typography>
           </Box>
         )}
@@ -242,7 +254,7 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
         {/* メーカー電子カタログのワンクリック・プリフィル（クリックで下のフォームに反映→「追加」で登録） */}
         {kind === 'url' && (
           <Box>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 0.75 }}>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.75 }}>
               主要仕上げメーカーの電子カタログ（クリックで入力 → 「追加」で登録）
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -262,7 +274,7 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
                     });
                     setAutoHint(`${c.manufacturer}（${c.genre}）`);
                   }}
-                  sx={{ height: 24, fontSize: 11, color: '#fff', bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}22` } }}
+                  sx={{ height: 24, fontSize: 11, color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', cursor: 'pointer', '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}22` } }}
                 />
               ))}
             </Box>
@@ -291,7 +303,7 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
             {classifying ? (
               <>
                 <CircularProgress size={12} sx={{ color: ACCENT }} />
-                <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>内容から自動分類中…</Typography>
+                <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>内容から自動分類中…</Typography>
               </>
             ) : (
               <>
@@ -306,17 +318,17 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
           <Chip
             onClick={() => setSaveSnapshot(v => !v)}
             label={saveSnapshot ? 'HTMLスナップショットを保存する' : 'スナップショットを保存しない'}
-            sx={{ alignSelf: 'flex-start', bgcolor: saveSnapshot ? `${ACCENT}33` : 'rgba(255,255,255,0.08)', color: saveSnapshot ? ACCENT : 'rgba(255,255,255,0.6)', cursor: 'pointer' }}
+            sx={{ alignSelf: 'flex-start', bgcolor: saveSnapshot ? `${ACCENT}33` : 'rgb(var(--brand-fg-rgb) / 0.08)', color: saveSnapshot ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.6)', cursor: 'pointer' }}
           />
         )}
 
-        {error && <Typography sx={{ color: '#ff6b6b', fontSize: 13 }}>{error}</Typography>}
+        {error && <Typography sx={{ color: 'light-dark(#ad0000, #ff6b6b)', fontSize: 13 }}>{error}</Typography>}
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
-        <Button onClick={handleClose} disabled={busy} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={handleClose} disabled={busy} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button onClick={handleSave} disabled={!canSave} variant="contained"
-          startIcon={busy ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : undefined}
-          sx={{ bgcolor: ACCENT, '&:hover': { bgcolor: '#4db6ac' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}>
+          startIcon={busy ? <CircularProgress size={16} sx={{ color: 'var(--brand-fg)' }} /> : undefined}
+          sx={{ bgcolor: ACCENT, '&:hover': { bgcolor: '#4db6ac' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}>
           {busy ? '保存中...' : '追加'}
         </Button>
       </DialogActions>
@@ -325,8 +337,8 @@ export const AddEntryDialog: React.FC<AddEntryDialogProps> = ({ open, onClose })
 };
 
 const textSx = {
-  '& .MuiInputBase-root': { color: '#fff' },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-  '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+  '& .MuiInputBase-root': { color: 'var(--brand-fg)' },
+  '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+  '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.6)' },
 } as const;

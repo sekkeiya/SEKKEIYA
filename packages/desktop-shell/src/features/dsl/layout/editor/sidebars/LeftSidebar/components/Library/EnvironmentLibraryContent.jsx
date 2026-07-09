@@ -52,7 +52,7 @@ function FlatPreview() {
           top: "60%",
           height: 2,
           background:
-            "linear-gradient(to right, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)",
+            "linear-gradient(to right, transparent 0%, rgb(var(--brand-fg-rgb) / 0.6) 50%, transparent 100%)",
         }}
       />
       {/* sun */}
@@ -117,14 +117,14 @@ function PresetCard({ id, label, Preview, accentColor, selected, onSelect }) {
         overflow: "hidden",
         background: alpha("#fff", 0.03),
         border: `1px solid ${
-          selected ? alpha(accentColor, 0.85) : alpha("#fff", 0.08)
+          selected ? `color-mix(in srgb, ${accentColor} 85%, transparent)` : alpha("#fff", 0.08)
         }`,
         cursor: "pointer",
         userSelect: "none",
         transition: "all 0.16s ease",
         position: "relative",
         "&:hover": {
-          border: `1px solid ${alpha(accentColor, 0.7)}`,
+          border: `1px solid ${`color-mix(in srgb, ${accentColor} 70%, transparent)`}`,
           boxShadow: `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${alpha(
             accentColor,
             0.25
@@ -153,7 +153,7 @@ function PresetCard({ id, label, Preview, accentColor, selected, onSelect }) {
               width: 20,
               height: 20,
               borderRadius: "50%",
-              background: alpha(accentColor, 0.9),
+              background: `color-mix(in srgb, ${accentColor} 90%, transparent)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -169,7 +169,7 @@ function PresetCard({ id, label, Preview, accentColor, selected, onSelect }) {
         sx={{
           px: 1,
           py: 0.6,
-          background: alpha("#000", 0.25),
+          background: "color-mix(in srgb, var(--brand-bg) 25%, transparent)",
           borderTop: `1px solid ${alpha("#fff", 0.05)}`,
         }}
       >

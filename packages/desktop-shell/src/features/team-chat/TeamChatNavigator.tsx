@@ -49,16 +49,16 @@ const Row: React.FC<{
       px: 1.5, py: 1, cursor: 'pointer', borderRadius: 1.5, mx: 0.75,
       bgcolor: active ? 'rgba(138,180,248,0.12)' : 'transparent',
       transition: 'background 0.15s',
-      '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.16)' : 'rgba(255,255,255,0.05)' },
+      '&:hover': { bgcolor: active ? 'rgba(138,180,248,0.16)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
     }}
   >
     {avatar}
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography noWrap sx={{ fontSize: '0.72rem', fontWeight: active ? 600 : 400, color: active ? '#fff' : 'rgba(255,255,255,0.85)' }}>
+      <Typography noWrap sx={{ fontSize: '0.72rem', fontWeight: active ? 600 : 400, color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.85)' }}>
         {title}
       </Typography>
       {subtitle && (
-        <Typography noWrap sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: 300 }}>
+        <Typography noWrap sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 300 }}>
           {subtitle}
         </Typography>
       )}
@@ -67,7 +67,7 @@ const Row: React.FC<{
 );
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography sx={{ px: 2, pt: 1.5, pb: 0.5, fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>
+  <Typography sx={{ px: 2, pt: 1.5, pb: 0.5, fontSize: '0.58rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontWeight: 600 }}>
     {children}
   </Typography>
 );
@@ -147,11 +147,11 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
             onClick={() => setTab(t.id)}
             sx={{
               fontSize: '0.62rem', fontWeight: tab === t.id ? 700 : 400,
-              color: tab === t.id ? '#fff' : 'rgba(255,255,255,0.5)',
-              bgcolor: tab === t.id ? 'rgba(255,255,255,0.1)' : 'transparent',
-              border: '1px solid', borderColor: tab === t.id ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
+              color: tab === t.id ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.5)',
+              bgcolor: tab === t.id ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+              border: '1px solid', borderColor: tab === t.id ? 'rgb(var(--brand-fg-rgb) / 0.18)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
               borderRadius: 5, px: 1.1, py: 0.35, cursor: 'pointer', transition: 'all 0.15s',
-              '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' },
+              '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
             }}
           >
             {t.label}
@@ -163,7 +163,7 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
       <Box sx={{ flex: 1, overflowY: 'auto', pb: 1.5 }}>
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={16} sx={{ color: 'rgba(255,255,255,0.3)' }} />
+            <CircularProgress size={16} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
           </Box>
         )}
 
@@ -180,7 +180,7 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
                     : <Avatar sx={{ width: 28, height: 28, bgcolor: 'rgba(138,180,248,0.15)' }}>
                         {p.iconEmoji
                           ? <span style={{ fontSize: 14 }}>{p.iconEmoji}</span>
-                          : <FolderRoundedIcon sx={{ fontSize: 14, color: '#8ab4f8' }} />}
+                          : <FolderRoundedIcon sx={{ fontSize: 14, color: 'light-dark(#0a45a4, #8ab4f8)' }} />}
                       </Avatar>
                 }
                 title={p.name}
@@ -221,7 +221,7 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
             <Row
               avatar={
                 <Avatar sx={{ width: 28, height: 28, bgcolor: 'rgba(138,180,248,0.12)' }}>
-                  <SearchRoundedIcon sx={{ fontSize: 15, color: '#8ab4f8' }} />
+                  <SearchRoundedIcon sx={{ fontSize: 15, color: 'light-dark(#0a45a4, #8ab4f8)' }} />
                 </Avatar>
               }
               title="ユーザーを検索"
@@ -257,7 +257,7 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
                   <Row
                     key={m.uid}
                     avatar={
-                      <Avatar src={m.photoURL || undefined} sx={{ width: 28, height: 28, fontSize: 12, bgcolor: 'rgba(255,255,255,0.12)' }}>
+                      <Avatar src={m.photoURL || undefined} sx={{ width: 28, height: 28, fontSize: 12, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)' }}>
                         {m.displayName.slice(0, 1)}
                       </Avatar>
                     }
@@ -276,8 +276,8 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
           ? (dms.length === 0 && newDmCandidates.length === 0)
           : (projects.length === 0 && teams.length === 0 && dms.length === 0 && newDmCandidates.length === 0)) && (
           <Box sx={{ textAlign: 'center', py: 5, opacity: 0.5 }}>
-            <ForumRoundedIcon sx={{ fontSize: 28, color: 'rgba(255,255,255,0.3)', mb: 1 }} />
-            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', fontWeight: 300 }}>
+            <ForumRoundedIcon sx={{ fontSize: 28, color: 'rgb(var(--brand-fg-rgb) / 0.3)', mb: 1 }} />
+            <Typography sx={{ fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 300 }}>
               {dmOnly
                 ? <>DM できる相手がまだいません。<br />相互フォローを増やしましょう。</>
                 : <>チャットできる相手がまだいません。<br />チームに参加するか、相互フォローを増やしましょう。</>}
@@ -296,7 +296,7 @@ export const ChatTargetList: React.FC<{ onSelected?: () => void; dmOnly?: boolea
 // dmOnly: Project Chat → DM 化。ダイレクトメッセージのみを一覧する。
 export const TeamChatNavigator: React.FC<{ dmOnly?: boolean }> = ({ dmOnly = false }) => (
   <>
-    <Typography sx={{ px: 1.5, pt: 1.25, pb: 0, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 600, flexShrink: 0 }}>
+    <Typography sx={{ px: 1.5, pt: 1.25, pb: 0, fontSize: '0.6rem', letterSpacing: '1px', textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, flexShrink: 0 }}>
       {dmOnly ? 'ダイレクト' : 'トーク'}
     </Typography>
     <Box sx={{ flex: 1, minHeight: 0 }}>

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { doc, onSnapshot, addDoc, collection } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions, auth } from '../lib/firebase/client';
 import { useAIRenderStore } from '../store/useAIRenderStore';
 import { uploadImageAndGetUrl } from '../lib/firebase/uploadImage';
+import { publishToDrive } from '../features/drive/drivePublish';
 import { useAuth } from '../features/dsl/layout/hooks/useAuthProxy';
 
 const DEFAULT_ESTIMATED_DURATION_MS = 60000;
@@ -148,16 +149,17 @@ export const useAIRenderGeneration = () => {
       }
 
       const renderTitle = `AI Render ${new Date().toLocaleString('ja-JP')}`;
-      const assetRef = await addDoc(collection(db, 'assets'), {
+      // Drive アクセス層の正典 publish ヘルパー経由で My Library（global assets）へ。
+      // 従来の手書き addDoc と同じ保存先だが、visibility/appScope/kind を正規化して統一する。
+      const published = await publishToDrive({
         name: renderTitle,
-        type: 'image',
+        kind: 'render',
         storageUrl: resultUrl,
         thumbnailUrl: resultUrl,
-        imageUrl: resultUrl,
         size: sizeLabel,
-        ownerId: uid,
-        projectId: contextProjectId || null,
-        sourceCollection: 'global_assets',
+        projectId: null, // 従来どおり My Library（global）に置き、プロジェクト紐付けは下の S.Image リンクで表現。
+        visibility: 'private',
+        appScope: '3dsi',
         tags: ['ai-render', selectedModel || 'nanobanana'],
         metadata: {
           source: 'ai_render',
@@ -165,14 +167,13 @@ export const useAIRenderGeneration = () => {
           prompt,
           generationJobId: taskId,
         },
-        createdAt: Date.now(),
       });
 
       // S.Image（3DSI）へ参照インデックスを登録（プロジェクト紐付けがある場合のみ・ベストエフォート）。
       if (contextProjectId) {
         try {
           const { dsiUploadService } = await import('../features/dsi/upload/dsiUploadService');
-          await dsiUploadService.linkExternalImage(contextProjectId, assetRef.id, {
+          await dsiUploadService.linkExternalImage(contextProjectId, published.id, {
             title: renderTitle,
             category: 'AIレンダー',
             downloadUrl: resultUrl,
@@ -190,10 +191,10 @@ export const useAIRenderGeneration = () => {
           console.warn('[AIRender] S.Image link skipped (non-fatal):', e);
         }
       }
-      alert('AI Drive に保存しました');
+      alert('SEKKEIYA Drive に保存しました');
     } catch (err: any) {
       console.error('[AIRender] saveResultToDrive error:', err);
-      alert('AI Drive 保存に失敗しました: ' + (err?.message || ''));
+      alert('SEKKEIYA Drive 保存に失敗しました: ' + (err?.message || ''));
     } finally {
       setBusy(false);
     }

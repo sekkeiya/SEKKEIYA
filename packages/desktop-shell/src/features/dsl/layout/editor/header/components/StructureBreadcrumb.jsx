@@ -52,7 +52,7 @@ export default function StructureBreadcrumb() {
         return (
           <React.Fragment key={crumb.key}>
             {i > 0 && (
-              <ChevronRightRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.35), flexShrink: 0 }} />
+              <ChevronRightRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", flexShrink: 0 }} />
             )}
             <Typography
               noWrap
@@ -61,7 +61,7 @@ export default function StructureBreadcrumb() {
               sx={{
                 fontSize: 12.5,
                 fontWeight: isLast ? 800 : 600,
-                color: isLast ? alpha("#fff", 0.95) : alpha("#fff", 0.6),
+                color: isLast ? "color-mix(in srgb, var(--brand-fg) 95%, transparent)" : alpha("#fff", 0.6),
                 letterSpacing: 0.2,
                 cursor: clickable ? "pointer" : "default",
                 borderRadius: 0.75,
@@ -69,7 +69,7 @@ export default function StructureBreadcrumb() {
                 transition: "color 0.12s, background 0.12s",
                 ...(clickable && {
                   "&:hover": {
-                    color: alpha("#fff", 0.95),
+                    color: "color-mix(in srgb, var(--brand-fg) 95%, transparent)",
                     background: alpha("#fff", 0.08),
                     textDecoration: "underline",
                   },
@@ -93,7 +93,7 @@ export default function StructureBreadcrumb() {
             fontSize: 10,
             fontWeight: 900,
             letterSpacing: 0.3,
-            color: alpha("#22d3ee", 0.95),
+            color: "light-dark(rgba(12,141,161,0.95), rgba(34,211,238,0.95))",
             background: alpha("#22d3ee", 0.16),
             border: `1px solid ${alpha("#22d3ee", 0.4)}`,
             flexShrink: 0,

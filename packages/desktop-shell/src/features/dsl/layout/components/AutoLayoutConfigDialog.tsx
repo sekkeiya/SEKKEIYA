@@ -81,9 +81,9 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
       PaperProps={{
         sx: {
           borderRadius: 3,
-          background: "#1c1c24",
+          background: "var(--brand-surface2)",
           border: `1px solid ${line}`,
-          color: "#fff",
+          color: "var(--brand-fg)",
           minWidth: 380,
         },
       }}
@@ -91,7 +91,7 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
       <DialogTitle sx={{ fontWeight: 900, fontSize: 18, borderBottom: `1px solid ${line}`, pb: 2 }}>
         Auto Layout の設定
         {noZones && (
-          <Typography sx={{ fontSize: 12, color: alpha('#a78bfa', 0.9), mt: 0.5, fontWeight: 400 }}>
+          <Typography sx={{ fontSize: 12, color: 'light-dark(rgba(47,7,166,0.9), rgba(167,139,250,0.9))', mt: 0.5, fontWeight: 400 }}>
             ゾーン未定義のため、部屋全体を配置エリアとして使用します
           </Typography>
         )}
@@ -101,7 +101,7 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
           {/* 部屋寸法（ゾーン未定義時のみ表示） */}
           {noZones && (
             <FormControl>
-              <FormLabel sx={{ color: alpha('#fff', 0.7), fontSize: 14, mb: 1.5, '&.Mui-focused': { color: alpha('#fff', 0.7) } }}>
+              <FormLabel sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: 14, mb: 1.5, '&.Mui-focused': { color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" } }}>
                 部屋の寸法
               </FormLabel>
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -111,12 +111,12 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
                   type="number"
                   value={roomWidthMm}
                   onChange={(e) => setRoomWidthMm(Math.max(1000, Number(e.target.value)))}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 12, color: alpha('#fff', 0.5) }}>mm</Typography></InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>mm</Typography></InputAdornment> }}
                   inputProps={{ min: 1000, max: 20000, step: 100 }}
                   sx={{
                     flex: 1,
-                    '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: line }, '&:hover fieldset': { borderColor: alpha('#fff', 0.4) }, '&.Mui-focused fieldset': { borderColor: '#a78bfa' } },
-                    '& .MuiInputLabel-root': { color: alpha('#fff', 0.5), '&.Mui-focused': { color: '#a78bfa' } },
+                    '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', '& fieldset': { borderColor: line }, '&:hover fieldset': { borderColor: alpha('#fff', 0.4) }, '&.Mui-focused fieldset': { borderColor: '#a78bfa' } },
+                    '& .MuiInputLabel-root': { color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", '&.Mui-focused': { color: 'light-dark(#2f07a6, #a78bfa)' } },
                   }}
                 />
                 <TextField
@@ -125,19 +125,19 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
                   type="number"
                   value={roomDepthMm}
                   onChange={(e) => setRoomDepthMm(Math.max(1000, Number(e.target.value)))}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 12, color: alpha('#fff', 0.5) }}>mm</Typography></InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end"><Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>mm</Typography></InputAdornment> }}
                   inputProps={{ min: 1000, max: 20000, step: 100 }}
                   sx={{
                     flex: 1,
-                    '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: line }, '&:hover fieldset': { borderColor: alpha('#fff', 0.4) }, '&.Mui-focused fieldset': { borderColor: '#a78bfa' } },
-                    '& .MuiInputLabel-root': { color: alpha('#fff', 0.5), '&.Mui-focused': { color: '#a78bfa' } },
+                    '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', '& fieldset': { borderColor: line }, '&:hover fieldset': { borderColor: alpha('#fff', 0.4) }, '&.Mui-focused fieldset': { borderColor: '#a78bfa' } },
+                    '& .MuiInputLabel-root': { color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", '&.Mui-focused': { color: 'light-dark(#2f07a6, #a78bfa)' } },
                   }}
                 />
               </Box>
             </FormControl>
           )}
           <FormControl>
-            <FormLabel sx={{ color: alpha("#fff", 0.7), fontSize: 14, mb: 1, '&.Mui-focused': { color: alpha("#fff", 0.7) } }}>
+            <FormLabel sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: 14, mb: 1, '&.Mui-focused': { color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" } }}>
               生成モード
             </FormLabel>
             <RadioGroup
@@ -146,19 +146,19 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
             >
               <FormControlLabel 
                 value="rules-only" 
-                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: '#a78bfa' } }} />} 
+                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: 'light-dark(#2f07a6, #a78bfa)' } }} />} 
                 label={<Typography sx={{ fontSize: 15 }}>ルールベースのみ（高速）</Typography>} 
               />
               <FormControlLabel 
                 value="ai" 
-                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: '#a78bfa' } }} />} 
+                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: 'light-dark(#2f07a6, #a78bfa)' } }} />} 
                 label={<Typography sx={{ fontSize: 15 }}>AI レイアウト</Typography>} 
               />
             </RadioGroup>
           </FormControl>
 
           <FormControl>
-            <FormLabel sx={{ color: alpha("#fff", 0.7), fontSize: 14, mb: 1, '&.Mui-focused': { color: alpha("#fff", 0.7) } }}>
+            <FormLabel sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: 14, mb: 1, '&.Mui-focused': { color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" } }}>
               建物タイプ（配置ルールの基準）
             </FormLabel>
             <RadioGroup
@@ -172,24 +172,24 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
             >
               <FormControlLabel 
                 value="residential" 
-                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: '#a78bfa' } }} />} 
+                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: 'light-dark(#2f07a6, #a78bfa)' } }} />} 
                 label={<Typography sx={{ fontSize: 15 }}>住宅 (Residential)</Typography>} 
               />
               <FormControlLabel 
                 value="office" 
-                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: '#a78bfa' } }} />} 
+                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: 'light-dark(#2f07a6, #a78bfa)' } }} />} 
                 label={<Typography sx={{ fontSize: 15 }}>オフィス (Office)</Typography>} 
               />
               <FormControlLabel 
                 value="cafe" 
-                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: '#a78bfa' } }} />} 
+                control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: 'light-dark(#2f07a6, #a78bfa)' } }} />} 
                 label={<Typography sx={{ fontSize: 15 }}>カフェ (Cafe)</Typography>} 
               />
             </RadioGroup>
           </FormControl>
 
           <FormControl>
-            <FormLabel sx={{ color: alpha("#fff", 0.7), fontSize: 14, mb: 1, '&.Mui-focused': { color: alpha("#fff", 0.7) } }}>
+            <FormLabel sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontSize: 14, mb: 1, '&.Mui-focused': { color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" } }}>
               ゾーン用途（配置ルールの基準）
             </FormLabel>
             <RadioGroup
@@ -202,7 +202,7 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
                 <FormControlLabel
                   key={opt.value}
                   value={opt.value}
-                  control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: '#a78bfa' } }} />}
+                  control={<Radio size="small" sx={{ color: line, '&.Mui-checked': { color: 'light-dark(#2f07a6, #a78bfa)' } }} />}
                   label={<Typography sx={{ fontSize: 15 }}>{opt.label}</Typography>}
                 />
               ))}
@@ -214,7 +214,7 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
         <Button
           onClick={closeConfigDialog}
           sx={{
-            color: alpha("#fff", 0.8),
+            color: "color-mix(in srgb, var(--brand-fg) 80%, transparent)",
             "&:hover": { background: alpha("#fff", 0.05) },
           }}
         >
@@ -229,7 +229,7 @@ export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProp
             fontWeight: 800,
             background: "#7c3aed",
             "&:hover": { background: "#6d28d9" },
-            "&.Mui-disabled": { background: alpha("#7c3aed", 0.3), color: alpha("#fff", 0.3) }
+            "&.Mui-disabled": { background: alpha("#7c3aed", 0.3), color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)" }
           }}
         >
           実行

@@ -43,7 +43,7 @@ export const DscEditorDock: React.FC = () => {
           p: 0.75,
           bgcolor: DOCK_BG,
           backdropFilter: 'blur(14px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           borderRadius: 2.5,
           boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
         }}
@@ -55,12 +55,12 @@ export const DscEditorDock: React.FC = () => {
             onClick={() => setShowDscProjectBrowser(!showDscProjectBrowser)}
             sx={{
               width: 32, height: 32, borderRadius: 1.5,
-              color: showDscProjectBrowser ? ACCENT : 'rgba(255,255,255,0.45)',
+              color: showDscProjectBrowser ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
               bgcolor: showDscProjectBrowser ? 'rgba(255,167,38,0.14)' : 'transparent',
               transition: 'all 0.15s',
               '&:hover': {
-                color: showDscProjectBrowser ? ACCENT : 'rgba(255,255,255,0.85)',
-                bgcolor: showDscProjectBrowser ? 'rgba(255,167,38,0.2)' : 'rgba(255,255,255,0.08)',
+                color: showDscProjectBrowser ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                bgcolor: showDscProjectBrowser ? 'rgba(255,167,38,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
               },
             }}
           >
@@ -68,7 +68,7 @@ export const DscEditorDock: React.FC = () => {
           </IconButton>
         </Tooltip>
 
-        <Divider sx={{ width: 20, borderColor: 'rgba(255,255,255,0.1)', my: 0.25 }} />
+        <Divider sx={{ width: 20, borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', my: 0.25 }} />
 
         {/* パーツタブ */}
         <Tooltip title="パーツ" placement="right" arrow>
@@ -77,12 +77,12 @@ export const DscEditorDock: React.FC = () => {
             onClick={() => setShowDscProjectBrowser(false)}
             sx={{
               width: 32, height: 32, borderRadius: 1.5,
-              color: !showDscProjectBrowser ? ACCENT : 'rgba(255,255,255,0.4)',
+              color: !showDscProjectBrowser ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.4)',
               bgcolor: !showDscProjectBrowser ? 'rgba(255,167,38,0.14)' : 'transparent',
               transition: 'all 0.15s',
               '&:hover': {
-                color: !showDscProjectBrowser ? ACCENT : 'rgba(255,255,255,0.85)',
-                bgcolor: !showDscProjectBrowser ? 'rgba(255,167,38,0.2)' : 'rgba(255,255,255,0.08)',
+                color: !showDscProjectBrowser ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                bgcolor: !showDscProjectBrowser ? 'rgba(255,167,38,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
               },
             }}
           >
@@ -97,10 +97,10 @@ export const DscEditorDock: React.FC = () => {
             onClick={() => setShowDscProjectBrowser(false)}
             sx={{
               width: 32, height: 32, borderRadius: 1.5,
-              color: 'rgba(255,255,255,0.4)',
+              color: 'rgb(var(--brand-fg-rgb) / 0.4)',
               bgcolor: 'transparent',
               transition: 'all 0.15s',
-              '&:hover': { color: 'rgba(255,255,255,0.85)', bgcolor: 'rgba(255,255,255,0.08)' },
+              '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.85)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
             }}
           >
             <LayersRoundedIcon sx={{ fontSize: 16 }} />
@@ -123,7 +123,7 @@ export const DscEditorDock: React.FC = () => {
           p: 0.75,
           bgcolor: DOCK_BG,
           backdropFilter: 'blur(14px)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
           borderRadius: 2.5,
           boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
         }}
@@ -134,12 +134,12 @@ export const DscEditorDock: React.FC = () => {
             onClick={() => setShowDscRightSidebar(!showDscRightSidebar)}
             sx={{
               width: 32, height: 32, borderRadius: 1.5,
-              color: showDscRightSidebar ? ACCENT : 'rgba(255,255,255,0.45)',
+              color: showDscRightSidebar ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.45)',
               bgcolor: showDscRightSidebar ? 'rgba(255,167,38,0.14)' : 'transparent',
               transition: 'all 0.15s',
               '&:hover': {
-                color: showDscRightSidebar ? ACCENT : 'rgba(255,255,255,0.85)',
-                bgcolor: showDscRightSidebar ? 'rgba(255,167,38,0.2)' : 'rgba(255,255,255,0.08)',
+                color: showDscRightSidebar ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.85)',
+                bgcolor: showDscRightSidebar ? 'rgba(255,167,38,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)',
               },
             }}
           >

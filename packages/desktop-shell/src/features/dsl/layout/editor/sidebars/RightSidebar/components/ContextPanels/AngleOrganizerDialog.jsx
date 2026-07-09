@@ -78,7 +78,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
   };
 
   const fieldSx = {
-    "& .MuiInputBase-root": { fontSize: 11.5, color: "#fff", background: alpha("#fff", 0.05), borderRadius: 1 },
+    "& .MuiInputBase-root": { fontSize: 11.5, color: "var(--brand-fg)", background: alpha("#fff", 0.05), borderRadius: 1 },
     "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.12) },
   };
 
@@ -88,7 +88,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      PaperProps={{ sx: { bgcolor: "rgba(16,20,30,0.98)", color: "#fff", backgroundImage: "none", border: `1px solid ${alpha("#fff", 0.1)}` } }}
+      PaperProps={{ sx: { bgcolor: "rgba(16,20,30,0.98)", color: "var(--brand-fg)", backgroundImage: "none", border: `1px solid ${alpha("#fff", 0.1)}` } }}
     >
       <DialogTitle sx={{ p: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
         <CollectionsRoundedIcon sx={{ fontSize: 18, color: accent }} />
@@ -96,7 +96,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
           アングル整理（{kind === "movie" ? "動画" : "パース"}）
         </Typography>
         <Typography sx={{ fontSize: 11, opacity: 0.5, mr: 1 }}>{filtered.length} / {kindShots.length}</Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: alpha("#fff", 0.7) }}>
+        <IconButton size="small" onClick={onClose} sx={{ color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
           <CloseRoundedIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -107,7 +107,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
           <TextField
             size="small" placeholder="名前・タグで検索" value={search}
             onChange={(e) => setSearch(e.target.value)} sx={{ ...fieldSx, minWidth: 200, flex: 1 }}
-            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 16, color: alpha("#fff", 0.5) }} /></InputAdornment> }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }} /></InputAdornment> }}
           />
           <Select size="small" value={catFilter} onChange={(e) => setCatFilter(e.target.value)} sx={{ ...fieldSx, minWidth: 130 }}>
             <MenuItem value="ALL">カテゴリ: 全て</MenuItem>
@@ -140,7 +140,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
                       "&:hover .ov": { opacity: 1 },
                     }}
                   >
-                    <Box className="ov" sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: alpha(accent, 0.18), opacity: 0, transition: "opacity 0.15s", fontSize: 10.5, fontWeight: 800, color: "#fff" }}>
+                    <Box className="ov" sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: alpha(accent, 0.18), opacity: 0, transition: "opacity 0.15s", fontSize: 10.5, fontWeight: 800, color: "var(--brand-fg)" }}>
                       <VideocamRoundedIcon sx={{ fontSize: 15, mr: 0.5 }} /> このアングルへ
                     </Box>
                   </Box>
@@ -151,10 +151,10 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
                       <TextField
                         size="small" variant="standard" value={sh.name}
                         onChange={(e) => renameShot(sh.id, e.target.value)}
-                        sx={{ flex: 1, "& .MuiInput-input": { fontSize: 12, fontWeight: 700, color: "#fff", p: 0 }, "& .MuiInput-underline:before": { borderColor: alpha("#fff", 0.15) } }}
+                        sx={{ flex: 1, "& .MuiInput-input": { fontSize: 12, fontWeight: 700, color: "var(--brand-fg)", p: 0 }, "& .MuiInput-underline:before": { borderColor: alpha("#fff", 0.15) } }}
                       />
                       <Tooltip title="削除">
-                        <IconButton size="small" onClick={() => removeShot(sh.id)} sx={{ p: 0.3, color: alpha("#fff", 0.5), "&:hover": { color: "#f87171" } }}>
+                        <IconButton size="small" onClick={() => removeShot(sh.id)} sx={{ p: 0.3, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", "&:hover": { color: "light-dark(#a50808, #f87171)" } }}>
                           <DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
@@ -175,7 +175,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
                         value={sh.movieMotion?.preset || "pushIn"}
                         onChange={(e) => setShotMotion(sh.id, { preset: e.target.value })}
                         sx={{ ...fieldSx, "& .MuiSelect-select": { py: 0.4, fontSize: 11 } }}
-                        startAdornment={<VideocamRoundedIcon sx={{ fontSize: 13, color: alpha("#fff", 0.5), mr: 0.5 }} />}
+                        startAdornment={<VideocamRoundedIcon sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mr: 0.5 }} />}
                       >
                         {CAMERA_PATH_PRESETS.filter((p) => p.id !== "shots").map((p) => (
                           <MenuItem key={p.id} value={p.id} sx={{ fontSize: 11 }}>{p.label}</MenuItem>
@@ -187,7 +187,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.4 }}>
                       {(sh.tags || []).map((t) => (
                         <Chip key={t} label={t} size="small" onDelete={() => removeShotTag(sh.id, t)}
-                          sx={{ height: 19, fontSize: 9.5, background: alpha(accent, 0.18), color: "#fff", "& .MuiChip-deleteIcon": { fontSize: 13, color: alpha("#fff", 0.6) } }} />
+                          sx={{ height: 19, fontSize: 9.5, background: alpha(accent, 0.18), color: "var(--brand-fg)", "& .MuiChip-deleteIcon": { fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" } }} />
                       ))}
                       <TextField
                         size="small" variant="standard" placeholder="+タグ"
@@ -195,7 +195,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
                         onChange={(e) => setTagDraft((d) => ({ ...d, [sh.id]: e.target.value }))}
                         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitTag(sh.id); } }}
                         onBlur={() => commitTag(sh.id)}
-                        sx={{ width: 56, "& .MuiInput-input": { fontSize: 10, color: "#fff", p: 0 }, "& .MuiInput-underline:before": { borderColor: alpha("#fff", 0.12) } }}
+                        sx={{ width: 56, "& .MuiInput-input": { fontSize: 10, color: "var(--brand-fg)", p: 0 }, "& .MuiInput-underline:before": { borderColor: alpha("#fff", 0.12) } }}
                       />
                     </Box>
 
@@ -212,7 +212,7 @@ export default function AngleOrganizerDialog({ open, onClose, kind = "still", ac
                                   height: 18, fontSize: 9, cursor: "pointer",
                                   background: on ? alpha(accent, 0.3) : "transparent",
                                   border: `1px solid ${on ? alpha(accent, 0.6) : alpha("#fff", 0.12)}`,
-                                  color: on ? "#fff" : alpha("#fff", 0.55),
+                                  color: on ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 55%, transparent)",
                                 }} />
                             );
                           })}

@@ -106,7 +106,7 @@ export function useAutoActions() {
     if (box.isEmpty()) { report("autoLabel", "warning", "躯体メッシュが見つかりません"); return; }
 
     setBusyKind("autoLabel");
-    useScanFxStore.getState().startScan(box, { color: "#34e7ff" });
+    useScanFxStore.getState().startScan(box, { color: "light-dark(#0099ad, #34e7ff)" });
     pushToast("info", "3Dスキャン中… 床・壁・天井を解析しています");
     const total = useScanFxStore.getState().totalMs();
     window.setTimeout(() => {

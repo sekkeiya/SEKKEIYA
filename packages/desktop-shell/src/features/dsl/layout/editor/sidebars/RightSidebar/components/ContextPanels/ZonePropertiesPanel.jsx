@@ -19,7 +19,7 @@ import {
 } from '../../../../../constants/roomCategories';
 
 const LABEL_SX = {
-  fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+  fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)',
   letterSpacing: 0.6, textTransform: 'uppercase', mb: 0.5,
 };
 
@@ -33,7 +33,7 @@ const NumField = ({ label, value, onCommit, suffix = 'mm' }) => {
   };
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-      <Typography sx={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', width: 30, flexShrink: 0 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', width: 30, flexShrink: 0 }}>{label}</Typography>
       <input
         type="number"
         value={local}
@@ -42,12 +42,12 @@ const NumField = ({ label, value, onCommit, suffix = 'mm' }) => {
         onKeyDown={e => { if (e.key === 'Enter') commit(); }}
         style={{
           flex: 1, minWidth: 0, boxSizing: 'border-box',
-          background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 4, padding: '4px 6px', color: '#fff', fontSize: 11.5,
+          background: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+          borderRadius: 4, padding: '4px 6px', color: 'var(--brand-fg)', fontSize: 11.5,
           outline: 'none', fontFamily: 'inherit', textAlign: 'right',
         }}
       />
-      <Typography sx={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', width: 20, flexShrink: 0 }}>{suffix}</Typography>
+      <Typography sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.28)', width: 20, flexShrink: 0 }}>{suffix}</Typography>
     </Box>
   );
 };
@@ -107,14 +107,14 @@ export default function ZonePropertiesPanel({ zone }) {
       {/* ヘッダー */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: color, flexShrink: 0 }} />
-        <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', flex: 1 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>
           ゾーン設定
         </Typography>
-        <Typography sx={{ fontSize: 11, color: alpha('#fff', 0.45), fontVariantNumeric: 'tabular-nums' }}>
+        <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontVariantNumeric: 'tabular-nums' }}>
           {zoneAreaLabel(zone.rect)}
         </Typography>
         <Tooltip title="選択解除">
-          <Box onClick={handleClose} sx={{ cursor: 'pointer', display: 'flex', color: alpha('#fff', 0.35), '&:hover': { color: '#fff' } }}>
+          <Box onClick={handleClose} sx={{ cursor: 'pointer', display: 'flex', color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", '&:hover': { color: 'var(--brand-fg)' } }}>
             <CloseRoundedIcon sx={{ fontSize: 14 }} />
           </Box>
         </Tooltip>
@@ -134,11 +134,11 @@ export default function ZonePropertiesPanel({ zone }) {
                   display: 'flex', alignItems: 'center', gap: 0.35,
                   px: 0.7, py: 0.3, borderRadius: 1, cursor: 'pointer', userSelect: 'none',
                   fontSize: 10.5, fontWeight: active ? 700 : 400,
-                  bgcolor: active ? alpha(cat.color, 0.22) : alpha('#fff', 0.04),
-                  color: active ? cat.color : alpha('#fff', 0.45),
-                  border: `1px solid ${active ? alpha(cat.color, 0.5) : alpha('#fff', 0.08)}`,
+                  bgcolor: active ? `color-mix(in srgb, ${cat.color} 22%, transparent)` : alpha('#fff', 0.04),
+                  color: active ? cat.color : "color-mix(in srgb, var(--brand-fg) 45%, transparent)",
+                  border: `1px solid ${active ? `color-mix(in srgb, ${cat.color} 50%, transparent)` : alpha('#fff', 0.08)}`,
                   transition: 'all 0.12s',
-                  '&:hover': { bgcolor: alpha(cat.color, 0.12) },
+                  '&:hover': { bgcolor: `color-mix(in srgb, ${cat.color} 12%, transparent)` },
                 }}
               >
                 <span style={{ fontSize: 10 }}>{cat.icon}</span>{cat.label}
@@ -146,7 +146,7 @@ export default function ZonePropertiesPanel({ zone }) {
             );
           })}
         </Box>
-        <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.25), mt: 0.4 }}>
+        <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)", mt: 0.4 }}>
           Auto Layout はカテゴリに対応する用途のセット家具を選択します
         </Typography>
       </Box>
@@ -163,7 +163,7 @@ export default function ZonePropertiesPanel({ zone }) {
           placeholder={catMeta?.label ?? 'ゾーン名'}
           sx={{
             '& .MuiOutlinedInput-root': {
-              color: '#fff', fontSize: 12,
+              color: 'var(--brand-fg)', fontSize: 12,
               '& fieldset': { borderColor: alpha('#fff', 0.12) },
               '&:hover fieldset': { borderColor: alpha('#fff', 0.25) },
               '&.Mui-focused fieldset': { borderColor: color },
@@ -193,13 +193,13 @@ export default function ZonePropertiesPanel({ zone }) {
         onClick={handleDelete}
         sx={{
           textTransform: 'none', fontSize: 11, mt: 0.5,
-          color: '#f87171', border: '1px solid rgba(248,113,113,0.2)',
+          color: 'light-dark(#a50808, #f87171)', border: '1px solid rgba(248,113,113,0.2)',
           '&:hover': { bgcolor: 'rgba(248,113,113,0.07)', borderColor: 'rgba(248,113,113,0.4)' },
         }}
       >
         このゾーンを削除
       </Button>
-      <Typography sx={{ fontSize: 9, color: alpha('#fff', 0.22), textAlign: 'center' }}>
+      <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 22%, transparent)", textAlign: 'center' }}>
         Delete キーでも削除できます（Topビュー）
       </Typography>
     </Box>

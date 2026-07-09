@@ -5,7 +5,7 @@
 //    Firestore では projects/{projectId}/workFiles に appScope='3dsmt' として保存する
 //    （S.Image / S.Create と同じ workFiles パターン）。
 //  - MaterialBinding は「どのモデルのどのスロットにどの素材を当てたか」の永続情報。
-//    S.Models 詳細 / S.Layout Properties での張り替え結果を保存する核（Phase C で本実装）。
+//    S.Model 詳細 / S.Layout Properties での張り替え結果を保存する核（Phase C で本実装）。
 //
 // Phase A ではこれらの型を定義し、ダッシュボード/サイドバーの土台を通す。
 // 実際の CRUD・3D 適用は Phase B 以降。
@@ -69,7 +69,7 @@ export interface DsmtTiling {
  * ターゲット別ネイティブ包装ファイル（任意）。
  *
  * テクスチャ画像(maps)と PBR パラメータ(params)は three.js / Rhino / Blender で共通の
- * 「正（source of truth）」。アプリ内（S.Models / S.Layout = three.js）はそれだけで動く。
+ * 「正（source of truth）」。アプリ内（S.Model / S.Layout = three.js）はそれだけで動く。
  * Rhino(.rmtl)・Blender(.blend / MaterialX .mtlx)・USD は *包み方* が違うだけなので、
  * 必要なときにここへ追加ファイルとして添付（またはエクスポート時に maps から生成）する。
  */
@@ -191,11 +191,11 @@ export interface MaterialBinding {
 export const DSMT_CATEGORY_META: Record<DsmtCategory, { label: string; color: string }> = {
   fabric:  { label: 'ファブリック / 張地', color: '#ec407a' },
   wood:    { label: '木材',               color: '#a1672f' },
-  metal:   { label: '金属',               color: '#90a4ae' },
-  stone:   { label: '石・タイル',         color: '#8d9db6' },
+  metal:   { label: '金属',               color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
+  stone:   { label: '石・タイル',         color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
   leather: { label: '革',                 color: '#8d5524' },
   plastic: { label: '樹脂',               color: '#5c6bc0' },
-  glass:   { label: 'ガラス',             color: '#4dd0e1' },
+  glass:   { label: 'ガラス',             color: 'light-dark(#198694, #4dd0e1)' },
   paint:   { label: '塗装・単色',         color: '#66bb6a' },
-  other:   { label: 'その他',             color: '#9e9e9e' },
+  other:   { label: 'その他',             color: 'rgb(var(--brand-fg-rgb) / 0.65)' },
 };

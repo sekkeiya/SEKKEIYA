@@ -41,7 +41,7 @@ const PhotoCard: React.FC<{
           {projectName[0]?.toUpperCase()}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff' }} noWrap>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)' }} noWrap>
             {projectName}
           </Typography>
           <Typography sx={{ fontSize: 11, color: BRAND.sub2 }}>{timeLabel}</Typography>
@@ -49,7 +49,7 @@ const PhotoCard: React.FC<{
       </Box>
 
       {/* Photo */}
-      <Box sx={{ bgcolor: '#000', width: '100%' }}>
+      <Box sx={{ bgcolor: 'var(--brand-bg)', width: '100%' }}>
         <img
           src={photo.storageUrl}
           alt={photo.caption}
@@ -72,7 +72,7 @@ const PhotoCard: React.FC<{
           </IconButton>
         </Box>
         {photo.likes.length > 0 && (
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#fff', mb: 0.25 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-fg)', mb: 0.25 }}>
             {photo.likes.length}件のいいね
           </Typography>
         )}
@@ -106,11 +106,11 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
     <Box sx={{ borderBottom: `1px solid ${BRAND.line}` }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.5 }}>
-        <Avatar sx={{ width: 32, height: 32, bgcolor: BRAND.panel2, fontSize: 11, fontWeight: 700, color: '#90caf9' }}>
+        <Avatar sx={{ width: 32, height: 32, bgcolor: BRAND.panel2, fontSize: 11, fontWeight: 700, color: 'light-dark(#095fa5, #90caf9)' }}>
           {item.author.id.slice(0, 2).toUpperCase()}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#fff' }} noWrap>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)' }} noWrap>
             {item.title}
           </Typography>
           <Typography sx={{ fontSize: 11, color: BRAND.sub2 }}>
@@ -121,7 +121,7 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
 
       {/* Content — 静止画。モデルは「3D」ボタンでフルスクリーンの操作可能ビューアを開く */}
       {item.thumbnailUrl ? (
-        <Box sx={{ bgcolor: '#000', position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden' }}>
+        <Box sx={{ bgcolor: 'var(--brand-bg)', position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden' }}>
           <img src={item.thumbnailUrl} alt={item.title}
             style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
@@ -136,9 +136,9 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
               sx={{
                 position: 'absolute', bottom: 8, right: 8,
                 display: 'flex', alignItems: 'center', gap: 0.5,
-                bgcolor: 'rgba(0,0,0,0.62)', color: '#fff',
+                bgcolor: 'rgba(0,0,0,0.62)', color: 'var(--brand-fg)',
                 borderRadius: 999, px: 1.1, py: 0.5,
-                border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer',
+                border: '1px solid rgb(var(--brand-fg-rgb) / 0.25)', cursor: 'pointer',
                 backdropFilter: 'blur(4px)', WebkitTapHighlightColor: 'transparent',
                 '&:active': { opacity: 0.8 },
               }}
@@ -155,9 +155,9 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
           onClick={() => onPreview3D(item.modelUrl!)}
           sx={{
             width: '100%', height: 120, border: 'none', cursor: 'pointer',
-            bgcolor: '#0b0f16', display: 'flex', flexDirection: 'column',
+            bgcolor: 'var(--brand-bg)', display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 0.75,
-            color: 'rgba(255,255,255,0.7)', WebkitTapHighlightColor: 'transparent',
+            color: 'rgb(var(--brand-fg-rgb) / 0.7)', WebkitTapHighlightColor: 'transparent',
             '&:active': { opacity: 0.8 },
           }}
         >
@@ -165,7 +165,7 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'inherit' }}>3D で見る</Typography>
         </Box>
       ) : (
-        <Box sx={{ height: 56, bgcolor: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', px: 2 }}>
+        <Box sx={{ height: 56, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', display: 'flex', alignItems: 'center', px: 2 }}>
           <Typography sx={{ fontSize: 11, color: BRAND.sub2 }}>（プレビューなし）</Typography>
         </Box>
       )}
@@ -175,7 +175,7 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {item.tags.slice(0, 3).map(tag => (
               <Typography key={tag} sx={{
-                fontSize: 11, color: '#90caf9',
+                fontSize: 11, color: 'light-dark(#095fa5, #90caf9)',
                 bgcolor: 'rgba(144,202,249,0.1)', borderRadius: 1, px: 0.75, py: 0.25,
               }}>
                 #{tag}
@@ -194,7 +194,7 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
 const EmptyFeed: React.FC<{ onCameraOpen: () => void }> = ({ onCameraOpen }) => (
   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 8, gap: 2, px: 4, textAlign: 'center' }}>
     <Typography sx={{ fontSize: 40 }}>📐</Typography>
-    <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: 16 }}>フィードが空です</Typography>
+    <Typography sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: 16 }}>フィードが空です</Typography>
     <Typography sx={{ color: BRAND.sub, fontSize: 13, lineHeight: 1.7 }}>
       現場フォトを撮影したり、プロジェクトを進めると<br />ここに活動が流れてきます。
     </Typography>
@@ -202,7 +202,7 @@ const EmptyFeed: React.FC<{ onCameraOpen: () => void }> = ({ onCameraOpen }) => 
       component="button"
       onClick={onCameraOpen}
       sx={{
-        mt: 1, px: 3, py: 1.5, bgcolor: '#3498db', color: '#fff', border: 'none',
+        mt: 1, px: 3, py: 1.5, bgcolor: '#3498db', color: 'var(--brand-fg)', border: 'none',
         borderRadius: 3, fontSize: 14, fontWeight: 700, cursor: 'pointer',
         WebkitTapHighlightColor: 'transparent',
       }}
@@ -304,10 +304,10 @@ const MobileFeed: React.FC<Props> = ({ onCameraOpen, onRetry }) => {
         >
           <Box sx={{
             width: 58, height: 58, borderRadius: '50%',
-            border: '2px dashed rgba(255,255,255,0.25)',
+            border: '2px dashed rgb(var(--brand-fg-rgb) / 0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Plus size={22} color="rgba(255,255,255,0.5)" />
+            <Plus size={22} style={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
           </Box>
           <Typography sx={{ fontSize: 10, color: BRAND.sub2 }}>追加</Typography>
         </Box>
@@ -332,7 +332,7 @@ const MobileFeed: React.FC<Props> = ({ onCameraOpen, onRetry }) => {
                 padding: '2px',
                 background: hasNew
                   ? 'linear-gradient(135deg, #3498db, #9b59b6)'
-                  : 'rgba(255,255,255,0.1)',
+                  : 'rgb(var(--brand-fg-rgb) / 0.1)',
               }}>
                 <Box sx={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', border: `2px solid ${BRAND.bg}` }}>
                   {latestPhoto ? (
@@ -372,10 +372,10 @@ const MobileFeed: React.FC<Props> = ({ onCameraOpen, onRetry }) => {
             /* Error state with retry */
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 8, gap: 2, px: 4, textAlign: 'center' }}>
               <Typography sx={{ fontSize: 32 }}>⚠️</Typography>
-              <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: 15 }}>読み込みエラー</Typography>
+              <Typography sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: 15 }}>読み込みエラー</Typography>
               <Typography sx={{ color: BRAND.sub, fontSize: 12 }}>{galleryError}</Typography>
               <Box component="button" onClick={onRetry}
-                sx={{ mt: 1, px: 3, py: 1.5, bgcolor: '#3498db', color: '#fff', border: 'none', borderRadius: 3, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                sx={{ mt: 1, px: 3, py: 1.5, bgcolor: '#3498db', color: 'var(--brand-fg)', border: 'none', borderRadius: 3, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 再読み込み
               </Box>
             </Box>

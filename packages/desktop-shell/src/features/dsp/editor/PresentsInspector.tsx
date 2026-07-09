@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Box, Typography, TextField, Slider, Divider, IconButton, Switch, MenuItem, Collapse, Tab, Tabs } from '@mui/material';
 import { useDspStore } from '../store/useDspStore';
-import { useAIDriveStore, resolveAssetPreviewUrl } from '../../../store/useAIDriveStore';
+import { resolveAssetPreviewUrl } from '../../../store/useAIDriveStore';
+import { useDriveAssets, PICKER_LAYERS } from '../../drive/driveAccess';
 import { BRAND } from '../../../styles/theme';
-import type { PresentationElement, PresentationPage } from '../types/dsp.types';
+import type { PresentationElement, PresentationPage, TemplateSlot } from '../types/dsp.types';
 import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
 import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
@@ -41,8 +42,8 @@ const LAYOUT_TEMPLATES: DesignTemplate[] = [
       { type: 'shape', x: 0, y: 0, w: cW, h: cH, zIndex: 0, rotation: 0, opacity: 100, data: { shapeType: 'rect', fill: DARK_BG } },
       { type: 'shape', x: 0, y: cH * 0.55, w: cW, h: cH * 0.45, zIndex: 1, rotation: 0, opacity: 100, data: { shapeType: 'rect', fill: '#16213e' } },
       { type: 'line', x: cW * 0.08, y: cH * 0.42, w: cW * 0.12, h: 0, zIndex: 2, rotation: 0, opacity: 100, data: { fill: ACCENT, stroke: ACCENT, strokeWidth: '4' } },
-      { type: 'text', x: cW * 0.08, y: cH * 0.2, w: cW * 0.84, h: cH * 0.22, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'プレゼンテーションタイトル', fontSize: '72px', color: '#ffffff', textAlign: 'left', fontWeight: '700' } },
-      { type: 'text', x: cW * 0.08, y: cH * 0.48, w: cW * 0.6, h: cH * 0.1, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'サブタイトルや日付・会社名など', fontSize: '28px', color: 'rgba(255,255,255,0.65)', textAlign: 'left', fontWeight: '400' } },
+      { type: 'text', x: cW * 0.08, y: cH * 0.2, w: cW * 0.84, h: cH * 0.22, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'プレゼンテーションタイトル', fontSize: '72px', color: 'var(--brand-fg)', textAlign: 'left', fontWeight: '700' } },
+      { type: 'text', x: cW * 0.08, y: cH * 0.48, w: cW * 0.6, h: cH * 0.1, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'サブタイトルや日付・会社名など', fontSize: '28px', color: 'rgb(var(--brand-fg-rgb) / 0.65)', textAlign: 'left', fontWeight: '400' } },
     ],
   },
   {
@@ -96,8 +97,8 @@ const LAYOUT_TEMPLATES: DesignTemplate[] = [
     build: (cW, cH) => [
       { type: 'image', x: 0, y: 0, w: cW, h: cH, zIndex: 1, rotation: 0, opacity: 100, data: { src: '', alt: '画像をドロップ' } },
       { type: 'shape', x: 0, y: cH * 0.65, w: cW, h: cH * 0.35, zIndex: 2, rotation: 0, opacity: 100, data: { shapeType: 'rect', fill: 'rgba(0,0,0,0.5)', borderRadius: '0px' } },
-      { type: 'text', x: cW * 0.06, y: cH * 0.7, w: cW * 0.88, h: cH * 0.15, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'キャプションやタイトル', fontSize: '52px', color: '#ffffff', textAlign: 'left', fontWeight: '700' } },
-      { type: 'text', x: cW * 0.06, y: cH * 0.86, w: cW * 0.6, h: cH * 0.1, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'サブテキストを入力', fontSize: '24px', color: 'rgba(255,255,255,0.75)', textAlign: 'left', fontWeight: '400' } },
+      { type: 'text', x: cW * 0.06, y: cH * 0.7, w: cW * 0.88, h: cH * 0.15, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'キャプションやタイトル', fontSize: '52px', color: 'var(--brand-fg)', textAlign: 'left', fontWeight: '700' } },
+      { type: 'text', x: cW * 0.06, y: cH * 0.86, w: cW * 0.6, h: cH * 0.1, zIndex: 3, rotation: 0, opacity: 100, data: { text: 'サブテキストを入力', fontSize: '24px', color: 'rgb(var(--brand-fg-rgb) / 0.75)', textAlign: 'left', fontWeight: '400' } },
     ],
   },
   {
@@ -107,8 +108,8 @@ const LAYOUT_TEMPLATES: DesignTemplate[] = [
     build: (cW, cH) => [
       { type: 'shape', x: 0, y: 0, w: cW, h: cH, zIndex: 0, rotation: 0, opacity: 100, data: { shapeType: 'rect', fill: ACCENT } },
       { type: 'shape', x: 0, y: 0, w: cW * 0.04, h: cH, zIndex: 1, rotation: 0, opacity: 100, data: { shapeType: 'rect', fill: 'rgba(0,0,0,0.15)' } },
-      { type: 'text', x: cW * 0.1, y: cH * 0.32, w: cW * 0.8, h: cH * 0.22, zIndex: 2, rotation: 0, opacity: 100, data: { text: 'Section 01', fontSize: '28px', color: 'rgba(255,255,255,0.6)', textAlign: 'left', fontWeight: '500' } },
-      { type: 'text', x: cW * 0.1, y: cH * 0.46, w: cW * 0.8, h: cH * 0.22, zIndex: 2, rotation: 0, opacity: 100, data: { text: 'セクションタイトル', fontSize: '72px', color: '#ffffff', textAlign: 'left', fontWeight: '700' } },
+      { type: 'text', x: cW * 0.1, y: cH * 0.32, w: cW * 0.8, h: cH * 0.22, zIndex: 2, rotation: 0, opacity: 100, data: { text: 'Section 01', fontSize: '28px', color: 'rgb(var(--brand-fg-rgb) / 0.6)', textAlign: 'left', fontWeight: '500' } },
+      { type: 'text', x: cW * 0.1, y: cH * 0.46, w: cW * 0.8, h: cH * 0.22, zIndex: 2, rotation: 0, opacity: 100, data: { text: 'セクションタイトル', fontSize: '72px', color: 'var(--brand-fg)', textAlign: 'left', fontWeight: '700' } },
     ],
   },
   {
@@ -175,9 +176,9 @@ const LAYOUT_TEMPLATES: DesignTemplate[] = [
     build: (cW, cH) => [
       { type: 'shape', x: 0, y: 0, w: cW, h: cH, zIndex: 0, rotation: 0, opacity: 100, data: { shapeType: 'rect', fill: '#1d1d1f' } },
       { type: 'text', x: cW * 0.08, y: cH * 0.08, w: cW * 0.12, h: cH * 0.22, zIndex: 1, rotation: 0, opacity: 100, data: { text: '"', fontSize: '200px', color: ACCENT, textAlign: 'left', fontWeight: '700' } },
-      { type: 'text', x: cW * 0.1, y: cH * 0.26, w: cW * 0.8, h: cH * 0.38, zIndex: 2, rotation: 0, opacity: 100, data: { text: 'デザインとは、単なる見た目ではなく、\nどのように機能するかである。', fontSize: '40px', color: '#ffffff', textAlign: 'center', fontWeight: '500' } },
+      { type: 'text', x: cW * 0.1, y: cH * 0.26, w: cW * 0.8, h: cH * 0.38, zIndex: 2, rotation: 0, opacity: 100, data: { text: 'デザインとは、単なる見た目ではなく、\nどのように機能するかである。', fontSize: '40px', color: 'var(--brand-fg)', textAlign: 'center', fontWeight: '500' } },
       { type: 'line', x: cW * 0.35, y: cH * 0.68, w: cW * 0.3, h: 0, zIndex: 3, rotation: 0, opacity: 100, data: { fill: ACCENT, stroke: ACCENT, strokeWidth: '2' } },
-      { type: 'text', x: cW * 0.1, y: cH * 0.72, w: cW * 0.8, h: cH * 0.1, zIndex: 2, rotation: 0, opacity: 100, data: { text: '— 出典・著者名', fontSize: '22px', color: 'rgba(255,255,255,0.55)', textAlign: 'center', fontWeight: '400' } },
+      { type: 'text', x: cW * 0.1, y: cH * 0.72, w: cW * 0.8, h: cH * 0.1, zIndex: 2, rotation: 0, opacity: 100, data: { text: '— 出典・著者名', fontSize: '22px', color: 'rgb(var(--brand-fg-rgb) / 0.55)', textAlign: 'center', fontWeight: '400' } },
     ],
   },
   {
@@ -234,12 +235,12 @@ const TEXT_TEMPLATES: DesignTemplate[] = [
   {
     id: 'accent_box',
     label: '強調ボックス',
-    build: (cW) => [{ type: 'text', x: cW * 0.05, y: 100, w: cW * 0.5, h: 120, zIndex: 10, rotation: 0, opacity: 100, data: { text: '重要なポイントやCTA', fontSize: '28px', color: '#ffffff', textAlign: 'center', fontWeight: '600', bgcolor: ACCENT, borderRadius: '12px', padding: 2, boxShadow: '0 4px 24px rgba(41,182,246,0.3)' } }],
+    build: (cW) => [{ type: 'text', x: cW * 0.05, y: 100, w: cW * 0.5, h: 120, zIndex: 10, rotation: 0, opacity: 100, data: { text: '重要なポイントやCTA', fontSize: '28px', color: 'var(--brand-fg)', textAlign: 'center', fontWeight: '600', bgcolor: ACCENT, borderRadius: '12px', padding: 2, boxShadow: '0 4px 24px rgba(41,182,246,0.3)' } }],
   },
   {
     id: 'sticky',
     label: '付箋メモ',
-    build: () => [{ type: 'text', x: 200, y: 200, w: 200, h: 200, zIndex: 10, rotation: 0, opacity: 100, data: { text: 'アイデア・メモ', fontSize: '20px', color: '#1d1d1f', textAlign: 'center', bgcolor: '#fff9c4', borderRadius: '8px', padding: 2, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' } }],
+    build: () => [{ type: 'text', x: 200, y: 200, w: 200, h: 200, zIndex: 10, rotation: 0, opacity: 100, data: { text: 'アイデア・メモ', fontSize: '20px', color: '#1d1d1f', textAlign: 'center', bgcolor: '#fff9c4', borderRadius: '8px', padding: 2, boxShadow: '0 4px 16px light-dark(rgba(15,23,42,0.03), rgba(0,0,0,0.1))' } }],
   },
   {
     id: 'section_header',
@@ -254,7 +255,7 @@ const TEXT_TEMPLATES: DesignTemplate[] = [
     label: 'バッジ＋テキスト',
     build: () => [
       { type: 'shape', x: 200, y: 200, w: 44, h: 44, zIndex: 10, rotation: 0, opacity: 100, data: { shapeType: 'circle', fill: ACCENT, borderRadius: '50%' } },
-      { type: 'text', x: 200, y: 200, w: 44, h: 44, zIndex: 11, rotation: 0, opacity: 100, data: { text: '1', fontSize: '22px', color: '#fff', textAlign: 'center', fontWeight: '700' } },
+      { type: 'text', x: 200, y: 200, w: 44, h: 44, zIndex: 11, rotation: 0, opacity: 100, data: { text: '1', fontSize: '22px', color: 'var(--brand-fg)', textAlign: 'center', fontWeight: '700' } },
       { type: 'text', x: 256, y: 208, w: 300, h: 44, zIndex: 11, rotation: 0, opacity: 100, data: { text: 'ポイントテキスト', fontSize: '26px', color: '#1d1d1f', textAlign: 'left', fontWeight: '600' } },
     ],
   },
@@ -306,7 +307,7 @@ const TemplateCard: React.FC<{ template: DesignTemplate; onAdd: (t: DesignTempla
     sx={{
       width: 80, height: 54,
       borderRadius: 1.5,
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
       bgcolor: bg || '#f5f5f7',
       cursor: 'pointer',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -315,7 +316,7 @@ const TemplateCard: React.FC<{ template: DesignTemplate; onAdd: (t: DesignTempla
       '&:hover': { borderColor: ACCENT, boxShadow: `0 0 0 2px ${ACCENT}44`, transform: 'scale(1.04)' },
     }}
   >
-    <Typography sx={{ fontSize: 9, color: bg ? '#fff' : '#3a3a3c', textAlign: 'center', lineHeight: 1.3, px: 0.5, fontWeight: 500 }}>
+    <Typography sx={{ fontSize: 9, color: bg ? 'var(--brand-fg)' : '#3a3a3c', textAlign: 'center', lineHeight: 1.3, px: 0.5, fontWeight: 500 }}>
       {template.label}
     </Typography>
   </Box>
@@ -331,8 +332,8 @@ const AssetThumb: React.FC<{ asset: any; onAdd: () => void }> = ({ asset, onAdd 
       title={asset.name || asset.title || ''}
       sx={{
         width: 72, height: 72, borderRadius: 1.5, overflow: 'hidden', flexShrink: 0,
-        border: '1px solid rgba(255,255,255,0.08)',
-        bgcolor: '#2a2a2a', cursor: 'pointer',
+        border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        bgcolor: 'var(--brand-surface2)', cursor: 'pointer',
         transition: 'all 0.15s',
         '&:hover': { borderColor: ACCENT, transform: 'scale(1.05)' },
       }}
@@ -354,7 +355,6 @@ type TopTabType = 'properties' | 'deck' | 'parts' | 'layers';
 
 export const PresentsInspector: React.FC = () => {
   const { presentation, selectedPageId, selectedElementIds, updateElements, addElement, addElements, projectId, inspectorActiveTopTab, setInspectorActiveTopTab, showRightSidebar, replacePresentation, appendPages } = useDspStore();
-  const allAssets = useAIDriveStore(s => s.assets);
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
   const [templateTab, setTemplateTab] = useState<TemplateTabType>('layouts');
 
@@ -374,22 +374,11 @@ export const PresentsInspector: React.FC = () => {
     return () => { unmounted = true; if (timer) clearTimeout(timer); };
   }, [showRightSidebar]);
 
-  // AI Drive assets — projectId フィルタなし、全非削除アセットを対象にする
-  const imageAssets = React.useMemo(() =>
-    allAssets.filter(a =>
-      !(a as any).isDeleted &&
-      ((a as any).itemType === 'image' || (a as any).category === 'image' || a.type === 'image' || (a.name || '').match(/\.(png|jpg|jpeg|gif|webp|svg)/i))
-    ),
-    [allAssets]
-  );
-
-  const modelAssets = React.useMemo(() =>
-    allAssets.filter(a =>
-      !(a as any).isDeleted &&
-      ((a as any).itemType === 'model' || (a as any).category === 'model' || (a as any).toolType || a.type === 'model' || (a as any).appScope)
-    ).slice(0, 30),
-    [allAssets]
-  );
+  // SEKKEIYA Drive の資産を「橋渡し」経由で取得（driveAccess = 単一の読み取り窓口）。
+  // 自分の 非公開＋公開＋ローカル を対象（プロジェクト横断）。資産だけ（作業ファイルは除外）。
+  const { assets: imageAssets } = useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
+  const { assets: modelAssetsAll } = useDriveAssets({ media: 'model', layers: PICKER_LAYERS });
+  const modelAssets = React.useMemo(() => modelAssetsAll.slice(0, 30), [modelAssetsAll]);
 
   if (!portalNode) return null;
 
@@ -449,7 +438,7 @@ export const PresentsInspector: React.FC = () => {
   const renderMaterials = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* ── タブバー ────────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box sx={{ flexShrink: 0, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
         <Tabs
           value={templateTab}
           onChange={(_, v) => setTemplateTab(v)}
@@ -458,7 +447,7 @@ export const PresentsInspector: React.FC = () => {
           sx={{
             minHeight: 38,
             '& .MuiTabs-indicator': { bgcolor: ACCENT, height: 2 },
-            '& .MuiTabs-scrollButtons': { color: 'rgba(255,255,255,0.3)' },
+            '& .MuiTabs-scrollButtons': { color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
           }}
         >
           {PARTS_TABS.map(t => (
@@ -478,7 +467,7 @@ export const PresentsInspector: React.FC = () => {
                 minWidth: 0,
                 fontSize: 11,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.4)',
+                color: 'rgb(var(--brand-fg-rgb) / 0.4)',
                 textTransform: 'none',
                 '&.Mui-selected': { color: ACCENT },
               }}
@@ -512,9 +501,9 @@ export const PresentsInspector: React.FC = () => {
           <Box sx={{ p: 1.5 }}>
             {imageAssets.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
-                <ImageRoundedIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.12)', mb: 1 }} />
+                <ImageRoundedIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.12)', mb: 1 }} />
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.6 }}>
-                  AI Drive に画像を追加すると<br />ここに表示されます
+                  SEKKEIYA Drive に画像を追加すると<br />ここに表示されます
                 </Typography>
               </Box>
             ) : (
@@ -554,9 +543,9 @@ export const PresentsInspector: React.FC = () => {
           <Box sx={{ p: 1.5 }}>
             {modelAssets.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6 }}>
-                <ViewInArIcon sx={{ fontSize: 36, color: 'rgba(255,255,255,0.12)', mb: 1 }} />
+                <ViewInArIcon sx={{ fontSize: 36, color: 'rgb(var(--brand-fg-rgb) / 0.12)', mb: 1 }} />
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.6 }}>
-                  AI Drive に3Dモデルを追加すると<br />ここに表示されます
+                  SEKKEIYA Drive に3Dモデルを追加すると<br />ここに表示されます
                 </Typography>
               </Box>
             ) : (
@@ -593,7 +582,7 @@ export const PresentsInspector: React.FC = () => {
                 const names: Record<string, string> = { '1587x1122': 'A3 横 (Landscape)', '1122x1587': 'A3 縦 (Portrait)', '1122x794': 'A4 横 (Landscape)', '794x1122': 'A4 縦 (Portrait)', '1200x675': '16:9 スクリーン' };
                 useDspStore.getState().setCanvasSize({ width: w, height: h, name: names[`${w}x${h}`] || 'カスタム' });
               }}
-              InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }}
+              InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }}
             >
               <MenuItem value="1587x1122">A3 横 (Landscape)</MenuItem>
               <MenuItem value="1122x1587">A3 縦 (Portrait)</MenuItem>
@@ -611,10 +600,10 @@ export const PresentsInspector: React.FC = () => {
         <Box>
           <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>位置とサイズ</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
-            <TextField label="X" size="small" type="number" value={element.x} onChange={e => handleChange('x', Number(e.target.value))} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-            <TextField label="Y" size="small" type="number" value={element.y} onChange={e => handleChange('y', Number(e.target.value))} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-            <TextField label="幅 (W)" size="small" type="number" value={element.w} onChange={e => handleChange('w', Number(e.target.value))} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-            <TextField label="高さ (H)" size="small" type="number" value={element.h} onChange={e => handleChange('h', Number(e.target.value))} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="X" size="small" type="number" value={element.x} onChange={e => handleChange('x', Number(e.target.value))} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="Y" size="small" type="number" value={element.y} onChange={e => handleChange('y', Number(e.target.value))} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="幅 (W)" size="small" type="number" value={element.w} onChange={e => handleChange('w', Number(e.target.value))} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="高さ (H)" size="small" type="number" value={element.h} onChange={e => handleChange('h', Number(e.target.value))} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
             <Typography variant="body2" sx={{ color: 'text.secondary', width: 60, fontSize: 12 }}>不透明度</Typography>
@@ -628,12 +617,12 @@ export const PresentsInspector: React.FC = () => {
         {element.type === 'text' && (
           <Box>
             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>テキスト設定</Typography>
-            <TextField label="テキスト内容" size="small" multiline rows={3} value={(element.data as any).text || ''} onChange={e => handleChange('data', { ...element.data, text: e.target.value })} fullWidth sx={{ mt: 1, mb: 2 }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="テキスト内容" size="small" multiline rows={3} value={(element.data as any).text || ''} onChange={e => handleChange('data', { ...element.data, text: e.target.value })} fullWidth sx={{ mt: 1, mb: 2 }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <TextField label="フォントサイズ" size="small" value={(element.data as any).fontSize || '16px'} onChange={e => handleChange('data', { ...element.data, fontSize: e.target.value })} fullWidth InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-              <TextField label="色" size="small" type="color" value={(element.data as any).color || '#ffffff'} onChange={e => handleChange('data', { ...element.data, color: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="フォントサイズ" size="small" value={(element.data as any).fontSize || '16px'} onChange={e => handleChange('data', { ...element.data, fontSize: e.target.value })} fullWidth InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="色" size="small" type="color" value={(element.data as any).color || '#ffffff'} onChange={e => handleChange('data', { ...element.data, color: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
             </Box>
-            <Box sx={{ display: 'flex', gap: 1, mt: 2, bgcolor: 'rgba(255,255,255,0.05)', p: 0.5, borderRadius: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, mt: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', p: 0.5, borderRadius: 1 }}>
               <IconButton size="small" onClick={() => handleChange('data', { ...element.data, textAlign: 'left' })} sx={{ color: (element.data as any).textAlign === 'left' ? ACCENT : 'text.secondary' }}><FormatAlignLeftIcon fontSize="small" /></IconButton>
               <IconButton size="small" onClick={() => handleChange('data', { ...element.data, textAlign: 'center' })} sx={{ color: (!(element.data as any).textAlign || (element.data as any).textAlign === 'center') ? ACCENT : 'text.secondary' }}><FormatAlignCenterIcon fontSize="small" /></IconButton>
               <IconButton size="small" onClick={() => handleChange('data', { ...element.data, textAlign: 'right' })} sx={{ color: (element.data as any).textAlign === 'right' ? ACCENT : 'text.secondary' }}><FormatAlignRightIcon fontSize="small" /></IconButton>
@@ -644,11 +633,11 @@ export const PresentsInspector: React.FC = () => {
         {element.type === 'link' && (
           <Box>
             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>リンク設定</Typography>
-            <TextField label="URL" size="small" value={(element.data as any).url || ''} onChange={e => handleChange('data', { ...element.data, url: e.target.value })} fullWidth sx={{ mt: 1, mb: 2 }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-            <TextField label="表示テキスト" size="small" value={(element.data as any).text || ''} onChange={e => handleChange('data', { ...element.data, text: e.target.value })} fullWidth sx={{ mb: 2 }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="URL" size="small" value={(element.data as any).url || ''} onChange={e => handleChange('data', { ...element.data, url: e.target.value })} fullWidth sx={{ mt: 1, mb: 2 }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+            <TextField label="表示テキスト" size="small" value={(element.data as any).text || ''} onChange={e => handleChange('data', { ...element.data, text: e.target.value })} fullWidth sx={{ mb: 2 }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <TextField label="フォントサイズ" size="small" value={(element.data as any).fontSize || '14px'} onChange={e => handleChange('data', { ...element.data, fontSize: e.target.value })} fullWidth InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-              <TextField label="色" size="small" type="color" value={(element.data as any).color || '#007aff'} onChange={e => handleChange('data', { ...element.data, color: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="フォントサイズ" size="small" value={(element.data as any).fontSize || '14px'} onChange={e => handleChange('data', { ...element.data, fontSize: e.target.value })} fullWidth InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="色" size="small" type="color" value={(element.data as any).color || '#007aff'} onChange={e => handleChange('data', { ...element.data, color: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
             </Box>
           </Box>
         )}
@@ -687,9 +676,9 @@ export const PresentsInspector: React.FC = () => {
 
             {/* Current image preview */}
             {(element.data as any).src && (
-              <Box sx={{ mb: 1.5, borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Box sx={{ mb: 1.5, borderRadius: 1, overflow: 'hidden', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
                 <Box component="img" src={(element.data as any).src} sx={{ width: '100%', maxHeight: 120, objectFit: 'cover', display: 'block' }} />
-                <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.03)' }}>
+                <Box sx={{ p: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)' }}>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>{(element.data as any).name || 'image'}</Typography>
                 </Box>
               </Box>
@@ -699,7 +688,7 @@ export const PresentsInspector: React.FC = () => {
             {imageAssets.length > 0 && (
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                  AI Drive から選択 ({imageAssets.length}件):
+                  SEKKEIYA Drive から選択 ({imageAssets.length}件):
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.75, maxHeight: 220, overflowY: 'auto', pr: 0.5 }}>
                   {imageAssets.map(a => {
@@ -709,7 +698,7 @@ export const PresentsInspector: React.FC = () => {
                         key={a.id}
                         onClick={() => updateElements([{ id: element.id, updates: { data: { ...element.data, src: url, assetId: a.id, name: a.name || '' } } }], true)}
                         title={a.name || ''}
-                        sx={{ aspectRatio: '1', borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', '&:hover': { borderColor: ACCENT, transform: 'scale(1.04)' }, transition: 'all 0.15s', bgcolor: '#222' }}
+                        sx={{ aspectRatio: '1', borderRadius: 1, overflow: 'hidden', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', cursor: 'pointer', '&:hover': { borderColor: ACCENT, transform: 'scale(1.04)' }, transition: 'all 0.15s', bgcolor: 'var(--brand-surface2)' }}
                       >
                         {url
                           ? <Box component="img" src={url} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -728,7 +717,7 @@ export const PresentsInspector: React.FC = () => {
           <Box>
             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>表示設定</Typography>
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <TextField label="背景色/塗りの色" size="small" type="color" value={(element.data as any).fill || '#000000'} onChange={e => handleChange('data', { ...element.data, fill: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="背景色/塗りの色" size="small" type="color" value={(element.data as any).fill || '#000000'} onChange={e => handleChange('data', { ...element.data, fill: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
             </Box>
           </Box>
         )}
@@ -738,15 +727,15 @@ export const PresentsInspector: React.FC = () => {
             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>線の設定</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField label="線の色" size="small" type="color" value={(element.data as any).stroke || '#86868b'} onChange={e => handleChange('data', { ...element.data, stroke: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-                <TextField label="太さ" size="small" type="number" value={parseInt((element.data as any).strokeWidth || '3')} onChange={e => handleChange('data', { ...element.data, strokeWidth: e.target.value })} fullWidth InputProps={{ sx: { color: 'white', fontSize: 13 }, inputProps: { min: 1, max: 20 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+                <TextField label="線の色" size="small" type="color" value={(element.data as any).stroke || '#86868b'} onChange={e => handleChange('data', { ...element.data, stroke: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+                <TextField label="太さ" size="small" type="number" value={parseInt((element.data as any).strokeWidth || '3')} onChange={e => handleChange('data', { ...element.data, strokeWidth: e.target.value })} fullWidth InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 }, inputProps: { min: 1, max: 20 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
               </Box>
-              <TextField select label="種類" size="small" value={(element.data as any).strokeDasharray || 'none'} onChange={e => handleChange('data', { ...element.data, strokeDasharray: e.target.value })} fullWidth InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: '#2A2A2A', border: '1px solid #444', color: '#fff' } } } }}>
+              <TextField select label="種類" size="small" value={(element.data as any).strokeDasharray || 'none'} onChange={e => handleChange('data', { ...element.data, strokeDasharray: e.target.value })} fullWidth InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} SelectProps={{ MenuProps: { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', border: '1px solid #444', color: 'var(--brand-fg)' } } } }}>
                 <MenuItem value="none">実線 (Solid)</MenuItem>
                 <MenuItem value="5,5">点線 (Dotted)</MenuItem>
                 <MenuItem value="15,10">破線 (Dashed)</MenuItem>
               </TextField>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', borderRadius: 1 }}>
                 <Typography sx={{ color: 'text.primary', fontSize: 13 }}>矢印を表示</Typography>
                 <Switch size="small" checked={(element.data as any).showArrow || false} onChange={e => handleChange('data', { ...element.data, showArrow: e.target.checked })} />
               </Box>
@@ -758,11 +747,63 @@ export const PresentsInspector: React.FC = () => {
           <Box>
             <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>手書き設定</Typography>
             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <TextField label="線の色" size="small" type="color" value={(element.data as any).stroke || '#1d1d1f'} onChange={e => handleChange('data', { ...element.data, stroke: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'white', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
-              <TextField label="太さ" size="small" type="number" value={(element.data as any).strokeWidth || 3} onChange={e => handleChange('data', { ...element.data, strokeWidth: Number(e.target.value) })} fullWidth InputProps={{ sx: { color: 'white', fontSize: 13 }, inputProps: { min: 1, max: 20 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="線の色" size="small" type="color" value={(element.data as any).stroke || '#1d1d1f'} onChange={e => handleChange('data', { ...element.data, stroke: e.target.value })} fullWidth sx={{ '& input': { p: 0, height: 36 } }} InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
+              <TextField label="太さ" size="small" type="number" value={(element.data as any).strokeWidth || 3} onChange={e => handleChange('data', { ...element.data, strokeWidth: Number(e.target.value) })} fullWidth InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 }, inputProps: { min: 1, max: 20 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }} />
             </Box>
           </Box>
         )}
+
+        {/* ── 差し替え枠（テンプレート）── text / image のみ ── */}
+        {(element.type === 'text' || element.type === 'image') && (() => {
+          const slot = element.slot;
+          const setSlot = (patch: Partial<TemplateSlot>) => {
+            const base: TemplateSlot = slot ?? {
+              id: `slot-${Date.now().toString(36)}`,
+              role: '',
+              kind: element.type === 'image' ? 'image' : 'text',
+            };
+            updateElements([{ id: element.id, updates: { slot: { ...base, ...patch } } }], true);
+          };
+          const clearSlot = () => updateElements([{ id: element.id, updates: { slot: undefined } }], true);
+          return (
+            <Box>
+              <Divider sx={{ borderColor: BRAND.line, mb: 2 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>差し替え枠（テンプレート）</Typography>
+                <Switch
+                  size="small"
+                  checked={!!slot}
+                  onChange={e => { if (e.target.checked) setSlot({}); else clearSlot(); }}
+                />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.6, mb: slot ? 2 : 0 }}>
+                オンにすると、この{element.type === 'image' ? '画像' : 'テキスト'}はテンプレート適用時に
+                中身だけを差し替えられる枠になります（AI・手動どちらからも流し込み可）。
+              </Typography>
+              {slot && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <TextField
+                    label="枠の表示名（例: 外観写真 / 物件名）" size="small" fullWidth
+                    value={slot.label || ''} onChange={e => setSlot({ label: e.target.value })}
+                    InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }}
+                  />
+                  <TextField
+                    label="role（自動化キー・任意）" size="small" fullWidth
+                    value={slot.role} onChange={e => setSlot({ role: e.target.value })}
+                    helperText="英数字推奨 e.g. project-title, exterior-photo"
+                    FormHelperTextProps={{ sx: { color: 'text.secondary', fontSize: 10 } }}
+                    InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }}
+                  />
+                  <TextField
+                    label="プレースホルダー（空欄時の案内・任意）" size="small" fullWidth
+                    value={slot.placeholder || ''} onChange={e => setSlot({ placeholder: e.target.value })}
+                    InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 13 } }} InputLabelProps={{ sx: { color: 'text.secondary' } }}
+                  />
+                </Box>
+              )}
+            </Box>
+          );
+        })()}
       </Box>
     );
   };
@@ -776,7 +817,7 @@ export const PresentsInspector: React.FC = () => {
         {[...page.elements].reverse().map(el => (
           <Box
             key={el.id}
-            sx={{ px: 2, py: 1, my: 0.5, borderRadius: 1, bgcolor: selectedElementIds.includes(el.id) ? 'rgba(41,182,246,0.15)' : 'rgba(255,255,255,0.02)', border: `1px solid ${selectedElementIds.includes(el.id) ? ACCENT : 'transparent'}`, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}
+            sx={{ px: 2, py: 1, my: 0.5, borderRadius: 1, bgcolor: selectedElementIds.includes(el.id) ? 'rgba(41,182,246,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.02)', border: `1px solid ${selectedElementIds.includes(el.id) ? ACCENT : 'transparent'}`, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
             onClick={(e) => {
               if (e.shiftKey) {
                 const newIds = selectedElementIds.includes(el.id) ? selectedElementIds.filter(id => id !== el.id) : [...selectedElementIds, el.id];

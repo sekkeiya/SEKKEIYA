@@ -59,7 +59,7 @@ const EditorCore = ({
   }, [initialBlocks, onImageUpload]);
 
   if (!editor) {
-    return <Box sx={{ p: 2, color: '#9aa0a6' }}>Loading editor...</Box>;
+    return <Box sx={{ p: 2, color: 'rgb(var(--brand-fg-rgb) / 0.65)' }}>Loading editor...</Box>;
   }
 
   return (

@@ -61,3 +61,39 @@ export const db = dbInstance;
 
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// ── Firestore 内部アサーション崩壊からの自動復旧 ─────────────────────────────
+// firebase-js-sdk の既知バグ（firebase-js-sdk#9267: WatchChangeAggregator の
+// "INTERNAL ASSERTION FAILED: Unexpected state" ca9/b815）は、リスナーの高速な
+// 張り替えやリッスン中ドキュメントの高速な追加/削除で間欠的に発生する。
+// memoryLocalCache でも発生し（永続キャッシュ破損とは別の、ウォッチストリームの
+// プロトコル競合）、一度発生すると Firestore クライアントが汚染されて以降の
+// 全読み書きが失敗し続ける。SDK に復旧 API は無く、クライアントの作り直し
+// （＝ウィンドウ再読み込み）が唯一の回復手段。
+// SDK は内部 async キューからこのエラーを uncaught で再スローするため、
+// グローバルの error / unhandledrejection で検知できる。
+const FIRESTORE_ASSERTION_RE = /INTERNAL ASSERTION FAILED/;
+const RELOAD_GUARD_KEY = 'firestore-assert-reload-at';
+let firestoreReloadScheduled = false;
+
+function recoverFromFirestoreCorruption(message: string): void {
+  if (firestoreReloadScheduled || !FIRESTORE_ASSERTION_RE.test(message)) return;
+  firestoreReloadScheduled = true;
+  // 直近5分以内に自動復旧済みなら、リロードループ防止のため見送る（ログのみ）
+  const last = Number(sessionStorage.getItem(RELOAD_GUARD_KEY) || 0);
+  if (Date.now() - last < 5 * 60 * 1000) {
+    console.error('[firebase] Firestore INTERNAL ASSERTION FAILED が5分以内に再発。ループ防止のため自動復旧を見送ります。アプリを完全再起動してください。');
+    return;
+  }
+  sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+  console.error('[firebase] Firestore の内部状態が崩壊しました（INTERNAL ASSERTION FAILED）。3秒後にウィンドウを再読み込みして復旧します。');
+  setTimeout(() => window.location.reload(), 3000);
+}
+
+window.addEventListener('error', (e) => {
+  recoverFromFirestoreCorruption(String(e.message || ''));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const r: any = e.reason;
+  recoverFromFirestoreCorruption(String((r && (r.message || r)) || ''));
+});

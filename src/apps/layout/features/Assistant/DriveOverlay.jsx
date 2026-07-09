@@ -147,7 +147,7 @@ const DriveOverlay = ({ isOpen, onClose }) => {
             </Typography>
             <Divider sx={{ width: '100%', borderColor: BRAND.line, my: 2 }} />
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-              ※これはS.Models上のDriveOverlayモックです。将来的に@sekkeiya/global-panelからDriveWorkspaceが供給されます。
+              ※これはS.Model上のDriveOverlayモックです。将来的に@sekkeiya/global-panelからDriveWorkspaceが供給されます。
             </Typography>
           </Box>
         </Box>

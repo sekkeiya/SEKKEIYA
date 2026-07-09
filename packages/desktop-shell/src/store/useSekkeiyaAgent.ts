@@ -160,6 +160,25 @@ async function executeTool(name: string, input: any): Promise<{ content: string;
         store.setPersonality(input?.personality);
         return { content: `テーマを ${input?.personality} に設定しました。` };
 
+      case 'save_memory': {
+        // 🧠 AIメモリー（docs/21 Phase C）。「覚えて」等でAIが保存を判断 → クライアントで書き込み。
+        // Firestore ルールはクライアントの uid / プロジェクトメンバーで検証される。
+        const { useAuthStore } = await import('./useAuthStore');
+        const { useAppStore } = await import('./useAppStore');
+        const uid = (useAuthStore.getState().currentUser as any)?.uid as string | undefined;
+        const scope: 'user' | 'project' = input?.scope === 'project' ? 'project' : 'user';
+        const owner = scope === 'user' ? uid : (useAppStore.getState().activeProjectId || undefined);
+        if (!owner) {
+          return { content: scope === 'project'
+            ? 'プロジェクトが特定できないため、プロジェクトメモリーに保存できません。' : 'ログインが必要です。', isError: true };
+        }
+        const text = String(input?.text || '').trim();
+        if (!text) return { content: 'text が空です。', isError: true };
+        const { addAiMemory } = await import('../features/ai-studio/Memory/aiMemoryApi');
+        await addAiMemory(scope, owner, { text, type: input?.type || (scope === 'user' ? 'opinion' : 'decision'), sourceKind: 'chat' }, uid);
+        return { content: `${scope === 'user' ? 'ユーザー' : 'プロジェクト'}メモリーに保存しました: 「${text}」` };
+      }
+
       default:
         return { content: `未知のツール: ${name}`, isError: true };
     }
@@ -199,9 +218,12 @@ export const useSekkeiyaAgent = create<SekkeiyaAgentState>((set) => ({
 
     try {
       const callable = httpsCallable(functions, 'agentTurn');
+      // 🧠 AIメモリー（docs/21）: プロジェクト文脈ならサーバーがプロジェクトメモリーも注入する
+      const { useAppStore } = await import('./useAppStore');
+      const projectId = useAppStore.getState().activeProjectId || undefined;
 
       for (let step = 0; step < STEP_CAP; step++) {
-        const res: any = await callable({ messages });
+        const res: any = await callable({ messages, projectId });
         const result = res.data?.result;
         if (!result) throw new Error('agentTurn が空の結果を返しました。');
 

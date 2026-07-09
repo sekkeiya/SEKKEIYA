@@ -139,11 +139,11 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
   return (
     <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* ── Header / filters ── */}
-      <Box sx={{ px: { xs: 2, md: 3 }, pt: 1.75, pb: 1.25, borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      <Box sx={{ px: { xs: 2, md: 3 }, pt: 1.75, pb: 1.25, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
         {/* Title row */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <StraightenRoundedIcon sx={{ fontSize: 18, color: ACCENT }} />
-          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff' }}>Template Library</Typography>
+          <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--brand-fg)' }}>Template Library</Typography>
           <Box sx={{ flex: 1 }} />
           {projects.length > 1 && (
             <Select
@@ -151,11 +151,11 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
               onChange={e => setTargetProjectId(e.target.value)}
               size="small"
               sx={{
-                minWidth: 160, fontSize: '0.78rem', color: '#fff', bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1.5,
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-                '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' },
+                minWidth: 160, fontSize: '0.78rem', color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1.5,
+                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
+                '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' },
               }}
-              MenuProps={{ PaperProps: { sx: { bgcolor: '#1a1f2e', color: '#fff' } } }}
+              MenuProps={{ PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } }}
             >
               {projects.map(p => <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8rem' }}>{p.name}</MenuItem>)}
             </Select>
@@ -171,13 +171,13 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
 
         {/* Tabs + search + tool filter */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.35)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.09)' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.09)' }}>
             {([['official', '公式'], ['user', 'マイ'], ['public', '公開']] as [TemplateSourceType, string][]).map(([val, label]) => (
               <Button key={val} size="small" onClick={() => { setActiveTab(val); setSelectedId(null); }}
                 sx={{ textTransform: 'none', fontWeight: activeTab === val ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color: activeTab === val ? '#fff' : 'rgba(255,255,255,0.45)',
-                  bgcolor: activeTab === val ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#fff' } }}>
+                  color: activeTab === val ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  bgcolor: activeTab === val ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'var(--brand-fg)' } }}>
                 {label}{tabCounts[val] > 0 ? ` (${tabCounts[val]})` : ''}
               </Button>
             ))}
@@ -189,18 +189,18 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
             size="small"
             sx={{ flex: 1, minWidth: 160 }}
             InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ color: 'rgba(255,255,255,0.28)', fontSize: 18 }} /></InputAdornment>,
-              sx: { borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.85)', fontSize: '0.8rem',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.08)' } },
+              startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.28)', fontSize: 18 }} /></InputAdornment>,
+              sx: { borderRadius: 1.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', color: 'rgb(var(--brand-fg-rgb) / 0.85)', fontSize: '0.8rem',
+                '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' } },
             }}
           />
-          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'rgba(0,0,0,0.35)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.09)' }}>
+          <Box sx={{ display: 'flex', gap: 0.5, p: 0.375, bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.09)' }}>
             {(['all', 'rhino', 'blender'] as const).map(t => (
               <Button key={t} size="small" onClick={() => setToolFilter(t)}
                 sx={{ textTransform: 'none', fontWeight: toolFilter === t ? 700 : 500, fontSize: '0.72rem', px: 1.25, py: 0.375, minWidth: 0, borderRadius: 1.5,
-                  color: toolFilter === t ? '#fff' : 'rgba(255,255,255,0.45)',
-                  bgcolor: toolFilter === t ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#fff' } }}>
+                  color: toolFilter === t ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.45)',
+                  bgcolor: toolFilter === t ? 'rgb(var(--brand-fg-rgb) / 0.1)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', color: 'var(--brand-fg)' } }}>
                 {t === 'all' ? 'すべて' : t === 'rhino' ? 'Rhino' : 'Blender'}
               </Button>
             ))}
@@ -216,8 +216,8 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
           </Box>
         ) : filteredTemplates.length === 0 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 240, gap: 1.5 }}>
-            <StraightenRoundedIcon sx={{ fontSize: 32, color: 'rgba(255,255,255,0.2)' }} />
-            <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.85rem' }}>
+            <StraightenRoundedIcon sx={{ fontSize: 32, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: '0.85rem' }}>
               {searchQuery ? '一致するテンプレートがありません' : 'テンプレートがありません'}
             </Typography>
           </Box>
@@ -231,11 +231,11 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
                 <Box key={tmpl.id} onClick={() => setSelectedId(tmpl.id)} onDoubleClick={handleOpen}
                   sx={{
                     borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', transition: 'all 0.18s ease', position: 'relative',
-                    bgcolor: isSelected ? 'rgba(0,191,255,0.06)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isSelected ? 'rgba(0,191,255,0.5)' : 'rgba(255,255,255,0.07)'}`,
-                    '&:hover': { borderColor: isSelected ? 'rgba(0,191,255,0.65)' : 'rgba(255,255,255,0.14)', transform: 'translateY(-2px)' },
+                    bgcolor: isSelected ? 'rgba(0,191,255,0.06)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+                    border: `1px solid ${isSelected ? 'rgba(0,191,255,0.5)' : 'rgb(var(--brand-fg-rgb) / 0.07)'}`,
+                    '&:hover': { borderColor: isSelected ? 'rgba(0,191,255,0.65)' : 'rgb(var(--brand-fg-rgb) / 0.14)', transform: 'translateY(-2px)' },
                   }}>
-                  <Box sx={{ width: '100%', aspectRatio: '16/9', bgcolor: 'rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden' }}>
+                  <Box sx={{ width: '100%', aspectRatio: '16/9', bgcolor: 'light-dark(rgba(15,23,42,0.12), rgba(0,0,0,0.35))', position: 'relative', overflow: 'hidden' }}>
                     <TemplateThumbnail tmpl={tmpl} />
                     {isSelected && (
                       <Box sx={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '6px', bgcolor: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -249,24 +249,24 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
                     )}
                   </Box>
                   <Box sx={{ p: 1.25 }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: 'rgba(255,255,255,0.9)', mb: 0.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tmpl.name}</Typography>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.42)', mb: 0.75, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.45, minHeight: '2em' }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: 'rgb(var(--brand-fg-rgb) / 0.9)', mb: 0.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tmpl.name}</Typography>
+                    <Typography sx={{ fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.42)', mb: 0.75, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.45, minHeight: '2em' }}>
                       {tmpl.description || '説明なし'}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.5 }}>
-                      <Typography sx={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.3)' }}>
+                      <Typography sx={{ fontSize: '0.63rem', color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                         {tmpl.toolType === 'blender' ? 'Blender' : `Rhino ${tmpl.rhinoVersion ?? 8}`}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 0.25 }}>
-                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setPreviewTemplate(tmpl); }} sx={{ p: 0.3, color: 'rgba(255,255,255,0.4)', '&:hover': { color: '#fff' } }}>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setPreviewTemplate(tmpl); }} sx={{ p: 0.3, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'var(--brand-fg)' } }}>
                           <VisibilityRoundedIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                         {canEdit && (
                           <>
-                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setEditTemplate(tmpl); setRegDialogOpen(true); }} sx={{ p: 0.3, color: 'rgba(144,202,249,0.7)', '&:hover': { color: '#90caf9' } }}>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setEditTemplate(tmpl); setRegDialogOpen(true); }} sx={{ p: 0.3, color: 'light-dark(rgba(9,95,165,0.7), rgba(144,202,249,0.7))', '&:hover': { color: 'light-dark(#095fa5, #90caf9)' } }}>
                               <EditRoundedIcon sx={{ fontSize: 14 }} />
                             </IconButton>
-                            <IconButton size="small" onClick={(e) => handleDelete(tmpl, e)} sx={{ p: 0.3, color: 'rgba(239,154,154,0.7)', '&:hover': { color: '#ef9a9a' } }}>
+                            <IconButton size="small" onClick={(e) => handleDelete(tmpl, e)} sx={{ p: 0.3, color: 'light-dark(rgba(150,24,24,0.7), rgba(239,154,154,0.7))', '&:hover': { color: 'light-dark(#961818, #ef9a9a)' } }}>
                               <DeleteRoundedIcon sx={{ fontSize: 14 }} />
                             </IconButton>
                           </>
@@ -282,15 +282,15 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
       </Box>
 
       {/* ── Footer action bar ── */}
-      <Box sx={{ px: { xs: 2, md: 3 }, py: 1.25, borderTop: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+      <Box sx={{ px: { xs: 2, md: 3 }, py: 1.25, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {selectedTemplate ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {canOpen
                 ? <CheckRoundedIcon sx={{ fontSize: 14, color: ACCENT }} />
                 : <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#ff9800' }} />}
-              <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <Box component="span" sx={{ color: '#fff', fontWeight: 600 }}>{selectedTemplate.name}</Box>
+              <Typography sx={{ fontSize: '0.75rem', color: 'rgb(var(--brand-fg-rgb) / 0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Box component="span" sx={{ color: 'var(--brand-fg)', fontWeight: 600 }}>{selectedTemplate.name}</Box>
                 {canOpen ? ' を選択中' : ' — このテンプレートは開けません'}
               </Typography>
               {projects.length === 1 && (
@@ -298,7 +298,7 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
               )}
             </Box>
           ) : (
-            <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)' }}>テンプレートを選択してください</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>テンプレートを選択してください</Typography>
           )}
         </Box>
         <Button
@@ -308,8 +308,8 @@ export const TemplatesPanel: React.FC<TemplatesPanelProps> = ({ projects }) => {
           startIcon={launching ? <CircularProgress size={14} sx={{ color: '#000' }} /> : undefined}
           sx={{
             background: canOpen ? `linear-gradient(135deg, ${ACCENT}, #0099cc)` : undefined,
-            bgcolor: !canOpen ? 'rgba(255,255,255,0.07) !important' : undefined,
-            color: canOpen ? '#000' : 'rgba(255,255,255,0.25) !important',
+            bgcolor: !canOpen ? 'rgb(var(--brand-fg-rgb) / 0.07) !important' : undefined,
+            color: canOpen ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.25) !important',
             fontWeight: 700, textTransform: 'none', borderRadius: 1.5, px: 2, py: 0.7, fontSize: '0.82rem', flexShrink: 0,
           }}
         >

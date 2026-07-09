@@ -65,16 +65,16 @@ export const AllProjectsFilesList: React.FC<AllProjectsFilesListProps> = ({ filt
           mx: 0.5,
           borderRadius: 1.5,
           cursor: 'pointer',
-          color: active ? '#fff' : 'rgba(255,255,255,0.65)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.65)',
           bgcolor: active ? `${accent}22` : 'transparent',
           borderLeft: `2px solid ${active ? accent : 'transparent'}`,
           transition: 'background-color 0.15s, color 0.15s',
-          '&:hover': { bgcolor: active ? `${accent}22` : 'rgba(255,255,255,0.05)', color: '#fff' },
+          '&:hover': { bgcolor: active ? `${accent}22` : 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'var(--brand-fg)' },
         }}
       >
         {active
           ? <FolderOpenRoundedIcon sx={{ fontSize: 18, color: accent }} />
-          : <FolderRoundedIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.35)' }} />}
+          : <FolderRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }} />}
         <Typography sx={{ fontSize: '0.8rem', fontWeight: active ? 700 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {p.name}
         </Typography>
@@ -83,7 +83,7 @@ export const AllProjectsFilesList: React.FC<AllProjectsFilesListProps> = ({ filt
   };
 
   const sectionLabel = (label: string) => (
-    <Typography sx={{ px: 1.75, pt: 1.5, pb: 0.5, fontSize: '0.62rem', fontWeight: 800, letterSpacing: 0.6, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+    <Typography sx={{ px: 1.75, pt: 1.5, pb: 0.5, fontSize: '0.62rem', fontWeight: 800, letterSpacing: 0.6, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
       {label}
     </Typography>
   );
@@ -92,8 +92,8 @@ export const AllProjectsFilesList: React.FC<AllProjectsFilesListProps> = ({ filt
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>
         <Box sx={{ textAlign: 'center' }}>
-          <FolderOpenRoundedIcon sx={{ fontSize: 44, color: 'rgba(255,255,255,0.2)', mb: 1 }} />
-          <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+          <FolderOpenRoundedIcon sx={{ fontSize: 44, color: 'rgb(var(--brand-fg-rgb) / 0.2)', mb: 1 }} />
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.85rem' }}>
             プロジェクトがありません。
           </Typography>
         </Box>
@@ -107,15 +107,15 @@ export const AllProjectsFilesList: React.FC<AllProjectsFilesListProps> = ({ filt
       <Box sx={{
         width: 240,
         flexShrink: 0,
-        borderRight: '1px solid rgba(255,255,255,0.08)',
-        bgcolor: 'rgba(0,0,0,0.2)',
+        borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.75, pt: 1.75, pb: 0.5 }}>
           <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: accent }} />
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: '#fff' }}>
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--brand-fg)' }}>
             {filterMode === 'cad' ? 'CAD Files' : 'Work Files'}
           </Typography>
         </Box>
@@ -127,14 +127,14 @@ export const AllProjectsFilesList: React.FC<AllProjectsFilesListProps> = ({ filt
             sx={{
               display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.85, mx: 0.5, mt: 0.5, mb: 0.5,
               borderRadius: 1.5, cursor: 'pointer',
-              color: isTemplatesView ? '#fff' : 'rgba(255,255,255,0.7)',
+              color: isTemplatesView ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
               bgcolor: isTemplatesView ? `${accent}22` : 'transparent',
               borderLeft: `2px solid ${isTemplatesView ? accent : 'transparent'}`,
               transition: 'background-color 0.15s, color 0.15s',
-              '&:hover': { bgcolor: isTemplatesView ? `${accent}22` : 'rgba(255,255,255,0.05)', color: '#fff' },
+              '&:hover': { bgcolor: isTemplatesView ? `${accent}22` : 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'var(--brand-fg)' },
             }}
           >
-            <StraightenRoundedIcon sx={{ fontSize: 18, color: isTemplatesView ? accent : 'rgba(255,255,255,0.5)' }} />
+            <StraightenRoundedIcon sx={{ fontSize: 18, color: isTemplatesView ? accent : 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
             <Typography sx={{ fontSize: '0.8rem', fontWeight: isTemplatesView ? 700 : 600 }}>テンプレート</Typography>
           </Box>
         )}
@@ -155,7 +155,7 @@ export const AllProjectsFilesList: React.FC<AllProjectsFilesListProps> = ({ filt
           <WorkFilesList key={selectedProject.id} project={selectedProject} filterMode={filterMode} />
         ) : (
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: '0.85rem' }}>
               左のプロジェクトを選択してください。
             </Typography>
           </Box>

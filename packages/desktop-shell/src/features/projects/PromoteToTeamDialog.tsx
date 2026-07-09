@@ -20,12 +20,12 @@ interface Props {
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
-    color: '#fff',
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.4)' },
+    color: 'var(--brand-fg)',
+    '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
+    '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)' },
     '&.Mui-focused fieldset': { borderColor: '#00BFFF' },
   },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
+  '& .MuiInputLabel-root': { color: 'rgb(var(--brand-fg-rgb) / 0.7)' },
 } as const;
 
 export const PromoteToTeamDialog: React.FC<Props> = ({ open, project, uid, ownerName, onClose, onDone }) => {
@@ -78,12 +78,12 @@ export const PromoteToTeamDialog: React.FC<Props> = ({ open, project, uid, owner
 
   return (
     <Dialog open={open} onClose={() => !submitting && onClose()}
-      PaperProps={{ sx: { bgcolor: '#0e121c', color: '#fff', border: `1px solid ${BRAND.line}`, minWidth: 460, borderRadius: 3, backgroundImage: 'none' } }}>
+      PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: `1px solid ${BRAND.line}`, minWidth: 460, borderRadius: 3, backgroundImage: 'none' } }}>
       <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
         <GroupsRoundedIcon sx={{ color: '#00BFFF' }} /> チームに昇格
       </DialogTitle>
       <DialogContent>
-        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', mb: 2 }}>
+        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: '0.85rem', mb: 2 }}>
           「{project.name}」をチームプロジェクトに昇格します。チームメンバーがアクセスできるようになります（既定ロール: 編集者）。<br />
           ※ この操作は元に戻せません（チーム→個人には戻せません）。
         </Typography>
@@ -94,21 +94,21 @@ export const PromoteToTeamDialog: React.FC<Props> = ({ open, project, uid, owner
           <RadioGroup value={mode} onChange={e => setMode(e.target.value as 'existing' | 'new')}>
             <FormControlLabel
               value="existing" disabled={teams.length === 0}
-              control={<Radio sx={{ color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: '#00BFFF' } }} />}
-              label={<Typography sx={{ fontSize: '0.88rem', color: teams.length === 0 ? 'rgba(255,255,255,0.3)' : '#fff' }}>既存のチームを選択{teams.length === 0 ? '（所属チームなし）' : ''}</Typography>}
+              control={<Radio sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-checked': { color: '#00BFFF' } }} />}
+              label={<Typography sx={{ fontSize: '0.88rem', color: teams.length === 0 ? 'rgb(var(--brand-fg-rgb) / 0.3)' : 'var(--brand-fg)' }}>既存のチームを選択{teams.length === 0 ? '（所属チームなし）' : ''}</Typography>}
             />
             {mode === 'existing' && teams.length > 0 && (
               <FormControl size="small" sx={{ ml: 4, mb: 1, ...inputSx }}>
                 <Select value={selectedTeamId} onChange={e => setSelectedTeamId(e.target.value)}
-                  sx={{ color: '#fff', minWidth: 280, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' }, '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' } }}
-                  MenuProps={{ slotProps: { paper: { sx: { bgcolor: '#1a1f2a', color: '#fff' } } } }}>
+                  sx={{ color: 'var(--brand-fg)', minWidth: 280, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
+                  MenuProps={{ slotProps: { paper: { sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } } } }}>
                   {teams.map(t => <MenuItem key={t.id} value={t.id} sx={{ fontSize: '0.85rem' }}>{t.name}（{t.memberIds.length}名）</MenuItem>)}
                 </Select>
               </FormControl>
             )}
             <FormControlLabel
               value="new"
-              control={<Radio sx={{ color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: '#00BFFF' } }} />}
+              control={<Radio sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-checked': { color: '#00BFFF' } }} />}
               label={<Typography sx={{ fontSize: '0.88rem' }}>新しいチームを作成</Typography>}
             />
             {mode === 'new' && (
@@ -119,12 +119,12 @@ export const PromoteToTeamDialog: React.FC<Props> = ({ open, project, uid, owner
           </RadioGroup>
         )}
 
-        {error && <Typography sx={{ color: '#fa9bb4', fontSize: '0.8rem', mt: 1 }}>{error}</Typography>}
+        {error && <Typography sx={{ color: 'light-dark(#a50832, #fa9bb4)', fontSize: '0.8rem', mt: 1 }}>{error}</Typography>}
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
-        <Button onClick={onClose} disabled={submitting} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+        <Button onClick={onClose} disabled={submitting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
         <Button onClick={handleSubmit} disabled={submitting || !canSubmit} variant="contained"
-          sx={{ bgcolor: '#00BFFF', color: '#000', fontWeight: 800, '&:hover': { bgcolor: '#4facfe' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' } }}>
+          sx={{ bgcolor: '#00BFFF', color: '#000', fontWeight: 800, '&:hover': { bgcolor: '#4facfe' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
           {submitting ? '昇格中...' : 'チームに昇格'}
         </Button>
       </DialogActions>

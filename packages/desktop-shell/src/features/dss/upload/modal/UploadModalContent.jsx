@@ -319,8 +319,8 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
         maxHeight: 820,
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: '#202124', // Modern solid dark background, not transparent
-        color: '#fff',
+        bgcolor: 'var(--brand-surface2)', // Modern solid dark background, not transparent
+        color: 'var(--brand-fg)',
         borderRadius: { xs: 0, sm: 3 },
         overflow: 'hidden',
         boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
@@ -338,15 +338,15 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
           }}
         >
           <Box sx={{ width: '60%', maxWidth: 400, textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', fontWeight: 600, mb: 2 }}>
               {loadingMessage || "ファイルを読み込み中..."}
             </Typography>
-            <LinearProgress variant="determinate" value={loadingProgress || 0} sx={{ height: 10, borderRadius: 5, mb: 1, bgcolor: 'rgba(255,255,255,0.1)', '& .MuiLinearProgress-bar': { bgcolor: '#1e90ff' } }} />
+            <LinearProgress variant="determinate" value={loadingProgress || 0} sx={{ height: 10, borderRadius: 5, mb: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', '& .MuiLinearProgress-bar': { bgcolor: '#1e90ff' } }} />
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+              <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 500 }}>
                 {loadingCurrent || 0} / {loadingTotal || 0} 件
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
+              <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.9)', fontWeight: 700 }}>
                 {loadingProgress || 0}%
               </Typography>
             </Stack>
@@ -359,9 +359,9 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
       <input type="file" multiple webkitdirectory="true" directory="true" ref={folderInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
 
       {/* ==== Header ==== */}
-      <Box sx={{ p: { xs: 2, sm: 3 }, pb: 1.5, flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, pb: 1.5, flexShrink: 0, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant={isXs ? 'h6' : 'h5'} sx={{ fontWeight: 700, letterSpacing: '0.02em', color: '#fff' }}>
+          <Typography variant={isXs ? 'h6' : 'h5'} sx={{ fontWeight: 700, letterSpacing: '0.02em', color: 'var(--brand-fg)' }}>
             3Dモデルアップロード
           </Typography>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -374,8 +374,8 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
                   endIcon={<KeyboardArrowDownIcon />}
                   startIcon={<AddIcon />}
                   sx={{ 
-                    color: 'white', borderColor: 'rgba(255,255,255,0.4)', 
-                    bgcolor: 'rgba(255,255,255,0.05)',
+                    color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.4)', 
+                    bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)',
                     fontWeight: 700,
                     px: 2,
                     '&:hover': { borderColor: '#1e90ff', bgcolor: 'rgba(30,144,255,0.1)', color: '#1e90ff' } 
@@ -387,20 +387,20 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
                   anchorEl={anchorElAdd}
                   open={Boolean(anchorElAdd)}
                   onClose={handleAddMenuClose}
-                  PaperProps={{ sx: { bgcolor: '#2a2a2a', color: 'white', mt: 1, minWidth: 160 } }}
+                  PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', mt: 1, minWidth: 160 } }}
                 >
                   <MenuItem onClick={handleFileBtnClick}>
-                    <InsertDriveFileIcon fontSize="small" sx={{ mr: 1.5, color: 'rgba(255,255,255,0.7)' }} />
+                    <InsertDriveFileIcon fontSize="small" sx={{ mr: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
                     ファイルを追加
                   </MenuItem>
                   <MenuItem onClick={handleFolderBtnClick}>
-                    <CreateNewFolderIcon fontSize="small" sx={{ mr: 1.5, color: 'rgba(255,255,255,0.7)' }} />
+                    <CreateNewFolderIcon fontSize="small" sx={{ mr: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
                     フォルダを追加
                   </MenuItem>
                 </Menu>
               </>
             )}
-            <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.78)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>
+            <IconButton onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.78)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}>
               <CloseIcon />
             </IconButton>
           </Stack>
@@ -425,14 +425,14 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
           {/* 1. Display Filters */}
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ md: 'center' }}>
             <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 1 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, mr: 0.5, alignSelf: 'center' }}>表示:</Typography>
-              <Chip icon={<AppsIcon fontSize="small"/>} label="ALL" size="small" variant={filterFormats.includes('ALL') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('ALL')} sx={{ color: filterFormats.includes('ALL') ? '#ffffff' : 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', bgcolor: filterFormats.includes('ALL') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('ALL') ? '#1c86ee' : 'rgba(255,255,255,0.08)' } }} />
-              <Chip icon={<ViewInArIcon fontSize="small"/>} label="GLB" size="small" variant={filterFormats.includes('GLB') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('GLB')} sx={{ color: filterFormats.includes('GLB') ? '#ffffff' : 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', bgcolor: filterFormats.includes('GLB') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('GLB') ? '#1c86ee' : 'rgba(255,255,255,0.08)' } }} />
-              <Chip icon={<ArchitectureIcon fontSize="small"/>} label="3DM" size="small" variant={filterFormats.includes('3DM') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('3DM')} sx={{ color: filterFormats.includes('3DM') ? '#ffffff' : 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', bgcolor: filterFormats.includes('3DM') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('3DM') ? '#1c86ee' : 'rgba(255,255,255,0.08)' } }} />
-              <Chip icon={<MovieFilterIcon fontSize="small"/>} label="BLEND" size="small" variant={filterFormats.includes('BLEND') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('BLEND')} sx={{ color: filterFormats.includes('BLEND') ? '#ffffff' : 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', bgcolor: filterFormats.includes('BLEND') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('BLEND') ? '#1c86ee' : 'rgba(255,255,255,0.08)' } }} />
-              <Chip icon={<AccountTreeIcon fontSize="small"/>} label="GH" size="small" variant={filterFormats.includes('GH') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('GH')} sx={{ color: filterFormats.includes('GH') ? '#ffffff' : 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)', bgcolor: filterFormats.includes('GH') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('GH') ? '#1c86ee' : 'rgba(255,255,255,0.08)' } }} />
-              <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
-              <Chip icon={<FileCopyIcon fontSize="small"/>} label="重複" size="small" variant={filterDuplicates ? 'filled' : 'outlined'} onClick={() => setFilterDuplicates(!filterDuplicates)} sx={{ color: filterDuplicates ? '#ffffff' : '#ffb74d', borderColor: filterDuplicates ? 'transparent' : 'rgba(255,183,77,0.5)', bgcolor: filterDuplicates ? '#f57c00' : 'transparent', '&:hover': { bgcolor: filterDuplicates ? '#ef6c00' : 'rgba(255,183,77,0.1)' } }} />
+              <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', fontWeight: 600, mr: 0.5, alignSelf: 'center' }}>表示:</Typography>
+              <Chip icon={<AppsIcon fontSize="small"/>} label="ALL" size="small" variant={filterFormats.includes('ALL') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('ALL')} sx={{ color: filterFormats.includes('ALL') ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: filterFormats.includes('ALL') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('ALL') ? '#1c86ee' : 'rgb(var(--brand-fg-rgb) / 0.08)' } }} />
+              <Chip icon={<ViewInArIcon fontSize="small"/>} label="GLB" size="small" variant={filterFormats.includes('GLB') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('GLB')} sx={{ color: filterFormats.includes('GLB') ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: filterFormats.includes('GLB') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('GLB') ? '#1c86ee' : 'rgb(var(--brand-fg-rgb) / 0.08)' } }} />
+              <Chip icon={<ArchitectureIcon fontSize="small"/>} label="3DM" size="small" variant={filterFormats.includes('3DM') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('3DM')} sx={{ color: filterFormats.includes('3DM') ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: filterFormats.includes('3DM') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('3DM') ? '#1c86ee' : 'rgb(var(--brand-fg-rgb) / 0.08)' } }} />
+              <Chip icon={<MovieFilterIcon fontSize="small"/>} label="BLEND" size="small" variant={filterFormats.includes('BLEND') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('BLEND')} sx={{ color: filterFormats.includes('BLEND') ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: filterFormats.includes('BLEND') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('BLEND') ? '#1c86ee' : 'rgb(var(--brand-fg-rgb) / 0.08)' } }} />
+              <Chip icon={<AccountTreeIcon fontSize="small"/>} label="GH" size="small" variant={filterFormats.includes('GH') ? 'filled' : 'outlined'} onClick={() => toggleFilterFormat('GH')} sx={{ color: filterFormats.includes('GH') ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: filterFormats.includes('GH') ? '#1e90ff' : 'transparent', '&:hover': { bgcolor: filterFormats.includes('GH') ? '#1c86ee' : 'rgb(var(--brand-fg-rgb) / 0.08)' } }} />
+              <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', mx: 0.5 }} />
+              <Chip icon={<FileCopyIcon fontSize="small"/>} label="重複" size="small" variant={filterDuplicates ? 'filled' : 'outlined'} onClick={() => setFilterDuplicates(!filterDuplicates)} sx={{ color: filterDuplicates ? 'var(--brand-fg)' : 'light-dark(#ad6700, #ffb74d)', borderColor: filterDuplicates ? 'transparent' : 'rgba(255,183,77,0.5)', bgcolor: filterDuplicates ? '#f57c00' : 'transparent', '&:hover': { bgcolor: filterDuplicates ? '#ef6c00' : 'rgba(255,183,77,0.1)' } }} />
             </Stack>
             
             <ToggleButtonGroup
@@ -440,12 +440,12 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
               exclusive
               onChange={(_, val) => { if (val !== null) setIsGridView(val); }}
               size="small"
-              sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}
+              sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}
             >
-              <ToggleButton value={false} title="カード表示" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-selected': { bgcolor: '#1e90ff', color: 'white', '&:hover': { bgcolor: '#1c86ee' } }, '&:hover': { color: 'white' } }}>
+              <ToggleButton value={false} title="カード表示" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-selected': { bgcolor: '#1e90ff', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#1c86ee' } }, '&:hover': { color: 'var(--brand-fg)' } }}>
                 <ViewModuleIcon fontSize="small" />
               </ToggleButton>
-              <ToggleButton value={true} title="小型グリッド表示" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-selected': { bgcolor: '#1e90ff', color: 'white', '&:hover': { bgcolor: '#1c86ee' } }, '&:hover': { color: 'white' } }}>
+              <ToggleButton value={true} title="小型グリッド表示" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-selected': { bgcolor: '#1e90ff', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#1c86ee' } }, '&:hover': { color: 'var(--brand-fg)' } }}>
                 <GridViewIcon fontSize="small" />
               </ToggleButton>
             </ToggleButtonGroup>
@@ -454,12 +454,12 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
           {/* 2. Selection Controls */}
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems="center">
             <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 1 }}>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, mr: 0.5 }}>選択:</Typography>
-              <Button size="small" variant="text" onClick={handleSelectAll} sx={{ color: 'white', minWidth: 'auto', px: 1 }}>すべて選択</Button>
-              <Button size="small" variant="text" onClick={handleSelectVisible} sx={{ color: 'white', minWidth: 'auto', px: 1 }}>表示中を選択</Button>
-              <Button size="small" variant="text" onClick={handleSelectDuplicates} sx={{ color: 'white', minWidth: 'auto', px: 1 }}>重複だけ選択</Button>
-              <Button size="small" variant="text" onClick={handleSelectUncategorized} sx={{ color: 'white', minWidth: 'auto', px: 1 }}>カテゴリ未設定を選択</Button>
-              <Button size="small" variant="text" onClick={handleDeselectAll} sx={{ color: 'rgba(255,255,255,0.5)', minWidth: 'auto', px: 1 }}>選択解除</Button>
+              <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', fontWeight: 600, mr: 0.5 }}>選択:</Typography>
+              <Button size="small" variant="text" onClick={handleSelectAll} sx={{ color: 'var(--brand-fg)', minWidth: 'auto', px: 1 }}>すべて選択</Button>
+              <Button size="small" variant="text" onClick={handleSelectVisible} sx={{ color: 'var(--brand-fg)', minWidth: 'auto', px: 1 }}>表示中を選択</Button>
+              <Button size="small" variant="text" onClick={handleSelectDuplicates} sx={{ color: 'var(--brand-fg)', minWidth: 'auto', px: 1 }}>重複だけ選択</Button>
+              <Button size="small" variant="text" onClick={handleSelectUncategorized} sx={{ color: 'var(--brand-fg)', minWidth: 'auto', px: 1 }}>カテゴリ未設定を選択</Button>
+              <Button size="small" variant="text" onClick={handleDeselectAll} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', minWidth: 'auto', px: 1 }}>選択解除</Button>
             </Stack>
             {selectedItemIds.size > 0 && (
               <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
@@ -471,9 +471,9 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
           {/* 3. Bulk Edit Bar */}
           <Box sx={{ 
             p: 1.5, 
-            border: '1px solid rgba(255,255,255,0.05)', 
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', 
             borderRadius: 2, 
-            background: 'rgba(255,255,255,0.02)', 
+            background: 'rgb(var(--brand-fg-rgb) / 0.02)', 
             opacity: selectedItemIds.size > 0 ? 1 : 0.5, 
             pointerEvents: selectedItemIds.size > 0 ? 'auto' : 'none',
             transition: 'opacity 0.2s'
@@ -481,27 +481,27 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
               
               <Stack direction="row" alignItems="center" spacing={1} sx={{ overflowX: 'auto', flexWrap: 'nowrap', pb: isXs ? 1 : 0 }}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600, mr: 1, whiteSpace: 'nowrap' }}>選択項目の操作:</Typography>
-                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={() => handleBulkUploadTarget('all')}>アップロードON</Button>
-                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={() => handleBulkUploadTarget('none')}>アップロードOFF</Button>
-                <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.2)' }} />
-                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={() => handleBulkVisibility('public')}>公開にする</Button>
-                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={() => handleBulkVisibility('private')}>非公開にする</Button>
-                <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.2)' }} />
-                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={handleMacroCategoryMenuOpen}>タイプ変更</Button>
-                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgba(255,255,255,0.2)', color: 'white' }} onClick={handleCategoryMenuOpen}>カテゴリ変更</Button>
+                <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', fontWeight: 600, mr: 1, whiteSpace: 'nowrap' }}>選択項目の操作:</Typography>
+                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }} onClick={() => handleBulkUploadTarget('all')}>アップロードON</Button>
+                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }} onClick={() => handleBulkUploadTarget('none')}>アップロードOFF</Button>
+                <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
+                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }} onClick={() => handleBulkVisibility('public')}>公開にする</Button>
+                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }} onClick={() => handleBulkVisibility('private')}>非公開にする</Button>
+                <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }} />
+                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }} onClick={handleMacroCategoryMenuOpen}>タイプ変更</Button>
+                <Button size="small" variant="outlined" sx={{ whiteSpace: 'nowrap', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)' }} onClick={handleCategoryMenuOpen}>カテゴリ変更</Button>
               </Stack>
             </Stack>
 
             {/* Macro Category Menu */}
-            <Menu anchorEl={anchorElMacroCategory} open={Boolean(anchorElMacroCategory)} onClose={handleMacroCategoryMenuClose} PaperProps={{ sx: { bgcolor: '#2a2a2a', color: 'white' } }}>
+            <Menu anchorEl={anchorElMacroCategory} open={Boolean(anchorElMacroCategory)} onClose={handleMacroCategoryMenuClose} PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)' } }}>
               {safeMacroCategories.map((type) => (
                 <MenuItem key={type} onClick={() => handleBulkMacroCategory(type)}>{type}</MenuItem>
               ))}
             </Menu>
 
             {/* Category Menu */}
-            <Menu anchorEl={anchorElCategory} open={Boolean(anchorElCategory)} onClose={handleCategoryMenuClose} PaperProps={{ sx: { bgcolor: '#2a2a2a', color: 'white', maxHeight: 300 } }}>
+            <Menu anchorEl={anchorElCategory} open={Boolean(anchorElCategory)} onClose={handleCategoryMenuClose} PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', maxHeight: 300 } }}>
                {allMainCategories.map(cat => (
                  <MenuItem key={cat} onClick={() => handleBulkCategory(cat)}>
                    {cat + ' に統一'}
@@ -543,14 +543,14 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
             ))}
             {filteredQueue.length === 1 && !uploading && (
                 <Box sx={{ textAlign: 'center', mt: 3, mb: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)' }}>
+                  <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)' }}>
                     右上の「さらに追加」ボタンから、さらにファイルやフォルダを追加できます
                   </Typography>
                 </Box>
             )}
           </Box>
         ) : hasFiles ? (
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)', textAlign: 'center', mt: 4 }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', textAlign: 'center', mt: 4 }}>
             該当するアイテムがありません
           </Typography>
         ) : null}
@@ -561,8 +561,8 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
         sx={{ 
           flexShrink: 0, 
           p: { xs: 1.5, sm: 2 }, 
-          borderTop: '1px solid rgba(255,255,255,0.05)', 
-          bgcolor: 'rgba(0,0,0,0.15)',
+          borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', 
+          bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'
@@ -571,18 +571,18 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
         <Box>
           {hasFiles && (
             <Stack direction="row" spacing={2} alignItems="center">
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.58)', fontWeight: 600 }}>
+              <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', fontWeight: 600 }}>
                 全 {stats.total}件
               </Typography>
               {!isXs && (
                 <>
-                  <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                  <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
                   <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600, fontSize: '0.9rem' }}>
                     {stats.targetedCount}件 対象
                   </Typography>
                   {stats.needsReviewCount > 0 && (
                     <>
-                      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
                       <Typography variant="body2" sx={{ color: '#ff9800', fontWeight: 600 }}>
                          未設定項目があります
                       </Typography>
@@ -594,13 +594,13 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
           )}
         </Box>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600, mr: { xs: 0, sm: 2 } }}>
+          <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600, mr: { xs: 0, sm: 2 } }}>
             {uploading ? 'バックグラウンド最適化・保存中...' : stats.preparingCount > 0 ? 'モデルを準備中...' : !hasFiles ? `ファイルを選択してください` : stats.targetedCount === 0 ? `対象が0件です` : stats.needsReviewCount > 0 ? `必須項目を設定してください` : stats.errorCount > 0 ? `エラーを解消してください` : `アップロードの準備完了`}
           </Typography>
           <Button 
             onClick={onClose} 
             size="small"
-            sx={{ color: 'rgba(255,255,255,0.58)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.05)' } }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.58)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}
           >
             {uploading ? 'バックグラウンドで閉じる' : 'キャンセル'}
           </Button>
@@ -612,8 +612,8 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
             disabled={!canUpload || uploading}
             sx={{
               fontWeight: 700,
-              bgcolor: canUpload ? '#4caf50' : 'rgba(255,255,255,0.1)',
-              color: canUpload ? '#fff' : 'rgba(255,255,255,0.3)',
+              bgcolor: canUpload ? '#4caf50' : 'rgb(var(--brand-fg-rgb) / 0.1)',
+              color: canUpload ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.3)',
               '&:hover': { bgcolor: '#43a047' },
             }}
           >
@@ -624,7 +624,7 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
 
       {/* ==== Success Toast ==== */}
       <Snackbar open={toastOpen} autoHideDuration={3000} onClose={() => setToastOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={() => setToastOpen(false)} severity="success" sx={{ width: '100%', bgcolor: '#4caf50', color: '#fff' }}>
+        <Alert onClose={() => setToastOpen(false)} severity="success" sx={{ width: '100%', bgcolor: '#4caf50', color: 'var(--brand-fg)' }}>
           {toastMsg}
         </Alert>
       </Snackbar>

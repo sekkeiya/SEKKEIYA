@@ -30,8 +30,8 @@ function ProjectListItem({ project, active, onClick }: { project: any; active: b
           px: 1.25,
           py: 0.75,
           borderRadius: 2,
-          bgcolor: active ? "rgba(255,255,255,0.08)" : "transparent",
-          "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+          bgcolor: active ? "rgb(var(--brand-fg-rgb) / 0.08)" : "transparent",
+          "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)" },
         }}
       >
         <Box sx={{ 
@@ -40,10 +40,10 @@ function ProjectListItem({ project, active, onClick }: { project: any; active: b
           display: "flex", alignItems: "center", justifyContent: "center", mr: 1,
           flexShrink: 0
         }}>
-          <FolderRoundedIcon sx={{ fontSize: 14, color: "#fff" }} />
+          <FolderRoundedIcon sx={{ fontSize: 14, color: "var(--brand-fg)" }} />
         </Box>
         <Typography sx={{ 
-          color: active ? "#ffffff" : "rgba(255,255,255,0.7)", 
+          color: active ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", 
           fontSize: 12, fontWeight: active ? 600 : 500,
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1
         }}>
@@ -124,11 +124,11 @@ export const AiCanvasSidebar: React.FC = () => {
               }} 
               sx={{ 
                 display: 'flex', alignItems: 'center', py: 0.5, px: 1, borderRadius: 1.5, cursor: 'pointer', 
-                bgcolor: page.id === canvasCurrentPageId ? 'rgba(255,255,255,0.08)' : 'transparent', 
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' } 
+                bgcolor: page.id === canvasCurrentPageId ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent', 
+                '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } 
               }}
             >
-              <Typography sx={{ fontSize: 11, color: page.id === canvasCurrentPageId ? "#90caf9" : "rgba(255,255,255,0.6)", flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Typography sx={{ fontSize: 11, color: page.id === canvasCurrentPageId ? "light-dark(#095fa5, #90caf9)" : "rgb(var(--brand-fg-rgb) / 0.6)", flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {page.name || "Untitled Page"}
               </Typography>
               {canvasPages.length > 1 && (
@@ -140,7 +140,7 @@ export const AiCanvasSidebar: React.FC = () => {
                   }}
                   sx={{ 
                     p: 0.25, ml: 1, 
-                    color: "rgba(255,255,255,0.3)", 
+                    color: "rgb(var(--brand-fg-rgb) / 0.3)", 
                     '&:hover': { color: "#f44336", bgcolor: "rgba(244, 67, 54, 0.1)" } 
                   }}
                 >
@@ -159,11 +159,11 @@ export const AiCanvasSidebar: React.FC = () => {
             }} 
             sx={{ 
               display: 'flex', alignItems: 'center', py: 0.5, px: 1, borderRadius: 1.5, cursor: 'pointer', 
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' } 
+              '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' } 
             }}
           >
-             <AddRoundedIcon sx={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }} />
-             <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)", pl: 1 }}>Add Page</Typography>
+             <AddRoundedIcon sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.4)" }} />
+             <Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.4)", pl: 1 }}>Add Page</Typography>
           </Box>
         </Box>
       )}
@@ -187,7 +187,7 @@ export const AiCanvasSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 2, mb: 2 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgba(255,255,255,0.45)", textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgb(var(--brand-fg-rgb) / 0.45)", textTransform: "uppercase" }}>
           AI Canvas
         </Typography>
       </Box>
@@ -202,11 +202,11 @@ export const AiCanvasSidebar: React.FC = () => {
                   onClick={() => setCanvasMode(item.id)}
                   sx={{
                     borderRadius: 2,
-                    bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                    bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+                    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)' },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 32, color: active ? '#fff' : 'rgba(255,255,255,0.5)' }}>
+                  <ListItemIcon sx={{ minWidth: 32, color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText 
@@ -214,7 +214,7 @@ export const AiCanvasSidebar: React.FC = () => {
                     primaryTypographyProps={{ 
                       fontSize: 13, 
                       fontWeight: active ? 600 : 500,
-                      color: active ? '#fff' : 'rgba(255,255,255,0.7)'
+                      color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)'
                     }} 
                   />
                 </ListItemButton>
@@ -226,14 +226,14 @@ export const AiCanvasSidebar: React.FC = () => {
         {myProjects.length > 0 && (
           <Box sx={{ mb: 2, minWidth: 200, mt: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgb(var(--brand-fg-rgb) / 0.35)", textTransform: "uppercase" }}>
                 My Projects
               </Typography>
               <Tooltip title="Create Project" placement="top">
                 <IconButton 
                   size="small" 
                   onClick={() => { setCreateProjectType('my'); setIsCreateDialogOpen(true); }}
-                  sx={{ color: "rgba(255,255,255,0.5)", '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' }, width: 20, height: 20 }}
+                  sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }, width: 20, height: 20 }}
                 >
                   <AddRoundedIcon sx={{ fontSize: 14 }} />
                 </IconButton>
@@ -246,14 +246,14 @@ export const AiCanvasSidebar: React.FC = () => {
         {teamProjects.length > 0 && (
           <Box sx={{ mb: 2, minWidth: 200 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 600, color: "rgb(var(--brand-fg-rgb) / 0.35)", textTransform: "uppercase" }}>
                 Team Projects
               </Typography>
               <Tooltip title="Create Team Project" placement="top">
                 <IconButton 
                   size="small" 
                   onClick={() => { setCreateProjectType('team'); setIsCreateDialogOpen(true); }}
-                  sx={{ color: "rgba(255,255,255,0.5)", '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' }, width: 20, height: 20 }}
+                  sx={{ color: "rgb(var(--brand-fg-rgb) / 0.5)", '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }, width: 20, height: 20 }}
                 >
                   <AddRoundedIcon sx={{ fontSize: 14 }} />
                 </IconButton>
@@ -269,15 +269,15 @@ export const AiCanvasSidebar: React.FC = () => {
         open={isCreateDialogOpen} 
         onClose={() => !isCreating && setIsCreateDialogOpen(false)}
         PaperProps={{
-          sx: { bgcolor: "#1a1e27", color: "#fff", minWidth: 400, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }
+          sx: { bgcolor: "var(--brand-surface2)", color: "var(--brand-fg)", minWidth: 400, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }
         }}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1, fontSize: 16, fontWeight: 700 }}>
-          <FolderRoundedIcon sx={{ color: '#90caf9' }} />
+          <FolderRoundedIcon sx={{ color: 'light-dark(#095fa5, #90caf9)' }} />
           新規{createProjectType === 'team' ? 'チーム' : ''}プロジェクトを作成
         </DialogTitle>
         <DialogContent sx={{ pb: 1 }}>
-          <Typography sx={{ color: "rgba(255,255,255,0.7)", mb: 2, fontSize: 13 }}>
+          <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", mb: 2, fontSize: 13 }}>
             {createProjectType === 'team' 
               ? '共有のチームプロジェクトを作成します。チームメンバーを後から追加できます。' 
               : '個人用の新しいプロジェクトを作成します。'}
@@ -292,12 +292,12 @@ export const AiCanvasSidebar: React.FC = () => {
             value={newProjectName}
             onChange={(e) => setNewProjectName(e.target.value)}
             disabled={isCreating}
-            InputProps={{ sx: { color: '#fff', fontSize: 14, borderRadius: 2 } }}
-            InputLabelProps={{ sx: { color: 'rgba(255,255,255,0.5)' } }}
+            InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: 14, borderRadius: 2 } }}
+            InputLabelProps={{ sx: { color: 'rgb(var(--brand-fg-rgb) / 0.5)' } }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                "& fieldset": { borderColor: "rgba(255,255,255,0.1)" },
-                "&:hover fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+                "& fieldset": { borderColor: "rgb(var(--brand-fg-rgb) / 0.1)" },
+                "&:hover fieldset": { borderColor: "rgb(var(--brand-fg-rgb) / 0.2)" },
                 "&.Mui-focused fieldset": { borderColor: '#90caf9' },
               }
             }}
@@ -307,7 +307,7 @@ export const AiCanvasSidebar: React.FC = () => {
           <Button 
             onClick={() => setIsCreateDialogOpen(false)} 
             disabled={isCreating}
-            sx={{ color: "rgba(255,255,255,0.6)", '&:hover': { bgcolor: "rgba(255,255,255,0.05)" } }}
+            sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", '&:hover': { bgcolor: "rgb(var(--brand-fg-rgb) / 0.05)" } }}
           >
             キャンセル
           </Button>
@@ -318,7 +318,7 @@ export const AiCanvasSidebar: React.FC = () => {
             sx={{ 
               bgcolor: '#90caf9', color: '#000', fontWeight: 600,
               '&:hover': { bgcolor: '#90caf9' },
-              '&.Mui-disabled': { bgcolor: 'rgba(144, 202, 249, 0.3)', color: 'rgba(255,255,255,0.3)' }
+              '&.Mui-disabled': { bgcolor: 'rgba(144, 202, 249, 0.3)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' }
             }}
           >
             {isCreating ? '作成中...' : '作成'}
@@ -331,7 +331,7 @@ export const AiCanvasSidebar: React.FC = () => {
         open={!!pageToDelete} 
         onClose={() => setPageToDelete(null)}
         PaperProps={{
-          sx: { bgcolor: "#1a1e27", color: "#fff", minWidth: 360, borderRadius: 3, border: "1px solid rgba(255,255,255,0.1)" }
+          sx: { bgcolor: "var(--brand-surface2)", color: "var(--brand-fg)", minWidth: 360, borderRadius: 3, border: "1px solid rgb(var(--brand-fg-rgb) / 0.1)" }
         }}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1, fontSize: 16, fontWeight: 700 }}>
@@ -339,7 +339,7 @@ export const AiCanvasSidebar: React.FC = () => {
           ページを削除
         </DialogTitle>
         <DialogContent sx={{ pb: 1 }}>
-          <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
+          <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.7)", fontSize: 13 }}>
             本当に「{pageToDelete?.name || 'このページ'}」を削除しますか？
             <br/>この操作は元に戻せません。
           </Typography>
@@ -347,7 +347,7 @@ export const AiCanvasSidebar: React.FC = () => {
         <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button 
             onClick={() => setPageToDelete(null)} 
-            sx={{ color: "rgba(255,255,255,0.6)", '&:hover': { bgcolor: "rgba(255,255,255,0.05)" } }}
+            sx={{ color: "rgb(var(--brand-fg-rgb) / 0.6)", '&:hover': { bgcolor: "rgb(var(--brand-fg-rgb) / 0.05)" } }}
           >
             キャンセル
           </Button>
@@ -361,7 +361,7 @@ export const AiCanvasSidebar: React.FC = () => {
             }}
             variant="contained"
             sx={{ 
-              bgcolor: '#f44336', color: '#fff', fontWeight: 600,
+              bgcolor: '#f44336', color: 'var(--brand-fg)', fontWeight: 600,
               '&:hover': { bgcolor: '#d32f2f' }
             }}
           >

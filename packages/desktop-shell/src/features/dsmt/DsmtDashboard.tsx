@@ -52,7 +52,7 @@ const MaterialSpherePreview: React.FC<{ material: DsmtMaterial; size?: number }>
   const hasTex = !!material.thumbnailUrl;
   const rough = material.params?.roughness ?? 0.6;
   const hi = hasTex ? 0.5 : (1 - rough) * 0.85 + 0.1;
-  const sphereShade = `radial-gradient(circle at 32% 28%, rgba(255,255,255,${hi}) 0%, rgba(255,255,255,0) 42%), radial-gradient(circle at 72% 82%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 58%)`;
+  const sphereShade = `radial-gradient(circle at 32% 28%, rgba(255,255,255,${hi}) 0%, rgb(var(--brand-fg-rgb) / 0) 42%), radial-gradient(circle at 72% 82%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 58%)`;
   return (
     <Box sx={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
@@ -62,7 +62,7 @@ const MaterialSpherePreview: React.FC<{ material: DsmtMaterial; size?: number }>
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-      boxShadow: 'inset 0 -6px 14px rgba(0,0,0,0.45), inset 0 4px 10px rgba(255,255,255,0.08)',
+      boxShadow: 'inset 0 -6px 14px rgba(0,0,0,0.45), inset 0 4px 10px rgb(var(--brand-fg-rgb) / 0.08)',
     }} />
   );
 };
@@ -78,11 +78,11 @@ const MaterialCard: React.FC<{
       sx={{
         position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
         p: 1.5, borderRadius: 2, cursor: 'pointer',
-        bgcolor: multiSelected ? 'rgba(66,165,245,0.1)' : selected ? 'rgba(236,64,122,0.14)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${multiSelected ? '#42a5f5' : selected ? 'rgba(236,64,122,0.6)' : 'rgba(255,255,255,0.06)'}`,
+        bgcolor: multiSelected ? 'rgba(66,165,245,0.1)' : selected ? 'rgba(236,64,122,0.14)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
+        border: `1px solid ${multiSelected ? '#42a5f5' : selected ? 'rgba(236,64,122,0.6)' : 'rgb(var(--brand-fg-rgb) / 0.06)'}`,
         boxShadow: multiSelected ? '0 0 0 2px rgba(66,165,245,0.45)' : 'none',
         transition: 'background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s',
-        '&:hover': { bgcolor: multiSelected ? 'rgba(66,165,245,0.15)' : 'rgba(255,255,255,0.07)', transform: 'translateY(-2px)', '& .dsmt-del': { opacity: 1 } },
+        '&:hover': { bgcolor: multiSelected ? 'rgba(66,165,245,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.07)', transform: 'translateY(-2px)', '& .dsmt-del': { opacity: 1 } },
       }}
     >
       {/* 複数選択チェックバッジ */}
@@ -93,20 +93,20 @@ const MaterialCard: React.FC<{
           bgcolor: '#42a5f5', display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
         }}>
-          <CheckCircleOutlineRoundedIcon sx={{ fontSize: 14, color: '#fff' }} />
+          <CheckCircleOutlineRoundedIcon sx={{ fontSize: 14, color: 'var(--brand-fg)' }} />
         </Box>
       )}
       {onDelete && !multiSelected && (
         <IconButton className="dsmt-del" size="small" onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          sx={{ position: 'absolute', top: 4, right: 4, opacity: 0, transition: 'opacity 0.15s', color: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(0,0,0,0.4)', '&:hover': { color: '#ff6b6b', bgcolor: 'rgba(0,0,0,0.6)' } }}>
+          sx={{ position: 'absolute', top: 4, right: 4, opacity: 0, transition: 'opacity 0.15s', color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgba(0,0,0,0.4)', '&:hover': { color: 'light-dark(#ad0000, #ff6b6b)', bgcolor: 'rgba(0,0,0,0.6)' } }}>
           <DeleteOutlineRoundedIcon sx={{ fontSize: 15 }} />
         </IconButton>
       )}
       <MaterialSpherePreview material={material} />
-      <Typography noWrap sx={{ fontSize: 12, fontWeight: 600, color: '#fff', textAlign: 'center', lineHeight: 1.3, width: '100%' }}>
+      <Typography noWrap sx={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-fg)', textAlign: 'center', lineHeight: 1.3, width: '100%' }}>
         {displayTitle(material.title)}
       </Typography>
-      <Chip label={meta.label} size="small" sx={{ height: 18, fontSize: 9, bgcolor: `${meta.color}22`, color: meta.color, borderRadius: 1 }} />
+      <Chip label={meta.label} size="small" sx={{ height: 18, fontSize: 9, bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color, borderRadius: 1 }} />
     </Box>
   );
 };
@@ -120,33 +120,33 @@ const DsmtInfoPanel: React.FC<{
   const bar = (label: string, v: number, color: string) => (
     <Box sx={{ mb: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{label}</Typography>
-        <Typography sx={{ fontSize: 11, color: '#fff' }}>{Number(v ?? 0).toFixed(2)}</Typography>
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.55)' }}>{label}</Typography>
+        <Typography sx={{ fontSize: 11, color: 'var(--brand-fg)' }}>{Number(v ?? 0).toFixed(2)}</Typography>
       </Box>
-      <Box sx={{ height: 4, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.08)' }}>
+      <Box sx={{ height: 4, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' }}>
         <Box sx={{ width: `${Math.min(1, Math.max(0, v ?? 0)) * 100}%`, height: '100%', borderRadius: 2, bgcolor: color }} />
       </Box>
     </Box>
   );
   return (
-    <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', overflowY: 'auto', bgcolor: 'rgba(10,15,25,0.4)' }}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', display: 'flex', flexDirection: 'column', overflowY: 'auto', bgcolor: 'light-dark(rgba(255,255,255,0.55), rgba(10,15,25,0.4))' }}>
+      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>素材情報</Typography>
       </Box>
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
           <MaterialSpherePreview material={material} size={120} />
         </Box>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#fff', textAlign: 'center', mb: 0.5 }}>{displayTitle(material.title)}</Typography>
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-fg)', textAlign: 'center', mb: 0.5 }}>{displayTitle(material.title)}</Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-          <Chip label={meta.label} size="small" sx={{ height: 20, fontSize: 10, bgcolor: `${meta.color}22`, color: meta.color }} />
+          <Chip label={meta.label} size="small" sx={{ height: 20, fontSize: 10, bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color }} />
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)', mb: 1.5 }} />
+        <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)', mb: 1.5 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <Box sx={{ width: 20, height: 20, borderRadius: '4px', bgcolor: p.baseColor || '#888', border: '1px solid rgba(255,255,255,0.2)' }} />
-          <Typography sx={{ fontSize: 12, color: '#fff', fontFamily: 'monospace' }}>{p.baseColor || '-'}</Typography>
+          <Box sx={{ width: 20, height: 20, borderRadius: '4px', bgcolor: p.baseColor || '#888', border: '1px solid rgb(var(--brand-fg-rgb) / 0.2)' }} />
+          <Typography sx={{ fontSize: 12, color: 'var(--brand-fg)', fontFamily: 'monospace' }}>{p.baseColor || '-'}</Typography>
         </Box>
         {bar('ラフネス', p.roughness, '#90caf9')}
         {bar('メタルネス', p.metalness, '#ffb74d')}
@@ -154,15 +154,15 @@ const DsmtInfoPanel: React.FC<{
 
         {Array.isArray(material.tags) && material.tags.length > 0 && (
           <Box sx={{ mt: 1.5 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mb: 0.5 }}>タグ</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 0.5 }}>タグ</Typography>
             <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {material.tags.map((t) => <Chip key={t} label={t} size="small" sx={{ height: 18, fontSize: 10, bgcolor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)' }} />)}
+              {material.tags.map((t) => <Chip key={t} label={t} size="small" sx={{ height: 18, fontSize: 10, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.8)' }} />)}
             </Box>
           </Box>
         )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
-          <Typography sx={{ fontSize: 12, color: material.visibility === 'public' ? ACCENT : 'rgba(255,255,255,0.4)' }}>
+          <Typography sx={{ fontSize: 12, color: material.visibility === 'public' ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             {material.visibility === 'public' ? '公開中' : '非公開'}
           </Typography>
           <Switch size="small" checked={material.visibility === 'public'} disabled={!canManage} onChange={onToggleVisibility}
@@ -552,7 +552,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
                 const existingIds = new Set(materials.map((m) => m.id));
                 useImagePickerStore.getState().openPickerWithCallback('material', 500, handleImagesSelected, existingIds);
               }}
-              sx={{ textTransform: 'none', color: 'rgba(110,231,255,0.95)', borderColor: 'rgba(110,231,255,0.4)' }}>
+              sx={{ textTransform: 'none', color: 'light-dark(rgba(0,145,173,0.95), rgba(110,231,255,0.95))', borderColor: 'rgba(110,231,255,0.4)' }}>
               {seeding ? '生成中...' : 'S.Imageから生成'}
             </Button>
           </span>
@@ -563,7 +563,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
           <span>
             <Button variant="outlined" size="small" startIcon={seeding ? <CircularProgress size={14} /> : <CategoryRoundedIcon />}
               disabled={!projectId || seeding} onClick={seedStarter}
-              sx={{ textTransform: 'none', color: 'rgba(255,255,255,0.85)', borderColor: 'rgba(255,255,255,0.3)' }}>
+              sx={{ textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.85)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
               スターター素材を生成
             </Button>
           </span>
@@ -620,21 +620,21 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
   return (
     <Box sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default', position: 'relative' }}>
       {/* ヘッダー */}
-      <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
           <TextureRoundedIcon sx={{ color: ACCENT, fontSize: 24 }} />
-          <Typography sx={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>S.Material</Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: 'var(--brand-fg)' }}>S.Material</Typography>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             {isProjectsScope ? `Public Projects · ${projects?.length ?? 0} 件` : `マテリアル管理 · ${filtered.length} 件`}
           </Typography>
           <Box sx={{ flex: 1 }} />
           {/* Material: 全公開 / フォロー中 切替 */}
           {dsmtScope === 'global_materials' && (
             <ToggleButtonGroup exclusive size="small" value={dsmtGlobalFilter} onChange={(_, v) => v && setDsmtGlobalFilter(v)}>
-              <ToggleButton value="all" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 12, py: 0.25 }}>
+              <ToggleButton value="all" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 12, py: 0.25 }}>
                 <PublicRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} /> すべて
               </ToggleButton>
-              <ToggleButton value="following" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'none', fontSize: 12, py: 0.25 }}>
+              <ToggleButton value="following" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 12, py: 0.25 }}>
                 <GroupRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} /> フォロー中
               </ToggleButton>
             </ToggleButtonGroup>
@@ -644,16 +644,16 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
         {!isProjectsScope && !detail && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 240, bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 2, px: 1.5, py: 0.5, border: '1px solid rgba(255,255,255,0.06)' }}>
-              <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
-              <InputBase placeholder="素材を検索..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: '#fff', fontSize: 13, flex: 1 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 240, bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 2, px: 1.5, py: 0.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+              <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
+              <InputBase placeholder="素材を検索..." value={search} onChange={(e) => setSearch(e.target.value)} sx={{ color: 'var(--brand-fg)', fontSize: 13, flex: 1 }} />
             </Box>
             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
               <Chip label="すべて" size="small" onClick={() => setCategoryFilter('all')}
-                sx={{ height: 24, fontSize: 11, bgcolor: categoryFilter === 'all' ? ACCENT : 'rgba(255,255,255,0.06)', color: categoryFilter === 'all' ? '#fff' : 'rgba(255,255,255,0.7)' }} />
+                sx={{ height: 24, fontSize: 11, bgcolor: categoryFilter === 'all' ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.06)', color: categoryFilter === 'all' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
               {categories.map((c) => (
                 <Chip key={c} label={DSMT_CATEGORY_META[c].label} size="small" onClick={() => setCategoryFilter(c)}
-                  sx={{ height: 24, fontSize: 11, bgcolor: categoryFilter === c ? DSMT_CATEGORY_META[c].color : 'rgba(255,255,255,0.06)', color: categoryFilter === c ? '#fff' : 'rgba(255,255,255,0.7)' }} />
+                  sx={{ height: 24, fontSize: 11, bgcolor: categoryFilter === c ? DSMT_CATEGORY_META[c].color : 'rgb(var(--brand-fg-rgb) / 0.06)', color: categoryFilter === c ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' }} />
               ))}
             </Box>
           </Box>
@@ -682,10 +682,10 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
             {isInitializing ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 2 }}>
                 <CircularProgress sx={{ color: ACCENT }} />
-                <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>素材を読み込み中...</Typography>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13 }}>素材を読み込み中...</Typography>
               </Box>
             ) : filtered.length === 0 ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'rgba(255,255,255,0.4)' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                 <TextureRoundedIcon sx={{ fontSize: 48, opacity: 0.3 }} />
                 <Typography sx={{ fontSize: 14 }}>素材がまだありません</Typography>
                 <Typography sx={{ fontSize: 12, opacity: 0.7 }}>
@@ -733,19 +733,19 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
         <Box sx={{
           position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
           zIndex: 200, display: 'flex', alignItems: 'center', gap: 1.5,
-          bgcolor: '#1a1d24', border: '1px solid rgba(255,255,255,0.18)',
+          bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
           borderRadius: 3, px: 2.5, py: 1.25,
           boxShadow: '0 6px 32px rgba(0,0,0,0.6)',
           pointerEvents: 'auto',
         }}>
-          <Typography sx={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>
+          <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 700 }}>
             {multiSelectedIds.size} 件選択中
           </Typography>
-          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
             Shift+クリックで追加／解除
           </Typography>
           <Button size="small" onClick={() => setMultiSelectedIds(new Set())}
-            sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>
             解除
           </Button>
           <Button size="small" variant="contained" color="error"
@@ -767,10 +767,10 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
       {/* 保存先選択ダイアログ（S.Imageで画像選択確定後に表示） */}
       <Dialog open={!!pendingImages} onClose={() => setPendingImages(null)}
-        PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 460, maxWidth: 520 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 460, maxWidth: 520 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>マテリアルの保存先</DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', mb: 2 }}>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 2 }}>
             {pendingImages?.length ?? 0} 枚のテクスチャを選択しました。保存先を選んでください。
           </Typography>
 
@@ -782,31 +782,31 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
             }}>
               {/* Private Material */}
               <FormControlLabel value="auto_private"
-                control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+                control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
                 sx={{ mb: 0.5, '& .MuiFormControlLabel-label': { width: '100%' } }}
                 label={
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
                       <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Private Material</Typography>
-                      <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>自分のみ閲覧可・自動プロジェクト割り当て</Typography>
+                      <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>自分のみ閲覧可・自動プロジェクト割り当て</Typography>
                     </Box>
                   </Box>
                 }
               />
               {/* Public Material */}
               <FormControlLabel value="auto_public"
-                control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+                control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
                 sx={{ mb: 1, '& .MuiFormControlLabel-label': { width: '100%' } }}
                 label={
                   <Box>
                     <Typography sx={{ fontSize: 13, fontWeight: 600 }}>Public Material</Typography>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>全員が閲覧可・自動プロジェクト割り当て</Typography>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>全員が閲覧可・自動プロジェクト割り当て</Typography>
                   </Box>
                 }
               />
               {/* 特定プロジェクト */}
               <FormControlLabel value={`specific_${destVisibility}`}
-                control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+                control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
                 sx={{ '& .MuiFormControlLabel-label': { width: '100%' } }}
                 label={
                   <Typography sx={{ fontSize: 13, fontWeight: 600 }}>特定のプロジェクトへ保存</Typography>
@@ -822,26 +822,26 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
               <FormControl sx={{ mb: 1.5 }}>
                 <RadioGroup row value={destVisibility} onChange={(e) => setDestVisibility(e.target.value as 'private' | 'public')}>
                   <FormControlLabel value="private"
-                    control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+                    control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
                     label={<Typography sx={{ fontSize: 12 }}>非公開（Private）</Typography>} sx={{ mr: 2 }} />
                   <FormControlLabel value="public"
-                    control={<Radio size="small" sx={{ color: 'rgba(255,255,255,0.4)', '&.Mui-checked': { color: ACCENT } }} />}
+                    control={<Radio size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&.Mui-checked': { color: ACCENT } }} />}
                     label={<Typography sx={{ fontSize: 12 }}>公開（Public）</Typography>} />
                 </RadioGroup>
               </FormControl>
               {/* プロジェクト一覧 */}
-              <Box sx={{ maxHeight: 180, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 2 }}>
+              <Box sx={{ maxHeight: 180, overflowY: 'auto', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', borderRadius: 2 }}>
                 {myProjects.length > 0 && (
                   <>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', px: 1.5, pt: 1, pb: 0.25, textTransform: 'uppercase', letterSpacing: 0.8 }}>My Projects</Typography>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', px: 1.5, pt: 1, pb: 0.25, textTransform: 'uppercase', letterSpacing: 0.8 }}>My Projects</Typography>
                     {myProjects.map((p) => (
                       <Box key={p.id} onClick={() => setDestSelectedProjectId(p.id)}
                         sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 0.875, cursor: 'pointer',
                           bgcolor: destSelectedProjectId === p.id ? 'rgba(236,64,122,0.12)' : 'transparent',
                           borderLeft: `2px solid ${destSelectedProjectId === p.id ? ACCENT : 'transparent'}`,
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: destSelectedProjectId === p.id ? ACCENT : 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: 13, color: destSelectedProjectId === p.id ? '#fff' : 'rgba(255,255,255,0.75)', fontWeight: destSelectedProjectId === p.id ? 600 : 400 }}>{p.name}</Typography>
+                          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
+                        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: destSelectedProjectId === p.id ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.25)', flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: 13, color: destSelectedProjectId === p.id ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.75)', fontWeight: destSelectedProjectId === p.id ? 600 : 400 }}>{p.name}</Typography>
                         {destSelectedProjectId === p.id && <CheckCircleOutlineRoundedIcon sx={{ fontSize: 15, color: ACCENT, ml: 'auto' }} />}
                       </Box>
                     ))}
@@ -849,22 +849,22 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
                 )}
                 {teamProjects.length > 0 && (
                   <>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', px: 1.5, pt: 1, pb: 0.25, textTransform: 'uppercase', letterSpacing: 0.8 }}>Team Projects</Typography>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)', px: 1.5, pt: 1, pb: 0.25, textTransform: 'uppercase', letterSpacing: 0.8 }}>Team Projects</Typography>
                     {teamProjects.map((p) => (
                       <Box key={p.id} onClick={() => setDestSelectedProjectId(p.id)}
                         sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.5, py: 0.875, cursor: 'pointer',
                           bgcolor: destSelectedProjectId === p.id ? 'rgba(236,64,122,0.12)' : 'transparent',
                           borderLeft: `2px solid ${destSelectedProjectId === p.id ? ACCENT : 'transparent'}`,
-                          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: destSelectedProjectId === p.id ? ACCENT : 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: 13, color: destSelectedProjectId === p.id ? '#fff' : 'rgba(255,255,255,0.75)', fontWeight: destSelectedProjectId === p.id ? 600 : 400 }}>{p.name}</Typography>
+                          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
+                        <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: destSelectedProjectId === p.id ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.25)', flexShrink: 0 }} />
+                        <Typography sx={{ fontSize: 13, color: destSelectedProjectId === p.id ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.75)', fontWeight: destSelectedProjectId === p.id ? 600 : 400 }}>{p.name}</Typography>
                         {destSelectedProjectId === p.id && <CheckCircleOutlineRoundedIcon sx={{ fontSize: 15, color: ACCENT, ml: 'auto' }} />}
                       </Box>
                     ))}
                   </>
                 )}
                 {allProjects.length === 0 && (
-                  <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', p: 2, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)', p: 2, textAlign: 'center' }}>
                     プロジェクトがありません
                   </Typography>
                 )}
@@ -872,15 +872,15 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
             </Box>
           )}
 
-          <Typography sx={{ mt: 1.5, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+          <Typography sx={{ mt: 1.5, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
             既存マテリアルと重複するテクスチャはスキップします
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setPendingImages(null)} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setPendingImages(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" onClick={handleDestConfirm}
             disabled={destMode === 'specific' && !destSelectedProjectId}
-            sx={{ bgcolor: ACCENT, textTransform: 'none', '&:hover': { bgcolor: '#f06292' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)' } }}>
+            sx={{ bgcolor: ACCENT, textTransform: 'none', '&:hover': { bgcolor: '#f06292' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
             生成
           </Button>
         </DialogActions>
@@ -888,19 +888,19 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
       {/* 全重複ダイアログ */}
       <Dialog open={!!allDupDialog} onClose={() => setAllDupDialog(null)}
-        PaperProps={{ sx: { bgcolor: '#1a1d24', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>生成をスキップしました</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: 14 }}>
             全 {allDupDialog?.count} 件が既存マテリアルと重複しているため、生成できませんでした。
           </Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mt: 1 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: 1 }}>
             別のソースを選択するか、既存マテリアルを削除してから再実行してください。
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setAllDupDialog(null)}
-            sx={{ bgcolor: ACCENT, color: '#fff', textTransform: 'none', '&:hover': { bgcolor: '#f06292' } }}>
+            sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', textTransform: 'none', '&:hover': { bgcolor: '#f06292' } }}>
             閉じる
           </Button>
         </DialogActions>
@@ -908,7 +908,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
       {/* 生成完了ダイアログ */}
       <Dialog open={!!genResultDialog} onClose={() => setGenResultDialog(null)}
-        PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 420, maxWidth: 520 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 420, maxWidth: 520 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 16, display: 'flex', alignItems: 'center', gap: 1 }}>
           <CheckCircleOutlineRoundedIcon sx={{ color: '#4caf50', fontSize: 22 }} />
           マテリアルを生成しました
@@ -918,37 +918,37 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
             <Box sx={{ flex: 1, bgcolor: 'rgba(76,175,80,0.1)', border: '1px solid rgba(76,175,80,0.3)', borderRadius: 2, px: 2, py: 1.25, textAlign: 'center' }}>
               <Typography sx={{ fontSize: 26, fontWeight: 700, color: '#4caf50', lineHeight: 1 }}>{genResultDialog?.created ?? 0}</Typography>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>生成</Typography>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: 0.5 }}>生成</Typography>
             </Box>
             {(genResultDialog?.skipped ?? 0) > 0 && (
-              <Box sx={{ flex: 1, bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2, px: 2, py: 1.25, textAlign: 'center' }}>
-                <Typography sx={{ fontSize: 26, fontWeight: 700, color: 'rgba(255,255,255,0.4)', lineHeight: 1 }}>{genResultDialog?.skipped ?? 0}</Typography>
+              <Box sx={{ flex: 1, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2, px: 2, py: 1.25, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: 26, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1 }}>{genResultDialog?.skipped ?? 0}</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-                  <SkipNextRoundedIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }} />
-                  <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>重複スキップ</Typography>
+                  <SkipNextRoundedIcon sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }} />
+                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>重複スキップ</Typography>
                 </Box>
               </Box>
             )}
           </Box>
           {/* スキップ説明 */}
           {(genResultDialog?.skipped ?? 0) > 0 && (
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', mb: 1.5, lineHeight: 1.6 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: 1.5, lineHeight: 1.6 }}>
               重複スキップとは、選択したテクスチャグループのうち同名のマテリアルがすでに存在していたためスキップ（再生成しなかった）ものです。
             </Typography>
           )}
           {/* 生成済み一覧 */}
           {(genResultDialog?.createdItems?.length ?? 0) > 0 && (
             <>
-              <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', mb: 0.75 }}>生成されたマテリアル</Typography>
-              <Box sx={{ maxHeight: 200, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1.5, border: '1px solid rgba(255,255,255,0.07)' }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 0.75 }}>生成されたマテリアル</Typography>
+              <Box sx={{ maxHeight: 200, overflowY: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
                 <List dense disablePadding>
                   {genResultDialog?.createdItems.map((item, i) => (
                     <ListItem key={item.id} divider={i < (genResultDialog.createdItems.length - 1)}
-                      sx={{ px: 2, py: 0.75, '& .MuiDivider-root': { borderColor: 'rgba(255,255,255,0.05)' } }}>
+                      sx={{ px: 2, py: 0.75, '& .MuiDivider-root': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
                       <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4caf50', mr: 1.5, flexShrink: 0 }} />
                       <ListItemText
                         primary={item.title}
-                        primaryTypographyProps={{ sx: { fontSize: 13, color: '#fff', fontWeight: 500 } }}
+                        primaryTypographyProps={{ sx: { fontSize: 13, color: 'var(--brand-fg)', fontWeight: 500 } }}
                       />
                     </ListItem>
                   ))}
@@ -959,7 +959,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={() => setGenResultDialog(null)}
-            sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>
             閉じる
           </Button>
           <Button variant="contained" startIcon={<OpenInNewRoundedIcon sx={{ fontSize: 16 }} />}
@@ -972,10 +972,10 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
       {/* 類似検出しきい値ダイアログ */}
       <Dialog open={simThresholdDialog} onClose={() => setSimThresholdDialog(false)}
-        PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 420 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 420 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>類似検出の設定</DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', mb: 2.5, lineHeight: 1.6 }}>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.65)', mb: 2.5, lineHeight: 1.6 }}>
             テクスチャ画像の 64 ビットハッシュを比較して、何ビット以内の差異なら「類似」とみなすか設定します。
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mb: 1 }}>
@@ -983,8 +983,8 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
               <Typography sx={{ fontSize: 28, fontWeight: 700, color: ACCENT, lineHeight: 1 }}>
                 {simThresholdBits}
               </Typography>
-              <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>ビット</Typography>
-              <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', mt: 0.25 }}>
+              <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>ビット</Typography>
+              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mt: 0.25 }}>
                 ({(simThresholdBits / 64 * 100).toFixed(1)}%)
               </Typography>
             </Box>
@@ -1000,25 +1000,25 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
                 ]}
                 sx={{
                   color: ACCENT,
-                  '& .MuiSlider-markLabel': { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
-                  '& .MuiSlider-mark': { bgcolor: 'rgba(255,255,255,0.2)' },
+                  '& .MuiSlider-markLabel': { color: 'rgb(var(--brand-fg-rgb) / 0.35)', fontSize: 10 },
+                  '& .MuiSlider-mark': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)' },
                 }}
               />
             </Box>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>厳格（ほぼ完全一致のみ）</Typography>
-            <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>緩い（多少の差も類似と判定）</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>厳格（ほぼ完全一致のみ）</Typography>
+            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>緩い（多少の差も類似と判定）</Typography>
           </Box>
-          <Box sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1.5, px: 2, py: 1.25 }}>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
-              推奨: <strong style={{ color: 'rgba(255,255,255,0.8)' }}>8 ビット（12.5%）</strong> — 人の目では区別しにくいもの<br />
+          <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1.5, px: 2, py: 1.25 }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.7 }}>
+              推奨: <strong style={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>8 ビット（12.5%）</strong> — 人の目では区別しにくいもの<br />
               3 ビット以下: ほぼ同一画像のみ / 16 ビット以上: 色調が似ているものも含む
             </Typography>
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setSimThresholdDialog(false)} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setSimThresholdDialog(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" color="warning"
             startIcon={simDetectProgress ? <CircularProgress size={14} color="inherit" /> : <DeleteSweepRoundedIcon />}
             disabled={!!simDetectProgress}
@@ -1031,29 +1031,29 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
       {/* 一括削除確認ダイアログ */}
       <Dialog open={!!bulkDeleteConfirm} onClose={() => !deletingBulk && setBulkDeleteConfirm(null)}
-        PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3, minWidth: 380 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 380 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>
           {bulkDeleteConfirm?.length ?? 0} 件のマテリアルを削除
         </DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', mb: 1.5 }}>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.65)', mb: 1.5 }}>
             選択したマテリアルを削除します。この操作は元に戻せません。
           </Typography>
-          <Box sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <Box sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {(bulkDeleteConfirm || []).map((m) => {
               const meta = DSMT_CATEGORY_META[m.category] || DSMT_CATEGORY_META.other;
               return (
                 <Box key={m.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#ef5350', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', flex: 1 }} noWrap>{displayTitle(m.title)}</Typography>
-                  <Chip label={meta.label} size="small" sx={{ height: 16, fontSize: 9, bgcolor: `${meta.color}22`, color: meta.color, borderRadius: 0.75 }} />
+                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.85)', flex: 1 }} noWrap>{displayTitle(m.title)}</Typography>
+                  <Chip label={meta.label} size="small" sx={{ height: 16, fontSize: 9, bgcolor: `color-mix(in srgb, ${meta.color} 13%, transparent)`, color: meta.color, borderRadius: 0.75 }} />
                 </Box>
               );
             })}
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setBulkDeleteConfirm(null)} disabled={deletingBulk} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setBulkDeleteConfirm(null)} disabled={deletingBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" color="error" disabled={deletingBulk} onClick={handleBulkDeleteConfirm}
             sx={{ textTransform: 'none' }}>
             {deletingBulk ? '削除中...' : `${bulkDeleteConfirm?.length ?? 0} 件を削除する`}
@@ -1063,17 +1063,17 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
 
       {/* 類似素材削除確認ダイアログ */}
       <Dialog open={!!simDeleteDialog} onClose={() => setSimDeleteDialog(null)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { bgcolor: '#0f1115', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-bg)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>
           視覚的に類似するマテリアルを検出 — {simDeleteDialog?.groups.length ?? 0} グループ / {simDeleteDialog?.totalDelete ?? 0} 件削除
         </DialogTitle>
         <DialogContent sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', mb: 1.5 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mb: 1.5 }}>
             テクスチャ画像の模様・明暗を 64 ビットで比較し、差異 12.5% 以内（人の目では区別困難）のマテリアルを検出しました。各グループから 1 件残して削除します。
           </Typography>
           <Box sx={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {simDeleteDialog?.groups.map((g, i) => (
-              <Box key={i} sx={{ bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 1.5, px: 1.5, py: 1.25, border: '1px solid rgba(255,255,255,0.07)' }}>
+              <Box key={i} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', borderRadius: 1.5, px: 1.5, py: 1.25, border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
                 {/* サムネイル比較行 */}
                 <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'flex-start' }}>
                   {[g.keep, ...g.remove].slice(0, 5).map((m, j) => {
@@ -1092,22 +1092,22 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
                               border: `2px solid ${j === 0 ? '#4caf50' : '#ef5350'}`, opacity: j === 0 ? 1 : 0.7 }} />
                           )}
                           <Box sx={{ position: 'absolute', bottom: 1, left: 1, right: 1, fontSize: 8, fontWeight: 700,
-                            color: '#fff', bgcolor: j === 0 ? 'rgba(76,175,80,0.9)' : 'rgba(239,83,80,0.9)',
+                            color: 'var(--brand-fg)', bgcolor: j === 0 ? 'rgba(76,175,80,0.9)' : 'rgba(239,83,80,0.9)',
                             textAlign: 'center', borderRadius: 0.5, lineHeight: 1.6 }}>
                             {j === 0 ? '残す' : '削除'}
                           </Box>
                         </Box>
-                        <Typography noWrap sx={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', maxWidth: 52 }}>
+                        <Typography noWrap sx={{ fontSize: 9, color: 'rgb(var(--brand-fg-rgb) / 0.4)', maxWidth: 52 }}>
                           {displayTitle(m.title)}
                         </Typography>
                       </Box>
                     );
                   })}
                   <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', ml: 0.5, pt: 0.5 }}>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
                       類似度: {64 - g.minDist}/64 ビット一致
                     </Typography>
-                    <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
                       ({Math.round((1 - g.minDist / 64) * 100)}% 同一)
                     </Typography>
                   </Box>
@@ -1117,7 +1117,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setSimDeleteDialog(null)} sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => setSimDeleteDialog(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
           <Button variant="contained" color="error" onClick={handleSimDeleteConfirm}
             sx={{ textTransform: 'none' }}>
             削除する ({simDeleteDialog?.totalDelete ?? 0} 件)
@@ -1129,11 +1129,11 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
       {(isGenerating || seeding) && genProgress && (
         <Box sx={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1400,
-          bgcolor: '#1a1d24', borderTop: '1px solid rgba(255,255,255,0.1)',
+          bgcolor: 'var(--brand-surface2)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
           px: 3, py: 1.25,
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75 }}>
-            <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.7)', maxWidth: '70%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               マテリアルを生成中: {genProgress.label}
             </Typography>
             <Typography sx={{ fontSize: 12, color: ACCENT, fontWeight: 700, flexShrink: 0 }}>
@@ -1146,7 +1146,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
             value={genProgress.total > 0 ? (genProgress.current / genProgress.total) * 100 : undefined}
             sx={{
               borderRadius: 2, height: 6,
-              bgcolor: 'rgba(255,255,255,0.1)',
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)',
               '& .MuiLinearProgress-bar': { bgcolor: ACCENT, borderRadius: 2 },
             }}
           />

@@ -27,8 +27,8 @@ function ProjectListItem({ project, active, onClick }: ProjectListItemProps) {
           px: 1.25,
           py: 0.75,
           borderRadius: 2,
-          bgcolor: active ? "rgba(255,255,255,0.08)" : "transparent",
-          "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+          bgcolor: active ? BRAND.panel2 : "transparent",
+          "&:hover": { bgcolor: BRAND.panel },
         }}
       >
         <Box sx={{ 
@@ -36,10 +36,10 @@ function ProjectListItem({ project, active, onClick }: ProjectListItemProps) {
           bgcolor: `hsl(${hue}, 50%, 40%)`,
           display: "flex", alignItems: "center", justifyContent: "center", mr: 1
         }}>
-          <FolderRoundedIcon sx={{ fontSize: 14, color: "#fff" }} />
+          <FolderRoundedIcon sx={{ fontSize: 14, color: "var(--brand-fg)" }} />
         </Box>
         <Typography sx={{ 
-          color: active ? "#ffffff" : "rgba(255,255,255,0.7)", 
+          color: active ? BRAND.text : BRAND.sub,
           fontSize: 11, fontWeight: active ? 600 : 500,
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1
         }}>
@@ -54,7 +54,7 @@ function ProjectListItem({ project, active, onClick }: ProjectListItemProps) {
           position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
           opacity: 0, transition: "opacity 0.2s",
           ".MuiCardActionArea-root:hover ~ &, &:hover, &[aria-expanded='true']": { opacity: 1 },
-          color: "rgba(255,255,255,0.5)", "&:hover": { color: "#fff" }
+          color: BRAND.sub2, "&:hover": { color: BRAND.text }
         }}
       >
         <MoreVertIcon fontSize="small" />
@@ -64,7 +64,7 @@ function ProjectListItem({ project, active, onClick }: ProjectListItemProps) {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={(e: any) => { e?.stopPropagation(); setAnchorEl(null); }}
-        PaperProps={{ sx: { bgcolor: "#1a1e27", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 2 } }}
+        PaperProps={{ sx: { bgcolor: BRAND.glass, color: BRAND.text, border: `1px solid ${BRAND.line}`, borderRadius: 2 } }}
       >
         <MenuItem onClick={(e) => { e.stopPropagation(); setAnchorEl(null); }} sx={{ color: "#ff4d4f", fontSize: 13 }}>
           プロジェクトを削除
@@ -105,7 +105,7 @@ const MainSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 1.5, mb: 0.5, pl: 2.5 }}>
-        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>
+        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: BRAND.sub2, textTransform: "uppercase" }}>
           Projects
         </Typography>
       </Box>

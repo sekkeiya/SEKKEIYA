@@ -122,7 +122,7 @@ export const TeamsSidebar: React.FC = () => {
                   borderRadius: 1.5,
                   cursor: 'pointer',
                   bgcolor: isActive ? 'rgba(52,152,219,0.12)' : 'transparent',
-                  '&:hover': { bgcolor: isActive ? 'rgba(52,152,219,0.15)' : 'rgba(255,255,255,0.04)' },
+                  '&:hover': { bgcolor: isActive ? 'rgba(52,152,219,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.04)' },
                   transition: 'background-color 0.15s',
                 }}
               >
@@ -217,7 +217,7 @@ export const TeamsSidebar: React.FC = () => {
             disabled={!newName.trim() || creating}
             variant="contained"
             sx={{
-              bgcolor: '#3498db', color: '#fff', fontWeight: 700,
+              bgcolor: '#3498db', color: 'var(--brand-fg)', fontWeight: 700,
               textTransform: 'none', borderRadius: 2,
               '&:hover': { bgcolor: '#2980b9' },
             }}

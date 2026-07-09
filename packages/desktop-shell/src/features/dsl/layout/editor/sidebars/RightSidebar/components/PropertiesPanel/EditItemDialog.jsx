@@ -26,8 +26,8 @@ const numOr = (v, fallback = "") => {
 const Swatch = ({ color = "#888", size = 26, selected }) => (
   <Box sx={{
     width: size, height: size, borderRadius: "50%", flexShrink: 0,
-    background: `radial-gradient(circle at 33% 28%, rgba(255,255,255,0.6), ${color} 60%, rgba(0,0,0,0.4))`,
-    border: selected ? "2px solid #4fc3f7" : "1px solid rgba(255,255,255,0.2)",
+    background: `radial-gradient(circle at 33% 28%, rgb(var(--brand-fg-rgb) / 0.6), ${color} 60%, rgba(0,0,0,0.4))`,
+    border: selected ? "2px solid #4fc3f7" : "1px solid rgb(var(--brand-fg-rgb) / 0.2)",
     boxShadow: selected ? "0 0 0 2px rgba(79,195,247,0.4)" : "none", cursor: "pointer",
   }} />
 );
@@ -35,9 +35,9 @@ const Swatch = ({ color = "#888", size = 26, selected }) => (
 /**
  * 配置アイテムの「この配置だけ」の編集（per-instance オーバーライド）。
  *  - 寸法: 即時変更 ＋「新規Modelとして保存」
- *  - マテリアル: S.Models のプリセット/パターンから選ぶ（＋色指定で新規）→ item.materialBindings
+ *  - マテリアル: S.Model のプリセット/パターンから選ぶ（＋色指定で新規）→ item.materialBindings
  *  - 動き: ヒンジ/スライド/アニメ/常時アニメ → item.gimmicks / item.anim
- * S.Models（全体のデフォルト）は変更せず、ユーザーのプロジェクトの該当アイテムにのみ反映。
+ * S.Model（全体のデフォルト）は変更せず、ユーザーのプロジェクトの該当アイテムにのみ反映。
  */
 export default function EditItemDialog({
   open,
@@ -97,7 +97,7 @@ export default function EditItemDialog({
   const previewBindings = matBindings.length ? matBindings : (Array.isArray(initialMaterialBindings) ? initialMaterialBindings : null);
 
   const fieldSx = {
-    "& .MuiInputBase-root": { height: 38, borderRadius: 1.4, background: alpha("#000", 0.25), color: "#fff", fontSize: 13 },
+    "& .MuiInputBase-root": { height: 38, borderRadius: 1.4, background: "color-mix(in srgb, var(--brand-bg) 25%, transparent)", color: "var(--brand-fg)", fontSize: 13 },
     "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.15) },
     "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.3) },
   };
@@ -125,27 +125,27 @@ export default function EditItemDialog({
 
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="md" fullWidth
-      PaperProps={{ sx: { bgcolor: "#141821", backgroundImage: "none", border: `1px solid ${alpha("#fff", 0.1)}`, color: "#fff" } }}>
+      PaperProps={{ sx: { bgcolor: "var(--brand-surface)", backgroundImage: "none", border: `1px solid ${alpha("#fff", 0.1)}`, color: "var(--brand-fg)" } }}>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 900, display: "flex", alignItems: "center", gap: 1 }}>
-        <StraightenRoundedIcon sx={{ fontSize: 18, color: "#4fc3f7" }} />
+        <StraightenRoundedIcon sx={{ fontSize: 18, color: "light-dark(#0875a6, #4fc3f7)" }} />
         アイテムを編集（この配置だけ）
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 0.5 }}>
           {/* 左：3Dプレビュー（寸法＋マテリアルに連動） */}
           <Box sx={{ flex: "1 1 320px", minWidth: 280 }}>
-            <Box sx={{ position: "relative", width: "100%", aspectRatio: "1/1", bgcolor: "#000", borderRadius: 2, overflow: "hidden", border: `1px solid ${alpha("#fff", 0.1)}` }}>
+            <Box sx={{ position: "relative", width: "100%", aspectRatio: "1/1", bgcolor: "var(--brand-bg)", borderRadius: 2, overflow: "hidden", border: `1px solid ${alpha("#fff", 0.1)}` }}>
               {glbUrl ? (
                 <RightPanelModelViewer modelUrl={glbUrl} targetDimensions={dims} showDimensions={showDims} materialBindings={previewBindings} />
               ) : (
-                <Box sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: alpha("#fff", 0.4), gap: 1 }}>
+                <Box sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", gap: 1 }}>
                   <ImageRoundedIcon sx={{ fontSize: 20 }} /><Typography sx={{ fontSize: 12 }}>3Dプレビューを表示できません</Typography>
                 </Box>
               )}
               {glbUrl && (
                 <Button size="small" onClick={() => setShowDims((v) => !v)} startIcon={<StraightenRoundedIcon sx={{ fontSize: 14 }} />}
                   sx={{ position: "absolute", top: 8, right: 8, minWidth: 0, px: 1, height: 26, textTransform: "none", fontSize: 11, fontWeight: 700,
-                    color: showDims ? "#06121c" : "#fff", bgcolor: showDims ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.55)",
+                    color: showDims ? "#06121c" : "var(--brand-fg)", bgcolor: showDims ? "rgb(var(--brand-fg-rgb) / 0.9)" : "rgba(0,0,0,0.55)",
                     "&:hover": { bgcolor: showDims ? "#fff" : "rgba(0,0,0,0.7)" } }}>寸法</Button>
               )}
             </Box>
@@ -154,7 +154,7 @@ export default function EditItemDialog({
           {/* 右：タブ */}
           <Box sx={{ flex: "1 1 320px", minWidth: 300 }}>
             <Tabs value={tab} onChange={(_e, v) => setTab(v)} variant="fullWidth"
-              sx={{ minHeight: 36, mb: 1.5, "& .MuiTab-root": { minHeight: 36, fontSize: 12, fontWeight: 700, textTransform: "none", color: alpha("#fff", 0.6) }, "& .Mui-selected": { color: "#4fc3f7 !important" }, "& .MuiTabs-indicator": { bgcolor: "#4fc3f7" } }}>
+              sx={{ minHeight: 36, mb: 1.5, "& .MuiTab-root": { minHeight: 36, fontSize: 12, fontWeight: 700, textTransform: "none", color: "color-mix(in srgb, var(--brand-fg) 60%, transparent)" }, "& .Mui-selected": { color: "light-dark(#0875a6, #4fc3f7) !important" }, "& .MuiTabs-indicator": { bgcolor: "#4fc3f7" } }}>
               <Tab label="寸法" />
               <Tab label="マテリアル" />
               <Tab label="動き" />
@@ -167,11 +167,11 @@ export default function EditItemDialog({
                   <Typography sx={labelSx}>DIMENSIONS (mm)</Typography>
                   <Stack direction="row" spacing={1}>
                     <TextField size="small" type="number" value={w} onChange={(e) => setW(e.target.value)} sx={fieldSx} fullWidth
-                      InputProps={{ startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 11, color: "#4fc3f7", fontWeight: 700 }}>W</Typography></InputAdornment> }} />
+                      InputProps={{ startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 11, color: "light-dark(#0875a6, #4fc3f7)", fontWeight: 700 }}>W</Typography></InputAdornment> }} />
                     <TextField size="small" type="number" value={d} onChange={(e) => setD(e.target.value)} sx={fieldSx} fullWidth
-                      InputProps={{ startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 11, color: "#a5d6a7", fontWeight: 700 }}>D</Typography></InputAdornment> }} />
+                      InputProps={{ startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 11, color: "rgb(var(--brand-fg-rgb) / 0.65)", fontWeight: 700 }}>D</Typography></InputAdornment> }} />
                     <TextField size="small" type="number" value={h} onChange={(e) => setH(e.target.value)} sx={fieldSx} fullWidth
-                      InputProps={{ startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 11, color: "#facc15", fontWeight: 700 }}>H</Typography></InputAdornment> }} />
+                      InputProps={{ startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 11, color: "light-dark(#aa8804, #facc15)", fontWeight: 700 }}>H</Typography></InputAdornment> }} />
                   </Stack>
                 </Box>
                 <Button variant="contained" startIcon={<CheckRoundedIcon sx={{ fontSize: 16 }} />} onClick={applyDimensions}
@@ -179,16 +179,16 @@ export default function EditItemDialog({
                   この配置に寸法を適用
                 </Button>
                 <Box sx={{ borderTop: `1px solid ${alpha("#fff", 0.08)}`, pt: 1.5 }}>
-                  <Typography sx={labelSx}>新規モデルとして S.Models に保存</Typography>
+                  <Typography sx={labelSx}>新規モデルとして S.Model に保存</Typography>
                   <TextField fullWidth size="small" value={title} onChange={(e) => setTitle(e.target.value)} sx={{ ...fieldSx, mb: 1 }} />
                   <ToggleButtonGroup value={visibility} exclusive size="small" onChange={(_e, v) => { if (v) setVisibility(v); }}
-                    sx={{ width: "100%", mb: 1, "& .MuiToggleButton-root": { flex: 1, py: 0.5, fontSize: 11, color: alpha("#fff", 0.7), borderColor: alpha("#fff", 0.15), textTransform: "none", "&.Mui-selected": { bgcolor: alpha("#4fc3f7", 0.18), color: "#4fc3f7", borderColor: alpha("#4fc3f7", 0.4) } } }}>
+                    sx={{ width: "100%", mb: 1, "& .MuiToggleButton-root": { flex: 1, py: 0.5, fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderColor: alpha("#fff", 0.15), textTransform: "none", "&.Mui-selected": { bgcolor: alpha("#4fc3f7", 0.18), color: "light-dark(#0875a6, #4fc3f7)", borderColor: alpha("#4fc3f7", 0.4) } } }}>
                     <ToggleButton value="private">非公開（自分のみ）</ToggleButton>
                     <ToggleButton value="public">全体公開</ToggleButton>
                   </ToggleButtonGroup>
                   <Button variant="outlined" size="small" disabled={saving} onClick={handleSaveNew}
                     startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveRoundedIcon sx={{ fontSize: 16 }} />}
-                    sx={{ textTransform: "none", color: "#4fc3f7", borderColor: alpha("#4fc3f7", 0.5), fontWeight: 800 }}>
+                    sx={{ textTransform: "none", color: "light-dark(#0875a6, #4fc3f7)", borderColor: alpha("#4fc3f7", 0.5), fontWeight: 800 }}>
                     {saving ? "保存中..." : "新規Modelとして保存"}
                   </Button>
                 </Box>
@@ -199,8 +199,8 @@ export default function EditItemDialog({
             {tab === 1 && (
               <Stack spacing={1.5}>
                 {presets.length === 0 ? (
-                  <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.55) }}>
-                    このモデルにはマテリアル候補が未設定です。S.Models の「マテリアル」でオプション/パターンを登録すると、ここで選べます。
+                  <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
+                    このモデルにはマテリアル候補が未設定です。S.Model の「マテリアル」でオプション/パターンを登録すると、ここで選べます。
                   </Typography>
                 ) : (
                   <>
@@ -213,7 +213,7 @@ export default function EditItemDialog({
                               <Tooltip title={v.title || ""}>
                                 <Box onClick={() => pickVariant(v)}><Swatch color={variantSwatchColor(presets, v)} size={34} selected={matVariantId === v.id} /></Box>
                               </Tooltip>
-                              <Typography sx={{ fontSize: 9.5, color: matVariantId === v.id ? "#fff" : alpha("#fff", 0.5), textAlign: "center" }} noWrap>{v.title || "—"}</Typography>
+                              <Typography sx={{ fontSize: 9.5, color: matVariantId === v.id ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 50%, transparent)", textAlign: "center" }} noWrap>{v.title || "—"}</Typography>
                             </Box>
                           ))}
                         </Box>
@@ -266,7 +266,7 @@ export default function EditItemDialog({
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ textTransform: "none", color: alpha("#fff", 0.7) }}>閉じる</Button>
+        <Button onClick={onClose} disabled={saving} sx={{ textTransform: "none", color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>閉じる</Button>
       </DialogActions>
     </Dialog>
   );

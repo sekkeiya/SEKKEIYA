@@ -11,6 +11,7 @@
  *   どちらも Web版やウィンドウ生成失敗時は既定ブラウザ（新規タブ）へフォールバック。
  */
 import type { BlogSourceRef } from '../types';
+import { isTauri } from '../../../lib/platform';
 
 /** クリーンリーダー窓の固定ラベル。 */
 const READER_LABEL = 'sblog-reader';
@@ -46,8 +47,13 @@ async function createWindow(label: string, url: string, title: string): Promise<
   });
 }
 
-/** Web版 / ウィンドウ生成不可 → 既定ブラウザへ。 */
+/** Web版 / ウィンドウ生成不可 → 既定ブラウザへ。
+ *  Web では plugin-opener（shim）が握りつぶされる場合があるので、window.open を直に使う。
+ *  クリック直後に呼ばれる前提でここは同期的に window.open して、ポップアップブロックを避ける。 */
 async function fallbackBrowser(fallbackUrl: string): Promise<void> {
+  if (!isTauri()) {
+    try { window.open(fallbackUrl, '_blank', 'noopener'); return; } catch { /* noop */ }
+  }
   try {
     const { openUrl } = await import('@tauri-apps/plugin-opener');
     await openUrl(fallbackUrl);
@@ -56,8 +62,12 @@ async function fallbackBrowser(fallbackUrl: string): Promise<void> {
   }
 }
 
-/** クリーンリーダー（翻訳＋画像＋動画・広告なし）で記事を開く。窓は1枚を使い回す。 */
-export async function openReader(url: string, title?: string, source?: string): Promise<void> {
+/** クリーンリーダー（翻訳＋画像＋動画・広告なし）で記事を開く。窓は1枚を使い回す。
+ *  opts.autoRead=true で本文読み込み後に読み上げを自動開始（投稿スケジュール実行などの聴き流し用）。 */
+export async function openReader(url: string, title?: string, source?: string, opts?: { autoRead?: boolean }): Promise<void> {
+  // Web版はネイティブ窓（WebviewWindow）が無い。shim だと生成が resolve/reject どちらも
+  // 返さずハングして「記事が開かない」ため、Web は原文を新規タブで開く。
+  if (!isTauri()) { await fallbackBrowser(url); return; }
   const winTitle = title ? `${title} — SEKKEIYA Reader` : 'SEKKEIYA Reader';
   try {
     const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
@@ -71,14 +81,84 @@ export async function openReader(url: string, title?: string, source?: string): 
       return;
     }
     const q = new URLSearchParams({ readerWindow: 'true', url, title: title || '', source: source || '' });
+    if (opts?.autoRead) q.set('autoRead', '1');
     await createWindow(READER_LABEL, `/?${q.toString()}`, winTitle);
   } catch {
     await fallbackBrowser(url);
   }
 }
 
+/** 記事を指定せず SEKKEIYA Reader を開く（S.Blog ホーム「記事を読む」と同じ体験）。
+ *  購読フィードを取得してプレイリスト化 → 先頭記事で Reader を開く（ギャラリー付き）。
+ *  フィードが空/失敗時は空のリーダー（プレースホルダ）を開く。窓は1枚を使い回す。
+ *  SEKKEIYA OS などから「リーダーを開く」導線に使う。Web版は窓が無いため何もしない。 */
+export async function openReaderHome(): Promise<void> {
+  if (!isTauri()) return;
+  try {
+    const { auth } = await import('../../../lib/firebase/client');
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      const { fetchBlogNewsPlaylist, saveReaderPlaylist } = await import('./newsFeed');
+      const items = await fetchBlogNewsPlaylist(uid);
+      if (items.length > 0) {
+        // ReaderWindow がマウント時に読むプレイリストを先に保存してから開く（ギャラリー表示のため）。
+        saveReaderPlaylist(items);
+        await openReader(items[0].url, items[0].title, items[0].source);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('[openReaderHome] フィード取得に失敗、空のリーダーを開きます:', e);
+  }
+  // フィード無し/失敗/未ログイン → 空のリーダー（既存窓があれば前面化）。
+  try {
+    const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+    const existing = await WebviewWindow.getByLabel(READER_LABEL);
+    if (existing) { await focusWindow(existing); return; }
+    await createWindow(READER_LABEL, '/?readerWindow=true', 'SEKKEIYA Reader');
+  } catch (e) {
+    console.error('[openReaderHome] failed:', e);
+  }
+}
+
+/**
+ * 元記事ウィンドウを開き、**閉じられるまで待つ**（サイトログイン用）。
+ * ユーザーがこの窓の中でログインして閉じると resolve する。アプリ内ウィンドウは
+ * 本体と WebView2 の Cookie を共有するため、以後の隠しWebView抽出にログインが効く。
+ * @returns true=アプリ内ウィンドウで開けた（Cookie共有あり）/ false=ブラウザへ
+ *          フォールバックした（Cookie は共有されないのでログイン記録すべきでない）
+ */
+export async function openReaderRawAndWait(url: string, title?: string): Promise<boolean> {
+  // Web は Cookie 共有できるネイティブ窓が無いので、ブラウザで開いて false を返す
+  // （呼び出し側はログイン記録を残さない）。
+  if (!isTauri()) { await fallbackBrowser(url); return false; }
+  const winTitle = title ? `${title} — SEKKEIYA Reader` : 'SEKKEIYA Reader';
+  try {
+    const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+    const existing = await WebviewWindow.getByLabel(RAW_LABEL);
+    if (existing) {
+      await new Promise<void>((resolve) => {
+        existing.once('tauri://destroyed', () => resolve());
+        existing.close().catch(() => resolve());
+        setTimeout(resolve, 400);
+      });
+    }
+    await createWindow(RAW_LABEL, url, winTitle);
+    const win = await WebviewWindow.getByLabel(RAW_LABEL);
+    if (!win) return true; // 生成直後に既に閉じられていた
+    await new Promise<void>((resolve) => {
+      void win.once('tauri://destroyed', () => resolve());
+    });
+    return true;
+  } catch {
+    await fallbackBrowser(url);
+    return false;
+  }
+}
+
 /** 元記事（原文の生ページ）をアプリ内ウィンドウで開く。窓は1枚に保つ（既存は閉じて開き直し）。 */
 export async function openReaderRaw(url: string, title?: string): Promise<void> {
+  if (!isTauri()) { await fallbackBrowser(url); return; }
   const winTitle = title ? `${title} — SEKKEIYA Reader` : 'SEKKEIYA Reader';
   try {
     const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');

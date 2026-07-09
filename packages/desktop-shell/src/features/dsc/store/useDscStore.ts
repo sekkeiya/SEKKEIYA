@@ -184,7 +184,7 @@ export const useDscStore = create<DscStoreState>((set, get) => ({
       position: [0, 0, 0],
       rotation: [0, 0, 0],
       dimensions: { ...DEFAULT_DIMENSIONS[type] },
-      color: '#c8a882',
+      color: 'light-dark(#785a35, #c8a882)',
     };
     set(state => ({ components: [...state.components, newComp], selectedId: id, dirty: true }));
   },

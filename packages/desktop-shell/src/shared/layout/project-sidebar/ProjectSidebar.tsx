@@ -53,8 +53,8 @@ function ProjectListItem({ project, active, onClick, onRenameClick, onDeleteClic
         sx={{
           display: 'flex', alignItems: 'center',
           px: 1.25, py: 0.75, borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <ProjectIcon
@@ -63,11 +63,11 @@ function ProjectListItem({ project, active, onClick, onRenameClick, onDeleteClic
           size={20}
           radius={1.5}
           fallbackBg={`hsl(${hue}, 50%, 40%)`}
-          fallbackContent={<FolderRoundedIcon sx={{ fontSize: 14, color: '#fff' }} />}
+          fallbackContent={<FolderRoundedIcon sx={{ fontSize: 14, color: 'var(--brand-fg)' }} />}
           sx={{ mr: 1 }}
         />
         <Typography sx={{
-          color: active ? '#ffffff' : 'rgba(255,255,255,0.7)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
           fontSize: 12, fontWeight: active ? 600 : 500,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
@@ -82,7 +82,7 @@ function ProjectListItem({ project, active, onClick, onRenameClick, onDeleteClic
           position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
           opacity: 0, transition: 'opacity 0.2s',
           '.MuiCardActionArea-root:hover ~ &, &:hover, &[aria-expanded="true"]': { opacity: 1 },
-          color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff' },
+          color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)' },
         }}
       >
         <MoreVertIcon fontSize="small" />
@@ -92,12 +92,12 @@ function ProjectListItem({ project, active, onClick, onRenameClick, onDeleteClic
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={(e: any) => { e?.stopPropagation(); setAnchorEl(null); }}
-        PaperProps={{ sx: { bgcolor: '#1a1e27', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 2 } }}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 2 } }}
       >
-        <MenuItem onClick={(e) => { e.stopPropagation(); const el = anchorEl; setAnchorEl(null); setIconAnchor(el); }} sx={{ color: '#fff', fontSize: 13 }}>
+        <MenuItem onClick={(e) => { e.stopPropagation(); const el = anchorEl; setAnchorEl(null); setIconAnchor(el); }} sx={{ color: 'var(--brand-fg)', fontSize: 13 }}>
           アイコンを変更
         </MenuItem>
-        <MenuItem onClick={(e) => { e.stopPropagation(); setAnchorEl(null); onRenameClick(project); }} sx={{ color: '#fff', fontSize: 13 }}>
+        <MenuItem onClick={(e) => { e.stopPropagation(); setAnchorEl(null); onRenameClick(project); }} sx={{ color: 'var(--brand-fg)', fontSize: 13 }}>
           名前を変更
         </MenuItem>
         <MenuItem onClick={(e) => { e.stopPropagation(); setAnchorEl(null); onDeleteClick(project); }} sx={{ color: '#ff4d4f', fontSize: 13 }}>
@@ -126,7 +126,7 @@ function TeamHeaderRow({ team, active, onClick }: { team: Team; active: boolean;
           display: 'flex', alignItems: 'center',
           px: 1.25, py: 0.5, borderRadius: 1.5,
           bgcolor: active ? 'rgba(52,152,219,0.1)' : 'transparent',
-          '&:hover': { bgcolor: active ? 'rgba(52,152,219,0.14)' : 'rgba(255,255,255,0.05)' },
+          '&:hover': { bgcolor: active ? 'rgba(52,152,219,0.14)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
         }}
       >
         <Avatar sx={{
@@ -136,7 +136,7 @@ function TeamHeaderRow({ team, active, onClick }: { team: Team; active: boolean;
           {team.name.charAt(0).toUpperCase()}
         </Avatar>
         <Typography sx={{
-          color: active ? '#3498db' : 'rgba(255,255,255,0.5)',
+          color: active ? '#3498db' : 'rgb(var(--brand-fg-rgb) / 0.5)',
           fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
@@ -160,8 +160,8 @@ function TeamProjectListItem({ project, active, onClick }: { project: any; activ
         sx={{
           display: 'flex', alignItems: 'center',
           px: 1.25, py: 0.6, borderRadius: 2,
-          bgcolor: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+          bgcolor: active ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
         }}
       >
         <ProjectIcon
@@ -170,12 +170,12 @@ function TeamProjectListItem({ project, active, onClick }: { project: any; activ
           size={16}
           radius={1}
           fallbackBg={`hsl(${hue}, 50%, 35%)`}
-          fallbackContent={<FolderRoundedIcon sx={{ fontSize: 10, color: '#fff' }} />}
+          fallbackContent={<FolderRoundedIcon sx={{ fontSize: 10, color: 'var(--brand-fg)' }} />}
           emojiFontSize={11}
           sx={{ mr: 1 }}
         />
         <Typography sx={{
-          color: active ? '#fff' : 'rgba(255,255,255,0.65)',
+          color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.65)',
           fontSize: 12, fontWeight: active ? 600 : 400,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
         }}>
@@ -197,7 +197,7 @@ function TeamProjectListItem({ project, active, onClick }: { project: any; activ
 function SectionHeader({ label, onAdd, addTitle }: { label: string; onAdd?: () => void; addTitle?: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 0.5 }}>
-      <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'uppercase' }}>
         {label}
       </Typography>
       {onAdd && (
@@ -205,7 +205,7 @@ function SectionHeader({ label, onAdd, addTitle }: { label: string; onAdd?: () =
           <IconButton
             size="small"
             onClick={onAdd}
-            sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.1)' }, width: 20, height: 20 }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }, width: 20, height: 20 }}
           >
             <AddRoundedIcon sx={{ fontSize: 14 }} />
           </IconButton>
@@ -311,7 +311,7 @@ export const ProjectSidebar: React.FC = () => {
     <Box sx={{
       width: '100%', height: '100%',
       bgcolor: BRAND.panel,
-      borderRight: isProjectSidebarOpen ? '1px solid rgba(255,255,255,0.05)' : 'none',
+      borderRight: isProjectSidebarOpen ? '1px solid rgb(var(--brand-fg-rgb) / 0.05)' : 'none',
       display: 'flex', flexDirection: 'column',
       py: isProjectSidebarOpen ? 2 : 0,
       overflowY: 'auto', overflowX: 'hidden',
@@ -319,23 +319,23 @@ export const ProjectSidebar: React.FC = () => {
       transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s, border 0.2s',
     }}>
       <Box sx={{ px: 2, mb: 2 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', mb: 1.5 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', mb: 1.5 }}>
           Projects
         </Typography>
 
         {/* 検索 */}
         <Box sx={{
           display: 'flex', alignItems: 'center',
-          bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2, px: 1.5, py: 0.5,
-          border: '1px solid rgba(255,255,255,0.05)',
-          '&:focus-within': { borderColor: 'rgba(255,255,255,0.15)' }, mb: 2,
+          bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.5, py: 0.5,
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
+          '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }, mb: 2,
         }}>
-          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', mr: 1 }} />
+          <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase
             placeholder="プロジェクトを検索..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            sx={{ color: '#fff', fontSize: 12, flex: 1 }}
+            sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }}
           />
         </Box>
 
@@ -345,15 +345,15 @@ export const ProjectSidebar: React.FC = () => {
           sx={{
             display: 'flex', alignItems: 'center',
             px: 1.25, py: 0.75, borderRadius: 2,
-            bgcolor: currentMainView === 'my-site' ? 'rgba(255,255,255,0.08)' : 'transparent',
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' }, mb: 2,
+            bgcolor: currentMainView === 'my-site' ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+            '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' }, mb: 2,
           }}
         >
           <Box sx={{ width: 20, height: 20, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0 }}>
-            <DashboardRoundedIcon sx={{ fontSize: 16, color: currentMainView === 'my-site' ? '#3498db' : 'rgba(255,255,255,0.5)' }} />
+            <DashboardRoundedIcon sx={{ fontSize: 16, color: currentMainView === 'my-site' ? '#3498db' : 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
           </Box>
           <Typography sx={{
-            color: currentMainView === 'my-site' ? '#ffffff' : 'rgba(255,255,255,0.7)',
+            color: currentMainView === 'my-site' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
             fontSize: 12, fontWeight: currentMainView === 'my-site' ? 600 : 500,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
           }}>
@@ -367,7 +367,7 @@ export const ProjectSidebar: React.FC = () => {
         <Box sx={{ mb: 2, minWidth: 200 }}>
           <SectionHeader label="My Projects" />
           {myProjects.length === 0 ? (
-            <Typography sx={{ px: 3, py: 1, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+            <Typography sx={{ px: 3, py: 1, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
               プロジェクトがありません
             </Typography>
           ) : (
@@ -392,7 +392,7 @@ export const ProjectSidebar: React.FC = () => {
               <CircularProgress size={16} sx={{ color: '#3498db' }} />
             </Box>
           ) : filteredTeams.length === 0 ? (
-            <Typography sx={{ px: 3, py: 1, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+            <Typography sx={{ px: 3, py: 1, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
               チームがありません
             </Typography>
           ) : (
@@ -407,7 +407,7 @@ export const ProjectSidebar: React.FC = () => {
                     onClick={() => handleTeamClick(team)}
                   />
                   {projs.length === 0 ? (
-                    <Typography sx={{ pl: 4, py: 0.5, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>
+                    <Typography sx={{ pl: 4, py: 0.5, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>
                       プロジェクトなし
                     </Typography>
                   ) : (
@@ -428,7 +428,7 @@ export const ProjectSidebar: React.FC = () => {
 
         {/* 検索結果なし */}
         {searchQuery && myProjects.length === 0 && filteredTeams.length === 0 && (
-          <Typography sx={{ textAlign: 'center', mt: 2, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+          <Typography sx={{ textAlign: 'center', mt: 2, fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
             一致するプロジェクトがありません
           </Typography>
         )}
@@ -439,14 +439,14 @@ export const ProjectSidebar: React.FC = () => {
       {/* プロジェクト名変更 */}
       {activeRenameProject && (
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', bgcolor: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ width: 400, bgcolor: '#1a1e27', p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#fff', mb: 2, fontWeight: 700 }}>プロジェクト名を変更</Typography>
+          <Box sx={{ width: 400, bgcolor: 'var(--brand-surface2)', p: 4, borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 2, fontWeight: 700 }}>プロジェクト名を変更</Typography>
             <InputBase
               fullWidth autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} disabled={isProcessing}
-              sx={{ bgcolor: 'rgba(0,0,0,0.2)', color: '#fff', px: 2, py: 1, borderRadius: 2, border: '1px solid rgba(255,255,255,0.1)', mb: 3 }}
+              sx={{ bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', color: 'var(--brand-fg)', px: 2, py: 1, borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', mb: 3 }}
             />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Typography onClick={() => setActiveRenameProject(null)} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}>キャンセル</Typography>
+              <Typography onClick={() => setActiveRenameProject(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}>キャンセル</Typography>
               <Typography onClick={handleRenameSubmit} sx={{ color: '#00BFFF', fontSize: 13, cursor: isProcessing || !renameValue.trim() ? 'not-allowed' : 'pointer', py: 1, fontWeight: 600, opacity: isProcessing || !renameValue.trim() ? 0.5 : 1 }}>保存</Typography>
             </Box>
           </Box>
@@ -456,13 +456,13 @@ export const ProjectSidebar: React.FC = () => {
       {/* プロジェクト削除 */}
       {activeDeleteProject && (
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', bgcolor: 'rgba(0,0,0,0.5)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Box sx={{ width: 400, bgcolor: '#1a1e27', p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#fff', mb: 2, fontWeight: 700 }}>プロジェクトを削除</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3, fontSize: 14 }}>
+          <Box sx={{ width: 400, bgcolor: 'var(--brand-surface2)', p: 4, borderRadius: 3, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' }}>
+            <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 2, fontWeight: 700 }}>プロジェクトを削除</Typography>
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 3, fontSize: 14 }}>
               「{activeDeleteProject.name}」を削除しますか？この操作は元に戻せません。
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Typography onClick={() => setActiveDeleteProject(null)} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: '#fff' } }}>キャンセル</Typography>
+              <Typography onClick={() => setActiveDeleteProject(null)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 13, cursor: 'pointer', py: 1, '&:hover': { color: 'var(--brand-fg)' } }}>キャンセル</Typography>
               <Typography onClick={handleDeleteSubmit} sx={{ color: '#ff4d4f', fontSize: 13, cursor: isProcessing ? 'not-allowed' : 'pointer', py: 1, fontWeight: 600, opacity: isProcessing ? 0.5 : 1 }}>削除</Typography>
             </Box>
           </Box>

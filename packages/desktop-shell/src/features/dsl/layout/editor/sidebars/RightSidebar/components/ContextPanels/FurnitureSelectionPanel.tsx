@@ -54,7 +54,7 @@ export default function FurnitureSelectionPanel() {
       {/* ヘッダ */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
         <ChecklistRoundedIcon sx={{ fontSize: 16, color: ACCENT }} />
-        <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "#fff" }}>選定リスト</Typography>
+        <Typography sx={{ fontSize: "0.82rem", fontWeight: 800, color: "var(--brand-fg)" }}>選定リスト</Typography>
         {lastScope && (
           <Chip
             size="small"
@@ -65,14 +65,14 @@ export default function FurnitureSelectionPanel() {
       </Stack>
 
       {zoneSelections.length === 0 ? (
-        <Typography sx={{ fontSize: "0.72rem", color: alpha("#fff", 0.55), lineHeight: 1.7, mt: 1 }}>
+        <Typography sx={{ fontSize: "0.72rem", color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)", lineHeight: 1.7, mt: 1 }}>
           ★メニューの「自動家具選定」で範囲（ゾーン／部屋／住宅）を選ぶと、部屋の用途に応じて
           必要な家具がここに一覧されます。内容を調整して「この選定で配置」を押すと、選定に合う
           セット家具が自動レイアウトされます。
         </Typography>
       ) : (
         <>
-          <Typography sx={{ fontSize: "0.66rem", color: alpha("#fff", 0.5), mb: 1 }}>
+          <Typography sx={{ fontSize: "0.66rem", color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", mb: 1 }}>
             {zoneSelections.length}室・家具{totalItems}点。役割と個数を調整できます。
           </Typography>
 
@@ -85,7 +85,7 @@ export default function FurnitureSelectionPanel() {
                   sx={{
                     mb: 1.25, borderRadius: 1.5,
                     border: `1px solid ${alpha(isActive ? ACCENT : "#fff", isActive ? 0.6 : 0.12)}`,
-                    background: alpha("#0b1020", 0.5),
+                    background: "color-mix(in srgb, var(--brand-surface) 50%, transparent)",
                     overflow: "hidden",
                   }}
                 >
@@ -99,8 +99,8 @@ export default function FurnitureSelectionPanel() {
                       "&:hover": { background: alpha(ACCENT, 0.2) },
                     }}
                   >
-                    <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, color: "#fff" }}>{zsel.label}</Typography>
-                    <Typography sx={{ fontSize: "0.6rem", color: alpha("#fff", 0.45) }}>
+                    <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, color: "var(--brand-fg)" }}>{zsel.label}</Typography>
+                    <Typography sx={{ fontSize: "0.6rem", color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>
                       {zsel.slots.reduce((s, x) => s + x.count, 0)}点
                     </Typography>
                   </Stack>
@@ -118,24 +118,24 @@ export default function FurnitureSelectionPanel() {
                         <Typography sx={{ fontSize: "0.9rem", width: 20, textAlign: "center" }}>
                           {getLayoutCategoryIcon(slot.role)}
                         </Typography>
-                        <Typography sx={{ flex: 1, fontSize: "0.72rem", color: alpha("#fff", 0.9) }}>
+                        <Typography sx={{ flex: 1, fontSize: "0.72rem", color: "color-mix(in srgb, var(--brand-fg) 90%, transparent)" }}>
                           {getLayoutCategoryLabel(slot.role)}
                         </Typography>
 
                         <IconButton size="small" onClick={() => setCount(zsel.zoneId, zsel.slots, slot.slotId, -1)}
-                          sx={{ width: 22, height: 22, color: alpha("#fff", 0.7) }}>
+                          sx={{ width: 22, height: 22, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
                           <RemoveRoundedIcon sx={{ fontSize: 14 }} />
                         </IconButton>
-                        <Typography sx={{ width: 20, textAlign: "center", fontSize: "0.72rem", fontWeight: 700, color: "#fff" }}>
+                        <Typography sx={{ width: 20, textAlign: "center", fontSize: "0.72rem", fontWeight: 700, color: "var(--brand-fg)" }}>
                           {slot.count}
                         </Typography>
                         <IconButton size="small" onClick={() => setCount(zsel.zoneId, zsel.slots, slot.slotId, +1)}
-                          sx={{ width: 22, height: 22, color: alpha("#fff", 0.7) }}>
+                          sx={{ width: 22, height: 22, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
                           <AddRoundedIcon sx={{ fontSize: 14 }} />
                         </IconButton>
                         <Tooltip title="この役割を外す" placement="left">
                           <IconButton size="small" onClick={() => removeSlot(zsel.zoneId, zsel.slots, slot.slotId)}
-                            sx={{ width: 22, height: 22, color: alpha("#fff", 0.4), "&:hover": { color: "#f87171" } }}>
+                            sx={{ width: 22, height: 22, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", "&:hover": { color: "light-dark(#a50808, #f87171)" } }}>
                             <CloseRoundedIcon sx={{ fontSize: 13 }} />
                           </IconButton>
                         </Tooltip>
@@ -151,12 +151,12 @@ export default function FurnitureSelectionPanel() {
           <Stack direction="row" spacing={1} sx={{ pt: 1, mt: "auto" }}>
             <Button
               fullWidth size="small" variant="outlined" onClick={clear}
-              sx={{ textTransform: "none", fontSize: "0.72rem", color: alpha("#fff", 0.7), borderColor: alpha("#fff", 0.2) }}
+              sx={{ textTransform: "none", fontSize: "0.72rem", color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderColor: alpha("#fff", 0.2) }}
             >
               選定をクリア
             </Button>
           </Stack>
-          <Typography sx={{ fontSize: "0.6rem", color: alpha("#fff", 0.4), mt: 0.75, lineHeight: 1.5 }}>
+          <Typography sx={{ fontSize: "0.6rem", color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mt: 0.75, lineHeight: 1.5 }}>
             これは「どの部屋に何が要るか」の目安です。「自動レイアウト」を実行すると、この目安に合う
             セット家具を優先して配置します（該当セットが無い役割は個別家具で補完）。行クリックで対象ゾーンを3Dハイライト。
           </Typography>

@@ -2,7 +2,15 @@
 // Rust 側 LibraryEntry（src-tauri/src/knowledge.rs）と camelCase で一致させる。
 // 仕様: docs/11_s_library_spec.md
 
-export type KnowledgeKind = 'book' | 'pdf' | 'url' | 'note';
+/**
+ * 種別は「データ形式」ではなく「読み方・使い方」の軸:
+ * - book = 書籍（通読する出版物。ページ記憶・ビューアが主役）
+ * - pdf  = 書類（カタログ・仕様書・資料等の実務文書。PDF以外のdoc/xlsx等も含む。
+ *          内部コードは既存データ互換のため歴史的に 'pdf' のまま）
+ * - url  = Web / note = メモ
+ * - law  = 法令（e-Gov 法令APIから条文単位で構造化取り込み。docs/22_law_library_spec.md）
+ */
+export type KnowledgeKind = 'book' | 'pdf' | 'url' | 'note' | 'law';
 
 export interface LibraryEntry {
   localId: string;
@@ -32,6 +40,14 @@ export interface LibraryEntry {
   totalPages?: number | null;
   bookmarks: number[];
 
+  // 法令（kind 'law'）: e-Gov 法令API 由来のメタ（docs/22_law_library_spec.md）
+  /** e-Gov 法令ID（例 325AC0000000201）。更新確認・再取込みのキー。 */
+  lawId?: string | null;
+  /** 取り込んだ版の改正施行日（e-Gov amendment_enforcement_date）。更新検知に使う。 */
+  lawRevisionDate?: string | null;
+  /** 条文構造 JSON（LawDoc）のローカルパス。本文は _index.json に入れない。 */
+  lawJsonPath?: string | null;
+
   status: 'local';
   thumbnailPath?: string | null;
   folderPath: string;
@@ -51,7 +67,7 @@ export interface LibraryEntry {
  * これは「固定の正典」ではなく初期値であり、ルール分類・AI・ユーザーが付けた
  * 新カテゴリは {@link listKnownCategories} 経由で自動的に選択肢へ合流する。
  */
-export const DSK_CATEGORIES = ['法規', '構造', '意匠', '設備', '環境', '積算', '素材・建材', 'その他'] as const;
+export const DSK_CATEGORIES = ['法規', '構造', '意匠', '設備', '環境', '積算', '素材・建材', 'カタログ', '家具・什器', 'その他'] as const;
 /** カテゴリは自由文字列（動的拡張）。シードは {@link DSK_CATEGORIES}。 */
 export type DskCategory = string;
 
@@ -83,7 +99,8 @@ export function listKnownCategories(entries: { category?: string | null }[]): st
 
 export const KIND_LABELS: Record<KnowledgeKind, string> = {
   book: '書籍',
-  pdf: 'PDF',
+  pdf: '書類',
   url: 'Web',
   note: 'メモ',
+  law: '法令',
 };

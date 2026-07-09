@@ -79,7 +79,7 @@ function QualityBadge({ quality }) {
         background: isCycles
           ? alpha("#a78bfa", 0.22)
           : alpha("#6c87ff", 0.18),
-        color: isCycles ? "#c4b5fd" : "#9db4ff",
+        color: isCycles ? "light-dark(#2705a9, #c4b5fd)" : "light-dark(#0029ad, #9db4ff)",
         border: `1px solid ${isCycles ? alpha("#a78bfa", 0.35) : alpha("#6c87ff", 0.3)}`,
         "& .MuiChip-label": { px: 0.75 },
       }}
@@ -102,7 +102,7 @@ function MediaTypeBadge({ mediaType }) {
         fontSize: 9,
         fontWeight: 800,
         background: isVideo ? alpha("#7e57c2", 0.25) : alpha("#ec407a", 0.22),
-        color: isVideo ? "#d1b3ff" : "#ffb3d1",
+        color: isVideo ? "light-dark(#4400ad, #d1b3ff)" : "light-dark(#ad0044, #ffb3d1)",
         border: `1px solid ${isVideo ? alpha("#7e57c2", 0.4) : alpha("#ec407a", 0.4)}`,
         "& .MuiChip-label": { px: 0.6 },
       }}
@@ -163,7 +163,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
           aspectRatio: "16/9",
           borderRadius: 1.5,
           overflow: "hidden",
-          background: alpha("#000", 0.4),
+          background: "color-mix(in srgb, var(--brand-bg) 40%, transparent)",
           position: "relative",
         }}
       >
@@ -175,7 +175,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
             controls
             playsInline
             preload="metadata"
-            sx={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "#000" }}
+            sx={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "var(--brand-bg)" }}
           />
         ) : item.thumbnail ? (
           <Box
@@ -195,7 +195,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
             sx={{
               position: "absolute",
               inset: 0,
-              background: alpha("#000", 0.55),
+              background: "color-mix(in srgb, var(--brand-bg) 55%, transparent)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -203,7 +203,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
               gap: 0.75,
             }}
           >
-            <Typography sx={{ fontSize: 10, color: "#6c87ff", fontWeight: 700 }}>
+            <Typography sx={{ fontSize: 10, color: "light-dark(#0020ad, #6c87ff)", fontWeight: 700 }}>
               {Math.round(progress ?? 0)}%
             </Typography>
           </Box>
@@ -215,7 +215,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
         )}
         {isError && (
           <Box sx={{ position: "absolute", top: 5, right: 5 }}>
-            <ErrorRoundedIcon sx={{ fontSize: 18, color: "#f87171" }} />
+            <ErrorRoundedIcon sx={{ fontSize: 18, color: "light-dark(#a50808, #f87171)" }} />
           </Box>
         )}
       </Box>
@@ -242,7 +242,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
                 "&:hover fieldset": { borderColor: alpha("#fff", 0.25) },
                 "&.Mui-focused fieldset": { borderColor: alpha("#6c87ff", 0.6) },
               },
-              "& input": { color: "#e2e8f0", py: 0 },
+              "& input": { color: "var(--brand-fg)", py: 0 },
             }}
           />
           <MediaTypeBadge mediaType={item.mediaType} />
@@ -250,7 +250,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
         </Stack>
 
         {/* 解像度 */}
-        <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.38) }}>
+        <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)" }}>
           {item.width ?? 1920} × {item.height ?? 1080} px
         </Typography>
 
@@ -258,7 +258,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
         <Stack direction="row" alignItems="center" gap={1}>
           <Stack direction="row" alignItems="center" gap={0.4} sx={{ flexShrink: 0 }}>
             <AutoAwesomeRoundedIcon sx={{ fontSize: 11, color: alpha("#ec407a", 0.8) }} />
-            <Typography sx={{ fontSize: 9, color: alpha("#fff", 0.4), fontWeight: 700 }}>カテゴリ</Typography>
+            <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", fontWeight: 700 }}>カテゴリ</Typography>
           </Stack>
           <Select
             value={item.category ?? autoCategory(item.mediaType)}
@@ -269,11 +269,11 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
             sx={{
               minWidth: 120,
               fontSize: 12,
-              color: "#e2e8f0",
+              color: "var(--brand-fg)",
               "& .MuiOutlinedInput-input": { py: 0.5 },
               "& fieldset": { borderColor: alpha("#fff", 0.12) },
               "&:hover fieldset": { borderColor: alpha("#fff", 0.25) },
-              "& .MuiSvgIcon-root": { color: alpha("#fff", 0.5) },
+              "& .MuiSvgIcon-root": { color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" },
             }}
           >
             {(categories ?? []).map((c) => (
@@ -286,7 +286,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
         <Box>
           <Stack direction="row" alignItems="center" gap={0.4} sx={{ mb: 0.4 }}>
             <AutoAwesomeRoundedIcon sx={{ fontSize: 11, color: alpha("#ec407a", 0.8) }} />
-            <Typography sx={{ fontSize: 9, color: alpha("#fff", 0.4), fontWeight: 700 }}>タグ（自動付与・編集可）</Typography>
+            <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", fontWeight: 700 }}>タグ（自動付与・編集可）</Typography>
           </Stack>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center" }}>
             {tags.map((t) => (
@@ -295,7 +295,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
                 label={t}
                 size="small"
                 onDelete={isDisabled ? undefined : () => removeTag(t)}
-                sx={{ height: 22, fontSize: 10, background: alpha("#ec407a", 0.15), color: "#ffb3d1", border: `1px solid ${alpha("#ec407a", 0.3)}` }}
+                sx={{ height: 22, fontSize: 10, background: alpha("#ec407a", 0.15), color: "light-dark(#ad0044, #ffb3d1)", border: `1px solid ${alpha("#ec407a", 0.3)}` }}
               />
             ))}
             {!isDisabled && (
@@ -307,7 +307,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
                 size="small"
                 placeholder="＋タグ"
                 variant="standard"
-                sx={{ width: 70, "& input": { fontSize: 10, color: "#e2e8f0", py: 0.25 }, "& .MuiInput-underline:before": { borderColor: alpha("#fff", 0.15) } }}
+                sx={{ width: 70, "& input": { fontSize: 10, color: "var(--brand-fg)", py: 0.25 }, "& .MuiInput-underline:before": { borderColor: alpha("#fff", 0.15) } }}
               />
             )}
           </Box>
@@ -331,14 +331,14 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
               <StarRoundedIcon
                 sx={{
                   fontSize: 13,
-                  color: isHeroCandidate ? "#fbbf24" : alpha("#fff", 0.3),
+                  color: isHeroCandidate ? "light-dark(#aa7c03, #fbbf24)" : "color-mix(in srgb, var(--brand-fg) 30%, transparent)",
                   transition: "color 0.15s",
                 }}
               />
               <Typography
                 sx={{
                   fontSize: 10,
-                  color: isHeroCandidate ? "#fbbf24" : alpha("#fff", 0.4),
+                  color: isHeroCandidate ? "light-dark(#aa7c03, #fbbf24)" : "color-mix(in srgb, var(--brand-fg) 40%, transparent)",
                   transition: "color 0.15s",
                   fontWeight: isHeroCandidate ? 700 : 400,
                   userSelect: "none",
@@ -354,7 +354,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
           {/* スキップトグル */}
           <Tooltip title="このShotをアップロード対象から除外する" placement="top">
             <Stack direction="row" alignItems="center" gap={0.3}>
-              <Typography sx={{ fontSize: 10, color: alpha("#fff", 0.38), userSelect: "none" }}>
+              <Typography sx={{ fontSize: 10, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)", userSelect: "none" }}>
                 対象
               </Typography>
               <Switch
@@ -363,7 +363,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
                 onChange={(e) => onUpdate(item.id, { skip: !e.target.checked })}
                 disabled={isDisabled}
                 sx={{
-                  "& .MuiSwitch-switchBase.Mui-checked": { color: "#6c87ff" },
+                  "& .MuiSwitch-switchBase.Mui-checked": { color: "light-dark(#0020ad, #6c87ff)" },
                   "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
                     backgroundColor: alpha("#6c87ff", 0.6),
                   },
@@ -390,7 +390,7 @@ function RenderCard({ item, onUpdate, heroId, onSetHero, categories }) {
 
         {/* エラーメッセージ */}
         {isError && item.errorMsg && (
-          <Typography sx={{ fontSize: 10, color: "#f87171", lineHeight: 1.5 }}>
+          <Typography sx={{ fontSize: 10, color: "light-dark(#a50808, #f87171)", lineHeight: 1.5 }}>
             {item.errorMsg}
           </Typography>
         )}
@@ -551,10 +551,10 @@ export default function DslRenderUploadDialog({
         sx: {
           width: "min(760px, 96vw)",
           maxHeight: "90vh",
-          background: "#080c18",
+          background: "var(--brand-bg)",
           border: `1px solid ${alpha("#fff", 0.1)}`,
           borderRadius: 3,
-          color: "#fff",
+          color: "var(--brand-fg)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -590,7 +590,7 @@ export default function DslRenderUploadDialog({
             sx={{
               mr: 1,
               background: alpha("#34d399", 0.18),
-              color: "#6ee7b7",
+              color: "light-dark(#199564, #6ee7b7)",
               border: `1px solid ${alpha("#34d399", 0.3)}`,
               fontSize: 11,
               fontWeight: 700,
@@ -652,16 +652,16 @@ export default function DslRenderUploadDialog({
                 onChange={(e) => setAlsoSaveToLocal(e.target.checked)}
                 disabled={saving}
                 sx={{
-                  color: alpha("#fff", 0.3),
-                  "&.Mui-checked": { color: "#6c87ff" },
+                  color: "color-mix(in srgb, var(--brand-fg) 30%, transparent)",
+                  "&.Mui-checked": { color: "light-dark(#0020ad, #6c87ff)" },
                   p: 0.5,
                 }}
               />
             }
             label={
               <Stack direction="row" alignItems="center" gap={0.6}>
-                <FolderRoundedIcon sx={{ fontSize: 13, color: alpha("#fff", 0.45) }} />
-                <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.65) }}>
+                <FolderRoundedIcon sx={{ fontSize: 13, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }} />
+                <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 65%, transparent)" }}>
                   PC\SEKKEIYA にも保存 (ローカル)
                 </Typography>
               </Stack>
@@ -682,13 +682,13 @@ export default function DslRenderUploadDialog({
                 "& .MuiLinearProgress-bar": { background: "#6c87ff" },
               }}
             />
-            <Typography sx={{ fontSize: 11, color: alpha("#fff", 0.5), flexShrink: 0 }}>
+            <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)", flexShrink: 0 }}>
               {doneCount} / {activeCount}
             </Typography>
           </Stack>
         )}
         {!saving && errorCount > 0 && (
-          <Typography sx={{ fontSize: 11, color: "#f87171", mb: 1 }}>
+          <Typography sx={{ fontSize: 11, color: "light-dark(#a50808, #f87171)", mb: 1 }}>
             {errorCount} Shot のアップロードに失敗しました
           </Typography>
         )}
@@ -700,10 +700,10 @@ export default function DslRenderUploadDialog({
             disabled={saving}
             sx={{
               textTransform: "none",
-              color: alpha("#fff", 0.5),
+              color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)",
               fontWeight: 700,
               fontSize: 13,
-              "&:hover": { color: alpha("#fff", 0.85), background: alpha("#fff", 0.06) },
+              "&:hover": { color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)", background: alpha("#fff", 0.06) },
             }}
           >
             {allDone ? "閉じる" : "キャンセル"}

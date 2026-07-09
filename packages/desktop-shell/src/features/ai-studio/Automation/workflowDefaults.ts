@@ -74,20 +74,20 @@ const OVERRIDES: Record<string, Partial<WorkflowDef>> = {
         label: '家具が未登録のときの分岐',
         enabled: true,
         branches: [
-          { id: 'auto_models', label: 'S.Modelsから自動で選ぶ' },
-          { id: 'manual_models', label: 'S.Modelsから手動で選ぶ' },
+          { id: 'auto_models', label: 'S.Modelから自動で選ぶ' },
+          { id: 'manual_models', label: 'S.Modelから手動で選ぶ' },
         ],
       },
     ],
     params: [
-      { key: 'furnitureSource', label: '家具ソース', type: 'select', options: ['S.Models', 'プロジェクト', '公開カタログ'], value: 'S.Models' },
+      { key: 'furnitureSource', label: '家具ソース', type: 'select', options: ['S.Model', 'プロジェクト', '公開カタログ'], value: 'S.Model' },
       { key: 'roomMode', label: '部屋サイズ', type: 'select', options: ['自動導出', '手動指定'], value: '自動導出' },
     ],
   },
   furniture_pick: {
     triggers: ['家具を探して', '家具を選定して'],
     params: [
-      { key: 'source', label: '検索ソース', type: 'select', options: ['索引済みカタログ', 'S.Models', '公開カタログ'], value: '索引済みカタログ' },
+      { key: 'source', label: '検索ソース', type: 'select', options: ['索引済みカタログ', 'S.Model', '公開カタログ'], value: '索引済みカタログ' },
       { key: 'autoAdd', label: '選定後に自動追加', type: 'toggle', value: 'off' },
     ],
   },
@@ -96,6 +96,133 @@ const OVERRIDES: Record<string, Partial<WorkflowDef>> = {
     params: [
       { key: 'batchLimit', label: '一度に生成する上限', type: 'number', value: '5' },
       { key: 'confirmCount', label: '生成前に件数確認', type: 'toggle', value: 'on' },
+    ],
+  },
+
+  // ── S.Layout 王道フロー（一気通貫）───────────────────────────
+  // 方針: 質問（分岐）は最大2回・必ず既定値あり。残りはバックグラウンドで連続実行し、
+  // 仕上がりはチャットに画像で報告する（会話だけで完結）。
+  flow_full_auto: {
+    triggers: ['丸ごと仕上げて', '全部自動で仕上げて', 'フルコースで仕上げて'],
+    steps: [
+      { id: 'pick_plan', label: '対象プランを特定', verb: 'layout_list', enabled: true },
+      { id: 'auto_label', label: '面を自動ラベリング（床・壁・天井）', enabled: true },
+      { id: 'run_auto_zoning', label: '自動ゾーニング（部屋を認識）', verb: 'run_auto_zoning', enabled: true },
+      {
+        id: 'furniture_branch', label: '家具の選び方', enabled: true,
+        branches: [
+          { id: 'auto_models', label: 'S.Modelから自動で選ぶ' },
+          { id: 'public_models', label: '公開カタログから自動で選ぶ' },
+          { id: 'manual_models', label: '手動で選んでから配置' },
+        ],
+      },
+      { id: 'run_auto_layout', label: '家具を自動配置', verb: 'run_auto_layout', enabled: true },
+      { id: 'run_auto_material', label: '自動マテリアル（内装仕上げ）', verb: 'run_auto_material', enabled: true },
+      {
+        id: 'mood_branch', label: '照明ムードを選ぶ', enabled: true,
+        branches: [
+          { id: 'daylight', label: '昼光' },
+          { id: 'evening', label: '夕景' },
+          { id: 'indirect', label: '間接' },
+          { id: 'exhibit', label: '展示' },
+        ],
+      },
+      { id: 'run_auto_lighting', label: '自動ライティング', verb: 'run_auto_lighting', enabled: true },
+      { id: 'run_auto_angles', label: '自動アングル（撮影位置）', verb: 'run_auto_angles', enabled: true },
+      { id: 'render', label: '仕上がりをレンダリング', verb: 'render_layout', enabled: true },
+    ],
+    params: [
+      { key: 'renderCount', label: 'レンダー枚数', type: 'number', value: '3' },
+      { key: 'quality', label: '品質', type: 'select', options: ['標準（リアルタイム）', 'フォトリアル（Cycles）'], value: '標準（リアルタイム）' },
+      { key: 'autoAttach', label: '完成後に提案書へ自動添付', type: 'toggle', value: 'off' },
+    ],
+  },
+  flow_interior_refresh: {
+    triggers: ['内装を着せ替えて', '雰囲気を変えて', '内装を北欧風にして'],
+    steps: [
+      { id: 'pick_plan', label: '対象プランを確認', verb: 'layout_get', enabled: true },
+      {
+        id: 'style_branch', label: '内装スタイルを選ぶ', enabled: true,
+        branches: [
+          { id: 'nordic', label: '北欧ナチュラル' },
+          { id: 'modern', label: 'モダン' },
+          { id: 'japandi', label: '和モダン' },
+          { id: 'hotel', label: 'ホテルライク' },
+        ],
+      },
+      { id: 'run_auto_material', label: '自動マテリアル（床・壁・天井）', verb: 'run_auto_material', enabled: true },
+      { id: 'furn_material', label: '家具マテリアルを合わせて調整', enabled: true },
+      {
+        id: 'mood_branch', label: '照明ムードを選ぶ', enabled: true,
+        branches: [
+          { id: 'daylight', label: '昼光' },
+          { id: 'evening', label: '夕景' },
+          { id: 'indirect', label: '間接' },
+          { id: 'exhibit', label: '展示' },
+        ],
+      },
+      { id: 'run_auto_lighting', label: '自動ライティング', verb: 'run_auto_lighting', enabled: true },
+      { id: 'preview', label: '確認用レンダー（1枚）', verb: 'render_layout', enabled: true },
+    ],
+    params: [
+      { key: 'previewRender', label: '仕上げ後に確認レンダー', type: 'toggle', value: 'on' },
+    ],
+  },
+  flow_presentation_pack: {
+    triggers: ['提案書用に撮影して', 'プレゼン用のパースを一式作って', '提案書用に撮影して載せて'],
+    steps: [
+      { id: 'pick_plan', label: '対象プランを特定', verb: 'layout_list', enabled: true },
+      {
+        id: 'shoot_style_branch', label: '撮影スタイルを選ぶ（指定なしは不動産）', enabled: true,
+        branches: [
+          { id: 'realestate', label: '不動産（広く明るく・6枚）' },
+          { id: 'magazine', label: '雑誌（画になる寄り・5枚）' },
+          { id: 'catalog', label: 'カタログ（家具主役・6枚）' },
+        ],
+      },
+      { id: 'render', label: 'スタイル自動アングルでレンダリング', verb: 'render_layout', enabled: true },
+      { id: 'outputs', label: 'レンダー成果物を取得', verb: 'get_layout_outputs', enabled: true },
+      { id: 'attach', label: '提案書ギャラリーへ添付', verb: 'add_asset_to_section', enabled: true },
+    ],
+    params: [
+      { key: 'count', label: '枚数（0=スタイル既定）', type: 'number', value: '0' },
+      { key: 'autoAttach', label: 'サイトへ自動添付', type: 'toggle', value: 'on' },
+    ],
+  },
+  flow_option_compare: {
+    triggers: ['3案比較で見せて', 'バリエーションを出して', 'オプションで比較して'],
+    steps: [
+      { id: 'pick_plan', label: '元プランを確認', verb: 'layout_get', enabled: true },
+      {
+        id: 'axis_branch', label: '何を変えて比較するか', enabled: true,
+        branches: [
+          { id: 'lighting', label: 'ライティング（ムード違い）' },
+          { id: 'material', label: 'マテリアル（内装スタイル違い）' },
+          { id: 'furniture', label: '家具レイアウト違い' },
+        ],
+      },
+      { id: 'make_options', label: '比較用オプションを複製作成', enabled: true },
+      { id: 'finish_each', label: '各案を自動仕上げ', verb: 'run_auto_material', enabled: true },
+      { id: 'render_each', label: '各案を1枚ずつレンダリング', verb: 'render_layout', enabled: true },
+      { id: 'present', label: '比較グリッドで提示・選択', enabled: true },
+    ],
+    params: [
+      { key: 'optionCount', label: '案の数', type: 'number', value: '3' },
+      { key: 'promoteChoice', label: '選ばれた案を本命に昇格', type: 'toggle', value: 'on' },
+    ],
+  },
+  flow_video_tour: {
+    triggers: ['ウォークスルー動画を作って', '動画で見せて'],
+    steps: [
+      { id: 'pick_plan', label: '対象プランを確認', verb: 'layout_get', enabled: true },
+      { id: 'camera_path', label: 'カメラパスを自動生成', verb: 'run_auto_angles', enabled: true },
+      { id: 'render_video', label: '動画レンダリング（バックグラウンド）', verb: 'render_video', enabled: true },
+      { id: 'status', label: '完了を確認', verb: 'get_render_status', enabled: true },
+      { id: 'attach', label: '共有・サイトへ添付', verb: 'add_asset_to_section', enabled: true },
+    ],
+    params: [
+      { key: 'length', label: '長さ', type: 'select', options: ['15秒', '30秒', '60秒'], value: '30秒' },
+      { key: 'quality', label: '品質', type: 'select', options: ['プレビュー（リアルタイム）', 'フォトリアル（Cycles）'], value: 'プレビュー（リアルタイム）' },
     ],
   },
 };

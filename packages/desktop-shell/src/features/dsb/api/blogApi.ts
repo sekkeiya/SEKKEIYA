@@ -49,6 +49,42 @@ export async function loadCustomFeedSources(uid: string): Promise<BlogSourceSite
     .map((s) => ({ name: s.name, feed: s.feed, group: 'カスタム' as const, note: s.note || 'ユーザー追加', lang: s.lang }));
 }
 
+/** S.Blog の動作設定（Global Settings > S.Blog）。blogSettings/main に保存。 */
+export interface BlogPrefs {
+  notifyDue: boolean;      // 投稿予定の期日デスクトップ通知
+  planWeekdays: number[];  // 投稿計画の既定曜日（0=日〜6=土）
+  planTime: string;        // 投稿計画の既定時刻 HH:mm
+}
+export const DEFAULT_BLOG_PREFS: BlogPrefs = { notifyDue: true, planWeekdays: [2, 5], planTime: '20:00' };
+
+export async function loadBlogPrefs(uid: string): Promise<BlogPrefs> {
+  const snap = await getDoc(settingsDoc(uid));
+  const d = snap.exists() ? (snap.data() as any) : {};
+  return {
+    notifyDue: typeof d.notifyDue === 'boolean' ? d.notifyDue : DEFAULT_BLOG_PREFS.notifyDue,
+    planWeekdays: Array.isArray(d.planWeekdays) ? d.planWeekdays.filter((n: any) => Number.isInteger(n)) : DEFAULT_BLOG_PREFS.planWeekdays,
+    planTime: typeof d.planTime === 'string' && d.planTime ? d.planTime : DEFAULT_BLOG_PREFS.planTime,
+  };
+}
+
+export async function saveBlogPrefs(uid: string, prefs: Partial<BlogPrefs>): Promise<void> {
+  await setDoc(settingsDoc(uid), { ...prefs }, { merge: true });
+}
+
+/** ホームの人物・会社ウォッチ名（絞り込みチップのカスタム分）を取得。 */
+export async function loadBlogNameFilters(uid: string): Promise<string[]> {
+  const snap = await getDoc(settingsDoc(uid));
+  const data = snap.exists() ? (snap.data() as { nameFilters?: unknown }) : null;
+  return Array.isArray(data?.nameFilters)
+    ? (data!.nameFilters as unknown[]).filter((s): s is string => typeof s === 'string')
+    : [];
+}
+
+/** ホームの人物・会社ウォッチ名を保存（merge）。 */
+export async function saveBlogNameFilters(uid: string, names: string[]): Promise<void> {
+  await setDoc(settingsDoc(uid), { nameFilters: names }, { merge: true });
+}
+
 /** カスタムメディア一覧を保存（merge）。 */
 export async function saveCustomFeedSources(uid: string, sources: BlogSourceSite[]): Promise<void> {
   await setDoc(settingsDoc(uid), {

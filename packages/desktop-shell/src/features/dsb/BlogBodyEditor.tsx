@@ -20,6 +20,9 @@ import { BlogVideo } from './BlogVideo';
 import { uploadBlogMedia } from './lib/blogMediaUpload';
 import { MediaPickerDialog } from '../media-picker/MediaPickerDialog';
 import type { MediaPickerItem } from '../media-picker/types';
+import type { BlogStyle } from './types';
+import { DEFAULT_BLOG_STYLE } from './types';
+import { buildArticleProseSx, getArticlePalette, ARTICLE_MEASURE } from './articleTheme';
 
 const ACCENT = '#e57373';
 
@@ -31,14 +34,22 @@ interface BlogBodyEditorProps {
   uid?: string;
   /** プロジェクト記事のとき、その成果物もピッカーに含める。 */
   projectId?: string | null;
+  /** ブログのスタイル設定（🎨）。誌面テーマ（articleTheme）でエディタの見た目に反映する。 */
+  blogStyle?: BlogStyle;
+  /** 紙面の先頭（本文の上）に載せる要素。タイトル入力を渡すと本文と一緒にスクロールする誌面になる。 */
+  header?: React.ReactNode;
+  /** 本文中の画像クリック時（右サイドバーの差し替え/再生成パネルを開く用） */
+  onImageClick?: (src: string, alt: string) => void;
 }
 
 /**
  * S.Blog 本文の WYSIWYG（見たまま編集）エディタ。
  * 入出力は Markdown 文字列（draft.bodyMarkdown）で、サイト/検索連携はそのまま使える。
  */
-export const BlogBodyEditor: React.FC<BlogBodyEditorProps> = ({ value, onChange, placeholder, uid, projectId }) => {
+export const BlogBodyEditor: React.FC<BlogBodyEditorProps> = ({ value, onChange, placeholder, uid, projectId, blogStyle, header, onImageClick }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const style = blogStyle ?? DEFAULT_BLOG_STYLE;
+  const pal = getArticlePalette(style.preset);
 
   const editor = useEditor({
     extensions: [
@@ -101,72 +112,51 @@ export const BlogBodyEditor: React.FC<BlogBodyEditorProps> = ({ value, onChange,
         accept={['image', 'video']}
         onUpload={uid ? handleUpload : undefined}
       />
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', flexShrink: 0 }} />
       <Box
         sx={{
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
-          mt: 2,
-          // ProseMirror 本体のダークテーマ・タイポグラフィ
+          // 紙面 — プリセットの紙色。アプリテーマに依存せず、公開ページと同じ色味で執筆する。
+          bgcolor: pal.bg,
+          // 誌面カラム: 最適行長（measure）に収めて中央寄せ。Webマガジンの本文組みと同じ。
+          '& .tiptap-article-column': {
+            width: '100%', maxWidth: ARTICLE_MEASURE, mx: 'auto', px: 3, pt: 5, pb: 12,
+          },
+          // ProseMirror 本体 — タイポグラフィは articleTheme（プリセット＋アクセント色）が決める
           '& .ProseMirror': {
             outline: 'none',
-            color: 'rgba(255,255,255,0.9)',
-            fontSize: 15,
-            lineHeight: 1.85,
-            minHeight: '100%',
-            '& > * + *': { marginTop: '0.85em' },
-            '& h1': { fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.3, marginTop: '1.2em' },
-            '& h2': { fontSize: 21, fontWeight: 700, color: '#fff', lineHeight: 1.35, marginTop: '1.1em' },
-            '& h3': { fontSize: 17, fontWeight: 700, color: 'rgba(255,255,255,0.95)', marginTop: '1em' },
-            '& p': { margin: 0 },
-            '& ul, & ol': { paddingLeft: '1.4em' },
-            '& li': { marginTop: '0.25em' },
-            '& li p': { margin: 0 },
-            '& a': { color: ACCENT, textDecoration: 'underline' },
-            '& blockquote': {
-              borderLeft: `3px solid ${ACCENT}`,
-              paddingLeft: '1em',
-              margin: 0,
-              color: 'rgba(255,255,255,0.6)',
-              fontStyle: 'italic',
-            },
-            '& code': {
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: 13,
-              bgcolor: 'rgba(255,255,255,0.08)',
-              padding: '0.1em 0.35em',
-              borderRadius: '4px',
-            },
-            '& pre': {
-              bgcolor: 'rgba(0,0,0,0.35)',
-              borderRadius: 2,
-              padding: '0.9em 1em',
-              overflowX: 'auto',
-              '& code': { bgcolor: 'transparent', padding: 0, fontSize: 13 },
-            },
-            '& hr': { border: 'none', borderTop: '1px solid rgba(255,255,255,0.15)', margin: '1.4em 0' },
-            '& img, & video': {
-              maxWidth: '100%',
-              height: 'auto',
-              borderRadius: '8px',
-              display: 'block',
-              margin: '0.5em 0',
-            },
+            minHeight: '55vh',
+            ...buildArticleProseSx(style),
             // 選択中のメディア（atom ノード）に枠線
             '& .ProseMirror-selectednode': { outline: `2px solid ${ACCENT}`, outlineOffset: 2, borderRadius: '8px' },
             // プレースホルダ（空のとき）
             '& p.is-editor-empty:first-of-type::before': {
               content: 'attr(data-placeholder)',
               float: 'left',
-              color: 'rgba(255,255,255,0.3)',
+              color: pal.sub,
+              opacity: 0.7,
               pointerEvents: 'none',
               height: 0,
             },
           },
         }}
       >
-        <EditorContent editor={editor} style={{ height: '100%' }} />
+        <Box
+          className="tiptap-article-column"
+          onClick={(e) => {
+            // 本文中の画像クリック → 差し替え/再生成パネル（DsbEditor側）を開く
+            const t = e.target as HTMLElement;
+            if (onImageClick && t?.tagName === 'IMG') {
+              const img = t as HTMLImageElement;
+              onImageClick(img.getAttribute('src') || img.src, img.getAttribute('alt') || '');
+            }
+          }}
+        >
+          {header}
+          <EditorContent editor={editor} />
+        </Box>
       </Box>
     </Box>
   );
@@ -183,11 +173,11 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, canInsertMedia, o
   if (!editor) return null;
 
   const btnSx = (active: boolean) => ({
-    color: active ? ACCENT : 'rgba(255,255,255,0.55)',
+    color: active ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.55)',
     bgcolor: active ? `${ACCENT}1f` : 'transparent',
     borderRadius: 1,
     p: 0.6,
-    '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+    '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)' },
   });
 
   const setLink = () => {
@@ -206,30 +196,30 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, canInsertMedia, o
       sx={{
         flexShrink: 0,
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.25,
-        pb: 1.5,
+        px: 2.5, pb: 1.5,
       }}
     >
       <Tooltip title="見出し1"><IconButton size="small" sx={btnSx(editor.isActive('heading', { level: 1 }))} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}><TitleRoundedIcon sx={{ fontSize: 20 }} /></IconButton></Tooltip>
       <Tooltip title="見出し2"><IconButton size="small" sx={btnSx(editor.isActive('heading', { level: 2 }))} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}><TitleRoundedIcon sx={{ fontSize: 16 }} /></IconButton></Tooltip>
       <Tooltip title="見出し3"><IconButton size="small" sx={btnSx(editor.isActive('heading', { level: 3 }))} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}><TitleRoundedIcon sx={{ fontSize: 13 }} /></IconButton></Tooltip>
 
-      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)', mx: 0.5, my: 0.75 }} />
+      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', mx: 0.5, my: 0.75 }} />
 
       <Tooltip title="太字"><IconButton size="small" sx={btnSx(editor.isActive('bold'))} onClick={() => editor.chain().focus().toggleBold().run()}><FormatBoldRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="斜体"><IconButton size="small" sx={btnSx(editor.isActive('italic'))} onClick={() => editor.chain().focus().toggleItalic().run()}><FormatItalicRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="コード"><IconButton size="small" sx={btnSx(editor.isActive('code'))} onClick={() => editor.chain().focus().toggleCode().run()}><CodeRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="リンク"><IconButton size="small" sx={btnSx(editor.isActive('link'))} onClick={setLink}><LinkRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
 
-      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)', mx: 0.5, my: 0.75 }} />
+      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', mx: 0.5, my: 0.75 }} />
 
       <Tooltip title="箇条書き"><IconButton size="small" sx={btnSx(editor.isActive('bulletList'))} onClick={() => editor.chain().focus().toggleBulletList().run()}><FormatListBulletedRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="番号付きリスト"><IconButton size="small" sx={btnSx(editor.isActive('orderedList'))} onClick={() => editor.chain().focus().toggleOrderedList().run()}><FormatListNumberedRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="引用"><IconButton size="small" sx={btnSx(editor.isActive('blockquote'))} onClick={() => editor.chain().focus().toggleBlockquote().run()}><FormatQuoteRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
       <Tooltip title="区切り線"><IconButton size="small" sx={btnSx(false)} onClick={() => editor.chain().focus().setHorizontalRule().run()}><HorizontalRuleRoundedIcon sx={{ fontSize: 19 }} /></IconButton></Tooltip>
 
-      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.1)', mx: 0.5, my: 0.75 }} />
+      <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)', mx: 0.5, my: 0.75 }} />
 
-      <Tooltip title={canInsertMedia ? '画像・動画を挿入（AI Drive / 公開 / アップロード）' : 'ログインするとメディアを挿入できます'}>
+      <Tooltip title={canInsertMedia ? '画像・動画を挿入（SEKKEIYA Drive / 公開 / アップロード）' : 'ログインするとメディアを挿入できます'}>
         <span>
           <IconButton size="small" sx={btnSx(false)} disabled={!canInsertMedia} onClick={onOpenMediaPicker}>
             <PermMediaRoundedIcon sx={{ fontSize: 19 }} />

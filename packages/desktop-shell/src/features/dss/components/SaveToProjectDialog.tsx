@@ -109,9 +109,9 @@ export const SaveToProjectDialog: React.FC<{
       fullWidth
       PaperProps={{
         sx: {
-          bgcolor: '#0f172a',
+          bgcolor: 'var(--brand-surface)',
           backgroundImage: 'none',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
         },
       }}
     >
@@ -120,7 +120,7 @@ export const SaveToProjectDialog: React.FC<{
         <Typography variant="body2" color="text.secondary" gutterBottom>
           「{model.title || model.name || 'Untitled'}」を保存するプロジェクトを選択してください。
         </Typography>
-        <List sx={{ mt: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1, border: '1px solid rgba(255,255,255,0.05)' }}>
+        <List sx={{ mt: 2, bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 1, border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)' }}>
           {projects.length > 0 ? (
             projects.map(p => {
               const status = statusMap[p.id] || 'checking';
@@ -163,13 +163,13 @@ export const SaveToProjectDialog: React.FC<{
                           />
                         </Fade>
                       ) : isChecking ? (
-                        <CircularProgress size={20} thickness={3} sx={{ color: 'rgba(255,255,255,0.3)' }} />
+                        <CircularProgress size={20} thickness={3} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
                       ) : isSaving ? (
-                        <CircularProgress size={20} thickness={3} sx={{ color: '#38bdf8' }} />
+                        <CircularProgress size={20} thickness={3} sx={{ color: 'light-dark(#0676a8, #38bdf8)' }} />
                       ) : isAlreadySaved ? (
                         <CheckCircleOutlineIcon sx={{ color: '#4ade80', fontSize: 22 }} />
                       ) : (
-                        <FolderIcon sx={{ color: '#38bdf8' }} />
+                        <FolderIcon sx={{ color: 'light-dark(#0676a8, #38bdf8)' }} />
                       )}
                     </ListItemIcon>
                     <ListItemText

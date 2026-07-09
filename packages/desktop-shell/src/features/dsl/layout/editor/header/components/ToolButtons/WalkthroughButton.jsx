@@ -14,7 +14,7 @@ export default function WalkthroughButton() {
         size="small"
         onClick={toggle}
         sx={{
-          color: isWalkthrough ? "#fff" : alpha("#fff", 0.7),
+          color: isWalkthrough ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 70%, transparent)",
           background: isWalkthrough ? alpha("#4f8cff", 0.85) : "transparent",
           "&:hover": {
             background: isWalkthrough ? alpha("#4f8cff", 0.95) : alpha("#fff", 0.1),

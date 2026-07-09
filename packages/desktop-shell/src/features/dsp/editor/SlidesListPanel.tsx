@@ -69,7 +69,7 @@ const MiniElement: React.FC<{ el: PresentationElement; scale: number }> = ({ el,
         <Box component="img" src={data.src} sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       )}
       {el.type === 'modelCard' && (
-        <Box sx={{ width: '100%', height: '100%', bgcolor: 'rgba(255,255,255,0.8)', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ width: '100%', height: '100%', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.8)', display: 'flex', flexDirection: 'column' }}>
           {data.thumbnailUrl && <Box component="img" src={data.thumbnailUrl} sx={{ flex: 1, objectFit: 'cover' }} />}
         </Box>
       )}
@@ -129,7 +129,7 @@ export const SlidesListPanel: React.FC = () => {
           <IconButton
             size="small"
             onClick={() => toggleSlidesPanel()}
-            sx={{ color: isSlidesPanelOpen ? '#29b6f6' : 'text.secondary', '&:hover': { color: 'white' }, p: 0.5 }}
+            sx={{ color: isSlidesPanelOpen ? 'light-dark(#0775a6, #29b6f6)' : 'text.secondary', '&:hover': { color: 'var(--brand-fg)' }, p: 0.5 }}
           >
             <ViewSidebarRoundedIcon fontSize="small" />
           </IconButton>
@@ -138,7 +138,7 @@ export const SlidesListPanel: React.FC = () => {
           )}
         </Box>
         {isSlidesPanelOpen && (
-          <Button size="small" onClick={() => addPage()} sx={{ color: '#29b6f6', fontSize: '0.75rem', p: 0, minWidth: 'auto' }}>
+          <Button size="small" onClick={() => addPage()} sx={{ color: 'light-dark(#0775a6, #29b6f6)', fontSize: '0.75rem', p: 0, minWidth: 'auto' }}>
             <AddRoundedIcon fontSize="small" />
           </Button>
         )}
@@ -171,7 +171,7 @@ export const SlidesListPanel: React.FC = () => {
               </Typography>
               {selectedPageId === page.id && (
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicatePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'white' } }}>
+                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); duplicatePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'var(--brand-fg)' } }}>
                     <ContentCopyRoundedIcon sx={{ fontSize: '1rem' }} />
                   </IconButton>
                   <IconButton size="small" onClick={(e) => { e.stopPropagation(); deletePage(page.id); }} sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'error.main' } }}>

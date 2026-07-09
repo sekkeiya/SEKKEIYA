@@ -10,6 +10,8 @@ import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
 import CheckBoxRoundedIcon from '@mui/icons-material/CheckBoxRounded';
 import WeekendRoundedIcon from '@mui/icons-material/WeekendRounded';
+import CollectionsBookmarkRoundedIcon from '@mui/icons-material/CollectionsBookmarkRounded';
+import GavelRoundedIcon from '@mui/icons-material/GavelRounded';
 import { useDskStore } from './store/useDskStore';
 import { SourceRegistryList } from './add/SourceRegistryList';
 import { SourceRegistryFilterPanel } from './add/SourceRegistryFilterPanel';
@@ -18,9 +20,10 @@ import { IndexedProductsView } from './catalog/IndexedProductsView';
 import { BrainView } from './brain/BrainView';
 import { canIngestRag } from './lib/shelfClassify';
 import { DskEntryCard } from './DskEntryCard';
-import { DskWebArticleCard } from './DskWebArticleCard';
 import { DskRightPanel } from './components/DskRightPanel';
 import { DskBookViewer } from './components/DskBookViewer';
+import { DskLawViewer } from './law/DskLawViewer';
+import { AddLawDialog } from './law/AddLawDialog';
 import { AddEntryDialog } from './add/AddEntryDialog';
 import { openLocalFileExternally } from './lib/localFiles';
 import { getSLibraryPath } from './api/knowledgeApi';
@@ -39,6 +42,7 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
   const {
     entries, loading, refresh,
     view, setView,
+    registryFocus, setRegistryFocus,
     kindFilter,
     categoryFilter,
     projectFilter,
@@ -53,11 +57,14 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
   const uid = useAuthStore((s: any) => s.currentUser?.uid as string | undefined);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [lawOpen, setLawOpen] = useState(false);
   const [regFilter, setRegFilter] = useState<RegistryFilter>({ ...DEFAULT_REGISTRY_FILTER });
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [ragBusy, setRagBusy] = useState(false);
   const [ragProgress, setRagProgress] = useState('');
+  /** 一括RAG取り込みの結果ダイアログ（トーストだと見逃すため明示表示） */
+  const [ragReport, setRagReport] = useState<{ ok: number; failures: { title: string; msg: string }[] } | null>(null);
   const [toast, setToast] = useState<{ msg: string; sev: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -131,7 +138,8 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
     const targets = filtered.filter((e) => ragSelection.has(e.localId) && canRag(e));
     if (targets.length === 0) return;
     setRagBusy(true);
-    let ok = 0; let fail = 0;
+    let ok = 0;
+    const failures: { title: string; msg: string }[] = [];
     for (const [i, entry] of targets.entries()) {
       try {
         setRagProgress(`(${i + 1}/${targets.length}) ${entry.title}`);
@@ -141,16 +149,16 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
           new Promise((_, rej) => setTimeout(() => rej(new Error('取り込みがタイムアウトしました')), 120000)),
         ]);
         ok++;
-      } catch (e) {
+      } catch (e: any) {
         console.error('[DskDashboard] bulk ingest failed', entry.title, e);
-        fail++;
+        failures.push({ title: entry.title, msg: `${e?.message ?? e}` });
       }
     }
     setRagBusy(false);
     setRagProgress('');
     clearRagSelection();
     setRagSelectMode(false);
-    setToast({ msg: `RAG取り込み完了: 成功 ${ok} 件${fail ? ` / 失敗 ${fail} 件` : ''}`, sev: fail ? 'info' : 'success' });
+    setRagReport({ ok, failures });
   };
 
   return (
@@ -164,24 +172,30 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
         ) : view === 'registry' ? (
           <Box sx={{ p: 3, overflowY: 'auto', height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <WeekendRoundedIcon sx={{ fontSize: 22, color: '#7dd3fc' }} />
-              <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>おすすめソースを追加</Typography>
+              {registryFocus === 'catalog'
+                ? <CollectionsBookmarkRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0f9d58, #86efac)' }} />
+                : <WeekendRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0474a9, #7dd3fc)' }} />}
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-fg)' }}>
+                {registryFocus === 'catalog' ? 'メーカー電子カタログ' : 'おすすめソースを追加'}
+              </Typography>
             </Box>
-            <Typography sx={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', mb: 2 }}>
-              家具・テクスチャ・イメージ事例・建材の厳選ソースを、自分のライブラリに追加。家具は追加でそのまま端末内に商品索引が作られ、SEKKEIYA Search や S.Models 照合で使えます。
+            <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 2 }}>
+              {registryFocus === 'catalog'
+                ? '壁紙・床材・タイル等メーカーの電子カタログ。「サイトを開く」で確認し、使うメーカーをライブラリに追加（購読）できます。画像の入手・利用は各メーカーの利用条件に従ってください。'
+                : '家具・テクスチャ・イメージ事例・建材の厳選ソースを、自分のライブラリに追加。家具は追加でそのまま端末内に商品索引が作られ、SEKKEIYA Search や S.Model 照合で使えます。'}
             </Typography>
-            <SourceRegistryList filter={regFilter} />
+            <SourceRegistryList filter={regFilter} focus={registryFocus} />
           </Box>
         ) : (
          <>
         {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
-              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
                 Knowledge Library · ローカル専用
               </Typography>
-              <Typography sx={{ color: '#fff', fontSize: 22, fontWeight: 700, mt: 0.25 }}>
+              <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>
                 S.Library
               </Typography>
             </Box>
@@ -190,31 +204,38 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
                 variant={ragSelectMode ? 'contained' : 'outlined'} size="small" startIcon={<AutoStoriesRoundedIcon />}
                 onClick={() => setRagSelectMode(!ragSelectMode)}
                 sx={ragSelectMode
-                  ? { bgcolor: RAG_PURPLE, color: '#fff', '&:hover': { bgcolor: '#9333ea' } }
-                  : { color: '#c4a3f7', borderColor: 'rgba(168,85,247,0.5)', '&:hover': { borderColor: RAG_PURPLE, bgcolor: 'rgba(168,85,247,0.08)' } }}
+                  ? { bgcolor: RAG_PURPLE, color: 'var(--brand-fg)', '&:hover': { bgcolor: '#9333ea' } }
+                  : { color: 'light-dark(#470ea0, #c4a3f7)', borderColor: 'rgba(168,85,247,0.5)', '&:hover': { borderColor: RAG_PURPLE, bgcolor: 'rgba(168,85,247,0.08)' } }}
               >
                 {ragSelectMode ? '選択を終了' : 'RAGソースを選択'}
               </Button>
               <Button
                 variant={view === 'registry' ? 'contained' : 'outlined'} size="small" startIcon={<WeekendRoundedIcon />}
-                onClick={() => setView('registry')}
+                onClick={() => { setView('registry'); setRegistryFocus('all'); }}
                 sx={view === 'registry'
                   ? { bgcolor: '#38bdf8', color: '#04293a', '&:hover': { bgcolor: '#7dd3fc' } }
-                  : { color: '#7dd3fc', borderColor: 'rgba(56,189,248,0.5)', '&:hover': { borderColor: '#38bdf8', bgcolor: 'rgba(56,189,248,0.08)' } }}
+                  : { color: 'light-dark(#0474a9, #7dd3fc)', borderColor: 'rgba(56,189,248,0.5)', '&:hover': { borderColor: '#38bdf8', bgcolor: 'rgba(56,189,248,0.08)' } }}
               >
                 おすすめソースを追加
               </Button>
               <Button
                 variant="outlined" size="small" startIcon={<FolderOpenRoundedIcon />}
                 onClick={handleOpenSLibrary}
-                sx={{ color: 'rgba(255,255,255,0.8)', borderColor: 'rgba(255,255,255,0.2)', '&:hover': { borderColor: ACCENT } }}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT } }}
               >
                 保存先ローカルフォルダを開く
               </Button>
               <Button
+                variant="outlined" size="small" startIcon={<GavelRoundedIcon />}
+                onClick={() => setLawOpen(true)}
+                sx={{ color: 'light-dark(#6d4c41, #bcaaa4)', borderColor: 'rgba(141,110,99,0.5)', '&:hover': { borderColor: '#8d6e63', bgcolor: 'rgba(141,110,99,0.08)' } }}
+              >
+                法令を取り込む
+              </Button>
+              <Button
                 variant="contained" size="small" startIcon={<AddRoundedIcon />}
                 onClick={() => setAddOpen(true)}
-                sx={{ bgcolor: ACCENT, color: '#fff', '&:hover': { bgcolor: '#4db6ac' } }}
+                sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: '#4db6ac' } }}
               >
                 知識を追加
               </Button>
@@ -225,21 +246,21 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
           {ragSelectMode && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, px: 1.5, py: 1, borderRadius: 1.5, bgcolor: 'rgba(168,85,247,0.12)', border: `1px solid ${RAG_PURPLE}55` }}>
               <AutoStoriesRoundedIcon sx={{ color: RAG_PURPLE, fontSize: 18 }} />
-              <Typography sx={{ fontSize: 12.5, color: '#fff', fontWeight: 600 }}>
+              <Typography sx={{ fontSize: 12.5, color: 'var(--brand-fg)', fontWeight: 600 }}>
                 RAGソースに選択中: {ragSelection.size} 件
               </Typography>
-              <Button size="small" startIcon={<CheckBoxRoundedIcon />} onClick={handleSelectAllRag} sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>
+              <Button size="small" startIcon={<CheckBoxRoundedIcon />} onClick={handleSelectAllRag} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontSize: 11 }}>
                 知識をすべて選択
               </Button>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
                 ※「商品」ソースは対象外（商品索引化へ）
               </Typography>
               <Box sx={{ flex: 1 }} />
               <Button
                 variant="contained" size="small" disabled={ragBusy || ragSelection.size === 0}
-                startIcon={ragBusy ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : <AutoStoriesRoundedIcon />}
+                startIcon={ragBusy ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <AutoStoriesRoundedIcon />}
                 onClick={handleBulkIngest}
-                sx={{ bgcolor: RAG_PURPLE, color: '#fff', '&:hover': { bgcolor: '#9333ea' }, '&.Mui-disabled': { bgcolor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' } }}
+                sx={{ bgcolor: RAG_PURPLE, color: 'var(--brand-fg)', '&:hover': { bgcolor: '#9333ea' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.12)', color: 'rgb(var(--brand-fg-rgb) / 0.4)' } }}
               >
                 {ragBusy ? (ragProgress || '取り込み中…') : `選択をRAGに取り込み（${ragSelection.size}）`}
               </Button>
@@ -247,12 +268,12 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
           )}
 
           {/* Search */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.05)', maxWidth: 360 }}>
-            <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.4)' }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.5, borderRadius: 1.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', maxWidth: 360 }}>
+            <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
             <InputBase
               value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="タイトル・著者・タグ・要約を検索"
-              sx={{ color: '#fff', fontSize: 13, flex: 1 }}
+              sx={{ color: 'var(--brand-fg)', fontSize: 13, flex: 1 }}
             />
           </Box>
         </Box>
@@ -267,38 +288,23 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
             // 何も登録されていない＝オンボーディング。おすすめソースを主役に一覧表示。
             <Box sx={{ p: 3, overflowY: 'auto', height: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <WeekendRoundedIcon sx={{ fontSize: 22, color: '#7dd3fc' }} />
-                <Typography sx={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>まずはおすすめソースを追加</Typography>
+                <WeekendRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0474a9, #7dd3fc)' }} />
+                <Typography sx={{ fontSize: 16, fontWeight: 800, color: 'var(--brand-fg)' }}>まずはおすすめソースを追加</Typography>
               </Box>
-              <Typography sx={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', mb: 2 }}>
-                家具・インテリアECを追加すると、そのまま端末内に商品索引が作られ、SEKKEIYA Search の家具検索や S.Models の商品照合で使えます。
+              <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 2 }}>
+                家具・インテリアECを追加すると、そのまま端末内に商品索引が作られ、SEKKEIYA Search の家具検索や S.Model の商品照合で使えます。
                 本・PDF・メモは右上の「知識を追加」から登録できます。
               </Typography>
               <SourceRegistryList />
             </Box>
           ) : filtered.length === 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'rgba(255,255,255,0.4)' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               <LocalLibraryRoundedIcon sx={{ fontSize: 56, opacity: 0.4 }} />
               <Typography sx={{ fontSize: 14 }}>条件に一致する知識がありません。</Typography>
             </Box>
-          ) : kindFilter === 'url' ? (
-            // Web 一覧は S.Blog ホームと同じニュースカード表示（サムネ / 媒体バッジ / 記事を読む）
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 1.5, p: 3, alignContent: 'start' }}>
-              {filtered.map((entry) => (
-                <DskWebArticleCard
-                  key={entry.localId}
-                  entry={entry}
-                  active={selectedId === entry.localId}
-                  ragSelectMode={ragSelectMode}
-                  ragSelected={ragSelection.has(entry.localId)}
-                  ragDisabled={!canRag(entry)}
-                  onClick={() => handleCardClick(entry)}
-                  onDelete={entry.isLocalFile ? undefined : () => setDeleteTarget(entry.localId)}
-                />
-              ))}
-            </Box>
           ) : (
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 2, p: 3, alignContent: 'start' }}>
+            // 全種別とも S.Blog ホームと同じニュースカード表示に統一（サムネ / バッジ / タイトル / アクション）
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 1.5, p: 3, alignContent: 'start' }}>
               {filtered.map((entry) => (
                 <DskEntryCard
                   key={entry.localId}
@@ -309,8 +315,12 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
                   ragDisabled={!canRag(entry)}
                   onClick={() => handleCardClick(entry)}
                   onOpen={() => {
-                    if (entry.kind === 'book' || entry.kind === 'pdf') setViewerId(entry.localId);
-                    else if (entry.isLocalFile && entry.filePath) {
+                    // 内蔵ビューアで開けるのは実体が PDF のものと法令だけ。書類(kind 'pdf')でも
+                    // docx/xlsx 等は OS 既定アプリで開く。
+                    const isPdfFile = (entry.filePath || '').toLowerCase().endsWith('.pdf');
+                    if (entry.kind === 'law') setViewerId(entry.localId);
+                    else if (isPdfFile) setViewerId(entry.localId);
+                    else if (entry.filePath) {
                       openLocalFileExternally(entry.filePath).catch((e) =>
                         console.error('[DskDashboard] open local file failed', e),
                       );
@@ -328,7 +338,7 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
 
       {/* Right info panel（レジストリ=絞り込み / 索引商品=メインエリア詳細のため右パネル無し） */}
       {view !== 'products' && (
-        <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(0,0,0,0.15)' }}>
+        <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
           {view === 'registry' ? (
             <SourceRegistryFilterPanel filter={regFilter} onChange={setRegFilter} />
           ) : (
@@ -344,24 +354,64 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
       {/* Add dialog */}
       <AddEntryDialog open={addOpen} onClose={() => setAddOpen(false)} />
 
-      {/* Book viewer */}
+      {/* 法令取り込み dialog */}
+      <AddLawDialog open={lawOpen} onClose={() => setLawOpen(false)} />
+
+      {/* Book / Law viewer */}
       {viewerEntry && (
-        <DskBookViewer entry={viewerEntry} onClose={() => setViewerId(null)} />
+        viewerEntry.kind === 'law'
+          ? <DskLawViewer entry={viewerEntry} onClose={() => setViewerId(null)} />
+          : <DskBookViewer entry={viewerEntry} onClose={() => setViewerId(null)} />
       )}
 
       {/* Delete confirm */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}
-        PaperProps={{ sx: { bgcolor: '#161a1a', backgroundImage: 'none', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', minWidth: 420 } }}>
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 420 } }}>
         <DialogTitle sx={{ pb: 1 }}>削除の確認</DialogTitle>
         <DialogContent>
-          <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
             この知識を削除しますか？ローカルのフォルダごと削除され、元に戻せません。
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
-          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgba(255,255,255,0.7)' }}>キャンセル</Button>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleConfirmDelete} disabled={deleting} variant="contained" color="error">
             {deleting ? '削除中...' : '削除'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 一括RAG取り込みの結果ダイアログ（成功数＋失敗の内訳を明示的に残す） */}
+      <Dialog open={!!ragReport} onClose={() => setRagReport(null)}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 420, maxWidth: 560 } }}>
+        <DialogTitle sx={{ pb: 1 }}>
+          {ragReport && ragReport.failures.length === 0 ? 'RAG取り込みが完了しました' : 'RAG取り込み結果'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 13.5 }}>
+            成功 {ragReport?.ok ?? 0} 件
+            {ragReport && ragReport.failures.length > 0 ? ` / 失敗 ${ragReport.failures.length} 件` : ''}
+          </Typography>
+          {ragReport && ragReport.failures.length > 0 && (
+            <Box sx={{ mt: 1.5, maxHeight: 220, overflowY: 'auto', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 1.5, p: 1.25 }}>
+              {ragReport.failures.map((f, i) => (
+                <Box key={i} sx={{ mb: 1, '&:last-of-type': { mb: 0 } }}>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'light-dark(#b3261e, #f87171)' }}>{f.title}</Typography>
+                  <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.6)', wordBreak: 'break-word' }}>{f.msg}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+          {ragReport && ragReport.failures.length > 0 && (
+            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 11.5, mt: 1.5, lineHeight: 1.6 }}>
+              失敗した資料は、通信状況を確認のうえ再度選択して取り込んでください。
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button variant="contained" onClick={() => setRagReport(null)}
+            sx={{ bgcolor: ACCENT, color: 'var(--brand-fg)', '&:hover': { bgcolor: '#4db6ac' } }}>
+            閉じる
           </Button>
         </DialogActions>
       </Dialog>

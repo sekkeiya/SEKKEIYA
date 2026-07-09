@@ -35,8 +35,8 @@ export const AiStudioTraining: React.FC = () => {
         flexDirection: 'column'
       }}>
         <Box sx={{ p: 2, borderBottom: `1px solid ${BRAND.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ color: '#fff', fontWeight: 700 }}>評価項目 (カテゴリ)</Typography>
-          <IconButton size="small" sx={{ color: '#90caf9' }}>
+          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700 }}>評価項目 (カテゴリ)</Typography>
+          <IconButton size="small" sx={{ color: 'light-dark(#095fa5, #90caf9)' }}>
             <AddRoundedIcon />
           </IconButton>
         </Box>
@@ -53,10 +53,10 @@ export const AiStudioTraining: React.FC = () => {
                 }}
               >
                 <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                  <Typography sx={{ color: '#fff', fontSize: 14, fontWeight: 600, mb: 0.5 }}>{item.name}</Typography>
+                  <Typography sx={{ color: 'var(--brand-fg)', fontSize: 14, fontWeight: 600, mb: 0.5 }}>{item.name}</Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Chip label={`重み: ${item.weight}%`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: 'rgba(255,255,255,0.1)' }} />
-                    <Chip label={`${item.ruleCount} ルール`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#90caf920', color: '#90caf9' }} />
+                    <Chip label={`重み: ${item.weight}%`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' }} />
+                    <Chip label={`${item.ruleCount} ルール`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#90caf920', color: 'light-dark(#095fa5, #90caf9)' }} />
                   </Box>
                 </Box>
               </ListItemButton>
@@ -72,14 +72,14 @@ export const AiStudioTraining: React.FC = () => {
         {activeItem ? (
            <Box sx={{ p: 3, borderBottom: `1px solid ${BRAND.line}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              <Box>
-               <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, mb: 0.5 }}>
+               <Typography variant="h5" sx={{ color: 'var(--brand-fg)', fontWeight: 800, mb: 0.5 }}>
                  {activeItem.name}
                </Typography>
                <Typography sx={{ color: BRAND.sub, fontSize: 13 }}>
                  この評価項目は総合スコアの {activeItem.weight}% のウェイトを占めます。
                </Typography>
              </Box>
-             <Button startIcon={<EditRoundedIcon />} size="small" variant="outlined" sx={{ color: '#90caf9', borderColor: '#90caf940' }}>
+             <Button startIcon={<EditRoundedIcon />} size="small" variant="outlined" sx={{ color: 'light-dark(#095fa5, #90caf9)', borderColor: '#90caf940' }}>
                設定変更
              </Button>
            </Box>
@@ -93,7 +93,7 @@ export const AiStudioTraining: React.FC = () => {
         <Box sx={{ flex: 1, p: 3, overflowY: 'auto' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 3 }}>
             <Box>
-              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>定義されたルール</Typography>
+              <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 16 }}>定義されたルール</Typography>
               <Typography sx={{ color: BRAND.sub, fontSize: 13, mt: 0.5 }}>
                 ナレッジベースから抽出、または手動で作成された採点基準
               </Typography>
@@ -111,14 +111,14 @@ export const AiStudioTraining: React.FC = () => {
                     <RuleRoundedIcon />
                   </Avatar>
                   <Box>
-                    <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>{rule.title}</Typography>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{rule.description}</Typography>
+                    <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 600, fontSize: 14 }}>{rule.title}</Typography>
+                    <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 12 }}>{rule.description}</Typography>
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography sx={{ color: BRAND.sub, fontSize: 11, textTransform: 'uppercase' }}>条件</Typography>
-                    <Typography sx={{ color: '#90caf9', fontWeight: 700, fontSize: 14 }}>{rule.condition}</Typography>
+                    <Typography sx={{ color: 'light-dark(#095fa5, #90caf9)', fontWeight: 700, fontSize: 14 }}>{rule.condition}</Typography>
                   </Box>
                   <Box sx={{ textAlign: 'right' }}>
                     <Typography sx={{ color: BRAND.sub, fontSize: 11, textTransform: 'uppercase' }}>ペナルティ</Typography>
