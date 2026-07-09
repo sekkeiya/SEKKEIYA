@@ -11,8 +11,9 @@ import TuneRoundedIcon     from '@mui/icons-material/TuneRounded';
 import RecordVoiceOverRoundedIcon from '@mui/icons-material/RecordVoiceOverRounded';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
+import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 
-export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin';
+export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'learning';
 
 interface Props {
   activeApp: SettingsAppId;
@@ -74,6 +75,15 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdm
             >
               <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><AdminPanelSettingsRoundedIcon /></ListItemIcon>
               <ListItemText primary="管理者" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'admin' ? 600 : 500 }} />
+            </ListItemButton>
+            <ListItemButton
+              key="learning"
+              selected={activeApp === 'learning'}
+              onClick={() => onSelectApp('learning')}
+              sx={itemSx()}
+            >
+              <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><PsychologyRoundedIcon /></ListItemIcon>
+              <ListItemText primary="学習" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'learning' ? 600 : 500 }} />
             </ListItemButton>
           </>
         )}

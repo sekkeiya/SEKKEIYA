@@ -709,7 +709,7 @@ export const useAIDriveStore = create<AIDriveState>((set, get) => ({
                     type: data.type || '3d-model',
                     // リンク（ブックマーク）等の元URL。プレビュー/「ブラウザで開く」に使う。
                     sourceUrl: data.sourceUrl,
-                    storageUrl: cleanRemoteUrl(data.storageUrl || data.downloadUrl || data.url || (data.type === 'link' ? undefined : data.thumbnailUrl)),
+                    storageUrl: cleanRemoteUrl(data.storageUrl || data.downloadUrl || data.url || (data.type === 'link' || data.type === 'article' ? undefined : data.thumbnailUrl)),
                     thumbnailUrl: cleanRemoteUrl(
                         data.metadata?.thumbnailFilePath?.url ||
                         data.metadata?.thumbnailUrl ||

@@ -51,6 +51,7 @@ import HtmlPreview from './HtmlPreview';
 import LinkPreview from './LinkPreview';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 
 // Inspector Icons
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -68,6 +69,7 @@ const getFileIcon = (type: string) => {
     case 'presentation': return <SlideshowRoundedIcon sx={{ color: 'light-dark(#c2410c, #fdba74)', fontSize: 48 }} />;
     case 'html': return <LanguageRoundedIcon sx={{ color: 'light-dark(#0d9488, #5eead4)', fontSize: 48 }} />;
     case 'link': return <LinkRoundedIcon sx={{ color: 'light-dark(#0d9488, #5eead4)', fontSize: 48 }} />;
+    case 'article': case 'blog': return <ArticleRoundedIcon sx={{ color: 'light-dark(#b45309, #fcd34d)', fontSize: 48 }} />;
     case 'video': return <MovieRoundedIcon sx={{ color: 'light-dark(#6d28d9, #c4b5fd)', fontSize: 48 }} />;
     case 'document': return <DescriptionRoundedIcon sx={{ color: 'light-dark(#1d4ed8, #93c5fd)', fontSize: 48 }} />;
     case 'spreadsheet': return <TableChartRoundedIcon sx={{ color: 'light-dark(#15803d, #86efac)', fontSize: 48 }} />;

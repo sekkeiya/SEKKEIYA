@@ -102,17 +102,18 @@ exports.aggregateReactions = async (data = {}, context = {}) => {
     eventCount: snap.size,
     userCount: seenUsers.size,
     surfaces,
-    generatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+  const doc = { ...result, generatedAt: admin.firestore.FieldValue.serverTimestamp() };
 
   const rootRef = db.collection("insights").doc("reactionPatterns");
-  await rootRef.collection("days").doc(day).set(result, { merge: true });
+  await rootRef.collection("days").doc(day).set(doc, { merge: true });
   // latest はダッシュボード・学習ジョブが読む
-  await rootRef.set({ latestDay: day, ...result }, { merge: true });
+  await rootRef.set({ latestDay: day, ...doc }, { merge: true });
 
   console.log(
     `[aggregateReactions] ${day}: ${snap.size} events, ${seenUsers.size} users, ` +
     `surfaces: ${Object.keys(surfaces).join(", ") || "(none)"}`
   );
-  return { success: true, day, eventCount: snap.size, surfaces: Object.keys(surfaces) };
+  // 学習モニター（Learning パネル）がそのまま描画できるよう全結果を返す
+  return { success: true, ...result };
 };

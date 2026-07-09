@@ -20,6 +20,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useAIChatStore } from '../../store/useAIChatStore';
 import { useCoreOrchestrator } from '../../store/useCoreOrchestrator';
 import { subscribeToProjectTopics, createProjectTopic, deleteProjectTopic, type ProjectChatTopic } from './api/teamChatApi';
+import { ShortcutsFooter } from '../../components/ShortcutsFooter';
 
 // チャット名の左の状況インジケータ：
 //   running  = 三点ローディング（AI実行中）
@@ -400,6 +401,9 @@ const ProjectChatBrowser: React.FC<{
           </Typography>
         )}
       </Box>
+
+      {/* 最下部：グローバル・ショートカット一覧（Ctrl+Alt+○）。Desktop のみ表示。 */}
+      <ShortcutsFooter />
     </Box>
   );
 };
