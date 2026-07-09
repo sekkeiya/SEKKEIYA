@@ -1,17 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/shared/config/firebase";
-import { normalizeToUnifiedBoardItem } from "@/shared/api/adapters/boardAdapters";
-import { getBoardItems as getLegacyBoardItems } from "@/shared/api/boards/getBoardItems";
+
 
 /**
  * orderIndex/sortOrder -> createdAt に基づき要素をソートする
  */
+const getTimestampTime = (val) => {
+  if (!val) return 0;
+  if (typeof val.toMillis === "function") return val.toMillis();
+  if (typeof val.toDate === "function") return val.toDate().getTime();
+  const t = new Date(val).getTime();
+  return isNaN(t) ? 0 : t;
+};
+
 const sortItems = (arr) => {
   return arr.sort((a, b) => {
-    if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
-    const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (a.sortOrder !== b.sortOrder && a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+    const at = getTimestampTime(a.createdAt);
+    const bt = getTimestampTime(b.createdAt);
     return bt - at; // 新しいものが上
   });
 };
@@ -54,14 +61,12 @@ export function useBoardItems({ board, itemCollection = "models", currentUserId 
       // /boards/{boardId}/items
       // -------------------------------------------------------------
       const newItemsRef = query(
-        collection(db, "boards", board.id, "items"),
+        collection(db, "projects", board.id, "workspaces", "main", "items"),
         where("itemType", "==", expectedItemType)
       );
       
       unsubscribeRef.current.newItems = onSnapshot(newItemsRef, (snap) => {
-        const parsedItems = snap.docs.map(d => 
-            normalizeToUnifiedBoardItem(d.data(), d.id, board.id, board.ownerId)
-        );
+        const parsedItems = snap.docs.map(d => ({ id: d.id, boardId: board.id, ...d.data() }));
         setItems(sortItems(parsedItems));
         setLoading(false);
       }, (err) => {

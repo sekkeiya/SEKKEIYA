@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { 
-  Box, Typography, Tabs, Tab, Button, Card, CardContent, 
+  Box, Typography, Button, Card, CardContent, 
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField 
 } from "@mui/material";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
@@ -11,38 +11,23 @@ import PublicRoundedIcon from "@mui/icons-material/PublicRounded";
 
 import useBoards from "@/shared/hooks/useBoards";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { createMyBoard, updateMyBoardInfo, deleteMyBoardAndModels } from "@/shared/api/boards/myBoards";
-import { createTeamBoard, updateTeamBoardName, deleteTeamBoardIfOwner } from "@/shared/api/boards/teamBoards";
+import { createBoard, updateBoardInfo, deleteBoardAndItems } from "@/shared/api/boards/crud";
 import { BRAND } from "@/shared/ui/theme";
 
 export default function BoardManagementPage() {
   const { user } = useAuth();
-  const { myBoards, teamBoards } = useBoards();
-  const [tabIndex, setTabIndex] = useState(0);
+  const { boards } = useBoards();
 
   // Dialog states
   const [editBoard, setEditBoard] = useState(null);
   const [editName, setEditName] = useState("");
 
-  const handleTabChange = (e, val) => setTabIndex(val);
-
-  const handleCreateMyBoard = async () => {
+  const handleCreateBoard = async () => {
     if (!user) return;
-    const name = prompt("マイボード名を入力してください", "New My Board");
+    const name = prompt("ボード名を入力してください", "New Project Board");
     if (!name) return;
     try {
-      await createMyBoard({ userId: user.uid, data: { name } });
-    } catch (e) {
-      alert("作成失敗: " + e.message);
-    }
-  };
-
-  const handleCreateTeamBoard = async () => {
-    if (!user) return;
-    const name = prompt("チームボード名を入力してください", "New Team Board");
-    if (!name) return;
-    try {
-      await createTeamBoard({ userId: user.uid, name, members: [user.uid] });
+      await createBoard({ userId: user.uid, data: { name, members: [user.uid] } });
     } catch (e) {
       alert("作成失敗: " + e.message);
     }
@@ -56,11 +41,7 @@ export default function BoardManagementPage() {
   const handleEditSave = async () => {
     if (!editBoard || !user) return;
     try {
-      if (editBoard.boardType === "myBoards" || editBoard.boardType === "personal") {
-        await updateMyBoardInfo(user.uid, editBoard.id, { name: editName });
-      } else {
-        await updateTeamBoardName(user.uid, editBoard.id, editName);
-      }
+      await updateBoardInfo(editBoard.id, { name: editName });
       setEditBoard(null);
     } catch (e) {
       alert("更新失敗: " + e.message);
@@ -70,12 +51,15 @@ export default function BoardManagementPage() {
   const handleDelete = async (b) => {
     if (!user) return;
     if (!window.confirm(`「${b.name}」を削除しますか？\n元には戻せません。`)) return;
+    
+    // オーナーチェック
+    if (b.ownerId !== user.uid) {
+      alert("オーナーのみが削除できます");
+      return;
+    }
+
     try {
-      if (b.boardType === "myBoards" || b.boardType === "personal") {
-        await deleteMyBoardAndModels(user.uid, b.id);
-      } else {
-        await deleteTeamBoardIfOwner(user.uid, b.id);
-      }
+      await deleteBoardAndItems(user.uid, b.id);
     } catch (e) {
       alert("削除失敗: " + e.message);
     }
@@ -88,7 +72,7 @@ export default function BoardManagementPage() {
         mb: 2, 
         bgcolor: "rgba(255,255,255,0.05)", 
         color: "white",
-        border: `1px solid ${BRAND.line}`
+        border: `1px solid ${BRAND.line || 'rgba(255,255,255,0.1)'}`
       }}
     >
       <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: "16px !important" }}>
@@ -105,15 +89,20 @@ export default function BoardManagementPage() {
                 <PeopleAltRoundedIcon fontSize="small" /> {b.memberIds.length} メンバー
               </Box>
             )}
+            {b.ownerId !== user?.uid && (
+              <Box sx={{ color: "#f39c12" }}>共有ボード</Box>
+            )}
           </Box>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <IconButton onClick={() => handleEditClick(b)} sx={{ color: "rgba(255,255,255,0.7)" }}>
             <EditRoundedIcon />
           </IconButton>
-          <IconButton onClick={() => handleDelete(b)} sx={{ color: "error.main" }}>
-            <DeleteRoundedIcon />
-          </IconButton>
+          {b.ownerId === user?.uid && (
+            <IconButton onClick={() => handleDelete(b)} sx={{ color: "error.main" }}>
+              <DeleteRoundedIcon />
+            </IconButton>
+          )}
         </Box>
       </CardContent>
     </Card>
@@ -121,50 +110,22 @@ export default function BoardManagementPage() {
 
   return (
     <Box sx={{ p: 4, color: "white", flex: 1, overflowY: "auto" }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>ボード管理</Typography>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>プロジェクトボード管理</Typography>
       <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.7)", mb: 4 }}>
-        公開・非公開・チームごとのプロジェクトボードを作成・設定・メンバー管理するページです。
+        プロジェクトの作成・設定・メンバー管理を行うページです。
       </Typography>
 
-      <Tabs 
-        value={tabIndex} 
-        onChange={handleTabChange} 
-        sx={{ 
-          mb: 3, 
-          ".MuiTab-root": { color: "rgba(255,255,255,0.5)" },
-          ".Mui-selected": { color: "#fff !important" },
-          ".MuiTabs-indicator": { bgcolor: BRAND.primary }
-        }}
-      >
-        <Tab label="My Boards" />
-        <Tab label="Team Boards" />
-      </Tabs>
+      <Button variant="contained" onClick={handleCreateBoard} sx={{ mb: 4, bgcolor: BRAND.primary || '#007bff' }}>
+        ＋ 新規ボードを作成
+      </Button>
 
-      {tabIndex === 0 && (
-        <Box>
-          <Button variant="contained" onClick={handleCreateMyBoard} sx={{ mb: 3, bgcolor: BRAND.primary }}>
-            ＋ マイボードを作成
-          </Button>
-          {myBoards.length === 0 ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.5)" }}>マイボードはありません</Typography>
-          ) : (
-            myBoards.map(renderBoardCard)
-          )}
-        </Box>
-      )}
-
-      {tabIndex === 1 && (
-        <Box>
-          <Button variant="contained" onClick={handleCreateTeamBoard} sx={{ mb: 3, bgcolor: BRAND.primary }}>
-            ＋ チームボードを作成
-          </Button>
-          {teamBoards.length === 0 ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.5)" }}>チームボードはありません</Typography>
-          ) : (
-            teamBoards.map(renderBoardCard)
-          )}
-        </Box>
-      )}
+      <Box>
+        {boards.length === 0 ? (
+          <Typography sx={{ color: "rgba(255,255,255,0.5)" }}>参加しているプロジェクトボードはありません</Typography>
+        ) : (
+          boards.map(renderBoardCard)
+        )}
+      </Box>
 
       <Dialog open={!!editBoard} onClose={() => setEditBoard(null)} PaperProps={{ sx: { bgcolor: "#1e1e1e", color: "white" } }}>
         <DialogTitle>ボード名を編集</DialogTitle>
@@ -186,7 +147,7 @@ export default function BoardManagementPage() {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setEditBoard(null)} sx={{ color: "rgba(255,255,255,0.7)" }}>キャンセル</Button>
-          <Button onClick={handleEditSave} variant="contained" sx={{ bgcolor: BRAND.primary }}>保存</Button>
+          <Button onClick={handleEditSave} variant="contained" sx={{ bgcolor: BRAND.primary || '#007bff' }}>保存</Button>
         </DialogActions>
       </Dialog>
     </Box>

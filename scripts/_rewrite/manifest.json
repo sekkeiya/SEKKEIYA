@@ -1,0 +1,95 @@
+{
+  "keep": [
+    {
+      "id": "SE8pQ7WW4HakXYj6lHtb",
+      "bodyFile": "SE8pQ7WW.html",
+      "title": "Rhino × S.Models：制作を止めない3つの往復ワークフロー",
+      "slug": "rhino-s-models-3-workflows",
+      "excerpt": "RhinoとS.Models（旧 3D Shape Share）を往復する3つの実用フロー——直接アップロード、起動中Rhinoへのインポート、外部アプリからの直接起動。制作の流れを止めずにクラウドと行き来できる連携を解説します。",
+      "category": { "slug": "workflow", "name": "Workflow" },
+      "tags": ["S.Models", "Desktop", "Rhino", "ワークフロー", "クラウド連携", "3D制作"]
+    },
+    {
+      "id": "gMVQK6OivIBtn8QH6Vm8",
+      "bodyFile": "gMVQK6Oi.html",
+      "title": "Desktop版GLB変換パイプライン：Rhino連携を支える安定化設計の全記録",
+      "slug": "desktop-glb-pipeline",
+      "excerpt": "GLB生成のDesktop移行、rhino3dm環境差分への耐性、.mesh.3dmによる責務分離、Z-up/Y-up座標系の統一、ACK方式の非同期連携——Rhino連携を支えるGLB変換パイプライン安定化の全記録です。",
+      "category": { "slug": "desktop", "name": "Desktop" },
+      "tags": ["Desktop", "GLB", "Rhino", "rhino3dm", "Tauri", "Rust", "パイプライン"]
+    },
+    {
+      "id": "IQ4lNEOdgdB6yHazNmbG",
+      "bodyFile": "IQ4lNEOd.html",
+      "title": "Desktop版：Rhinoサムネイル生成の品質改善（Rendered固定 × BoundingBox構図）",
+      "slug": "desktop-rhino-thumbnail-quality",
+      "excerpt": "表示モードをRenderedに固定し、BoundingBoxを基準に引きのある構図を自動決定。選択ハイライトの除去と状態復元まで含め、どの環境でも安定した品質のサムネイルを生成する設計改善を解説します。",
+      "category": { "slug": "desktop", "name": "Desktop" },
+      "tags": ["Desktop", "Rhino", "サムネイル", "UX改善", "S.Models"]
+    },
+    {
+      "id": "6jWN5n8O97UoYmHQ2Idh",
+      "bodyFile": "6jWN5n8O.html",
+      "title": "S.Models Desktop：モデルカードのファイル表示と外部アプリ起動を実運用レベルへ",
+      "slug": "s-models-model-card-improvements",
+      "excerpt": "モデルカードの表示を実ファイルと完全一致させ、フォーマット別の配色とファイルサイズを統合表示。Rhino／Blenderの外部アプリ起動も用途別に再設計し、3DM／GLB／BLENDを安心して使い分けられるようにしました。",
+      "category": { "slug": "s-models", "name": "S.Models" },
+      "tags": ["S.Models", "Desktop", "3DM", "GLB", "Blender", "Rhino", "UX改善"]
+    },
+    {
+      "id": "r2AN2YLmQYuOmyW0dYnt",
+      "bodyFile": "r2AN2YLm.html",
+      "title": "S.Models：マイページのポートフォリオ化と3Dモデルプレビュー強化",
+      "slug": "s-models-mypage-preview",
+      "excerpt": "マイページ上での記事作成・ポートフォリオ化と、建築／家具モデルに特化した3Dプレビュー（レイアウト・断面・分解・カラー変更）を強化。3Dモデルを「見せる」から「伝える」へと進化させます。",
+      "category": { "slug": "s-models", "name": "S.Models" },
+      "tags": ["S.Models", "マイページ", "ポートフォリオ", "3Dプレビュー", "建築", "インテリア"]
+    },
+    {
+      "id": "dl5uVf9ST2Mm5dcObhbe",
+      "bodyFile": "dl5uVf9S.html",
+      "title": "S.Models API 解説：3Dモデルデータを共有するプラットフォームAPIの全貌",
+      "slug": "s-models-api-guide",
+      "excerpt": "Firebase Cloud Functions上に構築されたS.Models API（旧3DSS-API）の設計思想・エンドポイント・実装方法を開発者向けに解説。プラットフォーム層とアプリ層の分離で、整合性と開発効率を両立します。",
+      "category": { "slug": "tips-learn", "name": "Tips / Learn" },
+      "tags": ["API", "S.Models", "Firebase", "Cloud Functions", "開発者向け", "プラットフォーム"]
+    },
+    {
+      "id": "rUblyivQEGAiu97SMxQW",
+      "bodyFile": "rUblyivQ.html",
+      "title": "SEKKEIYA Desktop 開発スタート：Tauri + React で最初のウィンドウを起動する",
+      "slug": "desktop-dev-getting-started",
+      "excerpt": "Tauri 2.x + React + Vite で、ブラウザなしで動くデスクトップアプリの最初のウィンドウを起動するまでの全手順。Rust／Tauri CLIの導入からプロジェクト作成、Hello Desktopまでを初心者向けに解説します。",
+      "category": { "slug": "tips-learn", "name": "Tips / Learn" },
+      "tags": ["Tauri", "React", "Desktop", "環境構築", "Rust", "初心者向け"]
+    },
+    {
+      "id": "EDdoeLuRwMCXaI9Yh6Qu",
+      "bodyFile": "EDdoeLuR.html",
+      "title": "SEKKEIYA のロゴ思想：動物モチーフとパズルピースが示す設計哲学",
+      "slug": "sekkeiya-logo-philosophy",
+      "excerpt": "カメ（S.Models）・トカゲ（S.Layout）・フクロウ（S.Quest）の動物モチーフと、全ロゴ共通のパズルピース。SEKKEIYAのロゴに込めた役割分担と拡張性の設計思想を読み解きます。",
+      "category": { "slug": "sekkeiya", "name": "SEKKEIYA" },
+      "tags": ["SEKKEIYA", "ブランディング", "ロゴデザイン", "プロダクト思想", "エコシステム"]
+    },
+    {
+      "id": "HA5lPJDfX6KT4xXLi0bP",
+      "bodyFile": "HA5lPJDf.html",
+      "title": "SEKKEIYA 公式サイト改善：確実な画像取り込みと回遊しやすい記事一覧へ",
+      "slug": "sekkeiya-website-cms-improvements",
+      "excerpt": "外部URL依存をやめ、記事内画像をローカルファイルからFirebase Storageへ確実に取り込む方式へ移行。あわせて記事一覧の視認性・回遊性を改善し、公式サイトの発信基盤と閲覧体験を底上げしました。",
+      "category": { "slug": "sekkeiya", "name": "SEKKEIYA" },
+      "tags": ["SEKKEIYA", "Webサイト", "CMS", "画像管理", "UIUX", "運用改善"]
+    }
+  ],
+  "delete": [
+    "faEbyqAksFfOvMhaODvW",
+    "Jh6BtVGTxq96n6IkIUfX",
+    "DHwDo5b3ga2nhHjDtKkK",
+    "Kj5zBf6VrZx40jmpAv19",
+    "vKeIzfbztXpEJ3LRxcyS",
+    "sqMGihbRio6I71mgKeBT",
+    "h9BZ4DrWxxEXJPjuQaA5",
+    "BynlGRyyWsWSah84vXdR"
+  ]
+}

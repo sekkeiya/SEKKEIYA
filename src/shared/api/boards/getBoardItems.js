@@ -13,7 +13,7 @@ import { db } from "@/shared/config/firebase";
  * Fetches items from a specific board collection path without applying any 
  * client-side adapter logic yet.
  * 
- * @param {string} boardType - e.g. "myBoards", "teamBoards", "boardsPublic"
+ * @param {string} boardType - e.g. "myBoards", "teamBoards", "projectShares"
  * @param {string} boardId - The document ID of the board
  * @param {string} ownerId - Required if boardType === "myBoards"
  * @param {string} itemCollection - e.g. "models", "drawings", "articles"
@@ -28,8 +28,8 @@ export async function getBoardItems({ boardType, boardId, ownerId, itemCollectio
     colRef = collection(db, "users", ownerId, "myBoards", boardId, itemCollection);
   } else if (boardType === "teamBoards") {
     colRef = collection(db, "teamBoards", boardId, itemCollection);
-  } else if (boardType === "boardsPublic") {
-    colRef = collection(db, "boardsPublic", boardId, itemCollection);
+  } else if (boardType === "projectShares") {
+    colRef = collection(db, "projectShares", boardId, itemCollection);
   } else {
     throw new Error(`Unknown boardType: ${boardType}`);
   }

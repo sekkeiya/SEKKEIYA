@@ -106,7 +106,7 @@ export async function fetchPublishedArticles(options = {}) {
         base.push(fsStartAfter(startAfter));
     }
 
-    base.push(fsLimit(Math.max(1, Math.min(100, limit))));
+    base.push(fsLimit(Math.max(1, Math.min(1000, limit))));
 
     const q = query(...base);
     const snap = await getDocs(q);
@@ -162,6 +162,10 @@ export async function createArticle(payload, author = {}) {
         excerpt: normStr(payload.excerpt || ""),
         coverUrl: normStr(payload.coverUrl || ""),
         body: normStr(payload.body || ""),
+        contentFormat: payload.contentFormat || "html", // Default to HTML for new CMS
+        featured: !!payload.featured,
+        seoTitle: normStr(payload.seoTitle || ""),
+        seoDescription: normStr(payload.seoDescription || ""),
         tags,
         tagsLower: toLowerArray(tags),
         status,
@@ -208,6 +212,12 @@ export async function updateArticle(id, payload) {
         subCategory: normSubCategory(payload.subCategory),
         updatedAt: serverTimestamp(),
     };
+
+    // CMS Upgrade Additions: Update these if present in payload, otherwise preserve existing or default.
+    if (payload.contentFormat !== undefined) patch.contentFormat = payload.contentFormat;
+    if (payload.featured !== undefined) patch.featured = !!payload.featured;
+    if (payload.seoTitle !== undefined) patch.seoTitle = normStr(payload.seoTitle);
+    if (payload.seoDescription !== undefined) patch.seoDescription = normStr(payload.seoDescription);
 
     // 初めて公開状態になるタイミングで publishedAt を付与
     const hadPublishedAt = !!current.publishedAt;

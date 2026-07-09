@@ -1,6 +1,6 @@
 // src/utils/services/boards/teamBoards.js
 // 役割: teamBoards/* と配下 models/* への "単発 CRUD のみ" を提供。
-// boardsPublic/* など他コレクションの調停は actions.js 側で行う。
+// projectShares/* など他コレクションの調停は actions.js 側で行う。
 
 import {
     doc,
@@ -141,22 +141,22 @@ async function deleteCollectionByChunks(collRef, perBatch = 450) {
     }
 }
 
-/** boardsPublic ミラーの削除 */
+/** projectShares ミラーの削除 */
 async function deleteBoardsPublicMirrorForTeamBoard({ boardId, boardSnap }) {
     if (!boardId) return;
 
     // 1) teamBoards のフィールドから直接参照
     try {
         const data = boardSnap?.data ? boardSnap.data() : boardSnap || {};
-        const publicId = data?.publicId || data?.boardsPublicId;
-        if (publicId) {
-            await deleteDoc(doc(db, "boardsPublic", publicId));
+        const shareId = data?.shareId || data?.projectSharesId;
+        if (shareId) {
+            await deleteDoc(doc(db, "boardsPublic", shareId));
         }
     } catch {
         /* no-op */
     }
 
-    // 2) 念のため boardsPublic をクエリして掃除
+    // 2) 念のため projectShares をクエリして掃除
     try {
         const q = fsQuery(
             collection(db, "boardsPublic"),
@@ -192,7 +192,7 @@ export const createTeamBoard = async ({ userId, name, members }) => {
         "";
 
     const timestamp = serverTimestamp();
-    const unifiedColRef = collection(db, "boards");
+    const unifiedColRef = collection(db, "projects");
     const unifiedRef = doc(unifiedColRef);
     const newBoardId = unifiedRef.id;
 
@@ -228,7 +228,7 @@ export const createTeamBoard = async ({ userId, name, members }) => {
 /* ============================== R: Read ============================== */
 export const getTeamBoardById = async (boardId) => {
     if (!boardId) return null;
-    const snap = await getDoc(doc(db, "boards", boardId));
+    const snap = await getDoc(doc(db, "projects", boardId));
     return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
@@ -248,7 +248,7 @@ export const subscribeTeamBoard = (teamBoardId, callback) => {
 
 /* ============================== U: Update ============================== */
 export const updateTeamBoardName = async (userId, boardId, newName) => {
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
     await updateDoc(unifiedBoardRef, { name: newName, updatedAt: serverTimestamp() });
 };
 
@@ -260,7 +260,7 @@ export const updateTeamBoardInfo = async (boardId, updated) => {
     );
     if (!Object.keys(payload).length) return;
     payload.updatedAt = serverTimestamp();
-    await updateDoc(doc(db, "boards", boardId), payload);
+    await updateDoc(doc(db, "projects", boardId), payload);
 };
 
 export const toggleTeamBoardShowInSidebar = async (userId, _planId, boardId, currentValue) => {
@@ -275,7 +275,7 @@ export const updateTeamBoardVisibility = async ({
 }) => {
     if (!userId || !teamBoardId) throw new Error("userId/teamBoardId が必要です");
 
-    const unifiedBoardRef = doc(db, "boards", teamBoardId);
+    const unifiedBoardRef = doc(db, "projects", teamBoardId);
     const snap = await getDoc(unifiedBoardRef);
     if (!snap.exists()) throw new Error("ボードが存在しません");
     
@@ -295,7 +295,7 @@ export const updateTeamBoardVisibility = async ({
 
 /* ============================== D: Delete ============================== */
 export const deleteTeamBoardIfOwner = async (userId, boardId) => {
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
     const snap = await getDoc(unifiedBoardRef);
     if (!snap.exists()) throw new Error("ボードが存在しません");
     
@@ -309,9 +309,9 @@ export const deleteTeamBoardIfOwner = async (userId, boardId) => {
         updatedAt: serverTimestamp(),
     });
 
-    await deleteCollectionByChunks(collection(db, "boards", boardId, "items"), 450);
+    await deleteCollectionByChunks(collection(db, "projects", boardId, "workspaces", "main", "items"), 450);
 
-    // boardsPublic mirror may be removed later but left calling legacy function for now
+    // projectShares mirror may be removed later but left calling legacy function for now
     await deleteBoardsPublicMirrorForTeamBoard({ boardId, boardSnap: snap });
 
     let deletedGlobally = false;
@@ -342,9 +342,9 @@ export const addModelToTeamBoard = async ({
     const modelId = modelRef.id;
 
     // Unified Schema
-    const unifiedItemsColRef = collection(db, "boards", boardId, "items");
+    const unifiedItemsColRef = collection(db, "projects", boardId, "workspaces", "main", "items");
     const unifiedItemRef = doc(unifiedItemsColRef);
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
 
     const previewPayload = await buildPreviewPayload({ preview: { ...preview, id: modelId }, modelRef });
     const timestamp = serverTimestamp();
@@ -391,12 +391,12 @@ export const addModelToTeamBoard = async ({
 
 export const removeModelFromTeamBoard = async ({ boardId, modelId }) => {
     if (!boardId || !modelId) throw new Error("removeModelFromTeamBoard: 引数不足");
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
 
     let unifiedItemDocs = [];
     try {
         const q = fsQuery(
-            collection(db, "boards", boardId, "items"),
+            collection(db, "projects", boardId, "workspaces", "main", "items"),
             where("entityId", "==", modelId),
             where("itemType", "==", "model")
         );
@@ -426,7 +426,7 @@ export const removeModelFromTeamBoard = async ({ boardId, modelId }) => {
 export const leaveTeamBoard = async (userId, boardId) => {
     if (!userId || !boardId) return;
 
-    const boardRef = doc(db, "boards", boardId);
+    const boardRef = doc(db, "projects", boardId);
 
     try {
         const snap = await getDoc(boardRef);

@@ -1,0 +1,109 @@
+<p><strong>対象：</strong> 初心者〜中級者向け<br>
+<strong>所要時間：</strong> 約15分<br>
+<strong>技術スタック：</strong> Tauri 2.x / React / Vite / JSX</p>
+
+<h2>この記事のゴール</h2>
+<p>Tauri + React を使って "最初のウィンドウ" が立ち上がるところまでを一気に体験します。SEKKEIYA の Desktop アプリも、この同じ構成を土台に作られています。</p>
+<ul>
+<li>開発の全体像を把握する</li>
+<li>必要なツール（Rust, Tauri）を導入する</li>
+<li>Hello Desktop（初回起動）を達成する</li>
+</ul>
+<p>まず何をしたらいいか分からない初心者のための、環境構築〜プロジェクト作成の全手順をまとめました。</p>
+
+<h2>今回のゴール：「Desktop の土台」を作る</h2>
+<p>デスクトップ版といっても、いきなり全機能を作るわけではありません。まずは <strong>"ブラウザなしで動くミニ版"</strong> を目指します。</p>
+<h3>今回の到達点（MVP）</h3>
+<ul>
+<li><strong>ウィンドウが立ち上がる</strong> — OS ネイティブのアプリケーションとして起動する</li>
+<li><strong>React が画面に描画される</strong> — Web 技術で UI を構築できる状態にする</li>
+<li><strong>接続の土台が完成</strong> — Firebase や S.Models API を後から繋げられる準備</li>
+</ul>
+<h3>次のステップ（NEXT）</h3>
+<ul>
+<li>モデル一覧表示</li>
+<li>ローカルフォルダ監視</li>
+<li>Drag &amp; Drop</li>
+<li>Rhino 連携</li>
+</ul>
+
+<h2>採用技術の説明</h2>
+<h3>Tauri 2.x（App Core / Rust ベース）</h3>
+<ul>
+<li>OS ネイティブ機能へのブリッジ</li>
+<li>超軽量・高速・堅牢</li>
+</ul>
+<h3>React + Vite（UI Framework）</h3>
+<ul>
+<li>Web 版の UI 構築ロジックをそのまま利用できる</li>
+<li>高速な HMR 開発</li>
+</ul>
+<h3>JavaScript（JSX）</h3>
+<ul>
+<li>慣れ親しんだ言語でデスクトップアプリを記述できる</li>
+</ul>
+<h3>なぜこの構成なのか</h3>
+<ol>
+<li><strong>Web 版の資産を直接活用：</strong> Web 版を React で作っているため、コンポーネントやロジックの知識をそのまま流用でき、学習コストを最小化できる。</li>
+<li><strong>圧倒的な軽量性：</strong> Electron と比較してインストーラーサイズは10分の1以下（Tauri は 10MB 未満、Electron は 100MB 超）。メモリ使用量も少なく、古い PC でもサクサク動く。</li>
+<li><strong>強力なデスクトップ機能：</strong> ローカルファイル操作、トレイ常駐、自動アップデートなど、ブラウザでは不可能な機能をプラグインで拡張できる。</li>
+<li><strong>クロスプラットフォーム：</strong> Windows / macOS 両対応。</li>
+</ol>
+
+<h2>Step 1：開発環境の準備</h2>
+<p>Rust と Tauri CLI をインストールします。これらは "グローバルコマンド" として導入するため、どのフォルダで実行しても問題ありません。</p>
+<h3>Rust のインストール</h3>
+<pre><code class="language-powershell">winget install -e --id Rustlang.Rustup
+rustup default stable</code></pre>
+<p>Windows Package Manager（winget）を使うと簡単です。</p>
+<h3>Tauri CLI のインストール</h3>
+<pre><code class="language-powershell">npm install -g create-tauri-app</code></pre>
+<p>Node.js 環境（npm コマンド）が必要です。</p>
+
+<h2>Step 2：プロジェクト作成</h2>
+<p>CLI を使って Tauri + React のプロジェクトを作成します。コマンドを実行すると質問が表示されるので、<strong>Framework に React、Language に JavaScript</strong> を選んでください。</p>
+<pre><code class="language-powershell">npm create tauri-app@latest sekkeiya-desktop</code></pre>
+<p>作成されるディレクトリ構造は次の通りです。</p>
+<pre><code>sekkeiya-desktop/
+├─ src/          # React (UI)
+├─ src-tauri/    # Rust (Backend)
+└─ package.json</code></pre>
+
+<h2>Step 3：アプリ起動</h2>
+<p>プロジェクトフォルダに移動し、開発サーバーを立ち上げます。</p>
+<pre><code class="language-powershell">cd sekkeiya-desktop
+npm install              # 依存関係のインストール
+npm run tauri dev        # アプリ起動（開発モード）</code></pre>
+<p>初回は Rust のコンパイルに少し時間がかかります。完了すると、React（JSX）のコードがネイティブのウィンドウとして立ち上がります。デスクトップ開発の最初の壁である「ウィンドウ表示」をこれでクリアです。</p>
+
+<h2>Step 4：UI カスタマイズ</h2>
+<p><code>App.jsx</code> を書き換えて、デスクトップ版の動作確認を行います。ファイルを保存するとホットリロードが走り、ネイティブウィンドウ内の文字が即座に変わるかを確認しましょう。</p>
+<pre><code class="language-jsx">export default function App() {
+  return (
+    &lt;div style={{ padding: 24 }}&gt;
+      &lt;h1&gt;SEKKEIYA Desktop&lt;/h1&gt;
+      &lt;p&gt;デスクトップ版の開発を開始しました!&lt;/p&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+<p>ここまで確認できれば、環境構築は完了です。あとは Web 版と同じように React を書くだけです。</p>
+
+<h2>今後のロードマップ</h2>
+<p>ここまでの準備ができれば、Web 版の知識をそのまま活かしながら、デスクトップならではの機能を足していくだけです。Tauri はプラグインシステムが強力で、OS 固有の機能も <code>npm install</code> 感覚で追加できます。</p>
+<h3>Web スタック側</h3>
+<ul>
+<li><strong>Firebase ログイン：</strong> Web 版と同じ認証基盤を使い、アカウント情報を共有</li>
+<li><strong>S.Models API：</strong> モデル一覧データの取得やメタデータの同期</li>
+<li><strong>Dashboard UI：</strong> MUI（Material UI）による管理画面</li>
+<li><strong>3D Viewer（Three.js）：</strong> ブラウザ版で実績のある3Dビューアを移植</li>
+</ul>
+<h3>ネイティブ機能側</h3>
+<ul>
+<li><strong>Folder Watch：</strong> ローカルフォルダを監視し、ファイルの変更を検知</li>
+<li><strong>Drag &amp; Drop：</strong> OS からのファイルドロップを受け入れ、即アップロード</li>
+<li><strong>App Linkage：</strong> Rhino や Blender と連携し、データを直接送受信</li>
+</ul>
+
+<h2>まとめ</h2>
+<p>今回の記事で<strong>デスクトップ版のスタートライン</strong>に立ちました。Rust / Tauri 環境を構築し、React（Vite）+ JavaScript でプロジェクトを作成、ネイティブウィンドウの表示とホットリロードを確認しました。</p>
+<p>次のステップでは、Firebase ログイン → S.Models API 連携 → MUI による UI 構築、と進めることで、チームで使えるレベルのプロトタイプへと一気に成長させられます。</p>

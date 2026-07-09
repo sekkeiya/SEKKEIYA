@@ -20,7 +20,11 @@ export const AuthProvider = ({ children }) => {
     return () => unsub();
   }, []);
 
-  const value = useMemo(() => ({ user, authLoading }), [user, authLoading]);
+  const value = useMemo(() => ({
+    user,
+    authLoading,
+    isAnonymous: user?.isAnonymous ?? false,
+  }), [user, authLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

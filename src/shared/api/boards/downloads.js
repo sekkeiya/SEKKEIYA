@@ -47,12 +47,12 @@ const getDocByPath = async (p) => {
     return snap.exists() ? { id: snap.id, ...snap.data(), __refPath: p } : null;
 };
 
-/** boardsPublic / teamBoards / myBoards それぞれの “サブコレ models” を読む */
+/** projectShares / teamBoards / myBoards それぞれの “サブコレ models” を読む */
 const fetchBoardModelsPreview = async (board) => {
     const candParents = [];
 
-    // boardsPublic 優先（Public Boards 画面）
-    if (board?.publicId) candParents.push(["boardsPublic", board.publicId]);
+    // projectShares 優先（Public Boards 画面）
+    if (board?.shareId) candParents.push(["boardsPublic", board.shareId]);
 
     // teamBoards
     if (board?.boardType === "teamBoards" || board?.boardType === "teamBoard") {
@@ -122,7 +122,7 @@ const resolveModelDoc = async (ref) => {
 
 /**
  * 指定ボード配下のモデルファイル（.glb / .3dm）を ZIP にまとめて保存
- * @param {object} board - ボードオブジェクト（boardsPublic / teamBoards / myBoards いずれでも可）
+ * @param {object} board - ボードオブジェクト（projectShares / teamBoards / myBoards いずれでも可）
  */
 export async function downloadBoardAsZip(board) {
     const boardName = safe(board?.name || "board");

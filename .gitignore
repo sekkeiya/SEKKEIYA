@@ -22,3 +22,41 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+serviceAccountKey.json
+
+# --- Secrets & service-account credentials (NEVER commit) ---
+*service-account*.json
+gsc-service-account.json
+*.serviceaccount.json
+*.credentials.json
+
+# --- Auth / PII backups ---
+auth_official*.json
+*.backup.json
+*.backup.*.json
+
+# --- Firestore / DB data dumps & migration logs ---
+backup_*_legacy_*.json
+firebase-legacy-backup-*.json
+report-firestore-structure.json
+v2_migration_log_*.json
+scripts/reports/
+
+# --- Script outputs / logs / audit / verify dumps ---
+out.txt
+out[0-9].txt
+output*.txt
+functions/out.txt
+audit_results*.txt
+deletion_log_*.txt
+soft_delete_output.txt
+verify_output.txt
+
+# --- Scratch / temp files ---
+tmp.md
+tmp_append.txt
+*.tmp
+.claude/settings.local.json
+# --- One-off test file with a hardcoded Gemini API key (rotate & move to env) ---
+functions/test_models.js

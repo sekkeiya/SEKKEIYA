@@ -9,6 +9,7 @@
   "hosting": {
     "site": "sekkeiya",
     "public": "dist",
+    "trailingSlash": false,
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -35,6 +36,27 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/sitemap-community.xml",
+        "function": {
+          "functionId": "sitemapCommunity",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/*/blog/*",
+        "function": {
+          "functionId": "renderBlogArticle",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/articles/**",
+        "function": {
+          "functionId": "renderBlogArticle",
+          "region": "us-central1"
+        }
+      },
       {
         "source": "/login",
         "destination": "/index.html"
@@ -77,7 +99,7 @@
     {
       "source": "functions",
       "codebase": "default",
-      "runtime": "nodejs20",
+      "runtime": "nodejs22",
       "ignore": [
         "node_modules",
         ".git",
@@ -86,5 +108,8 @@
         "*.local"
       ]
     }
-  ]
+  ],
+  "extensions": {
+    "firestore-stripe-payments": "invertase/firestore-stripe-payments@0.3.12"
+  }
 }

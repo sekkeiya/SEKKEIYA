@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import {
   Box, Typography, Button, Chip, IconButton, CircularProgress,
   Select, MenuItem, TextField,
@@ -17,7 +17,10 @@ import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, collection, query, where, limit, getDocs } from "firebase/firestore";
-import { db } from "@/shared/config/firebase";
+import { getDownloadURL, ref as storageRef } from "firebase/storage";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useGLTF, Environment, Center, Bounds } from "@react-three/drei";
+import { db, storage } from "@/shared/config/firebase";
 import { BRAND } from "@/shared/ui/theme";
 
 function InfoRow({ label, children }) {
@@ -111,6 +114,166 @@ function DimInput({ axis, value }) {
   );
 }
 
+function pickGlbSource(model) {
+  if (!model) return "";
+  return (
+    model.glbUrl ||
+    model.viewerGlbUrl ||
+    model.modelGlbUrl ||
+    model.files?.glb?.url ||
+    model.files?.glb?.downloadUrl ||
+    model.files?.glb?.downloadURL ||
+    model.files?.glb?.path ||
+    model.files?.glb?.storagePath ||
+    model.files?.glb?.fullPath ||
+    model.glbStoragePath ||
+    model.asset?.glbUrl ||
+    (typeof model.downloadUrl === "string" && /\.glb($|\?)/i.test(model.downloadUrl) ? model.downloadUrl : "") ||
+    ""
+  );
+}
+
+function useResolvedGlbUrl(raw) {
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    setError(null);
+    const s = String(raw || "").trim();
+    if (!s) { setUrl(""); return () => { alive = false; }; }
+
+    const isHttp = /^https?:\/\//i.test(s);
+    if (isHttp) {
+      setUrl(s);
+      return () => { alive = false; };
+    }
+
+    getDownloadURL(storageRef(storage, s))
+      .then((u) => { if (alive) setUrl(u); })
+      .catch((e) => {
+        console.warn("[ModelDetail] failed to resolve GLB url", e);
+        if (alive) { setUrl(""); setError(e); }
+      });
+
+    return () => { alive = false; };
+  }, [raw]);
+
+  return { url, error };
+}
+
+function GlbModel({ url }) {
+  const gltf = useGLTF(url);
+  const scene = useMemo(() => (gltf?.scene ? gltf.scene.clone(true) : null), [gltf?.scene]);
+
+  useEffect(() => {
+    scene?.traverse?.((c) => {
+      if (c?.isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+      }
+    });
+  }, [scene]);
+
+  if (!scene) return null;
+  return <primitive object={scene} />;
+}
+
+class ViewerErrorBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(e) { console.warn("[ModelDetail] 3D viewer error:", e); }
+  render() { return this.state.hasError ? this.props.fallback : this.props.children; }
+}
+
+function ViewerLoading() {
+  return (
+    <Box sx={{
+      position: "absolute", inset: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      gap: 1.5, color: "rgba(255,255,255,0.55)", fontSize: 12,
+      pointerEvents: "none",
+    }}>
+      <CircularProgress size={20} sx={{ color: "rgba(255,255,255,0.6)" }} />
+      3Dモデルを読み込み中...
+    </Box>
+  );
+}
+
+function ViewerEmptyState({ message }) {
+  return (
+    <Box sx={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      gap: 1, width: "100%", height: "100%",
+    }}>
+      <ViewInArRoundedIcon sx={{ fontSize: 56, color: "rgba(255,255,255,0.15)" }} />
+      <Typography sx={{ color: "rgba(255,255,255,0.45)", fontSize: 13 }}>
+        {message}
+      </Typography>
+    </Box>
+  );
+}
+
+function Model3DViewer({ rawUrl }) {
+  const { url, error } = useResolvedGlbUrl(rawUrl);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => { setReady(false); }, [url]);
+
+  if (!rawUrl) {
+    return <ViewerEmptyState message="このモデルには3Dファイルがありません" />;
+  }
+  if (error) {
+    return <ViewerEmptyState message="3Dモデルの読み込みに失敗しました" />;
+  }
+
+  return (
+    <Box sx={{ position: "absolute", inset: 0 }}>
+      {url ? (
+        <ViewerErrorBoundary fallback={<ViewerEmptyState message="3Dモデルを表示できませんでした" />}>
+          <Canvas
+            shadows
+            dpr={[1, 2]}
+            camera={{ position: [3, 2.4, 3.6], fov: 40, near: 0.01, far: 2000 }}
+            onCreated={() => setReady(true)}
+            gl={{ antialias: true, preserveDrawingBuffer: false }}
+          >
+            <color attach="background" args={["#000000"]} />
+            <ambientLight intensity={0.6} />
+            <hemisphereLight args={[0xffffff, 0x222233, 0.45]} />
+            <directionalLight
+              position={[6, 8, 4]}
+              intensity={1.0}
+              castShadow
+              shadow-mapSize-width={1024}
+              shadow-mapSize-height={1024}
+            />
+            <Suspense fallback={null}>
+              <Bounds fit clip observe margin={1.2}>
+                <Center>
+                  <GlbModel url={url} />
+                </Center>
+              </Bounds>
+              <Environment preset="city" />
+            </Suspense>
+            <gridHelper args={[20, 20, 0x444455, 0x222233]} />
+            <OrbitControls
+              makeDefault
+              enableDamping
+              dampingFactor={0.12}
+              minDistance={0.3}
+              maxDistance={50}
+            />
+          </Canvas>
+          {!ready && <ViewerLoading />}
+        </ViewerErrorBoundary>
+      ) : (
+        <ViewerLoading />
+      )}
+    </Box>
+  );
+}
+
 function RelatedCard({ model, onClick }) {
   const thumbUrl = model.thumbnailUrl || model.thumbnail?.url || model.imageUrl || "";
   const title = model.name || model.title || "Untitled";
@@ -160,7 +323,7 @@ export default function ModelDetailPage() {
   const [model, setModel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedModels, setRelatedModels] = useState([]);
-  const [viewMode, setViewMode] = useState("2d");
+  const [viewMode, setViewMode] = useState("3d");
   const [infoTab, setInfoTab] = useState("info");
 
   useEffect(() => {
@@ -218,6 +381,8 @@ export default function ModelDetailPage() {
 
   const thumbnailUrl = model.thumbnailUrl || model.thumbnail?.url || model.imageUrl || model.previewUrl || "";
   const title = model.name || model.title || "Untitled";
+  const glbRawUrl = pickGlbSource(model);
+  const effectiveViewMode = !glbRawUrl && viewMode === "3d" ? "2d" : viewMode;
 
   const dims = model.dimensions || {};
   const w = dims.w || dims.width || model.width || null;
@@ -279,8 +444,8 @@ export default function ModelDetailPage() {
                   sx={{
                     textTransform: "none", fontSize: 12, px: 1.5, py: 0.5,
                     borderRadius: 0, minWidth: 0,
-                    color: viewMode === key ? "#fff" : "rgba(255,255,255,0.45)",
-                    bgcolor: viewMode === key ? "rgba(255,255,255,0.14)" : "transparent",
+                    color: effectiveViewMode === key ? "#fff" : "rgba(255,255,255,0.45)",
+                    bgcolor: effectiveViewMode === key ? "rgba(255,255,255,0.14)" : "transparent",
                     "&:hover": { bgcolor: "rgba(255,255,255,0.09)" },
                     gap: 0.5,
                   }}
@@ -290,7 +455,7 @@ export default function ModelDetailPage() {
               ))}
             </Box>
 
-            {viewMode === "2d" ? (
+            {effectiveViewMode === "2d" ? (
               thumbnailUrl ? (
                 <Box
                   component="img"
@@ -310,21 +475,7 @@ export default function ModelDetailPage() {
                 <ViewInArRoundedIcon sx={{ fontSize: 80, color: "rgba(255,255,255,0.1)" }} />
               )
             ) : (
-              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, width: "100%", height: "100%" }}>
-                {thumbnailUrl && (
-                  <Box
-                    component="img"
-                    src={thumbnailUrl}
-                    sx={{ maxWidth: "70%", maxHeight: "70%", objectFit: "contain", opacity: 0.25, filter: "blur(2px)" }}
-                  />
-                )}
-                <Typography sx={{
-                  position: "absolute",
-                  color: "rgba(255,255,255,0.35)", fontSize: 13, fontWeight: 500,
-                }}>
-                  3D ビューア 準備中
-                </Typography>
-              </Box>
+              <Model3DViewer rawUrl={glbRawUrl} />
             )}
           </Box>
 
@@ -342,7 +493,7 @@ export default function ModelDetailPage() {
                 sx={{
                   width: 52, height: 52, borderRadius: 1.5, objectFit: "contain",
                   bgcolor: "#020617",
-                  border: `2px solid ${viewMode === "2d" ? "rgba(96,165,250,0.6)" : "rgba(255,255,255,0.1)"}`,
+                  border: `2px solid ${effectiveViewMode === "2d" ? "rgba(96,165,250,0.6)" : "rgba(255,255,255,0.1)"}`,
                   cursor: "pointer",
                   transition: "border-color 0.2s",
                 }}
@@ -431,53 +582,25 @@ export default function ModelDetailPage() {
           {infoTab === "info" && (
             <Box sx={{ flex: 1, overflow: "auto" }}>
 
-              {/* Top header: title + download (left), thumbnail (right) */}
-              <Box sx={{ display: "flex", gap: 1.5, p: 2 }}>
-                <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 1 }}>
-                  <Typography sx={{ fontSize: 19, fontWeight: 700, color: BRAND.text, lineHeight: 1.2, wordBreak: "break-word" }}>
-                    {title}
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<DownloadRoundedIcon sx={{ fontSize: 15 }} />}
-                      endIcon={<KeyboardArrowDownRoundedIcon sx={{ fontSize: 14 }} />}
-                      href={model.downloadUrl || undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      disabled={!model.downloadUrl}
-                      sx={{
-                        flex: 1, minWidth: 0,
-                        textTransform: "none", fontSize: 12, py: 0.75,
-                        borderRadius: 1.5,
-                        bgcolor: "#1e88e5",
-                        "&:hover": { bgcolor: "#1565c0" },
-                      }}
-                    >
-                      Download
-                    </Button>
-                    <IconButton size="small" sx={{
-                      color: BRAND.sub, border: `1px solid ${BRAND.line}`,
-                      borderRadius: 1.5, width: 30, height: 30, flexShrink: 0,
-                      "&:hover": { color: BRAND.text, bgcolor: BRAND.glow },
-                    }}>
-                      <BookmarkBorderRoundedIcon sx={{ fontSize: 15 }} />
-                    </IconButton>
-                    <IconButton size="small" sx={{
-                      color: BRAND.sub, border: `1px solid ${BRAND.line}`,
-                      borderRadius: 1.5, width: 30, height: 30, flexShrink: 0,
-                      "&:hover": { color: "#f87171", bgcolor: "rgba(248,113,113,0.1)" },
-                    }}>
-                      <FavoriteBorderRoundedIcon sx={{ fontSize: 15 }} />
-                    </IconButton>
-                  </Box>
-                </Box>
+              {/* Title (Desktop-style: full-width above preview) */}
+              <Box sx={{ px: 2, pt: 2, pb: 1.5 }}>
+                <Typography sx={{
+                  fontSize: 18, fontWeight: 700, color: BRAND.text,
+                  lineHeight: 1.25, wordBreak: "break-word",
+                }}>
+                  {title}
+                </Typography>
+              </Box>
+
+              {/* Big preview (Desktop-style: 4/3 aspect, full panel width) */}
+              <Box sx={{ px: 2, mb: 1.5 }}>
                 <Box sx={{
-                  width: 130, height: 100, flexShrink: 0,
-                  borderRadius: 1.5, overflow: "hidden",
-                  bgcolor: "#020617", position: "relative",
+                  width: "100%", aspectRatio: "4 / 3",
+                  borderRadius: 2, overflow: "hidden",
+                  bgcolor: "rgba(0,0,0,0.25)",
                   border: `1px solid ${BRAND.line}`,
+                  position: "relative",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {thumbnailUrl ? (
                     <Box
@@ -485,18 +608,54 @@ export default function ModelDetailPage() {
                       src={thumbnailUrl}
                       alt={title}
                       sx={{
-                        position: "absolute",
-                        top: "-50%", left: "-50%",
-                        width: "200%", height: "200%",
-                        objectFit: "contain",
+                        position: "absolute", inset: 0,
+                        width: "100%", height: "100%",
+                        objectFit: "cover",
+                        transform: "scale(1.6)",
                       }}
                     />
                   ) : (
-                    <Box sx={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <ViewInArRoundedIcon sx={{ fontSize: 40, color: "rgba(255,255,255,0.1)" }} />
-                    </Box>
+                    <ViewInArRoundedIcon sx={{ fontSize: 56, color: "rgba(255,255,255,0.12)" }} />
                   )}
                 </Box>
+              </Box>
+
+              {/* Download + bookmark + favorite row */}
+              <Box sx={{ px: 2, mb: 2, display: "flex", gap: 0.75, alignItems: "center" }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<DownloadRoundedIcon sx={{ fontSize: 15 }} />}
+                  endIcon={<KeyboardArrowDownRoundedIcon sx={{ fontSize: 14 }} />}
+                  href={model.downloadUrl || undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  disabled={!model.downloadUrl}
+                  sx={{
+                    flex: 1, minWidth: 0,
+                    textTransform: "none", fontSize: 12, py: 0.85,
+                    borderRadius: 1.5,
+                    justifyContent: "space-between",
+                    bgcolor: "#1e88e5",
+                    "&:hover": { bgcolor: "#1565c0" },
+                  }}
+                >
+                  Download
+                </Button>
+                <IconButton size="small" sx={{
+                  color: BRAND.sub, border: `1px solid ${BRAND.line}`,
+                  borderRadius: 1.5, width: 32, height: 32, flexShrink: 0,
+                  "&:hover": { color: BRAND.text, bgcolor: BRAND.glow },
+                }}>
+                  <BookmarkBorderRoundedIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+                <IconButton size="small" sx={{
+                  color: BRAND.sub, border: `1px solid ${BRAND.line}`,
+                  borderRadius: 1.5, width: 32, height: 32, flexShrink: 0,
+                  "&:hover": { color: "#f87171", bgcolor: "rgba(248,113,113,0.1)" },
+                }}>
+                  <FavoriteBorderRoundedIcon sx={{ fontSize: 16 }} />
+                </IconButton>
               </Box>
 
               {/* Version selector */}

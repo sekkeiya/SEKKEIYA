@@ -13,6 +13,8 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
+  signInAnonymously,
+  linkWithPopup,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
@@ -120,17 +122,28 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // ✅ 念のため getRedirectResult の完了を待機し、内部の Promise 競合（INTERNAL ASSERTION FAILED）を防ぐ
       if (window._firebaseRedirectPromise) {
         await window._firebaseRedirectPromise;
       }
 
       const provider = new GoogleAuthProvider();
-      // 任意：追加スコープやパラメータ
       provider.setCustomParameters({ prompt: "select_account" });
 
-      // まず popup を試す（楽）
-      await signInWithPopup(auth, provider);
+      // 匿名ユーザーはアカウント連携（データ引き継ぎ）、それ以外は通常ログイン
+      if (auth.currentUser?.isAnonymous) {
+        try {
+          await linkWithPopup(auth.currentUser, provider);
+        } catch (linkErr) {
+          if (linkErr.code === "auth/credential-already-in-use") {
+            // そのGoogle アカウントが既に存在する → 通常サインインに切り替え
+            await signInWithPopup(auth, provider);
+          } else {
+            throw linkErr;
+          }
+        }
+      } else {
+        await signInWithPopup(auth, provider);
+      }
       goReturnTo();
     } catch (e) {
       console.warn("[LoginPage] popup failed, fallback to redirect:", e);
@@ -139,7 +152,6 @@ export default function LoginPage() {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: "select_account" });
         await signInWithRedirect(auth, provider);
-        // redirectはページ遷移するのでここには戻らない
       } catch (e2) {
         console.error(e2);
         setError("Googleログインに失敗しました。しばらくしてから再度お試しください。");
@@ -147,7 +159,20 @@ export default function LoginPage() {
       }
       return;
     } finally {
-      // popup成功時はここで解除されるが、redirectの場合はページが遷移するので問題なし
+      setLoading(false);
+    }
+  }, [goReturnTo]);
+
+  const onAnonymousLogin = useCallback(async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInAnonymously(auth);
+      goReturnTo();
+    } catch (err) {
+      console.error(err);
+      setError("ゲストログインに失敗しました。しばらくしてから再度お試しください。");
+    } finally {
       setLoading(false);
     }
   }, [goReturnTo]);
@@ -213,6 +238,18 @@ export default function LoginPage() {
             disabled={loading}
           >
             アカウント作成はこちら
+          </Button>
+
+          <Divider sx={{ my: 0 }} />
+
+          <Button
+            variant="text"
+            size="small"
+            onClick={onAnonymousLogin}
+            disabled={loading}
+            sx={{ color: "text.secondary", fontSize: "0.78rem" }}
+          >
+            アカウントなしで試す（ゲストモード）
           </Button>
         </Stack>
       </Paper>

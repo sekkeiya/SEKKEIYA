@@ -1,6 +1,6 @@
 // utils/services/boards/myBoards.js
 // 役割: users/{uid}/myBoards/* と配下 models/* に対する "単発CRUDのみ" を提供。
-// boardsPublic/* など他コレクションの調停は actions.js 側で実施する。
+// projectShares/* など他コレクションの調停は actions.js 側で実施する。
 
 import {
     collection,
@@ -82,7 +82,7 @@ export const createMyBoard = async ({ userId, data = {} }) => {
     );
 
     const timestamp = serverTimestamp();
-    const unifiedColRef = collection(db, "boards");
+    const unifiedColRef = collection(db, "projects");
     const unifiedRef = doc(unifiedColRef);
     const newBoardId = unifiedRef.id;
 
@@ -118,7 +118,7 @@ export const createMyBoard = async ({ userId, data = {} }) => {
 /** 単一取得 */
 export const getMyBoardById = async (userId, boardId) => {
     if (!userId || !boardId) return null;
-    const ref = doc(db, "boards", boardId);
+    const ref = doc(db, "projects", boardId);
     const snap = await getDoc(ref);
     return snap.exists()
         ? { id: snap.id, ...snap.data() }
@@ -128,7 +128,7 @@ export const getMyBoardById = async (userId, boardId) => {
 /* ============================== U: Update ============================== */
 /** 情報更新（name / description など任意フィールド） */
 export const updateMyBoardInfo = async (userId, boardId, updatedFields) => {
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
     const sanitized = Object.fromEntries(
         Object.entries(updatedFields || {}).filter(
             ([k]) => !["visibility", "owner", "ownerId", "isPublic", "isPrivate", "publicMode"].includes(k)
@@ -149,24 +149,24 @@ export const updateMyBoardVisibility = async ({
     nextVisibility,
     planId = "free",
 }) => {
-    throw new Error("Visibility update is not supported directly from this UI in Sekkeiya yet. Use 3DSS settings.");
+    throw new Error("Visibility update is not supported directly from this UI in Sekkeiya yet. Use S.Models settings.");
 };
 
 /* ============================== D: Delete ============================== */
 /**
  * マイボード削除（配下 models/* のみ掃除）
- * - boardsPublic/* には触れない（公開ミラーの削除は actions.deleteBoardAndModels で実施）
+ * - projectShares/* には触れない（公開ミラーの削除は actions.deleteBoardAndModels で実施）
  */
 export const deleteMyBoardAndModels = async (userId, boardId) => {
     if (!userId || !boardId) throw new Error("userId/boardId が必要です");
 
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
     const exists = (await getDoc(unifiedBoardRef)).exists();
     if (!exists) return;
 
     // 1) Unified Items サブコレ削除
     await deleteCollectionByChunks(
-        collection(db, "boards", boardId, "items"),
+        collection(db, "projects", boardId, "workspaces", "main", "items"),
         450
     );
 
@@ -198,9 +198,9 @@ export const addModelToMyBoard = async ({
     }
     const modelId = modelRef.id;
 
-    const unifiedItemsColRef = collection(db, "boards", boardId, "items");
+    const unifiedItemsColRef = collection(db, "projects", boardId, "workspaces", "main", "items");
     const unifiedItemRef = doc(unifiedItemsColRef);
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
 
     const timestamp = serverTimestamp();
 
@@ -250,12 +250,12 @@ export const addModelToMyBoard = async ({
 export const removeModelFromMyBoard = async ({ uid, boardId, modelId }) => {
     if (!uid || !boardId || !modelId) throw new Error("removeModelFromMyBoard: 引数不足");
 
-    const unifiedBoardRef = doc(db, "boards", boardId);
+    const unifiedBoardRef = doc(db, "projects", boardId);
 
     let unifiedItemDocs = [];
     try {
         const q = query(
-            collection(db, "boards", boardId, "items"),
+            collection(db, "projects", boardId, "workspaces", "main", "items"),
             where("entityId", "==", modelId),
             where("itemType", "==", "model")
         );

@@ -20,7 +20,7 @@ exports.processModelUpload = onCall({ secrets: [geminiApiKey] }, async (request)
   }
 
   const uid = request.auth.uid;
-  const { modelId, isOverwrite, modelData } = request.data;
+  const { modelId, isOverwrite, modelData, projectId } = request.data;
 
   if (!modelId || !modelData) {
     throw new HttpsError("invalid-argument", "Missing modelId or modelData.");
@@ -29,7 +29,15 @@ exports.processModelUpload = onCall({ secrets: [geminiApiKey] }, async (request)
   const db = getFirestore();
   const batch = db.batch();
 
-  const modelRef = db.collection("users").doc(uid).collection("models").doc(modelId);
+  // If projectId is provided, save to projects/{projectId}/assets/{assetId}
+  // Otherwise fallback to users/{uid}/models/{modelId} for legacy standalone models
+  let modelRef;
+  if (projectId) {
+    modelRef = db.collection("projects").doc(projectId).collection("assets").doc(modelId);
+  } else {
+    modelRef = db.collection("users").doc(uid).collection("models").doc(modelId);
+  }
+
   const driveAssetId = `asset-3dss-${modelId}`;
   const driveAssetRef = db.collection("users").doc(uid).collection("driveAssets").doc(driveAssetId);
 
@@ -38,6 +46,9 @@ exports.processModelUpload = onCall({ secrets: [geminiApiKey] }, async (request)
   // 1. Prepare Model Data
   const finalModelData = { ...modelData };
   finalModelData.updatedAt = serverTimestamp;
+  if (projectId) {
+    finalModelData.projectId = projectId;
+  }
   if (!isOverwrite) {
     finalModelData.createdAt = serverTimestamp;
   }

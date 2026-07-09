@@ -4,7 +4,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useGlobalPanelStore } from '../store/useGlobalPanelStore';
 import { usePanelTheme } from '../theme/ThemeContext.jsx';
 
-export default function GlobalPanelOverlay({ children, panelName, isOpen: propIsOpen, onClose: propOnClose }) {
+export default function GlobalPanelOverlay({ children, panelName, isOpen: propIsOpen, onClose: propOnClose, width, maxWidth }) {
   const activePanel = useGlobalPanelStore((state) => state.activePanel);
   const storeClosePanel = useGlobalPanelStore((state) => state.closePanel);
   const isSidebarExpanded = useGlobalPanelStore((state) => state.isSidebarExpanded);
@@ -36,7 +36,7 @@ export default function GlobalPanelOverlay({ children, panelName, isOpen: propIs
             backgroundColor: 'rgba(0,0,0,0.5)',
             // MiniSidebarと表示中のLeftSidebarを覆わないように設定
             position: 'fixed',
-            left: { xs: 0, sm: isSidebarExpanded ? 240 + 72 : 72 },
+            left: { xs: 0, sm: isSidebarExpanded ? 240 + 56 : 56 },
             top: 0,
             bottom: 0,
             right: 0,
@@ -52,8 +52,8 @@ export default function GlobalPanelOverlay({ children, panelName, isOpen: propIs
             top: { xs: 0, sm: 16 },
             right: { xs: 0, sm: 16 },
             bottom: { xs: 84, sm: 16 }, // adjust for mobile bottom bar
-            left: { xs: 0, sm: (isSidebarExpanded ? 240 + 72 : 72) + 16 }, // 312px or 72px + 16px margin
-            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            width: width || { xs: '100%', sm: 400 },
+            maxWidth: maxWidth || 'none',
             zIndex: 101, // Above backdrop
             display: "flex",
             flexDirection: "column",

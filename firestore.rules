@@ -10,6 +10,13 @@ service cloud.firestore {
     return isSignedIn() && request.auth.token.email_verified == true;
   }
 
+  // 管理者判定（メールベース。クライアントの ADMIN_EMAILS と一致させること）
+  function isAdminUser() {
+    return isSignedIn() && request.auth.token.email in [
+      'hello@sekkeiya.com'
+    ];
+  }
+
   // 可視性（後方互換）
   function isPublic(data) {
     return (data.get('visibility', '') == 'public') ||
@@ -62,56 +69,10 @@ service cloud.firestore {
            (request.resource.data.tags.size() <= 20);
   }
 
-  /* ---- teamBoards ヘルパ ---- */
-  function teamBoardData(id) {
-    return get(/databases/$(database)/documents/teamBoards/$(id)).data;
-  }
 
-  function hasMemberField(d, uid) {
-    return (d.members is list      && uid in d.members) ||
-           (d.memberIds is list    && uid in d.memberIds) ||
-           (d.members is map       && d.members[uid] != null) ||
-           (d.membersMap is map    && d.membersMap[uid] != null);
-  }
 
-  function isTeamBoardOwner(id) {
-    let d = teamBoardData(id);
-    return isSignedIn() && (d is map) && (
-      d.ownerId == request.auth.uid ||
-      d.owner   == request.auth.uid ||
-      d.ownerUid == request.auth.uid ||
-      (d.ownerRef is map && d.ownerRef.uid == request.auth.uid)
-    );
-  }
 
-  function isTeamBoardMember(id) {
-    let d = teamBoardData(id);
-    return isSignedIn() && (d is map) && hasMemberField(d, request.auth.uid);
-  }
 
-  function isTeamBoardContributor(id) {
-    return isTeamBoardOwner(id) || isTeamBoardMember(id);
-  }
-
-  /* ---- myBoards ヘルパ ---- */
-  function myBoardData(uid, bid) {
-    return get(/databases/$(database)/documents/users/$(uid)/myBoards/$(bid)).data;
-  }
-
-  function isMyBoardOwner(uid) {
-    return isSignedIn() && request.auth.uid == uid;
-  }
-
-  /* ---- boardsPublic ヘルパ ---- */
-  function publicBoardData(pid) {
-    return get(/databases/$(database)/documents/boardsPublic/$(pid)).data;
-  }
-
-  function isBoardsPublicOwner(pid) {
-    let d = publicBoardData(pid);
-    return isSignedIn() && (d is map) &&
-           ((d.ownerId == request.auth.uid) || (d.owner == request.auth.uid));
-  }
 
   /* ===== usernames ===== */
   function usernameDoc(handleLower) {
@@ -126,8 +87,7 @@ service cloud.firestore {
     return isSignedIn() && (
       request.auth.token.admin == true ||
       request.auth.token.email in [
-        "3dshapeshare@gmail.com",
-        "yuma.tanioka.ty@gmail.com"
+        "hello@sekkeiya.com"
       ]
     );
   }
@@ -150,8 +110,8 @@ service cloud.firestore {
   // ※"creator" への昇格は Cloud Functions / Admin SDK 側で行う想定。
   function isRideGalleryRoleTransitionOK() {
     return !(
-      ('rideGalleryRole' in request.resource.data) &&
-      (request.resource.data.rideGalleryRole == "creator")
+      request.resource.data.diff(resource.data).affectedKeys().hasAny(['rideGalleryRole']) &&
+      request.resource.data.rideGalleryRole == "creator"
     );
   }
 
@@ -162,42 +122,8 @@ service cloud.firestore {
      * ==================================================== */
 
     /* ======================================================
-     * ★ Unified Boards (New Schema v2)
+     * ★ Unified Boards (New Schema v2) - DELETED
      * ==================================================== */
-    match /boards/{boardId} {
-      // 読み取り許可: 公開ボード、自分がオーナー、または自分がメンバー
-      allow read: if isPublic(resource.data) 
-                  || (isSignedIn() && resource.data.ownerId == request.auth.uid)
-                  || (isSignedIn() && request.auth.uid in resource.data.memberIds);
-
-      // 新規作成許可: ownerId が自分の UID になっていること
-      allow create: if isSignedIn() 
-                    && request.resource.data.ownerId == request.auth.uid;
-
-      // 更新/削除許可: 自分がオーナー
-      allow update, delete: if isSignedIn() 
-                            && resource.data.ownerId == request.auth.uid;
-
-      // ---- Board Items サブコレクション ----
-      match /items/{itemId} {
-        // 読み取り: 親ボードが読めるならアイテムも読める
-        function canReadParentBoard() {
-          let b = get(/databases/$(database)/documents/boards/$(boardId)).data;
-          return isPublic(b) 
-                 || (isSignedIn() && b.ownerId == request.auth.uid)
-                 || (isSignedIn() && (b.memberIds is list) && request.auth.uid in b.memberIds);
-        }
-        // 書き込み: ボードのオーナーかメンバーならアイテムを追加・編集可能
-        function canWriteParentBoard() {
-          let b = get(/databases/$(database)/documents/boards/$(boardId)).data;
-          return (isSignedIn() && b.ownerId == request.auth.uid)
-                 || (isSignedIn() && (b.memberIds is list) && request.auth.uid in b.memberIds);
-        }
-
-        allow read: if canReadParentBoard();
-        allow create, update, delete: if canWriteParentBoard();
-      }
-    }
 
 
     // ----------------------------
@@ -238,39 +164,144 @@ service cloud.firestore {
                   || isModelSharedUserData(resource.data);
     }
 
+    // ----------------------------
+    // collectionGroup("items") の読み取り許可 (SSOT v2)
+    // ----------------------------
+    match /{path=**}/items/{itemId} {
+      allow read: if isDocPublic(resource.data)
+                  || isModelOwnerData(resource.data)
+                  || isModelSharedUserData(resource.data)
+                  // 3DSP プレゼンテーション: 認証済みユーザーは type:'presentation' を読める。
+                  // createPresentation のデフォルトが 'public' であり、ギャラリー側で
+                  // visibility != 'private' をクライアントフィルターする。
+                  // ※ Firestore はクエリフィルター(type=presentation)とルール条件が
+                  //   一致しているためコレクショングループクエリを許可する。
+                  || (isSignedIn() && resource.data.get('type', '') == 'presentation');
+    }
+
+    // ----------------------------
+    // collectionGroup("workFiles") の読み取り許可
+    // projects/{projectId}/workFiles/{id} を collectionGroup でクエリする
+    // 3DSP グローバルスコープ（Presentations フィード / マイプレゼン）で使用
+    // ----------------------------
+    match /{path=**}/workFiles/{workFileId} {
+      allow read: if isSignedIn() && (
+        // 公開済み workFile は認証済みユーザー全員が閲覧可能（Presentationsフィード用）
+        resource.data.get('visibility', '') == 'public' ||
+        // 自分が作成した workFile は自分だけ閲覧可能（マイプレゼン：公開・非公開どちらも）
+        resource.data.get('createdBy', '') == request.auth.uid
+      );
+    }
+
+    // ----------------------------
+    // collectionGroup("layouts") の読み取り許可
+    // projects/{projectId}/workspaces/{workspaceId}/layouts/{id} を collectionGroup でクエリする
+    // 3DSL グローバルスコープ（Layout Hub / My Layouts）で使用
+    // ----------------------------
+    match /{path=**}/layouts/{layoutId} {
+      allow read: if isSignedIn() && (
+        // 公開済みレイアウトは認証済みユーザー全員が閲覧可能（global_layouts / global_following_layouts 用）
+        resource.data.get('visibility', '') == 'public' ||
+        // 自分が所有・作成したレイアウトは非公開でも閲覧可能（my_private_layouts / my_public_layouts 用）
+        isModelOwnerData(resource.data)
+      );
+    }
+
+    // ----------------------------
+    // collectionGroup("renders") の読み取り許可
+    // projects/{projectId}/workspaces/{workspaceId}/layouts/{planId}/renders/{id}
+    // を collectionGroup でクエリする
+    // 3DSL My Layouts / Global Layout Hub の Image・Movie タブで使用
+    // ----------------------------
+    match /{path=**}/renders/{renderId} {
+      allow read: if isSignedIn() && (
+        // 自分が作成したレンダリング画像は非公開でも閲覧可能（My Layouts 用）
+        resource.data.get('createdBy', '') == request.auth.uid ||
+        // 公開済みレンダリング画像は認証済みユーザー全員が閲覧可能（グローバルフィード用）
+        resource.data.get('visibility', '') == 'public'
+      );
+      allow write: if isSignedIn() &&
+        resource.data.get('createdBy', '') == request.auth.uid;
+    }
+
+    /* ---- publicModelIndex ---- */
+    match /publicModelIndex/{modelId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
     /* ---- plans ---- */
     match /plans/{planId} {
       allow read: if true;
       allow write: if false;
     }
 
+    /* ---- modelSets (Set Furniture) ---- */
+    match /modelSets/{setId} {
+      // 公開セットは認証済みユーザーが閲覧可能、非公開はオーナーのみ
+      allow read: if isSignedIn() && (
+        resource.data.visibility == 'public' ||
+        resource.data.ownerId == request.auth.uid
+      );
+      // 作成: 自分の ownerId でのみ作成可
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerId == request.auth.uid;
+      // 更新・削除: オーナーのみ
+      allow update, delete: if isSignedIn() &&
+        resource.data.ownerId == request.auth.uid;
+    }
+
     /* 公式記事 */
     match /officialArticles/{id} {
-      // 公開記事はだれでも読める。下書きは管理者のみ。
+      // 公開記事はだれでも読める。下書き・レビュー待ちは管理者のみ。
       allow get, list: if isAdmin() || (resource.data.status == "published");
 
       // 作成・更新・削除は管理者のみ
       allow create, update, delete: if isAdmin();
     }
 
-    /* 公開ユーザー記事 */
-    match /articles/{id} {
-      // 読み取り: 公開記事は誰でも。非公開や下書きは本人のみ
-      allow read: if resource.data.status == "public" || isArticleOwnerData(resource.data);
-
-      // 作成: ログイン済み & ownerId が自分 & ユーザー記事のみ
-      allow create: if isSignedIn()
-                    && request.resource.data.ownerId == request.auth.uid
-                    && request.resource.data.type == "user";
-
-      // 更新/削除: 本人のみ
-      allow update, delete: if isArticleOwnerData(resource.data);
-
-      // 簡易バリデーション（任意で強化）
-      allow create, update: if
-        request.resource.data.status in ["draft","public","private"]
-        && request.resource.data.type == "user";
+    /* AI記者 週次トレンド集計（Cloud Functions admin SDK が書き込み、管理者 UI が読む） */
+    match /analytics/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // Cloud Functions (admin SDK) のみ書き込み可
     }
+    match /analytics/{docId}/weeks/{weekId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    /* コンテンツ戦略のトピックキュー（管理者のみ。AI記者モード②の入力源）。
+       Cloud Functions(admin SDK) も status を更新するが admin SDK はルールを迂回する。 */
+    match /topicQueue/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    /* 専門AI記者の定義（管理者のみ。generateKeywordArticle が人格を読む） */
+    match /reporters/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    /* 記事カテゴリ（公開一覧のフィルタで読むため read は誰でも可、書き込みは管理者のみ） */
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    /* 設定（AIモデル設定・公式アカウント等）。管理者のみ read/write。Cloud Functions(admin SDK)はルール迂回。 */
+    match /config/{doc} {
+      allow read, write: if isAdmin();
+    }
+
+    /* S.Blog 公開記事の公式サイト向けミラー（/articles「みんなの記事」）。
+       read は誰でも可。write は著者本人（authorUid 一致）のみ。 */
+    match /communityArticles/{id} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
+      allow delete: if request.auth != null && (resource.data.authorUid == request.auth.uid || isAdmin());
+    }
+
+
 
     /* ======================================================
      *  🔴 チャット（MVP版）
@@ -288,79 +319,6 @@ service cloud.firestore {
       }
     }
 
-    /* ---- boardsPublic ---- */
-    match /boardsPublic/{boardId} {
-      // ボード自体の読み取りは誰でも
-      allow read: if true;
-
-      // 親レベルのヘルパー
-      function _pb() {
-        return get(/databases/$(database)/documents/boardsPublic/$(boardId)).data;
-      }
-
-      function _isPublicOwner() {
-        let pb = _pb();
-        return request.auth != null && (pb is map) &&
-               (pb.ownerId == request.auth.uid || pb.owner == request.auth.uid);
-      }
-
-      function _linkedTeamWriteOK() {
-        let pb = _pb();
-        return (pb is map) && (pb.teamBoardId is string) &&
-               (isTeamBoardOwner(pb.teamBoardId) || isTeamBoardMember(pb.teamBoardId));
-      }
-
-      // ★ boardsPublic ドキュメント自体の作成・更新・削除
-      allow create: if isSignedIn() && (
-        request.resource.data.ownerId == request.auth.uid ||
-        request.resource.data.owner == request.auth.uid ||
-        (
-          request.resource.data.ownerRef is map &&
-          request.resource.data.ownerRef.uid == request.auth.uid
-        )
-      );
-
-      // 更新・削除はオーナー or ひも付き teamBoard のオーナー/メンバー
-      allow update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-
-      /* boardsPublic/{id}/articles */
-      match /articles/{articleId} {
-        allow read: if true;
-        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-      }
-
-      /* boardsPublic/{id}/models */
-      match /models/{modelId} {
-        allow read: if true;
-        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-      }
-
-      /* boardsPublic/{id}/drawings */
-      match /drawings/{drawingId} {
-        // 図面の閲覧は誰でも
-        allow read: if true;
-        // 書き込みは公開ボードのオーナー or 紐づく teamBoard のオーナー/メンバー
-        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-      }
-
-      /* boardsPublic/{id}/renders */
-      match /renders/{renderId} {
-        allow read: if true;
-        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-      }
-
-      /* boardsPublic/{id}/movies */
-      match /movies/{movieId} {
-        allow read: if true;
-        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-      }
-
-      /* boardsPublic/{id}/slides */
-      match /slides/{slideId} {
-        allow read: if true;
-        allow create, update, delete: if _isPublicOwner() || _linkedTeamWriteOK();
-      }
-    }
 
     /* ---- brandTags ---- */
     match /brandTags/{slug} {
@@ -372,6 +330,17 @@ service cloud.firestore {
     match /tags/{slug} {
       allow read: if true;
       allow write: if false;
+    }
+
+    /* ---- グローバル assets (Global Master Asset Architecture) ---- */
+    match /assets/{assetId} {
+      allow read: if isPublic(resource.data)
+                  || isModelOwnerData(resource.data)
+                  || isModelSharedUserData(resource.data);
+
+      allow create: if isSignedIn() && isModelOwnerData(request.resource.data);
+      allow update: if isModelOwnerData(resource.data) || isModelOwnerData(request.resource.data);
+      allow delete: if isVerified() && isModelOwnerData(resource.data);
     }
 
     /* ---- グローバル models ---- */
@@ -409,140 +378,7 @@ service cloud.firestore {
       }
     }
 
-    /* ---- teamBoards ---- */
-    match /teamBoards/{teamBoardId} {
-      // ※本来は _isOwner() || _isMember() に締めるのが理想（MVPなら isSignedIn でも可）
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
 
-      // 現在のボード
-      function _team() {
-        return get(/databases/$(database)/documents/teamBoards/$(teamBoardId)).data;
-      }
-
-      // オーナー判定
-      function _isOwner() {
-        return request.auth != null && (
-          _team().ownerId == request.auth.uid ||
-          _team().owner   == request.auth.uid ||
-          _team().ownerUid == request.auth.uid ||
-          (_team().ownerRef is map && _team().ownerRef.uid == request.auth.uid)
-        );
-      }
-
-      // メンバー判定
-      function _isMember() {
-        return request.auth != null && (
-          (_team().members is list   && request.auth.uid in _team().members) ||
-          (_team().memberIds is list && request.auth.uid in _team().memberIds) ||
-          (_team().members is map    && _team().members[request.auth.uid] != null) ||
-          (_team().membersMap is map && _team().membersMap[request.auth.uid] != null)
-        );
-      }
-
-      // ① オーナーは update / delete なんでもOK
-      allow update, delete: if _isOwner();
-
-      // ② メンバーが「自分だけを members から外す」更新（配列）
-      allow update: if request.auth != null
-        && _isMember()
-        && (resource.data.members is list)
-        && (request.resource.data.members is list)
-        && !(request.auth.uid in request.resource.data.members)
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["members", "updatedAt"]);
-
-      // ③ メンバーが「自分だけを members から外す」更新（map）
-      allow update: if request.auth != null
-        && _isMember()
-        && (resource.data.members is map)
-        && (request.resource.data.members is map)
-        && !(request.auth.uid in request.resource.data.members)
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["members", "updatedAt"]);
-
-      /* ✅✅ 追加：3DSL Options + items（案の実体）
-       * teamBoards/{teamBoardId}/bases/{baseId}/plans/{planId}/options/{optionId}
-       * teamBoards/{teamBoardId}/bases/{baseId}/plans/{planId}/options/{optionId}/items/{itemId}
-       */
-      match /bases/{baseId} {
-        allow read, create, update, delete: if _isOwner() || _isMember();
-
-        match /plans/{planId} {
-          allow read, create, update, delete: if _isOwner() || _isMember();
-
-          match /options/{optionId} {
-            allow read, create, update, delete: if _isOwner() || _isMember();
-
-            match /items/{itemId} {
-              allow read, create, update, delete: if _isOwner() || _isMember();
-            }
-          }
-        }
-      }
-
-      /* ---- teamBoards/{id}/models ---- */
-      match /models/{modelId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ---- teamBoards/{id}/drawings ---- */
-      match /drawings/{drawingId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ---- teamBoards/{id}/renders ---- */
-      match /renders/{renderId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ---- teamBoards/{id}/movies ---- */
-      match /movies/{movieId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ---- teamBoards/{id}/slides ---- */
-      match /slides/{slideId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ---- teamBoards/{id}/articles ---- */
-      match /articles/{articleId} {
-        allow read: if isSignedIn();
-        allow create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ✅ 追加：teamBoards/{id}/planModelRefs/{docId} 自体（list/get） */
-      match /planModelRefs/{docId} {
-        allow read, create, update, delete: if _isOwner() || _isMember();
-
-        match /models/{boardModelId} {
-          allow read, create, update, delete: if _isOwner() || _isMember();
-        }
-      }
-
-      /* ---- 既存：teamBoards/{id}/planModelRefs/{planId}/models ---- */
-      match /planModelRefs/{planId}/models/{boardModelId} {
-        allow read, create, update, delete: if _isOwner() || _isMember();
-      }
-
-      /* ✅ 追加：boardModelRefs（team board でも使うなら） */
-      match /boardModelRefs/{docId} {
-        allow read, create, update, delete: if _isOwner() || _isMember();
-
-        match /models/{boardModelId} {
-          allow read, create, update, delete: if _isOwner() || _isMember();
-        }
-      }
-
-      /* ✅ 保険：未定義サブコレクションも contributor は触れる */
-      match /{document=**} {
-        allow read, write: if _isOwner() || _isMember();
-      }
-    }
 
     /* ---- users ---- */
     match /users/{userId} {
@@ -565,15 +401,20 @@ service cloud.firestore {
 
       match /following/{targetUserId} {
         allow read: if request.auth != null;
-        allow create, delete: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
 
       match /followers/{followerUserId} {
         allow read: if request.auth != null;
-        allow create, delete: if request.auth != null && request.auth.uid == followerUserId;
+        allow write: if request.auth != null && request.auth.uid == followerUserId;
       }
 
       match /appPreferences/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Research & Memo 個人ボード（アカウントサイト。users/{uid}/research/canvas に1doc）。本人のみ。
+      match /research/{researchDocId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
@@ -592,91 +433,9 @@ service cloud.firestore {
         allow delete: if isVerified() && request.auth.uid == userId;
       }
 
-      /* ✅ 修正：myBoards は owner のみに制限 */
-      match /myBoards/{boardId} {
-        allow read, create, update, delete: if isMyBoardOwner(userId);
 
-        match /models/{modelId} {
-          allow read, create, update, delete: if isMyBoardOwner(userId);
-        }
 
-        /* ✅✅ 追加：3DSL Options + items（案の実体）
-         * users/{userId}/myBoards/{boardId}/bases/{baseId}/plans/{planId}/options/{optionId}
-         * users/{userId}/myBoards/{boardId}/bases/{baseId}/plans/{planId}/options/{optionId}/items/{itemId}
-         */
-        match /bases/{baseId} {
-          allow read, create, update, delete: if isMyBoardOwner(userId);
 
-          match /plans/{planId} {
-            allow read, create, update, delete: if isMyBoardOwner(userId);
-
-            match /options/{optionId} {
-              allow read, create, update, delete: if isMyBoardOwner(userId);
-
-              match /items/{itemId} {
-                allow read, create, update, delete: if isMyBoardOwner(userId);
-              }
-            }
-          }
-        }
-
-        // users/{userId}/myBoards/{boardId}/drawings
-        match /drawings/{drawingId} {
-          allow read: if isSignedIn();
-          allow create, update, delete: if isMyBoardOwner(userId);
-        }
-
-        // users/{userId}/myBoards/{boardId}/renders
-        match /renders/{renderId} {
-          allow read: if isSignedIn();
-          allow create, update, delete: if isMyBoardOwner(userId);
-        }
-
-        // users/{userId}/myBoards/{boardId}/movies
-        match /movies/{movieId} {
-          allow read: if isSignedIn();
-          allow create, update, delete: if isMyBoardOwner(userId);
-        }
-
-        // users/{userId}/myBoards/{boardId}/slides
-        match /slides/{slideId} {
-          allow read: if isSignedIn();
-          allow create, update, delete: if isMyBoardOwner(userId);
-        }
-
-        match /articles/{articleId} {
-          allow read: if isSignedIn();
-          allow create, update, delete: if isMyBoardOwner(userId);
-        }
-
-        /* ✅ 追加：users/{userId}/myBoards/{boardId}/planModelRefs/{docId} 自体（list/get） */
-        match /planModelRefs/{docId} {
-          allow read, create, update, delete: if isMyBoardOwner(userId);
-
-          match /models/{boardModelId} {
-            allow read, create, update, delete: if isMyBoardOwner(userId);
-          }
-        }
-
-        /* ---- 既存：users/{userId}/myBoards/{boardId}/planModelRefs/{planId}/models ---- */
-        match /planModelRefs/{planId}/models/{boardModelId} {
-          allow read, create, update, delete: if isMyBoardOwner(userId);
-        }
-
-        /* ✅ 追加：boardModelRefs（Workspace が読んでいる名前に合わせる） */
-        match /boardModelRefs/{docId} {
-          allow read, create, update, delete: if isMyBoardOwner(userId);
-
-          match /models/{boardModelId} {
-            allow read, create, update, delete: if isMyBoardOwner(userId);
-          }
-        }
-
-        /* ✅ 保険：未定義のサブコレクションが増えても owner は触れる */
-        match /{document=**} {
-          allow read, write: if isMyBoardOwner(userId);
-        }
-      }
 
       /* ---- AI Drive Collections ---- */
       match /driveFolders/{folderId} {
@@ -684,6 +443,37 @@ service cloud.firestore {
       }
 
       match /driveAssets/{assetId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      /* ---- Knowledge / RAG (AI Studio ナレッジ) ----
+         書き込みは ingestKnowledge / deleteKnowledgeSource (admin SDK) が担当。
+         クライアントは自分のソースの読み取りのみ必要。 */
+      match /knowledgeSources/{sourceId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+      match /knowledgeChunks/{chunkId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      /* ---- S.Blog 記事（dsb / 3dsb）----
+         本人は自分の記事を読み書き可。公開済み(status=='published')の記事は
+         公開サイト/検索向けに誰でも読み取り可（下書きは本人のみ）。 */
+      match /blogArticles/{articleId} {
+        allow read: if (request.auth != null && request.auth.uid == userId)
+                    || resource.data.status == 'published';
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      /* ---- S.Blog 設定（ユーザー作成カテゴリ等）---- 本人のみ読み書き。 */
+      match /blogSettings/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      /* ---- S.Blog 投稿スケジュール（コンテンツカレンダー）---- 本人のみ読み書き。 */
+      match /blogSchedules/{scheduleId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
@@ -696,39 +486,87 @@ service cloud.firestore {
         }
       }
 
-      // 🔴 ユーザー配下の teamBoards リンク
-      match /teamBoards/{docId} {
-        // 自分のものだけ見える
-        allow read: if isSignedIn() && request.auth.uid == userId;
-        // 参加時に作る / 退出時に消す
-        allow create, delete: if isSignedIn() && request.auth.uid == userId;
-        // 編集はちょい厳しめのまま
-        allow update: if isVerified() && request.auth.uid == userId;
+      /* ---- AI Generation Collections ---- */
+      match /aiWallet/{docId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+      match /aiJobs/{jobId} {
+        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+        allow create: if false;
+      }
 
-        match /models/{modelId} {
-          allow read: if isSignedIn() && request.auth.uid == userId;
-          allow write: if isSignedIn() && request.auth.uid == userId;
-        }
+
+
+      match /templates/{docId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /* ---- User Custom Layout Rules ---- */
+      match /layout_rules/{ruleKey} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      /* ---- User Default Furniture (レイアウト自動配置デフォルト家具) ---- */
+      match /furniture_defaults/{categoryKey} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      /* ---- User Furniture Sets (デフォルトセット家具) ---- */
+      match /furniture_sets/{setId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      /* ---- Account Site (マイページ＝アカウントサイト本体) ---- */
+      // /users/{uid}/site/main。本人のみ編集、公開ページのため読み取りは公開（users 本体と同方針）。
+      match /site/{docId} {
+        allow read: if true;
+        allow write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      /* ---- Connectors（外部サービス連携トークン） ---- */
+      // /users/{uid}/connectors/{connectorId}
+      // アクセストークン・リフレッシュトークンを保存。本人のみ読み書き可。
+      match /connectors/{connectorId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    /* ---- グローバルの招待 ---- */
-    match /teamBoardInvitations/{invitationId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
-        && (
-          request.auth.uid == resource.data.invitedBy
-          || (resource.data.inviteeUid != null && request.auth.uid == resource.data.inviteeUid)
-        );
+
+
+    /* ---- layout_generation_logs ---- */
+    match /layout_generation_logs/{logId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
     }
 
-    /* ---- ユーザー配下の招待ミラー ---- */
-    match /users/{userId}/teamBoardInvitations/{invitationId} {
-      allow get, list: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null
-        && request.resource.data.invitedBy == request.auth.uid;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    /* ---- layout_rules ---- */
+    match /layout_rules/{buildingType} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == 'K67Fm1A2fZdAWWAXda83i974XOE3'; // SEKKEIYA管理者のみ
+    }
+    /* ---- project layout_rules ---- */
+    match /projects/{projectId}/layout_rules/{ruleKey} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
+    }
+
+    /* ---- project furniture_defaults (プロジェクト別デフォルト家具) ---- */
+    match /projects/{projectId}/furniture_defaults/{categoryKey} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.memberIds;
+    }
+
+    /* ---- layout_rules_versions ---- */
+    match /layout_rules_versions/{buildingType}/versions/{versionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == 'K67Fm1A2fZdAWWAXda83i974XOE3'; // SEKKEIYA管理者のみ
     }
 
     /* ---- usernames ---- */
@@ -737,9 +575,47 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.uid == request.auth.uid
         && !exists(/databases/$(database)/documents/usernames/$(handleLower));
-      allow update: if false;
+      // 同一ユーザーによる再確保（idempotent な setDoc）は許可。所有者の付け替えは不可。
+      allow update: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
       allow delete: if isSignedIn()
         && resource.data.uid == request.auth.uid;
+    }
+
+    /* ---- publishedSites（公開サイトのスナップショット。Web が認証なしで読む公開コピー） ---- */
+    // docId: account = `u__{username}` / project = `p__{username}__{projectId}`。
+    // 読み取りは完全公開、書き込み/削除は所有者本人のみ。
+    match /publishedSites/{docId} {
+      allow read: if true;
+      allow create, update: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow delete: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    /* ---- viewerShares（S.Layout 本番プレビュー共有） ---- */
+    // docId: ランダム shareId。リンクを知る人がブラウザ（未ログイン含む）で閲覧する公開コピー。
+    // 読み取りは private 以外は公開、作成/更新/削除は所有者のみ。
+    // 所有者判定 isModelOwnerData は ownerUid / createdByUid 等のフィールド揺れを吸収する。
+    match /viewerShares/{shareId} {
+      allow read: if resource.data.get('visibility', '') != 'private'
+                  || isModelOwnerData(resource.data);
+      allow create: if isSignedIn()
+                    && isModelOwnerData(request.resource.data);
+      allow update, delete: if isModelOwnerData(resource.data);
+    }
+
+    /* ---- bookmarkInbox（S.Library ブックマーク受信箱） ---- */
+    // ブラウザ拡張→Web(/clip)→ここに1件 create。Desktop アプリが本人分を購読して
+    // ローカル S.Library に回収し、回収後に delete する（クラウドには残さない受け渡し用）。
+    // 本人(ownerId)のみ作成・読取・削除可。更新は不要なので不可。
+    match /bookmarkInbox/{itemId} {
+      allow read, delete: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.url is string;
     }
 
     /* ===========================================
@@ -760,10 +636,487 @@ service cloud.firestore {
         || isAdmin();
     }
 
+    /* ---- Templates ---- */
+    match /officialTemplates/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /publicTemplates/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
 
-    match /viewerShares/{shareId} {
-      allow read: if true;           // 誰でも閲覧OK
-      allow write: if request.auth != null;
+    /* ---- App Global Config ---- */
+    match /appGlobalConfig/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    /* ======================================================
+     * ★ Projects (New Root Collection)
+     * ==================================================== */
+    match /projects/{projectId} {
+      // ロールベース権限（docs/15 §4）。roles(uid→role) を正とし、
+      // memberIds は roles.keys() と同期した高速判定インデックス。
+      // 後方互換: roles 未設定の旧 Pj は ownerId / memberIds にフォールバックする。
+      function projRoles() { return resource.data.get('roles', {}); }
+      function projRole()  { return projRoles().get(request.auth.uid, ''); }
+      function projHasRoles() { return projRoles().size() > 0; }
+
+      function canReadProject() {
+        return isSignedIn() && (
+          request.auth.uid in resource.data.get('memberIds', []) ||
+          request.auth.uid == resource.data.ownerId ||
+          isPublic(resource.data)
+        );
+      }
+      // owner = 設定 / 削除 / 公開 / メンバー管理
+      function isProjectOwner() {
+        return isSignedIn() && (
+          projRole() == 'owner' ||
+          (!projHasRoles() && request.auth.uid == resource.data.ownerId)
+        );
+      }
+      // owner / editor = 編集（viewer は書き込み不可）
+      function canEditProject() {
+        return isSignedIn() && (
+          projRole() == 'owner' || projRole() == 'editor' ||
+          (!projHasRoles() && (
+            request.auth.uid == resource.data.ownerId ||
+            request.auth.uid in resource.data.get('memberIds', [])
+          ))
+        );
+      }
+      // owner 以外が変更してはならない統制フィールド
+      function touchesGovernedFields() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['roles','memberIds','ownerId','visibility','isTeam','teamId']);
+      }
+
+      // チームプロジェクトはメンバーIDで判定 (teamId クエリが安全に動くよう memberIds を正とする)
+      allow read: if canReadProject();
+      allow create: if isSignedIn() &&
+                    request.resource.data.ownerId == request.auth.uid &&
+                    request.auth.uid in request.resource.data.get('memberIds', []);
+      // editor は通常編集のみ。roles/公開/所有者などの統制フィールドは owner だけが変更できる。
+      allow update: if canEditProject() && (isProjectOwner() || !touchesGovernedFields());
+      allow delete: if isProjectOwner();
+
+      match /workspaces/{workspaceId} {
+        function parentProject() { 
+          let docRef = get(/databases/$(database)/documents/projects/$(projectId));
+          return docRef != null ? docRef.data : null;
+        }
+        function parentProjectAfter() { 
+          let docRef = getAfter(/databases/$(database)/documents/projects/$(projectId));
+          return docRef != null ? docRef.data : null;
+        }
+
+        function canReadWorkspace() {
+          let p = parentProject();
+          return isSignedIn() && (
+            request.auth.uid == p.ownerId ||
+            request.auth.uid in p.get('memberIds', []) || 
+            isPublic(p)
+          );
+        }
+        // editor / owner のみ書き込み可（viewer は読み取り専用・docs/15 §4）。
+        // 後方互換: roles 未設定なら ownerId / memberIds にフォールバック。
+        function canWriteWorkspace() {
+          let p = parentProject();
+          let pAfter = parentProjectAfter();
+          let proj = p != null ? p : pAfter;
+          let role = proj != null ? proj.get('roles', {}).get(request.auth.uid, '') : '';
+          let hasRoles = proj != null && proj.get('roles', {}).size() > 0;
+          return isSignedIn() && proj != null && (
+            role == 'owner' || role == 'editor' ||
+            (!hasRoles && (
+              request.auth.uid == proj.ownerId ||
+              request.auth.uid in proj.get('memberIds', [])
+            ))
+          );
+        }
+
+        allow read: if canReadWorkspace();
+        allow create, update, delete: if canWriteWorkspace();
+        
+        match /{document=**} {
+          allow read: if canReadWorkspace();
+          allow write: if canWriteWorkspace();
+        }
+      }
+
+      /* ---- Project Work Files & Activities (Phase 26) ---- */
+      match /workFiles/{workFileId} {
+        allow read, write: if isSignedIn(); // TODO: lock to project members
+        
+        match /versions/{versionId} {
+          allow read, write: if isSignedIn();
+        }
+      }
+      match /activities/{activityId} {
+        allow read, write: if isSignedIn(); // TODO: lock to project members
+      }
+
+      match /journals/{journalId} {
+        function parentProject() {
+          let docRef = get(/databases/$(database)/documents/projects/$(projectId));
+          return docRef != null ? docRef.data : null;
+        }
+        function canReadJournal() {
+           let p = parentProject();
+           return isSignedIn() && p != null && (
+             request.auth.uid == p.ownerId ||
+             request.auth.uid in p.get('memberIds', []) ||
+             isPublic(p)
+           );
+        }
+        function canWriteJournal() {
+           let p = parentProject();
+           return isSignedIn() && p != null && (
+             request.auth.uid == p.ownerId ||
+             request.auth.uid in p.get('memberIds', [])
+           );
+        }
+        allow read: if canReadJournal();
+        allow write: if canWriteJournal();
+      }
+
+      /* ---- Research & Memo リサーチボード（無限キャンバス、1プロジェクト=1doc） ---- */
+      match /research/{researchDocId} {
+        function parentProjectR() {
+          let docRef = get(/databases/$(database)/documents/projects/$(projectId));
+          return docRef != null ? docRef.data : null;
+        }
+        function canReadResearch() {
+           let p = parentProjectR();
+           return isSignedIn() && p != null && (
+             request.auth.uid == p.ownerId ||
+             request.auth.uid in p.get('memberIds', []) ||
+             isPublic(p)
+           );
+        }
+        function canWriteResearch() {
+           let p = parentProjectR();
+           return isSignedIn() && p != null && (
+             request.auth.uid == p.ownerId ||
+             request.auth.uid in p.get('memberIds', [])
+           );
+        }
+        allow read: if canReadResearch();
+        allow write: if canWriteResearch();
+      }
+
+      match /assets/{assetId} {
+        function parentProjectForAsset() { 
+          let docRef = get(/databases/$(database)/documents/projects/$(projectId));
+          return docRef != null ? docRef.data : null;
+        }
+        function canReadAsset() {
+           let p = parentProjectForAsset();
+           return isSignedIn() && p != null && (
+             request.auth.uid == p.ownerId ||
+             request.auth.uid in p.get('memberIds', []) || 
+             isPublic(p)
+           );
+        }
+        function canWriteAsset() {
+           let p = parentProjectForAsset();
+           return isSignedIn() && p != null && (
+             request.auth.uid == p.ownerId ||
+             request.auth.uid in p.get('memberIds', [])
+           );
+        }
+        allow read: if canReadAsset();
+        allow write: if canWriteAsset();
+      }
+
+      /* ---- Project Site (ProjectSite = 公開サイト本体 / SEKKEIYA Chat 編集対象) ---- */
+      // /projects/{projectId}/site/main（単一ドキュメント）。docs/09 §3 / docs/10
+      match /site/{docId} {
+        function parentProjectForSite() {
+          let docRef = get(/databases/$(database)/documents/projects/$(projectId));
+          return docRef != null ? docRef.data : null;
+        }
+        function canReadSite() {
+          let p = parentProjectForSite();
+          return isSignedIn() && p != null && (
+            request.auth.uid == p.ownerId ||
+            request.auth.uid in p.get('memberIds', []) ||
+            isPublic(p)
+          );
+        }
+        function canWriteSite() {
+          let p = parentProjectForSite();
+          return isSignedIn() && p != null && (
+            request.auth.uid == p.ownerId ||
+            request.auth.uid in p.get('memberIds', [])
+          );
+        }
+        allow read: if canReadSite();
+        allow write: if canWriteSite();
+      }
+
+      /* ---- Project 共同チャット（SEKKEIYA OS / Agent 常駐チャット）----
+         docs/chat_unification_firestore_rules_draft（desktop）準拠。
+         /projects/{projectId}/chatMessages            = 既定「メインチャット」
+         /projects/{projectId}/chatTopics/{topicId}    = 複数トピック（＋/messages）
+         メンバー（ownerId + memberIds）が read/write 可。
+         senderUid は本人 / 'sekkeiya-ai'（AI）/ 'system'（進行通知）を許可。
+         ※メンバーによる AI/system なりすましは可能。将来 Cloud Function 経由で封じる。 */
+      function chatParentProject() {
+        let docRef = get(/databases/$(database)/documents/projects/$(projectId));
+        return docRef != null ? docRef.data : null;
+      }
+      function isProjectChatMember() {
+        let p = chatParentProject();
+        return isSignedIn() && p != null && (
+          request.auth.uid == p.ownerId ||
+          request.auth.uid in p.get('memberIds', [])
+        );
+      }
+      function validChatSender() {
+        let s = request.resource.data.senderUid;
+        return s == request.auth.uid || s == 'sekkeiya-ai' || s == 'system';
+      }
+
+      match /chatMessages/{messageId} {
+        allow read:   if isProjectChatMember();
+        allow create: if isProjectChatMember() && validChatSender();
+        allow update, delete: if false; // 履歴は不変
+      }
+
+      match /chatTopics/{topicId} {
+        // トピック一覧・作成・lastMessage 更新・削除はメンバー。
+        allow read, create, update, delete: if isProjectChatMember();
+
+        match /messages/{messageId} {
+          allow read:   if isProjectChatMember();
+          allow create: if isProjectChatMember() && validChatSender();
+          allow update, delete: if false; // 履歴は不変
+        }
+      }
+
+      match /sections/{sectionId} {
+        allow read, write: if isSignedIn();
+
+        match /items/{itemId} {
+          allow read, write: if isSignedIn();
+        }
+      }      // Rhino/Blender 版管理
+      match /designFileMeta/{appType} {
+        allow read, write: if isSignedIn();
+      }
+
+      match /designFiles/{fileId} {
+        allow read, write: if isSignedIn();
+      }
+
+      /* ---- Schedules & Tasks (SchedulesTasksContent / SchedulesTasksList) ---- */
+      match /schedules/{scheduleId} {
+        allow read, write: if isSignedIn(); // TODO: lock to project members
+      }
+      match /tasks/{taskId} {
+        allow read, write: if isSignedIn(); // TODO: lock to project members
+      }
+    }
+
+    // ─── 3DSC: Furniture Templates ───────────────────────────────────────────
+    match /furnitureTemplates/{templateId} {
+      // 公開テンプレートは誰でも閲覧可（Galleryフィード用）
+      allow read: if isPublic(resource.data) || (
+        isSignedIn() && resource.data.createdBy == request.auth.uid
+      );
+      // 作成: サインイン済み & createdByが自分
+      allow create: if isSignedIn() &&
+        request.resource.data.createdBy == request.auth.uid;
+      // 更新・削除: 自分のテンプレートのみ
+      allow update, delete: if isSignedIn() &&
+        resource.data.createdBy == request.auth.uid;
+    }
+
+    // ─── Presentation Templates ───────────────────────────────────────────────
+    match /presentationTemplates/{templateId} {
+      // 適用時の usageCount +1 のみを許す更新か（他ユーザーの公開テンプレ適用のため）
+      function isUsageIncrementOnly() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount']) &&
+          request.resource.data.usageCount == resource.data.usageCount + 1;
+      }
+      // 公開テンプレートまたは自分のものは読み取り可
+      allow read: if isSignedIn() && (
+        resource.data.visibility == 'public' ||
+        resource.data.createdBy == request.auth.uid
+      );
+      // 作成: サインイン済み & createdByが自分
+      allow create: if isSignedIn() &&
+        request.resource.data.createdBy == request.auth.uid;
+      // 更新: 本人（createdBy 改変不可）、または誰でも usageCount +1 のみ
+      allow update: if isSignedIn() && (
+        (resource.data.createdBy == request.auth.uid &&
+         request.resource.data.createdBy == resource.data.createdBy) ||
+        isUsageIncrementOnly()
+      );
+      // 削除: 自分のテンプレートのみ
+      allow delete: if isSignedIn() &&
+        resource.data.createdBy == request.auth.uid;
+    }
+
+    /* ======================================================
+     * ★ Teams
+     *    /teams/{teamId}
+     *    /teams/{teamId}/invitations/{invitationId}
+     * ==================================================== */
+    match /teams/{teamId} {
+      function isTeamMember() {
+        return isSignedIn() && request.auth.uid in resource.data.get('memberIds', []);
+      }
+      function isTeamOwner() {
+        return isSignedIn() && request.auth.uid == resource.data.ownerId;
+      }
+
+      // 公開チームは誰でも閲覧可、非公開はメンバーのみ
+      allow read: if isSignedIn() && (
+        resource.data.visibility == 'public' || isTeamMember()
+      );
+
+      // 作成: サインイン済み & ownerId が自分 & 自分が memberIds に含まれる
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.auth.uid in request.resource.data.memberIds;
+
+      // 更新: オーナーのみ設定変更可 / メンバーは memberIds (参加・退出) のみ変更可
+      // 招待承認: invitee が自分を memberIds に追加する（まだメンバーでない場合）
+      allow update: if isTeamOwner() || (
+        isTeamMember()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'updatedAt'])
+      ) || (
+        isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'updatedAt'])
+        && request.auth.uid in request.resource.data.memberIds
+        && !(request.auth.uid in resource.data.get('memberIds', []))
+      );
+
+      // 削除: オーナーのみ
+      allow delete: if isTeamOwner();
+
+      // invitations サブコレクション
+      match /invitations/{invitationId} {
+        // チームメンバーは招待一覧を閲覧可
+        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+
+        // 招待作成: チームオーナーのみ
+        allow create: if isSignedIn()
+          && request.auth.uid == get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId
+          && request.resource.data.invitedBy == request.auth.uid;
+
+        // 状態更新 (accepted/declined): 招待した本人 or inviteeUid
+        allow update: if isSignedIn() && (
+          request.auth.uid == resource.data.invitedBy ||
+          request.auth.uid == resource.data.inviteeUid
+        );
+
+        // 削除 (取り消し): オーナーのみ
+        allow delete: if isSignedIn()
+          && request.auth.uid == get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId;
+      }
+
+      /* ---- Team Site (チームサイト本体＝SiteOwner 2層モデル, docs/15 §8) ---- */
+      // /teams/{teamId}/site/main。公開ページのため読み取りは公開、
+      // 編集はチームメンバー（memberIds に含まれる）のみ。
+      match /site/{docId} {
+        allow read: if true;
+        allow write: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.get('memberIds', []);
+      }
+    }
+
+    /* ======================================================
+     * ★ AIメモリー（長期記憶・2スコープ） — desktop docs/21
+     *    users/{uid}/aiMemory    = 人物像（本人のみ）
+     *    projects/{pid}/aiMemory = 案件の決定・制約（メンバー共有）
+     *    どちらも予約ID `_digest` にAI注入用ダイジェストを持つ
+     * ==================================================== */
+    match /users/{userId}/aiMemory/{memId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /projects/{projectId}/aiMemory/{memId} {
+      function memProj() { return get(/databases/$(database)/documents/projects/$(projectId)).data; }
+      allow read, write: if isSignedIn() && (
+        request.auth.uid in memProj().get('memberIds', []) ||
+        request.auth.uid == memProj().ownerId
+      );
+    }
+
+    /* ======================================================
+     * ★ User Notifications
+     *    /users/{uid}/notifications/{notifId}
+     * ==================================================== */
+    match /users/{userId}/notifications/{notifId} {
+      // 本人のみ読み書き可
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // 作成: Cloud Functions 経由（クライアントからも許容: 招待送信時に書き込む）
+      allow create: if isSignedIn();
+      // 更新 (既読マーク): 本人のみ
+      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    /* ======================================================
+     * ★ Stripe 決済（firestore-stripe-payments 拡張機能）
+     *    docs: https://github.com/invertase/stripe-firebase-extensions
+     *    - customers/{uid}            : 顧客本体（本人のみ read）
+     *    - customers/{uid}/checkout_sessions : クライアントが作成→拡張機能がurl書き戻し
+     *    - customers/{uid}/subscriptions     : サブスク状態（拡張機能が書込み）
+     *    - customers/{uid}/payments          : 単発決済=寄付（拡張機能が書込み）
+     *    - products / products/{id}/prices   : Stripe商品（公開read。書込みは拡張機能のみ）
+     * ==================================================== */
+    match /customers/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+
+      // チェックアウト開始: 本人が自分の配下に作成・読み取り（urlの書き戻しを待つ）
+      match /checkout_sessions/{id} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+      // サブスク・決済記録: 本人 read のみ（書込みは拡張機能=admin SDK）
+      match /subscriptions/{id} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+      }
+      match /payments/{id} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // 管理者向け収益集計用: collectionGroup("payments") を横断で読む（/admin/revenue）。
+    // 上の customers/{uid}/payments の本人read許可とは独立したルール。
+    match /{path=**}/payments/{paymentId} {
+      allow read: if isAdminUser();
+    }
+
+    // Stripe 商品/価格: 料金表示のため公開 read。書込みは拡張機能(admin)のみ。
+    match /products/{id} {
+      allow read: if true;
+      match /prices/{priceId} {
+        allow read: if true;
+      }
+      match /tax_rates/{taxId} {
+        allow read: if true;
+      }
+    }
+
+    /* ======================================================
+     * ★ 寄付コメント（LP公開用）
+     *    決済成功時に Cloud Function (admin) が approved:false で転記。
+     *    管理者承認後 approved:true のものだけ公開表示。
+     *    クライアントからの直接書込みは禁止（必ず決済を経由させる）。
+     * ==================================================== */
+    match /donationComments/{id} {
+      // 公開: 承認済みのみ。管理者は未承認も閲覧可（承認画面用）。
+      allow read: if resource.data.approved == true || isAdminUser();
+      // 承認/取消は管理者が approved のみ変更可。新規作成は Function 専用、削除は管理者。
+      allow update: if isAdminUser()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
+      allow delete: if isAdminUser();
+      allow create: if false;
     }
 
   }

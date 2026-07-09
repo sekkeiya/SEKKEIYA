@@ -16,7 +16,9 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import {
   addDoc,
   collection,
+  collectionGroup,
   getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -272,6 +274,53 @@ export async function getPlansCatalog() {
 }
 
 /* -------------------- 寄付コメント（LP公開用） -------------------- */
+/**
+ * 全寄付レコードを新しい順に取得（管理者用・収益集計）。
+ * donationComments は決済成功ごとに Function が1件作成するため、承認状態に
+ * 関わらず全件が「寄付1件」に対応する。金額(amount)と日時(createdAt)を持つ。
+ * @returns {Promise<Array<{id:string, amount?:number, createdAt?:any, name?:string, approved?:boolean}>>}
+ */
+export async function getAllDonations() {
+  const snap = await getDocs(
+    query(collection(db, "donationComments"), orderBy("createdAt", "desc"))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * 成功済みの寄付決済を全件取得（管理者用・収益集計の正本）。
+ * customers/*\/payments を collectionGroup で横断読み取りする（要 isAdminUser() ルール）。
+ * donationComments は「コメントを書いた寄付だけ」を LP 公開用に転記する別物のため、
+ * それを収益集計の母数にすると無コメント分が漏れる。金額の正本は必ずこちら。
+ * テストモードの決済（livemode:false）は本番売上ではないため除外する
+ * （拡張機能はテスト/本番の決済を同じ customers/*\/payments に書き込む）。
+ * orderBy を使うと collectionGroup 用の複合インデックスが必要になるため、
+ * ここでは limit のみで取得し、ソート・集計は呼び出し側（クライアント）で行う。
+ * @returns {Promise<Array<{uid:string, id:string, amount:number, createdSec:number, donorName:string, donationComment:string}>>}
+ */
+export async function getAllDonationPayments() {
+  const snap = await getDocs(
+    query(collectionGroup(db, "payments"), limit(2000))
+  );
+  const out = [];
+  for (const d of snap.docs) {
+    const data = d.data();
+    if (data.status !== "succeeded") continue;
+    if (data.livemode !== true) continue; // テスト決済は収益に含めない
+    if (data.metadata?.kind !== "donation") continue;
+    out.push({
+      uid: d.ref.parent.parent?.id || "",
+      id: d.id,
+      amount: typeof data.amount === "number" ? data.amount : 0,
+      createdSec: typeof data.created === "number" ? data.created : 0,
+      donorName: data.metadata?.donorName || "",
+      donationComment: data.metadata?.donationComment || "",
+    });
+  }
+  out.sort((a, b) => b.createdSec - a.createdSec);
+  return out;
+}
+
 /** 承認済み寄付コメントを新しい順に取得 */
 export async function getApprovedDonations(max = 50) {
   const snap = await getDocs(

@@ -9,8 +9,13 @@ import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { usePanelTheme } from '../../theme/ThemeContext.jsx';
 import useChatStore from './store/useChatStore';
+import { useProjectContext } from '../../hooks/useProjectContext';
+import useProjects from '../../hooks/useProjects';
 
-export default function ChatWorkspace({ uid, db, functions }) {
+export default function ChatWorkspace({ uid, db, functions, activeBoardId }) {
+  useEffect(() => {
+    console.log("[MOUNT-TEST] ChatWorkspace mounted");
+  }, []);
   const BRAND = usePanelTheme();
 
   
@@ -30,6 +35,13 @@ export default function ChatWorkspace({ uid, db, functions }) {
     sendMessage,
     resetStore
   } = useChatStore();
+
+  const { activeProjectId, activeBoardId: contextBoardId } = useProjectContext();
+  const currentBoardId = activeBoardId || contextBoardId;
+  const { projects } = useProjects(uid);
+  const activeProject = projects.find(p => p.id === activeProjectId);
+  const projectName = activeProject?.name || "Global";
+  const workspaceName = currentBoardId || "All Workspaces";
 
   // Initialize store when component mounts or uid changes
   useEffect(() => {
@@ -179,7 +191,7 @@ export default function ChatWorkspace({ uid, db, functions }) {
           </Typography>
           <Paper sx={{ px: 2, py: 0.5, borderRadius: 4, bgcolor: 'rgba(0,0,0,0.4)', border: `1px solid rgba(255,255,255,0.08)`, display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#2ecc71' }} />
-            <Typography variant="caption" color="text.secondary">Context: Main Architecture</Typography>
+            <Typography variant="caption" color="text.secondary">Project: {projectName}</Typography>
           </Paper>
         </Box>
 
@@ -296,13 +308,21 @@ export default function ChatWorkspace({ uid, db, functions }) {
           </Box>
           
           <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Current Board */}
+            {/* Current Context */}
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Current Board</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Current Project</Typography>
+              <Paper sx={{ p: 1.5, mb: 1.5, border: `1px solid rgba(255,255,255,0.08)`, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FolderRoundedIcon sx={{ fontSize: 16, color: '#3498db' }} />
+                  <Typography variant="body2">{projectName}</Typography>
+                </Box>
+              </Paper>
+
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>Current Workspace</Typography>
               <Paper sx={{ p: 1.5, border: `1px solid rgba(255,255,255,0.08)`, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3498db' }} />
-                  <Typography variant="body2">Main Architecture</Typography>
+                  <DashboardRoundedIcon sx={{ fontSize: 16, color: '#f39c12' }} />
+                  <Typography variant="body2">{workspaceName}</Typography>
                 </Box>
               </Paper>
             </Box>

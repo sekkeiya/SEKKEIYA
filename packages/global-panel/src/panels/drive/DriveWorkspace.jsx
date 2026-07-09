@@ -4,10 +4,12 @@ import { useDriveStore } from "./store/useDriveStore";
 import { mockFolders, mockAssets } from "./api/mockData";
 import DriveLayout from "./components/layout/DriveLayout";
 import AssetPreviewModal from "./components/preview/AssetPreviewModal";
+import { useProjectContext } from "../../hooks/useProjectContext";
 
-export default function DriveWorkspace({ projectId }) {
+export default function DriveWorkspace() {
   const { setProject, setItems, selectedAsset } = useDriveStore();
-
+  const { activeProjectId: projectId } = useProjectContext();
+  
   useEffect(() => {
     // Initialize Drive with project ID and mock data
     if (projectId) {

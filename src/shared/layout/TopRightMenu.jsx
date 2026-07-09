@@ -5,6 +5,19 @@ import { auth } from "@/shared/config/firebase";
 import { BRAND } from "../ui/theme";
 import DeleteAccountDialog from "../ui/DeleteAccountDialog";
 
+// 公式アカウントは hello@sekkeiya.com のみ。これ以外は Admin ボタン/管理画面へ遷移できない。
+const ADMIN_EMAILS = [
+  "hello@sekkeiya.com",
+];
+
+export function checkIsAdmin(user) {
+  if (!user) return false;
+  const adminUids = (import.meta.env.VITE_ADMIN_UIDS || "")
+    .split(",").map(u => u.trim()).filter(Boolean);
+  return (adminUids.length > 0 && adminUids.includes(user.uid))
+    || ADMIN_EMAILS.includes(user.email);
+}
+
 export default function TopRightMenu({ user, onDashboardClick }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -35,6 +48,28 @@ export default function TopRightMenu({ user, onDashboardClick }) {
       >
         {user ? (
           <>
+            {checkIsAdmin(user) && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => window.location.assign("/admin")}
+                sx={{
+                  color: "#c084fc",
+                  borderColor: "rgba(192,132,252,0.45)",
+                  bgcolor: "rgba(192,132,252,0.08)",
+                  borderRadius: 999,
+                  px: { xs: 1.4, sm: 2 },
+                  minWidth: 0,
+                  fontWeight: 700,
+                  "&:hover": {
+                    bgcolor: "rgba(192,132,252,0.15)",
+                    borderColor: "#c084fc",
+                  },
+                }}
+              >
+                Admin
+              </Button>
+            )}
             <Button
               variant="outlined"
               size="small"

@@ -40,17 +40,35 @@ const fmtSources = (refs = []) =>
     .map((r, i) => `[${i + 1}] ${r.title}${r.source ? `（${r.source}）` : ""}${r.summary ? ` — ${r.summary}` : ""}`)
     .join("\n");
 
-/** LLMが返した画像プランを検証（最大3枚・n/caption/promptを持つもののみ）。 */
+/** SEOスラッグを英数字ハイフンのASCIIへ整える（日本語/記号を落とす。空なら""）。 */
+const seoSlug = (s) => String(s || "")
+  .toLowerCase().trim()
+  .replace(/[^a-z0-9\s-]+/g, "")
+  .replace(/[\s_]+/g, "-")
+  .replace(/-+/g, "-")
+  .replace(/^-|-$/g, "")
+  .slice(0, 60)
+  .replace(/-$/, "");
+
+/** LLMが返した画像プランを検証（セクション見出しに紐づく画像・最大8枚）。 */
 function sanitizeImagePlan(images) {
   if (!Array.isArray(images)) return [];
   return images
     .map((im) => ({
-      n: Number(im && im.n),
+      heading: String((im && im.heading) || "").trim().slice(0, 120),
       caption: String((im && im.caption) || "").trim().slice(0, 60),
       prompt: String((im && im.prompt) || "").trim().slice(0, 600),
     }))
-    .filter((im) => Number.isInteger(im.n) && im.n >= 1 && im.prompt)
-    .slice(0, 3);
+    .filter((im) => im.prompt)
+    .slice(0, 8);
+}
+
+/** LLMが返したカバー（サムネ）画像プランを検証。無効なら null。 */
+function sanitizeCoverPlan(cover) {
+  if (!cover || typeof cover !== "object") return null;
+  const caption = String(cover.caption || "").trim().slice(0, 60);
+  const prompt = String(cover.prompt || "").trim().slice(0, 600);
+  return prompt ? { caption, prompt } : null;
 }
 
 /* ---------- Web記事の収集（RSS・キー不要） ----------
@@ -596,6 +614,55 @@ ${context2 ? `【出てきた文脈】${context2}` : ""}
     }
   }
 
+  /* ---------- SEO 自動最適化 ----------
+   * 記事本文からSEO要素（スラッグ/メタディスクリプション/タグ/フォーカスキーワード/
+   * SEOタイトル案）をまとめて提案する。クライアントは提案を確認して個別/一括で適用する。 */
+  if (mode === "seo") {
+    const title = String(data.title || "").trim();
+    const body = String(data.bodyMarkdown || "").slice(0, 6000);
+    const excerpt = String(data.excerpt || "").trim();
+    const category = String(data.category || "").trim();
+    if (!title && !body) return { success: false, reason: "タイトルか本文が必要です" };
+
+    const prompt = `
+あなたは日本語ブログのSEO編集者です。以下の記事に対し、検索流入を最大化するSEO要素を提案してください。
+建築・インテリア・デザイン領域の読者が検索しそうな語を重視します。
+
+【記事タイトル】${title}
+${category ? `【カテゴリ】${category}` : ""}
+${excerpt ? `【現在の抜粋】${excerpt}` : ""}
+【本文(Markdown・抜粋)】
+${body || "（本文なし）"}
+
+【提案の条件】
+- slug: **英小文字・数字・ハイフンのみ**（日本語やローマ字混じり不可、必ずASCII）。記事の主題を表す3〜6語、60字以内。例: rosso-listening-bar-red-design
+- metaTitle: 検索結果に出すタイトル案。**32字前後**、主要キーワードを前方に。元タイトルの主旨は保つ（大きく変えない）
+- metaDescription: メタディスクリプション。**110〜120字**、主要キーワードを自然に含め、続きを読みたくなる要約。誇張しない
+- tags: 検索されうるキーワード**5個**（日本語中心、必要なら英語や固有名詞も）。記事に実際に書かれている内容の語だけ
+- focusKeyword: この記事で最も狙うべき主要キーワード（1つ、2〜8字程度）
+- notes: SEO上の改善アドバイスを1〜2文（不足している観点があれば指摘）
+
+【出力（JSONのみ）】
+{"slug":"ascii-hyphenated","metaTitle":"タイトル案","metaDescription":"110〜120字の説明","tags":["語1","語2","語3","語4","語5"],"focusKeyword":"主要キーワード","notes":"アドバイス"}
+`.trim();
+
+    try {
+      const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: textCfg.provider, model: textCfg.model, maxTokens: 1024 })));
+      const slug = seoSlug(out.slug);
+      return {
+        success: true,
+        slug: slug || seoSlug(out.focusKeyword) || "",
+        metaTitle: String(out.metaTitle || "").trim().slice(0, 80),
+        metaDescription: String(out.metaDescription || "").trim().slice(0, 160),
+        tags: Array.isArray(out.tags) ? out.tags.map((t) => String(t).trim()).filter(Boolean).slice(0, 6) : [],
+        focusKeyword: String(out.focusKeyword || "").trim().slice(0, 40),
+        notes: String(out.notes || "").trim().slice(0, 300),
+      };
+    } catch (e) {
+      return { success: false, reason: `seo failed: ${e.message}` };
+    }
+  }
+
   /* ---------- 記事内画像のAIナレーション（読み上げ用） ----------
    * 画像・グラフを視覚解析し、読み上げの合間に挿入する短い説明+感想を返す。
    * AI音声と同じく有料プラン限定。結果はクライアントがキャッシュし、音声もStorageにキャッシュされる。 */
@@ -924,6 +991,45 @@ ${wantSummary
     }
   }
 
+  /* ---------- 画像プランのみ生成（エディタの「🖼 画像生成」ボタン用） ----------
+   * 画像が入っていないセクションの見出しリストを受け取り、各見出しに1枚ずつの
+   * 生成プロンプト（+必要ならカバー）を返す。画像の実生成はクライアントが generateBlogImage で行う。 */
+  if (mode === "imagePlan") {
+    const title = String(data.title || "").trim();
+    const headings = (Array.isArray(data.headings) ? data.headings : [])
+      .map((h) => String(h || "").trim().slice(0, 120)).filter(Boolean).slice(0, 8);
+    const context = String(data.context || "").slice(0, 4000);
+    const needCover = !!data.needCover;
+    if (!headings.length && !needCover) return { success: true, images: [], cover: null };
+
+    const prompt = `
+あなたはブログ記事のアートディレクターです。以下の記事について、指定された各セクションに添えるAI生成画像を計画してください。
+
+【記事タイトル】${title}
+【本文（抜粋）】
+${context}
+
+【画像が必要なセクション見出し】
+${headings.map((h) => `- ${h}`).join("\n") || "（なし）"}
+${needCover ? "\n【あわせて】記事全体を象徴するカバー（サムネイル）画像も1つ計画する" : ""}
+
+【条件】
+- **上記の見出しそれぞれに必ず1枚ずつ**計画する（過不足なく）。heading は見出し文言をそのまま返す
+- caption は日本語（20字前後）、prompt は**英語**の画像生成指示
+- ⚠️著作権・誤認回避: 実在の特定建築物・人物・ロゴ・商標・文字は描かせない。セクションのテーマを象徴する一般的で抽象度の高いイメージ（空間の雰囲気・素材・光・スケール感）を photorealistic, architectural photography style で指示する
+
+【出力（JSONのみ）】
+{"images":[{"heading":"見出し","caption":"日本語キャプション","prompt":"English image generation prompt"}]${needCover ? ',"cover":{"caption":"日本語キャプション","prompt":"English prompt for the article key visual"}' : ""}}
+`.trim();
+
+    try {
+      const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: textCfg.provider, model: textCfg.model, maxTokens: 2048 })));
+      return { success: true, images: sanitizeImagePlan(out.images), cover: sanitizeCoverPlan(out.cover) };
+    } catch (e) {
+      return { success: false, reason: `imagePlan failed: ${e.message}` };
+    }
+  }
+
   /* ---------- 議論を記事に反映（下書きが無ければ議論から新規生成） ---------- */
   if (mode === "synthesize") {
     const title = String(data.title || "").trim();
@@ -949,13 +1055,18 @@ ${wantSummary
     // 🎯 目標文字数: クライアントが議論量から算出して送る（無ければ既定2000字）。SEO的に1500〜3000字帯が主戦場
     const targetChars = Math.min(4000, Math.max(1000, Number(data.targetChars) || 2000));
 
-    // 🖼 画像プラン: 記事に合うAI生成画像を最大3枚、本文中に配置する（著作権的に安全＝元記事の写真は使わない）。
-    // 本文には [[IMG:1]] のようなプレースホルダを置き、images[] に日本語キャプションと英語の生成プロンプトを返す。
+    // 🖼 画像プラン: **各セクション（##見出し）ごとに**、そのセクションを象徴するAI画像を1枚ずつ計画する。
+    // 本文にはトークンを埋め込まない（配置はクライアントが heading を目印に見出し直後へ挿入する）。
+    // images[] に heading（対応する##見出しの文言そのまま）/ caption（日本語）/ prompt（英語）を返す。
     const IMG_INSTRUCTION = `
-【記事に添える画像（AI生成・最大3枚）】
-- 本文の効果的な位置に画像プレースホルダ **[[IMG:1]] [[IMG:2]] [[IMG:3]]** を単独行で置く（1枚目は導入直後のキービジュアル、以降は見出しの区切り）。不要なら0枚でもよい
-- 各プレースホルダに対応する画像を images 配列で指定する。caption は日本語（20字前後）、prompt は**英語**の画像生成指示
-- ⚠️著作権・誤認回避: **元記事の写真は使わない。実在の特定建築物・人物・ロゴ・商標・文字は描かせない**。記事のテーマを象徴する一般的で抽象度の高いイメージ（空間の雰囲気・素材・光・スケール感）を、photorealistic, architectural photography style で指示する`;
+【記事に添える画像（AI生成・全セクション必須）】
+- **すべての ## セクションそれぞれに必ず1枚**、そのセクションのテーマに沿った画像を計画する（「参考記事」セクションだけは除く。既に画像 ![ ] がある節も除く）
+- あわせて **cover（記事のサムネイル/カバー画像）を必ず1つ**計画する（記事全体を象徴するキービジュアル。本文には置かない）
+- 本文にはプレースホルダを一切書かない。代わりに images 配列と cover で指定する:
+  - heading: その画像を置くセクションの見出し文言（本文の ## の後ろの文字列と**完全一致**させる）
+  - caption: 日本語のキャプション（20字前後）
+  - prompt: **英語**の画像生成指示
+- ⚠️著作権・誤認回避: **元記事の写真は使わない。実在の特定建築物・人物・ロゴ・商標・文字は描かせない**。各セクションのテーマを象徴する一般的で抽象度の高いイメージ（空間の雰囲気・素材・光・スケール感）を photorealistic, architectural photography style で指示する`;
 
     // 議論ファースト: 下書きが無い → 議論＋題材記事からブログ記事を新規生成
     if (!body.trim() && sourceRefs.length) {
@@ -970,6 +1081,7 @@ ${wantSummary
 - 題材のWeb記事は自分の言葉で紹介・要約する（コピーしない）。記事の導入は「この記事を読んで考えたこと」の文脈で自然に
 - AI側の発言は視点の整理としてのみ使い、記事の主張にしない。**著者の発言に無い意見・体験・数値を創作しない**
 - Markdown（## 見出し2〜4個・リスト等）。末尾に「### 参考記事」としてMarkdownリンクのリストを必ず付ける
+- SEO: slug は記事の主題を表す**英小文字・数字・ハイフンのみ**（ASCII、3〜6語、60字以内）。excerpt はメタディスクリプションとして**110〜120字**にする
 ${IMG_INSTRUCTION}
 
 【題材のWeb記事】
@@ -982,17 +1094,19 @@ ${sourceText ? `\n【題材記事の本文（抜粋）】\n${sourceText}` : ""}
 ${fmtHistory(history)}
 ${memorySection}
 【出力（JSONのみ）】
-{"title":"記事タイトル（著者の視点が出る・30字前後）","excerpt":"抜粋(80字以内)","bodyMarkdown":"## ...[[IMG:1]]...","tags":["タグ1","タグ2","タグ3"],"images":[{"n":1,"caption":"日本語キャプション","prompt":"English image generation prompt"}]}
+{"title":"記事タイトル（著者の視点が出る・30字前後）","slug":"ascii-hyphenated-keywords","excerpt":"メタディスクリプション(110〜120字)","bodyMarkdown":"## 見出し\n本文...","tags":["タグ1","タグ2","タグ3"],"images":[{"heading":"見出し（##の後の文言と完全一致）","caption":"日本語キャプション","prompt":"English image generation prompt"}],"cover":{"caption":"日本語キャプション","prompt":"English image generation prompt for the article key visual"}}
 `.trim();
       try {
         const out = JSON.parse(cleanJson(await callLLM(genPrompt, { provider: textCfg.provider, model: textCfg.model })));
         return {
           success: true,
           title: out.title || title || (sourceRefs[0] ? `${sourceRefs[0].title}を読んで` : "無題"),
+          slug: seoSlug(out.slug),
           excerpt: out.excerpt || "",
           bodyMarkdown: out.bodyMarkdown || "",
           tags: Array.isArray(out.tags) ? out.tags.slice(0, 5) : [],
           images: sanitizeImagePlan(out.images),
+          cover: sanitizeCoverPlan(out.cover),
           generated: true, // 新規生成（before無し）
           before: { title, bodyMarkdown: "" },
           savedMemories: await memoryPromise,
@@ -1015,7 +1129,7 @@ ${memorySection}
 ${sourceRefs.length ? `- 下書きにある「### 参考記事」のリンクリストは末尾に必ず残す（無ければ追加する）` : ""}
 - Markdown（## 見出し・リスト・引用等）。本文はおよそ${targetChars}字（±2割）を目安に、下書きの内容を損なわない範囲で調整する
 - SEOを意識する: 導入の1〜2段落目に記事の結論・要旨を置く / ##見出しは検索されそうな言葉を含める
-${/^!\[/m.test(body) ? "" : IMG_INSTRUCTION}
+${IMG_INSTRUCTION}
 
 【記事タイトル】${title}
 【下書き(Markdown)】
@@ -1025,8 +1139,10 @@ ${sourceRefs.length ? `\n【題材にしたWeb記事】\n${fmtSources(sourceRefs
 【議論ログ】
 ${fmtHistory(history)}
 ${memorySection}
+- SEO: slug は記事の主題を表す**英小文字・数字・ハイフンのみ**（ASCII、3〜6語、60字以内）。excerpt はメタディスクリプションとして**110〜120字**にする
+
 【出力（JSONのみ）】
-{"title":"タイトル（必要なら微調整）","excerpt":"抜粋(80字以内)","bodyMarkdown":"## ...","images":[{"n":1,"caption":"日本語キャプション","prompt":"English image generation prompt"}]}
+{"title":"タイトル（必要なら微調整）","slug":"ascii-hyphenated-keywords","excerpt":"メタディスクリプション(110〜120字)","bodyMarkdown":"## 見出し\n本文...","images":[{"heading":"見出し（##の後の文言と完全一致・既に画像がある節は含めない）","caption":"日本語キャプション","prompt":"English image generation prompt"}],"cover":{"caption":"日本語キャプション","prompt":"English image generation prompt for the article key visual"}}
 `.trim();
 
     try {
@@ -1034,9 +1150,11 @@ ${memorySection}
       return {
         success: true,
         title: out.title || title,
+        slug: seoSlug(out.slug),
         excerpt: out.excerpt || "",
         bodyMarkdown: out.bodyMarkdown || body,
         images: sanitizeImagePlan(out.images),
+        cover: sanitizeCoverPlan(out.cover),
         before: { title, bodyMarkdown: body },
         savedMemories: await memoryPromise,
       };

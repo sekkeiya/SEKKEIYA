@@ -201,7 +201,7 @@ export default function PricingPage() {
                 priceText="応相談"
                 features={buildFeatures(plan)}
                 cta="お問い合わせ"
-                onClick={() => window.location.assign("mailto:info@sekkeiya.com?subject=" + encodeURIComponent(`${plan.name || plan.id} プランについて`))}
+                onClick={() => window.location.assign("mailto:hello@sekkeiya.com?subject=" + encodeURIComponent(`${plan.name || plan.id} プランについて`))}
               />
             ))}
           </Box>

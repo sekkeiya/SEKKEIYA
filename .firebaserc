@@ -11,5 +11,11 @@
       }
     }
   },
-  "etags": {}
+  "etags": {
+    "shapeshare3d": {
+      "extensionInstances": {
+        "firestore-stripe-payments": "4d05d2414db30486235d7e089433d4c4a111fe5b8aa84c2e0b6b86e11738d80a"
+      }
+    }
+  }
 }

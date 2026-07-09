@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# 認証/管理/個人ワークスペースはインデックス不要
+Disallow: /login
+Disallow: /signup
+Disallow: /logout
+Disallow: /admin
+Disallow: /workspace
+Disallow: /clip
+
+Sitemap: https://sekkeiya.com/sitemap.xml
+Sitemap: https://sekkeiya.com/sitemap-community.xml

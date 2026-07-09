@@ -49,6 +49,12 @@ service firebase.storage {
       allow read, write: if isMe(uid);
     }
 
+    // Research & Memo 個人ボードの貼り付け画像。本人のみ書き込み、公開URLで表示できるよう読取は許可。
+    match /users/{uid}/research/{allPaths=**} {
+      allow read: if true;
+      allow write: if isMe(uid);
+    }
+
     match /thumbnails/{uid}/{allPaths=**} {
       allow read: if true;
       allow write: if isMe(uid);
@@ -120,6 +126,16 @@ service firebase.storage {
       allow read, write, delete: if isMe(uid);
     }
 
+    /* ---------- Presentation Templates (S.Presentation user templates) ---------- */
+    // サムネ: 公開テンプレのカード表示のため read 公開、write は署名済み
+    //   (所有判定は Firestore ルールで担保。既存 dsd-thumbnails / workFiles と同方針)
+    match /presentationTemplates/{templateId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && request.resource.contentType.matches('image/.*')
+                   && request.resource.size < 2 * 1024 * 1024;
+    }
+
     /* ---------- Work Files (SSOT Architecture) ---------- */
     match /workFiles/{projectId}/{workFileId}/{allPaths=**} {
       allow read, write: if isSignedIn();
@@ -133,6 +149,12 @@ service firebase.storage {
     /* ---------- 3DSL Renders (still images / videos from Layout) ---------- */
     match /projects/{projectId}/renders/{allPaths=**} {
       allow read, write: if isSignedIn();
+    }
+
+    /* ---------- 3DSD Thumbnails ---------- */
+    match /projects/{projectId}/dsd-thumbnails/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     /* ---------- Project Journals (Attachments) ---------- */

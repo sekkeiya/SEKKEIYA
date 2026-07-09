@@ -18,7 +18,7 @@ import { db } from "@/shared/config/firebase";
  * 返却: { myBoards, teamBoards, all }
  */
 export const fetchSidebarBoards = async (uid) => {
-    const boardsCol = collection(db, "boards");
+    const boardsCol = collection(db, "projects");
 
     const ownerQ = query(boardsCol, where("ownerId", "==", uid));
     const memberQ = query(boardsCol, where("memberIds", "array-contains", uid));
@@ -54,7 +54,7 @@ export const fetchSidebarBoards = async (uid) => {
  * ✅ ボード変更を監視 (Unified Single Read)
  */
 export const subscribeUserBoards = (userId, callback, boardType) => {
-    const boardsCol = collection(db, "boards");
+    const boardsCol = collection(db, "projects");
     const q = boardType === "myBoards"
         ? query(boardsCol, where("ownerId", "==", userId))
         : query(boardsCol, where("memberIds", "array-contains", userId));
@@ -70,7 +70,7 @@ export const subscribeUserBoards = (userId, callback, boardType) => {
  * ✅ マイボード専用サイドバー表示切替
  */
 export const toggleMyBoardShowInSidebar = async (userId, boardId, currentValue) => {
-    const ref = doc(db, "boards", boardId);
+    const ref = doc(db, "projects", boardId);
     // ないと update で落ちるので保険
     const s = await getDoc(ref);
     if (!s.exists()) {

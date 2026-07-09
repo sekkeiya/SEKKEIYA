@@ -8,7 +8,7 @@ import booksPng from "@/assets/icons/books.png";
 export const APPS_CATALOG = [
   {
     key: "3dss",
-    label: "3D Shape Share",
+    label: "S.Models",
     sub: "クラウドストレージ",
     icon: sharePng,
     hrefPublic: "/app/share/",
@@ -17,7 +17,7 @@ export const APPS_CATALOG = [
   },
   {
     key: "3dsl",
-    label: "3D Shape Layout",
+    label: "S.Layout",
     sub: "レイアウト / 配置",
     icon: layoutPng,
     hrefPublic: "/app/layout/",
@@ -26,7 +26,7 @@ export const APPS_CATALOG = [
   },
   {
     key: "3dsc",
-    label: "3D Shape Create",
+    label: "S.Create",
     sub: "3D生成 / モデル作成",
     icon: createPng,
     hrefPublic: "/app/create/",
@@ -35,7 +35,7 @@ export const APPS_CATALOG = [
   },
   {
     key: "3dsp",
-    label: "3D Shape Presents",
+    label: "S.Presentations",
     sub: "プレゼン / 見積もり",
     icon: presentsPng,
     hrefPublic: "/app/presents/",
@@ -44,7 +44,7 @@ export const APPS_CATALOG = [
   },
   {
     key: "3dsb",
-    label: "3D Shape Books",
+    label: "S.Books",
     sub: "物語 / 体験",
     icon: booksPng,
     hrefPublic: "/app/books/",
@@ -53,7 +53,7 @@ export const APPS_CATALOG = [
   },
   {
     key: "3dsq",
-    label: "3D Shape Quest",
+    label: "S.Quest",
     sub: "学習 / クエスト",
     icon: questPng,
     hrefPublic: "/app/quest/",

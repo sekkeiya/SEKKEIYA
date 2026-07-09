@@ -4,7 +4,7 @@
  *  Public ID 生成・分解
  * ========================= */
 
-/** boardsPublic の publicId を決定的に生成 */
+/** projectShares の shareId を決定的に生成 */
 export const publicIdFromSource = ({ boardType, ownerId, boardId }) => {
     if (boardType === "myBoards") {
         // 将来もこれを“正”とする
@@ -14,12 +14,12 @@ export const publicIdFromSource = ({ boardType, ownerId, boardId }) => {
     return `${boardId}`;
 };
 
-/** publicId を分解（必要なら） */
-export const parsePublicId = (publicId = "") => {
-    if (publicId.startsWith("team__")) {
-        return { boardType: "teamBoards", ownerId: null, boardId: publicId.slice("team__".length) };
+/** shareId を分解（必要なら） */
+export const parsePublicId = (shareId = "") => {
+    if (shareId.startsWith("team__")) {
+        return { boardType: "teamBoards", ownerId: null, boardId: shareId.slice("team__".length) };
     }
-    const [ownerId, kind, boardId] = publicId.split("__");
+    const [ownerId, kind, boardId] = shareId.split("__");
     if (kind === "my") return { boardType: "myBoards", ownerId, boardId };
     return { boardType: null, ownerId: null, boardId: null };
 };
@@ -40,11 +40,11 @@ export const pathTeamBoard = (boardId) => `teamBoards/${boardId}`;
 export const pathTeamBoardModelsCol = (boardId) => `teamBoards/${boardId}/models`;
 export const pathTeamBoardModel = (boardId, mid) => `teamBoards/${boardId}/models/${mid}`;
 
-// boardsPublic 本体 / モデル
+// projectShares 本体 / モデル
 export const pathPublicBoardsCol = () => `boardsPublic`;
-export const pathPublicBoard = (publicId) => `boardsPublic/${publicId}`;
-export const pathPublicBoardModelsCol = (publicId) => `boardsPublic/${publicId}/models`;
-export const pathPublicBoardModel = (publicId, mid) => `boardsPublic/${publicId}/models/${mid}`;
+export const pathPublicBoard = (shareId) => `projectShares/${shareId}`;
+export const pathPublicBoardModelsCol = (shareId) => `projectShares/${shareId}/models`;
+export const pathPublicBoardModel = (shareId, mid) => `projectShares/${shareId}/models/${mid}`;
 
 /* =========================
  *  モデル正規パス（modelRef 用）
@@ -82,7 +82,7 @@ export const sourceBoardPathFrom = ({ boardType, ownerId, boardId }) => {
 
 export const isMyBoardsPath = (p = "") => p.startsWith("users/") && p.includes("/myBoards/");
 export const isTeamBoardsPath = (p = "") => p.startsWith("teamBoards/");
-export const isPublicBoardsPath = (p = "") => p.startsWith("boardsPublic/");
+export const isPublicBoardsPath = (p = "") => p.startsWith("projectShares/");
 
 /* =========================
  *  boardType をキーに汎用パスを返すヘルパ

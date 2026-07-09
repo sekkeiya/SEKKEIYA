@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Toolbar, Typography, Button } from "@mui/material";
 import BoardDetailInformation from "./BoardDetailInformation";
-import { useSelectedBoardContext } from "@/shared/contexts/SelectedBoardContext";
+import { useSelectedProjectContext } from "@/shared/contexts/SelectedProjectContext";
 import { useAuth } from "@/features/auth/context/AuthContext";
 
 const EmptyState = ({ onBack }) => (
@@ -22,26 +22,26 @@ const EmptyState = ({ onBack }) => (
 
 const BoardDetailPageContent = () => {
   const { user } = useAuth();
-  const { selectedBoard, setIsBoardEditMode } = useSelectedBoardContext();
+  const { selectedProject, setIsProjectEditMode } = useSelectedProjectContext();
 
   // --- 汎用に拾う ---
-  const boardType = selectedBoard?.boardType ?? "myBoards";
-  const boardId =
-    selectedBoard?.id ??
-    selectedBoard?.boardId ??
+  const boardType = selectedProject?.boardType ?? "myBoards";
+  const projectId =
+    selectedProject?.id ??
+    selectedProject?.projectId ??
     null;
 
   const resolvedUserId =
-    selectedBoard?.owner ??
-    selectedBoard?.ownerId ??
-    selectedBoard?.userId ??
+    selectedProject?.owner ??
+    selectedProject?.ownerId ??
+    selectedProject?.userId ??
     (boardType === "myBoards" ? user?.uid : null);
 
   // 必須チェック（teamBoards は userId不要）
   const hasEnoughIds =
-    boardType === "teamBoards" ? !!boardId : !!(resolvedUserId && boardId);
+    boardType === "teamBoards" ? !!projectId : !!(resolvedUserId && projectId);
 
-  if (!selectedBoard || !hasEnoughIds) {
+  if (!selectedProject || !hasEnoughIds) {
     return (
       <Box sx={{ backgroundColor: "#1e1e1e", minHeight: "100%", color: "#fff" }}>
         <Toolbar />
@@ -55,9 +55,9 @@ const BoardDetailPageContent = () => {
       <BoardDetailInformation
         boardType={boardType}
         userId={resolvedUserId}
-        boardId={boardId}
-        selectedBoard={selectedBoard}
-        setIsBoardEditMode={setIsBoardEditMode}
+        projectId={projectId}
+        selectedProject={selectedProject}
+        setIsProjectEditMode={setIsProjectEditMode}
       />
     </Box>
   );

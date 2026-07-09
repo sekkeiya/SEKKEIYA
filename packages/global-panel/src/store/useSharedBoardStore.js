@@ -6,6 +6,8 @@ export const useSharedBoardStore = create(
     (set) => ({
       currentBoardId: null,
       setCurrentBoardId: (id) => set({ currentBoardId: id }),
+      activeProjectId: null,
+      setActiveProjectId: (id) => set({ activeProjectId: id }),
     }),
     {
       name: 'sekkeiya-board-storage', // key in localStorage

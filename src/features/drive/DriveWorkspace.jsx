@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import { useDriveStore } from "./store/useDriveStore";
-import { DriveLayout, DriveUiProvider, AssetPreviewModal } from "sekkeiya-global-panel";
+import { DriveLayout, DriveUiProvider, AssetPreviewModal } from "@sekkeiya/global-panel";
 import { useDriveUiAdapter } from "./useDriveUiAdapter";
 
 
-export default function DriveWorkspace({ uid }) {
+export default function DriveWorkspace({ uid, activeProjectId }) {
   // Initialize and provide data
   const { initialize, cleanup, folders, assets, currentFolderId } = useDriveStore();
   const adapterState = useDriveUiAdapter();
@@ -38,8 +38,7 @@ export default function DriveWorkspace({ uid }) {
       });
       
       console.log("=== AI Drive Debug Info ===");
-      console.log("uid:", uid);
-      console.log("folders count:", safeFolders.length);
+      console.log("activeProjectId:", activeProjectId);
       console.log("assets count:", safeAssets.length);
       console.log("currentFolderId:", currentFolderId);
       console.log("visibleFolders count:", visibleFolders.length);

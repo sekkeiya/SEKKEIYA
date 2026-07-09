@@ -32,7 +32,7 @@ const pathBoardModelsCol = ({ boardType, ownerId, boardId }) => {
  * - cursor: Firestore の docSnapshot（前ページの最後の doc）
  */
 export const getPublicBoards = async ({ pageSize = 24, cursor = null, sortKey = "latest" }) => {
-    const col = collection(db, "boardsPublic");
+    const col = collection(db, "projectShares");
 
     // 不等号フィルタがあるので最初の orderBy は publicModelCount に合わせる
     const filters = [

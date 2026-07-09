@@ -25,12 +25,11 @@ import DeleteAccountDialog from "@/shared/ui/DeleteAccountDialog";
 import { APPS_CATALOG } from "@/shared/constants/appsCatalog";
 import sekkeiyaPng from "@/assets/icons/sekkeiya.png";
 import sharePng from "@/assets/icons/share.png";
+import createPng from "@/assets/icons/create.png";
 import { BRAND } from "@/shared/ui/theme";
 import NavIcon from "@/shared/ui/NavIcon";
-import useBoards from "@/shared/hooks/useBoards";
-import { useGlobalPanelStore } from "sekkeiya-global-panel";
-import { useBoardStore } from "@/shared/store/useBoardStore";
-import { getBoardRoute } from "@/shared/utils/boardRouting";
+import { useGlobalPanelStore, useProjects } from "@sekkeiya/global-panel";
+import { useAppStore } from "@/shared/store/useAppStore";
 
 const AppImageIcon = ({ src, alt }) => (
   <Box
@@ -168,18 +167,34 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { myBoards, teamBoards } = useBoards();
+  const { projects = [] } = useProjects(user?.uid);
+  const myProjects = projects.filter(p => p.ownerId === user?.uid);
+  const teamProjects = projects.filter(p => p.ownerId !== user?.uid);
   
   const storeActivePanel = useGlobalPanelStore((state) => state.activePanel);
   const activePanel = searchParams.get("panel") || storeActivePanel;
 
-  const { currentApp, currentBoardId, setCurrentBoardId, recentApps } = useBoardStore();
+  const { currentApp, recentApps } = useAppStore();
+  
+  const activeProjectId = path.startsWith("/projects/") ? path.split("/")[2] : null;
 
-  const handleBoardClick = useCallback((boardId) => {
-    setCurrentBoardId(boardId);
-    navigate(getBoardRoute(currentApp, boardId));
-  }, [currentApp, setCurrentBoardId, navigate]);
-
+  const handleProjectClick = useCallback((newProjectId) => {
+    // 現在のURL (/projects/{id}/{section}) からセクションを取り出し、
+    // プロジェクト切り替え後も同じタブを維持する
+    const parts = location.pathname.split("/");
+    // parts: ["", "projects", "{projectId}", "{section}", ...]
+    const currentSection =
+      parts.length >= 4 && parts[1] === "projects" ? parts[3] : null;
+    const PRESERVE_SECTIONS = [
+      "landing", "files", "schedule",
+      "research", "strategy", "persona", "analysis",
+    ];
+    const targetSection =
+      currentSection && PRESERVE_SECTIONS.includes(currentSection)
+        ? currentSection
+        : "landing";
+    navigate(`/projects/${newProjectId}/${targetSection}`);
+  }, [navigate, location.pathname]);
   const [appAnchorEl, setAppAnchorEl] = useState(null);
 
   const handleAppClick = (e) => setAppAnchorEl(e.currentTarget);
@@ -188,11 +203,11 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
   const path = location.pathname;
   const isDrive = path.startsWith("/dashboard/drive");
 
-  const myRecent = [...myBoards]
+  const myRecent = [...myProjects]
     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
     .slice(0, 3);
 
-  const teamRecent = [...teamBoards]
+  const teamRecent = [...teamProjects]
     .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
     .slice(0, 3);
 
@@ -233,12 +248,22 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
           </IconButton>
         </Tooltip>
       ) : appId === "3dss" ? (
-        <Tooltip title="3D Shape Share ホーム" placement="right">
+        <Tooltip title="S.Models ホーム" placement="right">
           <IconButton onClick={() => navigate("/dashboard")} sx={{ mb: 1 }}>
-            <AppImageIcon src={sharePng} alt="3DSS" />
+            <AppImageIcon src={sharePng} alt="S.Models" />
           </IconButton>
         </Tooltip>
       ) : null}
+
+      {/* 3DSC App Shortcut */}
+      <Tooltip title="S.Create" placement="right">
+        <IconButton
+          onClick={() => window.location.assign("/app/create/")}
+          sx={{ mb: 1, bgcolor: "rgba(255,255,255,0.05)", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
+        >
+          <AppImageIcon src={createPng} alt="S.Create" />
+        </IconButton>
+      </Tooltip>
 
       <NavIcon 
         icon={<FolderRoundedIcon />} 
@@ -272,29 +297,29 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
 
       <NavIcon 
         icon={<AccountTreeRoundedIcon />} 
-        label="ボード管理" 
-        active={path.startsWith("/dashboard/boards")}
+        label="プロジェクト管理" 
+        active={path.startsWith("/dashboard/projects")}
         onClick={() => {
-          navigate("/dashboard/boards");
+          navigate("/dashboard/projects");
         }} 
       />
 
       <Divider sx={{ width: "60%", opacity: 0.25, my: 1.5 }} />
 
-      {/* My Boards Shortcuts */}
+      {/* My Projects Shortcuts */}
       {myRecent.length > 0 && (
-        <Tooltip title="My Boards" placement="right">
+        <Tooltip title="My Projects" placement="right">
           <Box sx={{ width: "100%", display: "flex", justifyContent: "center", opacity: 0.4, mb: 0.5 }}>
             <PersonRoundedIcon sx={{ fontSize: 18 }} />
           </Box>
         </Tooltip>
       )}
       {myRecent.map((p, i) => {
-        const isActive = path === `/dashboard/projects/${p.id}`;
+        const isActive = activeProjectId === p.id;
         return (
         <Tooltip title={p.name} placement="right" key={p.id}>
           <Box
-            onClick={() => handleBoardClick(p.id)}
+            onClick={() => handleProjectClick(p.id)}
             sx={{
               width: 36,
               height: 36,
@@ -322,20 +347,20 @@ export default function MiniSidebar({ onToggle, isExpanded, appId = "sekkeiya" }
 
       <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
 
-      {/* Team Boards Shortcuts */}
+      {/* Team Projects Shortcuts */}
       {teamRecent.length > 0 && (
-        <Tooltip title="Team Boards" placement="right">
+        <Tooltip title="Team Projects" placement="right">
           <Box sx={{ width: "100%", display: "flex", justifyContent: "center", opacity: 0.4, mt: 1, mb: 0.5 }}>
             <GroupRoundedIcon sx={{ fontSize: 18 }} />
           </Box>
         </Tooltip>
       )}
       {teamRecent.map((p, i) => {
-        const isActive = path === `/dashboard/projects/${p.id}`;
+        const isActive = activeProjectId === p.id;
         return (
         <Tooltip title={p.name} placement="right" key={p.id}>
           <Box
-            onClick={() => handleBoardClick(p.id)}
+            onClick={() => handleProjectClick(p.id)}
             sx={{
               width: 36,
               height: 36,

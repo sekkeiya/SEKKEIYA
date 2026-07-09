@@ -1,5 +1,5 @@
 // utils/services/boards/public.js
-// 目的: boardsPublic/* と boardsPublic/*/models/* に対する "単発CRUDのみ" を提供。
+// 目的: projectShares/* と projectShares/*/models/* に対する "単発CRUDのみ" を提供。
 // 集計/分岐/同期の調停は actions.js 側で行う。
 
 import {
@@ -56,24 +56,24 @@ function computeCanonicalPublicId({ incomingId, data }) {
  * Boards (本体)
  * ========= */
 
-/** Source({ boardType, ownerId?, boardId }) から publicId を決定的に返す */
+/** Source({ boardType, ownerId?, boardId }) から shareId を決定的に返す */
 export const getPublicIdBySource = ({ boardType, ownerId, boardId }) => {
     return publicIdFromSource({ boardType, ownerId, boardId });
 };
 
 /**
- * boardsPublic/{publicId} を idempotent に upsert。
- * 受け取った publicId が旧式でも、正規 publicId に“矯正”して保存し、旧式 doc は掃除する。
+ * projectShares/{shareId} を idempotent に upsert。
+ * 受け取った shareId が旧式でも、正規 shareId に“矯正”して保存し、旧式 doc は掃除する。
  */
-export const upsertPublicBoard = async ({ publicId, data }) => {
-    if (!publicId) throw new Error("[upsertPublicBoard] publicId required");
+export const upsertPublicBoard = async ({ shareId, data }) => {
+    if (!shareId) throw new Error("[upsertPublicBoard] shareId required");
 
     // 1) 正規IDへ矯正
     const { canonicalId, ownerId, boardId } = computeCanonicalPublicId({
-        incomingId: publicId,
+        incomingId: shareId,
         data,
     });
-    const targetId = canonicalId || publicId;
+    const targetId = canonicalId || shareId;
 
     // 2) 本体 upsert（必ず visibility/public & updatedAt を持たせる）
     const ref = doc(db, pathPublicBoard(targetId));
@@ -86,15 +86,15 @@ export const upsertPublicBoard = async ({ publicId, data }) => {
             sourceBoardId: data?.sourceBoardId ?? data?.source?.boardId ?? boardId ?? null,
             sourceOwnerId: data?.sourceOwnerId ?? data?.ownerId ?? data?.source?.ownerId ?? ownerId ?? null,
             ...data, // name, description, ownerId, ownerName, coverImageUrl, source:{...}, publishedAt など
-            publicId: targetId,
+            shareId: targetId,
         },
         { merge: true }
     );
 
     // 3) もし旧式IDで来ていたら、旧 doc を削除（サブコレ含め）
-    if (publicId !== targetId) {
+    if (shareId !== targetId) {
         try {
-            await deletePublicBoard({ publicId }); // 旧ID
+            await deletePublicBoard({ shareId }); // 旧ID
         } catch {
             /* noop */
         }
@@ -103,20 +103,20 @@ export const upsertPublicBoard = async ({ publicId, data }) => {
     return targetId;
 };
 
-/** boardsPublic/{publicId} を削除（サブコレ models も一括削除） */
-export const deletePublicBoard = async ({ publicId }) => {
-    if (!publicId) throw new Error("[deletePublicBoard] publicId required");
-    const col = collection(db, pathPublicBoardModelsCol(publicId));
+/** projectShares/{shareId} を削除（サブコレ models も一括削除） */
+export const deletePublicBoard = async ({ shareId }) => {
+    if (!shareId) throw new Error("[deletePublicBoard] shareId required");
+    const col = collection(db, pathPublicBoardModelsCol(shareId));
     const snap = await getDocs(col);
     const batch = writeBatch(db);
     snap.docs.forEach((d) => batch.delete(d.ref));
-    batch.delete(doc(db, pathPublicBoard(publicId)));
+    batch.delete(doc(db, pathPublicBoard(shareId)));
     await batch.commit();
 };
 
-/** boardsPublic/{publicId} が存在するか取得 */
-export const getPublicBoard = async ({ publicId }) => {
-    const ref = doc(db, pathPublicBoard(publicId));
+/** projectShares/{shareId} が存在するか取得 */
+export const getPublicBoard = async ({ shareId }) => {
+    const ref = doc(db, pathPublicBoard(shareId));
     const snap = await getDoc(ref);
     return { exists: snap.exists(), data: snap.exists() ? snap.data() : null, ref };
 };
@@ -125,19 +125,19 @@ export const getPublicBoard = async ({ publicId }) => {
  * Models (サブコレ)
  * ========= */
 
-/** boardsPublic/{publicId}/models/{modelId} を upsert */
+/** projectShares/{shareId}/models/{modelId} を upsert */
 export const upsertPublicBoardModel = async ({
-    publicId,
+    shareId,
     modelId,
     modelRef, // { id, path }
     addedBy,  // uid
     savedAt,  // optional
     summary = {}, // {title, thumbnailUrl ...}
 }) => {
-    if (!publicId || !modelId || !modelRef?.id || !modelRef?.path) {
+    if (!shareId || !modelId || !modelRef?.id || !modelRef?.path) {
         throw new Error("[upsertPublicBoardModel] invalid args");
     }
-    const ref = doc(db, pathPublicBoardModel(publicId, modelId));
+    const ref = doc(db, pathPublicBoardModel(shareId, modelId));
     await setDoc(
         ref,
         {
@@ -150,19 +150,19 @@ export const upsertPublicBoardModel = async ({
     );
 };
 
-/** boardsPublic/{publicId}/models/{modelId} を削除 */
-export const deletePublicBoardModel = async ({ publicId, modelId }) => {
-    if (!publicId || !modelId) throw new Error("[deletePublicBoardModel] invalid args");
-    await deleteDoc(doc(db, pathPublicBoardModel(publicId, modelId)));
+/** projectShares/{shareId}/models/{modelId} を削除 */
+export const deletePublicBoardModel = async ({ shareId, modelId }) => {
+    if (!shareId || !modelId) throw new Error("[deletePublicBoardModel] invalid args");
+    await deleteDoc(doc(db, pathPublicBoardModel(shareId, modelId)));
 };
 
-/** boardsPublic/{publicId} の publicModelCount をサブコレ件数で再集計 */
-export const recountPublicModelCount = async ({ publicId }) => {
-    const col = collection(db, pathPublicBoardModelsCol(publicId));
+/** projectShares/{shareId} の publicModelCount をサブコレ件数で再集計 */
+export const recountPublicModelCount = async ({ shareId }) => {
+    const col = collection(db, pathPublicBoardModelsCol(shareId));
     const snap = await getDocs(col);
     const count = snap.size;
     await setDoc(
-        doc(db, pathPublicBoard(publicId)),
+        doc(db, pathPublicBoard(shareId)),
         { publicModelCount: count, updatedAt: serverTimestamp() },
         { merge: true }
     );
@@ -173,24 +173,24 @@ export const recountPublicModelCount = async ({ publicId }) => {
  * 既存互換: 柔軟削除
  * ========= */
 
-export const removeFromBoardsPublicBySource = async ({ publicId, boardType, sourceBoardId, ownerId }) => {
-    if (publicId) {
-        await deletePublicBoard({ publicId });
+export const removeFromBoardsPublicBySource = async ({ shareId, boardType, sourceBoardId, ownerId }) => {
+    if (shareId) {
+        await deletePublicBoard({ shareId });
         return 1;
     }
     // 決定的IDで一意に到達
     try {
         const pid = getPublicIdBySource({ boardType, ownerId, boardId: sourceBoardId });
-        const { exists } = await getPublicBoard({ publicId: pid });
+        const { exists } = await getPublicBoard({ shareId: pid });
         if (exists) {
-            await deletePublicBoard({ publicId: pid });
+            await deletePublicBoard({ shareId: pid });
             return 1;
         }
         // 旧式ID（ownerId_boardId）も念のため掃除
         const legacy = `${ownerId}_${sourceBoardId}`;
-        const { exists: exLegacy } = await getPublicBoard({ publicId: legacy });
+        const { exists: exLegacy } = await getPublicBoard({ shareId: legacy });
         if (exLegacy) {
-            await deletePublicBoard({ publicId: legacy });
+            await deletePublicBoard({ shareId: legacy });
             return 1;
         }
         return 0;

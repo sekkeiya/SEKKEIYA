@@ -2,11 +2,10 @@ import React, { useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Box } from "@mui/material";
 import ProjectBoardPage from "@/features/projectBoard/pages/ProjectBoardPage";
-import { SelectedBoardProvider, useSelectedBoardContext } from "@/shared/contexts/SelectedBoardContext";
+import { SelectedProjectProvider, useSelectedProjectContext } from "@/shared/contexts/SelectedProjectContext";
 import { CircularProgress } from "@mui/material";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/shared/config/firebase";
-import { normalizeToUnifiedBoard } from "@/shared/api/adapters/boardAdapters";
 
 function IframePageInner() {
   const { boardId } = useParams();
@@ -14,14 +13,14 @@ function IframePageInner() {
   const type = searchParams.get("type") || "myBoards";
   const userId = searchParams.get("userId") || null;
   
-  const { selectedBoard, setSelectedBoard } = useSelectedBoardContext();
+  const { selectedProject, setSelectedProject } = useSelectedProjectContext();
 
   useEffect(() => {
     let active = true;
 
     const fetchBoard = async () => {
       // If we already have a rich board object in context, just use it
-      if (selectedBoard && selectedBoard.id === boardId && selectedBoard.name) {
+      if (selectedProject && selectedProject.id === boardId && selectedProject.name) {
         return;
       }
 
@@ -35,19 +34,18 @@ function IframePageInner() {
           userId: userId
         };
 
-        // Try to fetch the actual board document to get the name
         const snap = await getDoc(doc(db, "boards", boardId));
         if (snap.exists()) {
-          boardData = normalizeToUnifiedBoard(snap.data(), boardId, snap.data().boardType === "teamBoards");
+          boardData = { id: boardId, ...snap.data() };
         }
 
         if (active) {
-          setSelectedBoard(boardData);
+          setSelectedProject(boardData);
         }
       } catch (err) {
         console.error("Failed to fetch immersed board data:", err);
         if (active) {
-          setSelectedBoard({
+          setSelectedProject({
             id: boardId,
             boardId: boardId,
             boardType: type,
@@ -62,9 +60,9 @@ function IframePageInner() {
     fetchBoard();
 
     return () => { active = false; };
-  }, [boardId, type, userId, selectedBoard, setSelectedBoard]);
+  }, [boardId, type, userId, selectedProject, setSelectedProject]);
 
-  if (!selectedBoard || selectedBoard.id !== boardId) {
+  if (!selectedProject || selectedProject.id !== boardId) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#111' }}>
         <CircularProgress />
@@ -74,15 +72,15 @@ function IframePageInner() {
 
   return (
     <Box sx={{ width: "100%", height: "100vh", overflow: "hidden", bgcolor: "#111" }}>
-      <ProjectBoardPage board={selectedBoard} />
+      <ProjectBoardPage board={selectedProject} />
     </Box>
   );
 }
 
 export default function ProjectBoardIframePage() {
   return (
-    <SelectedBoardProvider>
+    <SelectedProjectProvider>
       <IframePageInner />
-    </SelectedBoardProvider>
+    </SelectedProjectProvider>
   );
 }

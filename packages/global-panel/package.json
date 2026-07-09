@@ -1,19 +1,15 @@
 {
-  "name": "sekkeiya-global-panel",
+  "name": "@sekkeiya/global-panel",
   "version": "1.0.0",
   "type": "module",
   "main": "src/index.js",
-  "exports": {
-    ".": "./src/index.js"
-  },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^7.0.0",
-    "zustand": "^5.0.0",
-    "@mui/material": "^7.0.0",
-    "@mui/icons-material": "^7.0.0",
-    "@emotion/react": "^11.0.0",
-    "@emotion/styled": "^11.0.0"
+    "react": "*",
+    "react-dom": "*",
+    "react-router-dom": "*",
+    "@mui/material": "*",
+    "@mui/icons-material": "*",
+    "firebase": "*",
+    "zustand": "*"
   }
 }

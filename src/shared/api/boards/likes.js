@@ -3,9 +3,9 @@ import { db } from "@/shared/config/firebase";
 import { doc, runTransaction, serverTimestamp, increment } from "firebase/firestore";
 
 /**
- * 公開ボードのいいねトグル（後方互換: publicBoards / boardsPublic 両対応）
+ * 公開ボードのいいねトグル（後方互換: publicBoards / projectShares 両対応）
  * @param {object} params
- * @param {string} params.publicBoardId - 公開ボードID（boardsPublic の doc id）
+ * @param {string} params.publicBoardId - 公開ボードID（projectShares の doc id）
  * @param {string} params.userId - 操作者の uid
  * @param {boolean} params.next - 付けたい状態（true: いいね, false: 解除）
  */
@@ -14,7 +14,7 @@ export async function toggleBoardLike({ publicBoardId, userId, next }) {
         throw new Error("toggleBoardLike: 引数が不足しています");
     }
 
-    const roots = ["publicBoards", "boardsPublic"];
+    const roots = ["publicBoards", "projectShares"];
     let ok = false;
 
     for (const root of roots) {

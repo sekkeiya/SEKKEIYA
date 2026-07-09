@@ -1,18 +1,32 @@
 import React from "react";
 import { Box, useMediaQuery } from "@mui/material";
-import { Outlet } from "react-router-dom";
+import { Outlet, useSearchParams } from "react-router-dom";
 import { BRAND } from "../ui/theme";
 import LeftSidebar from "./LeftSidebar";
 import BottomBar from "./BottomBar";
-import { usePanelUrlSync } from "sekkeiya-global-panel";
+import MobileTopBar from "./MobileTopBar";
+import { usePanelUrlSync, AssistantDrawer } from "@sekkeiya/global-panel";
 import GlobalPanelHost from "./panel/GlobalPanelHost";
+import { useProjectContext } from '@/app/providers/ProjectProvider';
 
-export default function AppLayout() {
+export default function AppLayout({ hideMainSidebar = false }) {
   const isMobile = useMediaQuery("(max-width:600px)");
-  const mobileBottomSafe = isMobile ? 84 : 0;
-  
+
   // URLとPanel Stateの同期
   usePanelUrlSync();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activePanel = searchParams.get("panel");
+  const isChatOpen = activePanel === "chat";
+
+  const { activeProjectId } = useProjectContext();
+
+  const closeChat = () => {
+    setSearchParams(params => {
+      params.delete("panel");
+      return params;
+    });
+  };
 
   return (
     <Box
@@ -26,20 +40,64 @@ export default function AppLayout() {
           "radial-gradient(60% 50% at 50% 35%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.00) 55%)",
       }}
     >
-      {/* ===== Left Sidebar (Desktop) / Bottom Bar (Mobile) ===== */}
+      {/* ===== Left Sidebar (Desktop) / Top+Bottom Bar (Mobile) ===== */}
       {isMobile ? (
-        <BottomBar />
+        <>
+          <MobileTopBar />
+          <BottomBar />
+        </>
       ) : (
-        <LeftSidebar />
+        <LeftSidebar hideMainSidebar={hideMainSidebar} />
       )}
 
-      {/* ===== Main ===== */}
-      <Box sx={{ flex: 1, position: "relative", overflowY: "auto", pb: `${mobileBottomSafe}px` }}>
-        {/* The Outlet remains mounted even when panels are open */}
-        <Outlet />
+      {/* ===== Main and Right Area ===== */}
+      <Box sx={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {/* Main Content Box */}
+        <Box
+          sx={{
+            flex: 1,
+            position: "relative",
+            overflowY: "auto",
+            overflowX: "hidden",
+            pt: isMobile ? "calc(52px + env(safe-area-inset-top))" : 0,
+            pb: isMobile ? "calc(64px + env(safe-area-inset-bottom))" : 0,
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.15) transparent',
+            '&::-webkit-scrollbar': { width: '8px', height: '8px' },
+            '&::-webkit-scrollbar-track': { background: 'transparent' },
+            '&::-webkit-scrollbar-thumb': { 
+              background: 'rgba(255, 255, 255, 0.1)', 
+              borderRadius: '10px' 
+            },
+            '&::-webkit-scrollbar-thumb:hover': { 
+              background: 'rgba(255, 255, 255, 0.25)' 
+            },
+          }}
+        >
+          {/* The Outlet remains mounted even when panels are open */}
+          <Outlet />
+        </Box>
+
+        {/* Right AIChat Participant */}
+        {!isMobile && (
+          <AssistantDrawer 
+            isOpen={isChatOpen} 
+            onClose={closeChat} 
+            projectId={activeProjectId}
+          />
+        )}
       </Box>
 
-      {/* ===== Global Panels (Overlays) ===== */}
+      {/* Mobile Fullscreen Drawer for AI */}
+      {isMobile && (
+        <AssistantDrawer 
+          isOpen={isChatOpen} 
+          onClose={closeChat} 
+          projectId={activeProjectId}
+        />
+      )}
+
+      {/* ===== Global Panels (Overlays - e.g. Drive) ===== */}
       <GlobalPanelHost />
     </Box>
   );

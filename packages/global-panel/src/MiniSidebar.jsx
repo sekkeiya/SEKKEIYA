@@ -1,30 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { Box, Tooltip, IconButton, Avatar, Menu, MenuItem, ListItemIcon, Divider } from "@mui/material";
+import {
+  Box, Tooltip, IconButton, Avatar, Menu, MenuItem,
+  ListItemIcon, Divider, Typography,
+} from "@mui/material";
 import FolderRoundedIcon from "@mui/icons-material/FolderRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import MenuOpenRoundedIcon from "@mui/icons-material/MenuOpenRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import PersonRemoveRoundedIcon from "@mui/icons-material/PersonRemoveRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 import ChatRoundedIcon from "@mui/icons-material/ChatRounded";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";
+import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
+import PresentToAllRoundedIcon from "@mui/icons-material/PresentToAllRounded";
+import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
+import { useLocation } from "react-router-dom";
 
 import { APPS_CATALOG } from "./appRoutes.js";
-import { getBoardRoute } from "./getBoardRoute.js";
 import { usePanelTheme } from "./theme/ThemeContext.jsx";
-import { useSharedBoardStore } from "./store/useSharedBoardStore.js";
+import { useProjectContext } from "./hooks/useProjectContext.js";
+import AppInitSkeleton from "./components/AppInitSkeleton.jsx";
 
 const AppImageIcon = ({ src, alt, fallbackChar }) => (
   <Box
     sx={{
-      width: 28,
-      height: 28,
+      width: 26,
+      height: 26,
       borderRadius: "50%",
       border: "1px solid rgba(255,255,255,0.15)",
       boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
@@ -33,62 +41,78 @@ const AppImageIcon = ({ src, alt, fallbackChar }) => (
       justifyContent: "center",
       bgcolor: src ? "transparent" : "#333",
       color: "#fff",
-      overflow: "hidden"
+      overflow: "hidden",
     }}
   >
     {src ? (
       <Box component="img" src={src} alt={alt} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
     ) : (
-      <span style={{ fontSize: 13, fontWeight: "bold" }}>{fallbackChar || alt?.charAt(0) || "A"}</span>
+      <span style={{ fontSize: 12, fontWeight: "bold" }}>{fallbackChar || alt?.charAt(0) || "A"}</span>
     )}
   </Box>
 );
 
-const NavIcon = ({ icon, label, active, onClick, BRAND }) => (
+const NavIcon = ({ icon, label, active, onClick, BRAND, isBrand }) => (
   <Tooltip title={label} placement="right">
     <IconButton
       onClick={onClick}
       sx={{
-        mb: 1,
-        color: active ? BRAND.primary : "rgba(255,255,255,0.7)",
-        bgcolor: active ? "rgba(255,255,255,0.1)" : "transparent",
-        "&:hover": { bgcolor: "rgba(255,255,255,0.15)" },
+        mb: isBrand ? 1 : 0.5,
+        p: isBrand ? 0.75 : 1,
+        color: active ? "#3498db" : "rgba(255,255,255,0.6)",
+        bgcolor: active
+          ? isBrand ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.15)"
+          : "transparent",
+        borderRadius: isBrand ? "50%" : 2,
+        border: isBrand
+          ? active ? "1px solid rgba(255,255,255,0.5)" : "1px solid transparent"
+          : "none",
+        boxShadow: active && isBrand ? "0 0 12px rgba(255,255,255,0.3)" : "none",
+        "&:hover": {
+          bgcolor: isBrand ? "rgba(255,255,255,0.1)" : (active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.1)"),
+          color: active ? "#3498db" : "#fff",
+          borderColor: isBrand ? "rgba(255,255,255,0.3)" : "transparent",
+        },
+        transition: "all 0.15s",
       }}
     >
-      {icon}
+      {React.cloneElement(icon, { fontSize: "small" })}
     </IconButton>
   </Tooltip>
 );
 
 const UserAvatarMenu = ({ user, onLogout, onNavigate, onNavigateExternal, onChangeMainView, BRAND }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-  
-  const loginUrl = "/login?return_to=%2Fdashboard";
-  const signupUrl = "/signup?return_to=%2Fdashboard";
 
-  const handleClick = (e) => setAnchorEl(e.currentTarget);
-  const handleClose = () => setAnchorEl(null);
-
-  const handleAction = (action) => {
-    handleClose();
-    if (typeof action === 'function') action();
+  const getAppBasePath = () => {
+    if (typeof window === "undefined") return "";
+    const match = window.location.pathname.match(/^(\/app\/[^/]+)/);
+    return match ? match[1] : "";
   };
+  const appBase = getAppBasePath();
+  const returnPath = encodeURIComponent(appBase + "/dashboard");
+  const loginUrl = `/login?return_to=${returnPath}`;
+  const signupUrl = `/signup?return_to=${returnPath}`;
+
+  const handleClose = () => setAnchorEl(null);
+  const handleAction = (action) => { handleClose(); if (typeof action === "function") action(); };
 
   return (
     <>
-      <Tooltip title={user ? "アカウント設定" : "ログイン"} placement="right">
-        <IconButton onClick={handleClick} sx={{ mb: 1 }}>
-          <Avatar 
-            src={user?.photoURL} 
-            sx={{ 
-              width: 36, 
-              height: 36, 
+      <Tooltip title={user ? "アカウント" : "ログイン"} placement="right">
+        <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ mb: 1 }}>
+          <Avatar
+            src={user?.photoURL}
+            sx={{
+              width: 32,
+              height: 32,
               bgcolor: user ? "primary.main" : "rgba(255,255,255,0.1)",
-              border: `2px solid ${anchorEl ? BRAND.text : 'transparent'}`,
-              transition: "all 0.2s"
+              border: `2px solid ${anchorEl ? "rgba(255,255,255,0.4)" : "transparent"}`,
+              fontSize: "0.8rem",
+              transition: "border-color 0.2s",
             }}
           >
-            {!user && <LoginRoundedIcon fontSize="small" />}
+            {user ? user.email?.[0]?.toUpperCase() : <LoginRoundedIcon fontSize="small" />}
           </Avatar>
         </IconButton>
       </Tooltip>
@@ -97,341 +121,402 @@ const UserAvatarMenu = ({ user, onLogout, onNavigate, onNavigateExternal, onChan
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
-        transformOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        transformOrigin={{ horizontal: "left", vertical: "bottom" }}
+        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         slotProps={{
           paper: {
             sx: {
-              bgcolor: BRAND.panel || '#1e1e1e',
-              color: BRAND.text || '#fff',
-              border: `1px solid ${BRAND.line || 'rgba(255,255,255,0.1)'}`,
-              minWidth: 180,
-              mt: -1,
-              ml: 1
-            }
-          }
+              bgcolor: "rgba(20,20,20,0.88)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.1)",
+              minWidth: 240,
+              ml: 1.5,
+              mb: 1,
+              borderRadius: 3,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+              overflow: "hidden",
+            },
+          },
         }}
       >
         {user ? [
-          <Box key="user-info" sx={{ px: 2, py: 1.5, pb: 1 }}>
-            <Box sx={{ fontSize: 14, fontWeight: 'bold' }}>{user.displayName || "ユーザー"}</Box>
-            <Box sx={{ fontSize: 12, color: 'text.secondary' }}>{user.email || ""}</Box>
+          <Box key="user-info" sx={{ px: 2.5, py: 2, display: "flex", alignItems: "center", gap: 1.5, bgcolor: "rgba(255,255,255,0.03)" }}>
+            <Avatar src={user.photoURL} sx={{ width: 36, height: 36, bgcolor: "primary.main", fontSize: "0.9rem" }}>
+              {user.email?.[0]?.toUpperCase() || "U"}
+            </Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, color: "#fff", lineHeight: 1.3 }}>
+                {user.displayName || "ユーザー"}
+              </Typography>
+              <Typography noWrap sx={{ fontSize: 11, color: "rgba(255,255,255,0.45)", mt: 0.25 }}>
+                {user.email || ""}
+              </Typography>
+            </Box>
           </Box>,
-          <Divider key="div1" sx={{ borderColor: BRAND.line }} />,
-          <MenuItem key="dashboard" onClick={() => handleAction(() => {
-            if (onChangeMainView) onChangeMainView("home");
-            else onNavigateExternal("/");
-          })}>
-            <ListItemIcon><DashboardRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
-            ダッシュボード
-          </MenuItem>,
-          <MenuItem key="connections" onClick={() => handleAction(() => {
-            if (onChangeMainView) onChangeMainView("connections");
-            else onNavigateExternal("/dashboard/connections");
-          })}>
-            <ListItemIcon><PeopleAltRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
-            つながり管理
-          </MenuItem>,
-          <Divider key="div2" sx={{ borderColor: BRAND.line }} />,
-          <MenuItem key="logout" onClick={() => handleAction(onLogout)}>
-            <ListItemIcon><LogoutRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
-            ログアウト
-          </MenuItem>
+          <Divider key="div1" sx={{ borderColor: "rgba(255,255,255,0.08)" }} />,
+          <Box key="menu-items" sx={{ p: 0.75 }}>
+            <MenuItem
+              key="dashboard"
+              onClick={() => handleAction(() => {
+                if (onChangeMainView) onChangeMainView("home");
+                else onNavigateExternal?.("/dashboard");
+              })}
+              sx={{ borderRadius: 2, py: 1.25, mb: 0.25, "&:hover": { bgcolor: "rgba(255,255,255,0.07)" } }}
+            >
+              <ListItemIcon><StorefrontRoundedIcon fontSize="small" sx={{ color: "rgba(255,255,255,0.6)" }} /></ListItemIcon>
+              <Typography sx={{ fontSize: 13 }}>ダッシュボード</Typography>
+            </MenuItem>
+            <MenuItem
+              key="connections"
+              onClick={() => handleAction(() => {
+                if (onChangeMainView) onChangeMainView("connections");
+                else onNavigateExternal?.("/dashboard/connections");
+              })}
+              sx={{ borderRadius: 2, py: 1.25, "&:hover": { bgcolor: "rgba(255,255,255,0.07)" } }}
+            >
+              <ListItemIcon><PeopleAltRoundedIcon fontSize="small" sx={{ color: "rgba(255,255,255,0.6)" }} /></ListItemIcon>
+              <Typography sx={{ fontSize: 13 }}>つながり管理</Typography>
+            </MenuItem>
+          </Box>,
+          <Divider key="div2" sx={{ borderColor: "rgba(255,255,255,0.08)" }} />,
+          <Box key="logout-box" sx={{ p: 0.75 }}>
+            <MenuItem
+              key="logout"
+              onClick={() => handleAction(onLogout)}
+              sx={{ borderRadius: 2, py: 1.25, color: "#ef4444", "&:hover": { bgcolor: "rgba(239,68,68,0.1)" } }}
+            >
+              <ListItemIcon><LogoutRoundedIcon fontSize="small" sx={{ color: "#ef4444" }} /></ListItemIcon>
+              <Typography sx={{ fontSize: 13, color: "#ef4444" }}>ログアウト</Typography>
+            </MenuItem>
+          </Box>,
         ] : [
-          <MenuItem key="login" onClick={() => handleAction(() => window.location.assign(loginUrl))}>
-            <ListItemIcon><LoginRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
-            サインイン
-          </MenuItem>,
-          <MenuItem key="signup" onClick={() => handleAction(() => window.location.assign(signupUrl))}>
-            <ListItemIcon><PersonAddRoundedIcon fontSize="small" sx={{ color: BRAND.text }} /></ListItemIcon>
-            サインアップ
-          </MenuItem>
+          <Box key="guest-items" sx={{ p: 0.75 }}>
+            <MenuItem key="login" onClick={() => handleAction(() => onNavigateExternal?.(loginUrl))} sx={{ borderRadius: 2, py: 1.25, mb: 0.25, "&:hover": { bgcolor: "rgba(255,255,255,0.07)" } }}>
+              <ListItemIcon><LoginRoundedIcon fontSize="small" sx={{ color: "rgba(255,255,255,0.6)" }} /></ListItemIcon>
+              <Typography sx={{ fontSize: 13 }}>サインイン</Typography>
+            </MenuItem>
+            <MenuItem key="signup" onClick={() => handleAction(() => onNavigateExternal?.(signupUrl))} sx={{ borderRadius: 2, py: 1.25, "&:hover": { bgcolor: "rgba(255,255,255,0.07)" } }}>
+              <ListItemIcon><PersonAddRoundedIcon fontSize="small" sx={{ color: "rgba(255,255,255,0.6)" }} /></ListItemIcon>
+              <Typography sx={{ fontSize: 13 }}>サインアップ</Typography>
+            </MenuItem>
+          </Box>,
         ]}
       </Menu>
     </>
   );
 };
 
-export default function MiniSidebar({ 
-  currentApp = "sekkeiya", 
-  currentBoardId, 
-  boards = [], 
-  user, 
-  onNavigate, 
-  onNavigateExternal, 
+export default function MiniSidebar({
+  currentApp = "sekkeiya",
+  currentBoardId,
+  user,
+  onNavigate,
+  onNavigateExternal,
   onChangeMainView,
   onSelectBoard,
-  onOpenChat, 
-  onOpenDrive, 
-  activePanelState, // "chat" | "drive" | null
+  onOpenChat,
+  onOpenDrive,
+  activePanelState,
   onLogout,
   onToggle,
   isExpanded = false,
   recentApps = [],
-  appIcons = {}
+  appIcons = {},
 }) {
   const BRAND = usePanelTheme();
   const [appAnchorEl, setAppAnchorEl] = useState(null);
+  const [transitionTarget, setTransitionTarget] = useState(null);
 
-  // Sync currentBoardId with the shared store so OTHER apps know the last active board
+  let location = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    location = useLocation();
+  } catch (_) {
+    // not inside Router — sub-apps may have different routing context
+  }
+  const currentPath = location?.pathname ?? "";
+
   useEffect(() => {
     if (currentBoardId) {
-      useSharedBoardStore.getState().setCurrentBoardId(currentBoardId);
+      useProjectContext.getState().setActiveBoardId(currentBoardId);
     }
   }, [currentBoardId]);
 
   const handleAppClick = (e) => setAppAnchorEl(e.currentTarget);
   const handleAppClose = () => setAppAnchorEl(null);
 
-  const handleBoardClick = (boardId) => {
-    // Save to shared store immediately when clicking a board shortcut
-    useSharedBoardStore.getState().setCurrentBoardId(boardId);
-    
-    if (onSelectBoard) onSelectBoard(boardId);
-    if (onChangeMainView) {
-      onChangeMainView("boardDetail");
-    } else {
-      const route = getBoardRoute(currentApp, boardId);
-      // Board switching within the same app
-      onNavigate(route);
-    }
+  const handleProjectClick = (projectId) => {
+    useProjectContext.getState().setActiveProjectId(projectId);
+    if (onNavigate) onNavigate(`/projects/${projectId}`);
   };
 
   const handleMenuNavigate = (targetApp, authRoute, pubRoute) => {
-    const savedBoardId = useSharedBoardStore.getState().currentBoardId;
-    let url = (user && authRoute) ? authRoute : pubRoute;
-    
-    // Auto-append board context if moving across apps
-    if (user && savedBoardId) {
-      url = getBoardRoute(targetApp, savedBoardId);
+    const savedProjectId = useProjectContext.getState().activeProjectId;
+    let url = user && authRoute ? authRoute : pubRoute;
+    if (user && savedProjectId) {
+      const base = url.endsWith("/") ? url.slice(0, -1) : url;
+      url = `${base}/projects/${savedProjectId}`;
     }
-
     if (targetApp === currentApp) {
-      if (onNavigate) onNavigate(url);
-      else window.location.assign(url);
+      onNavigate?.(url);
     } else {
-      if (onNavigateExternal) onNavigateExternal(url);
-      else window.location.assign(url);
+      const appInfo = APPS_CATALOG.find((a) => a.id === targetApp || a.key === targetApp);
+      setTransitionTarget({
+        appName: appInfo?.label ?? targetApp,
+        boardName: null,
+        icon: appInfo?.icon ?? null,
+      });
+      setTimeout(() => onNavigateExternal?.(url), 150);
     }
-  };
-
-  const myBoards = boards.filter(b => b.boardType !== "teamBoards");
-  const teamBoards = boards.filter(b => b.boardType === "teamBoards");
-
-  const myRecent = [...myBoards]
-    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-    .slice(0, 3);
-
-  const teamRecent = [...teamBoards]
-    .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-    .slice(0, 3);
-
-  const renderBoardShortcut = (p) => {
-    const isActive = p.id === currentBoardId;
-    return (
-      <Tooltip title={p.name} placement="right" key={p.id}>
-        <Box
-          onClick={() => handleBoardClick(p.id)}
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 2,
-            bgcolor: isActive ? "rgba(255,255,255,0.15)" : (BRAND.panel2 || '#2a2a2a'),
-            border: `1px solid ${BRAND.line}`,
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 800,
-            fontSize: 14,
-            color: isActive ? (BRAND.primary || "#3498db") : BRAND.text,
-            cursor: "pointer",
-            "&:hover": { bgcolor: "rgba(255,255,255,0.11)" },
-            my: 0.5
-          }}
-        >
-          {p.coverThumbnailUrl ? (
-            <Box component="img" src={p.coverThumbnailUrl} sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px' }} />
-          ) : (
-            p.name ? p.name.charAt(0).toUpperCase() : "M"
-          )}
-        </Box>
-      </Tooltip>
-    );
   };
 
   const getCurrentAppHomeRoute = (appKey) => {
-    const app = APPS_CATALOG.find(a => a.key === appKey);
-    return user ? (app?.hrefAuth || "/dashboard") : (app?.hrefPublic || "/");
+    const app = APPS_CATALOG.find((a) => a.key === appKey);
+    return user ? app?.hrefAuth ?? "/dashboard" : app?.hrefPublic ?? "/";
   };
 
-  const getCurrentAppHomeIcon = (appKey) => {
-    return appIcons[appKey] || APPS_CATALOG.find(a => a.key === appKey)?.icon || null;
-  };
+  const getCurrentAppHomeIcon = (appKey) =>
+    appIcons[appKey] ?? APPS_CATALOG.find((a) => a.key === appKey)?.icon ?? null;
+
+  const isProjectsActive = currentPath.startsWith("/projects");
+  const isDriveActive = activePanelState === "drive";
+  const isChatActive = activePanelState === "chat";
+  const isMarketActive = currentPath.startsWith("/dashboard/marketplace");
 
   return (
-    <Box
-      sx={{
-        width: 72,
-        borderRight: `1px solid ${BRAND.line}`,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        py: 1.75,
-        gap: 1,
-        height: "100vh",
-        bgcolor: BRAND.bg,
-        position: "relative",
-        zIndex: 20,
-      }}
-    >
-      {onToggle && (
-        <Tooltip title={isExpanded ? "メニューを閉じる" : "メニューを開く"} placement="right">
-          <IconButton 
-            onClick={onToggle} 
-            sx={{ 
-              mb: 1, 
-              transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)", 
-              transform: isExpanded ? "rotate(180deg) scale(0.9)" : "rotate(0deg) scale(1)",
-            }}
-          >
-            {isExpanded ? <MenuOpenRoundedIcon sx={{ color: BRAND.text }} /> : <MenuRoundedIcon sx={{ color: BRAND.text }} />}
-          </IconButton>
-        </Tooltip>
+    <>
+      {transitionTarget && (
+        <AppInitSkeleton
+          appName={transitionTarget.appName}
+          boardName={transitionTarget.boardName}
+          icon={transitionTarget.icon}
+          message="Opening workspace..."
+          showSidebarCol={true}
+        />
       )}
-
-      {/* Current App Home Button */}
-      <Tooltip title={`${APPS_CATALOG.find(a => a.key === currentApp)?.label || "Home"}`} placement="right">
-        <IconButton onClick={() => {
-          if (onChangeMainView) onChangeMainView("home");
-          
-          const homeRoute = getCurrentAppHomeRoute(currentApp);
-          if (onNavigate) onNavigate(homeRoute);
-          else window.location.assign(homeRoute);
-        }} sx={{ mb: 1 }}>
-          <AppImageIcon src={getCurrentAppHomeIcon(currentApp)} alt={currentApp} fallbackChar={currentApp.charAt(0).toUpperCase()} />
-        </IconButton>
-      </Tooltip>
-
-      <NavIcon 
-        icon={<FolderRoundedIcon />} 
-        label="AIドライブ" 
-        BRAND={BRAND}
-        active={activePanelState === "drive"} 
-        onClick={onOpenDrive} 
-      />
-
-      <NavIcon 
-        icon={<ChatRoundedIcon />} 
-        label="AIチャット" 
-        BRAND={BRAND}
-        active={activePanelState === "chat"} 
-        onClick={onOpenChat} 
-      />
-
-      <NavIcon 
-        icon={<AccountTreeRoundedIcon />} 
-        label="ボード管理" 
-        BRAND={BRAND}
-        active={false} // Needs logic passed from outside if we want to highlight this
-        onClick={() => {
-          if (onChangeMainView) onChangeMainView("boards");
-          else onNavigateExternal("/dashboard/boards");
-        }} 
-      />
-
-      <Divider sx={{ width: "60%", opacity: 0.25, my: 1.5 }} />
-
-      {/* My Boards Shortcuts */}
-      {myRecent.length > 0 && (
-        <Tooltip title="My Boards" placement="right">
-          <Box sx={{ width: "100%", display: "flex", justifyContent: "center", opacity: 0.4, mb: 0.5 }}>
-            <PersonRoundedIcon sx={{ fontSize: 18 }} />
-          </Box>
-        </Tooltip>
-      )}
-      {myRecent.map(renderBoardShortcut)}
-
-      {myRecent.length > 0 && teamRecent.length > 0 && (
-        <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
-      )}
-
-      {/* Team Boards Shortcuts */}
-      {teamRecent.length > 0 && (
-        <Tooltip title="Team Boards" placement="right">
-          <Box sx={{ width: "100%", display: "flex", justifyContent: "center", opacity: 0.4, mt: 1, mb: 0.5 }}>
-            <GroupRoundedIcon sx={{ fontSize: 18 }} />
-          </Box>
-        </Tooltip>
-      )}
-      {teamRecent.map(renderBoardShortcut)}
-
-      <Divider sx={{ width: "60%", opacity: 0.25, my: 0.5 }} />
-
-      <Box sx={{ flex: 1 }} />
-
-      {/* Recent Apps Shortcuts */}
-      {recentApps.length > 0 && recentApps.map(app => {
-        const appInfo = APPS_CATALOG.find(a => a.key === app);
-        if (!appInfo) return null;
-        return (
-          <Tooltip title={`直前のアプリ: ${appInfo.label}`} placement="right" key={app}>
-            <IconButton onClick={() => handleMenuNavigate(app, appInfo.hrefAuth, appInfo.hrefPublic)} sx={{ mb: 1, bgcolor: "rgba(255,255,255,0.05)" }}>
-              <AppImageIcon 
-                src={appIcons[app] || appInfo.icon} 
-                alt={app.toUpperCase()} 
-                fallbackChar={app.charAt(0).toUpperCase()}
-              />
+      <Box
+        sx={{
+          width: 56,
+          borderRight: `1px solid ${BRAND.line}`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          py: 1.5,
+          gap: 0.5,
+          height: "100vh",
+          bgcolor: BRAND.bg,
+          position: "relative",
+          zIndex: 20,
+          flexShrink: 0,
+        }}
+      >
+        {onToggle && (
+          <Tooltip title={isExpanded ? "メニューを閉じる" : "メニューを開く"} placement="right">
+            <IconButton
+              onClick={onToggle}
+              sx={{
+                mb: 0.5,
+                p: 1,
+                color: "rgba(255,255,255,0.6)",
+                transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                transform: isExpanded ? "rotate(180deg) scale(0.9)" : "rotate(0deg) scale(1)",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.08)", color: "#fff" },
+                borderRadius: 2,
+              }}
+            >
+              {isExpanded ? <MenuOpenRoundedIcon fontSize="small" /> : <MenuRoundedIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
-        );
-      })}
+        )}
 
-      {/* App Switcher */}
-      <Tooltip title="アプリ一覧" placement="right">
-        <IconButton 
-          onClick={handleAppClick} 
-          sx={{ 
-            mb: 1.5, 
-            bgcolor: appAnchorEl ? "rgba(255,255,255,0.08)" : "transparent",
-            "&:hover": { bgcolor: "rgba(255,255,255,0.08)" }
+        {/* Current App Home */}
+        <Tooltip title={APPS_CATALOG.find((a) => a.key === currentApp)?.label ?? "Home"} placement="right">
+          <IconButton
+            onClick={() => {
+              onChangeMainView?.("home");
+              const homeRoute = getCurrentAppHomeRoute(currentApp);
+              onNavigate?.(homeRoute);
+            }}
+            sx={{ mb: 0.5, p: 0.75, "&:hover": { bgcolor: "rgba(255,255,255,0.08)" }, borderRadius: 2 }}
+          >
+            <AppImageIcon
+              src={getCurrentAppHomeIcon(currentApp)}
+              alt={currentApp}
+              fallbackChar={currentApp.charAt(0).toUpperCase()}
+            />
+          </IconButton>
+        </Tooltip>
+
+        <NavIcon icon={<FolderRoundedIcon />} label="AIドライブ" BRAND={BRAND} active={isDriveActive} onClick={onOpenDrive} />
+        <NavIcon icon={<ChatRoundedIcon />} label="AIチャット" BRAND={BRAND} active={isChatActive} onClick={onOpenChat} />
+        <NavIcon
+          icon={<AccountTreeRoundedIcon />}
+          label="プロジェクト管理"
+          BRAND={BRAND}
+          active={isProjectsActive && !isDriveActive && !isChatActive}
+          onClick={() => {
+            onNavigateExternal?.("/projects") ?? onNavigate?.("/projects");
+          }}
+        />
+        <NavIcon
+          icon={<GroupsRoundedIcon />}
+          label="チーム管理"
+          BRAND={BRAND}
+          active={currentPath.startsWith("/dashboard/teams")}
+          onClick={() => {
+            onNavigateExternal?.("/dashboard/teams") ?? onNavigate?.("/dashboard/teams");
+          }}
+        />
+        <NavIcon
+          icon={<SchoolRoundedIcon />}
+          label="AI Studio"
+          BRAND={BRAND}
+          active={currentPath.startsWith("/dashboard/ai-studio")}
+          onClick={() => {
+            onNavigateExternal?.("/dashboard/ai-studio") ?? onNavigate?.("/dashboard/ai-studio");
+          }}
+        />
+
+        <Divider sx={{ width: "60%", opacity: 0.25, my: 1.5 }} />
+
+        {/* Brand app icons */}
+        <NavIcon
+          icon={<ViewInArRoundedIcon />}
+          label="Models (3DSS)"
+          BRAND={BRAND}
+          isBrand={true}
+          active={currentPath.startsWith("/app/share")}
+          onClick={() => onNavigate?.("/app/share/dashboard")}
+        />
+        <NavIcon
+          icon={<GridViewRoundedIcon />}
+          label="Layouts (3DSL)"
+          BRAND={BRAND}
+          isBrand={true}
+          active={currentPath.startsWith("/app/layout")}
+          onClick={() => onNavigate?.("/app/layout/dashboard")}
+        />
+        <NavIcon
+          icon={<PresentToAllRoundedIcon />}
+          label="Presents (3DSP)"
+          BRAND={BRAND}
+          isBrand={true}
+          active={currentPath.startsWith("/app/presents")}
+          onClick={() => onNavigate?.("/app/presents/dashboard")}
+        />
+        <NavIcon
+          icon={<BrushRoundedIcon />}
+          label="Create (3DSC)"
+          BRAND={BRAND}
+          isBrand={true}
+          active={currentPath.startsWith("/app/create")}
+          onClick={() => onNavigate?.("/app/create/dashboard")}
+        />
+
+        <Divider sx={{ width: "60%", opacity: 0.15, my: 1 }} />
+
+        <Box sx={{ flex: 1 }} />
+
+        {/* Recent Apps */}
+        {recentApps.length > 0 &&
+          recentApps.map((app) => {
+            const appInfo = APPS_CATALOG.find((a) => a.key === app);
+            if (!appInfo) return null;
+            return (
+              <Tooltip title={`直前のアプリ: ${appInfo.label}`} placement="right" key={app}>
+                <IconButton
+                  onClick={() => handleMenuNavigate(app, appInfo.hrefAuth, appInfo.hrefPublic)}
+                  sx={{ mb: 0.5, p: 0.75, bgcolor: "rgba(255,255,255,0.05)", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" }, borderRadius: 2 }}
+                >
+                  <AppImageIcon src={appIcons[app] || appInfo.icon} alt={app.toUpperCase()} fallbackChar={app.charAt(0).toUpperCase()} />
+                </IconButton>
+              </Tooltip>
+            );
+          })}
+
+        <NavIcon
+          icon={<StorefrontRoundedIcon />}
+          label="Marketplace"
+          BRAND={BRAND}
+          active={isMarketActive}
+          onClick={() => {
+            onNavigateExternal?.("/dashboard/marketplace") ?? onNavigate?.("/dashboard/marketplace");
+          }}
+        />
+        <NavIcon
+          icon={<SettingsRoundedIcon />}
+          label="設定"
+          BRAND={BRAND}
+          active={currentPath.startsWith("/dashboard/settings")}
+          onClick={() => {
+            onNavigateExternal?.("/dashboard/settings") ?? onNavigate?.("/dashboard/settings");
+          }}
+        />
+
+        {/* App Switcher */}
+        <Tooltip title="アプリ一覧" placement="right">
+          <IconButton
+            onClick={handleAppClick}
+            sx={{
+              mb: 0.5,
+              p: 1,
+              bgcolor: appAnchorEl ? "rgba(255,255,255,0.1)" : "transparent",
+              borderRadius: 2,
+              "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+            }}
+          >
+            <AppsRoundedIcon sx={{ color: "rgba(255,255,255,0.7)", fontSize: 22 }} />
+          </IconButton>
+        </Tooltip>
+
+        <Menu
+          anchorEl={appAnchorEl}
+          open={Boolean(appAnchorEl)}
+          onClose={handleAppClose}
+          transformOrigin={{ horizontal: "left", vertical: "bottom" }}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+          slotProps={{
+            paper: {
+              sx: {
+                bgcolor: "rgba(20,20,20,0.88)",
+                backdropFilter: "blur(16px)",
+                border: `1px solid ${BRAND.line}`,
+                ml: 1.5,
+                mb: 1,
+                p: 0.5,
+                borderRadius: 3,
+              },
+            },
           }}
         >
-          <AppsRoundedIcon sx={{ color: "rgba(255,255,255,0.8)", fontSize: 26 }} />
-        </IconButton>
-      </Tooltip>
+          {APPS_CATALOG.map((app) => (
+            <MenuItem
+              key={app.key}
+              onClick={() => {
+                handleAppClose();
+                handleMenuNavigate(app.key, app.hrefAuth, app.hrefPublic);
+              }}
+              sx={{ borderRadius: 2, mb: 0.25, py: 1 }}
+            >
+              <ListItemIcon>
+                <AppImageIcon src={appIcons[app.key] || app.icon} alt={app.key.toUpperCase()} fallbackChar={app.key.charAt(0).toUpperCase()} />
+              </ListItemIcon>
+              <Typography sx={{ fontSize: 13 }}>{app.label}</Typography>
+            </MenuItem>
+          ))}
+        </Menu>
 
-      <Menu
-        anchorEl={appAnchorEl}
-        open={Boolean(appAnchorEl)}
-        onClose={handleAppClose}
-        transformOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        slotProps={{ paper: { sx: { bgcolor: BRAND.panel, border: `1px solid ${BRAND.line}`, ml: 2, mb: 1, p: 0.5, borderRadius: 3 }}}}
-      >
-        {APPS_CATALOG.map((app) => (
-          <MenuItem 
-            key={app.key} 
-            onClick={() => { 
-              handleAppClose(); 
-              handleMenuNavigate(app.key, app.hrefAuth, app.hrefPublic);
-            }} 
-            sx={{ borderRadius: 2, mb: 0.5 }}
-          >
-            <ListItemIcon>
-              <AppImageIcon src={appIcons[app.key] || app.icon} alt={app.key.toUpperCase()} fallbackChar={app.key.charAt(0).toUpperCase()} />
-            </ListItemIcon>
-            {app.label}
-          </MenuItem>
-        ))}
-      </Menu>
-
-      <UserAvatarMenu 
-        user={user} 
-        onLogout={onLogout} 
-        onNavigate={onNavigate} 
-        onNavigateExternal={onNavigateExternal} 
-        onChangeMainView={onChangeMainView}
-        BRAND={BRAND}
-      />
-    </Box>
+        <UserAvatarMenu
+          user={user}
+          onLogout={onLogout}
+          onNavigate={onNavigate}
+          onNavigateExternal={onNavigateExternal}
+          onChangeMainView={onChangeMainView}
+          BRAND={BRAND}
+        />
+      </Box>
+    </>
   );
 }

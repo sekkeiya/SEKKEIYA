@@ -1,0 +1,30 @@
+/* ====== Never show page scrollbars ====== */
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  /* ✅ 大枠スクロールを完全に禁止 */
+  overscroll-behavior: none;
+  /* ✅ 端スワイプ/バウンス抑制 */
+}
+
+/* Vite/React で root が伸びて溢れるのを防ぐ */
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* box-sizing を統一（1pxのズレで横スクロール出るのを防ぐ） */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* r3f canvas が inline だと下に余白が出ることがあるので保険 */
+canvas {
+  display: block;
+}

@@ -10,7 +10,13 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+  linkWithCredential,
+  EmailAuthProvider,
+} from "firebase/auth";
 import { auth, db } from "@/shared/config/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
@@ -56,22 +62,22 @@ export default function SignupPage() {
       setError("");
       setLoading(true);
 
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-
-        // displayName だけでもセットしておくと後で便利
-        if (username) {
-          await updateProfile(cred.user, { displayName: username });
+      const goReturnTo = () => {
+        if (typeof returnTo === "string" && (returnTo.startsWith("http") || returnTo.startsWith("/app/"))) {
+          window.location.assign(returnTo);
+          return;
         }
+        navigate(returnTo, { replace: true });
+      };
 
-        // Firestore に users/{uid} を作る（必要なら）
+      const saveUserDoc = async (u) => {
         try {
           await setDoc(
-            doc(db, "users", cred.user.uid),
+            doc(db, "users", u.uid),
             {
-              uid: cred.user.uid,
-              email: cred.user.email,
-              displayName: username || "",
+              uid: u.uid,
+              email: u.email,
+              displayName: username || u.displayName || "",
               createdAt: serverTimestamp(),
               app: "sekkeiya",
             },
@@ -80,26 +86,56 @@ export default function SignupPage() {
         } catch (e2) {
           console.warn("[Signup] failed to create users doc:", e2);
         }
+      };
 
-        // 確認メールを送信する
+      const sendVerification = async (u) => {
         try {
-          const actionCodeSettings = {
+          await sendEmailVerification(u, {
             url: `${window.location.origin}/app/share/auth/verify-finish`,
             handleCodeInApp: false,
-          };
-          await sendEmailVerification(cred.user, actionCodeSettings);
+          });
         } catch (e3) {
           console.warn("[Signup] failed to send verification email:", e3);
         }
+      };
 
-        // ✅ 外部URLまたは別SPA（/app/）なら location で遷移
-        if (typeof returnTo === "string" && (returnTo.startsWith("http") || returnTo.startsWith("/app/"))) {
-          window.location.assign(returnTo);
-          return;
+      try {
+        // ゲスト（匿名）ユーザーの場合はアカウント連携（データ引き継ぎ）
+        if (auth.currentUser?.isAnonymous) {
+          const credential = EmailAuthProvider.credential(email, password);
+          try {
+            await linkWithCredential(auth.currentUser, credential);
+            if (username) {
+              await updateProfile(auth.currentUser, { displayName: username });
+            }
+            await saveUserDoc(auth.currentUser);
+            await sendVerification(auth.currentUser);
+            goReturnTo();
+            return;
+          } catch (linkErr) {
+            if (
+              linkErr.code === "auth/credential-already-in-use" ||
+              linkErr.code === "auth/email-already-in-use"
+            ) {
+              setError(
+                "このメールアドレスは既に別のアカウントで使われています。ログインページからログインしてください。"
+              );
+            } else {
+              throw linkErr;
+            }
+            setLoading(false);
+            return;
+          }
         }
 
-        // ✅ 同一オリジンパスなら Router でOK
-        navigate(returnTo, { replace: true });
+        // 通常の新規アカウント作成
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        if (username) {
+          await updateProfile(cred.user, { displayName: username });
+        }
+        await saveUserDoc(cred.user);
+        await sendVerification(cred.user);
+        goReturnTo();
       } catch (err) {
         console.error(err);
         setError(
@@ -132,6 +168,12 @@ export default function SignupPage() {
               SEKKEIYA アカウントを作成します
             </Typography>
           </Box>
+
+          {auth.currentUser?.isAnonymous && (
+            <Alert severity="info">
+              ゲストとして使用中のデータはそのまま引き継がれます。
+            </Alert>
+          )}
 
           {error && <Alert severity="error">{error}</Alert>}
 

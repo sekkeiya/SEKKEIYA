@@ -137,7 +137,7 @@ export const editModelSidebarStyles = {
         letterSpacing: "0.2px",
     },
 
-    //EditBoardRightSidebar.jsx専用 
+    // Project invite専用 
     inviteInputBox: {
         mt: 1,
         display: "flex",

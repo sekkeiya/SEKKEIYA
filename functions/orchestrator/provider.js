@@ -19,7 +19,7 @@ exports.generateChatResponse = async ({ provider, model, systemPrompt, messages,
     case "gemini":
       return await callGemini(model, systemPrompt, messages, metadata, onChunk);
     case "openai":
-      throw new Error("OpenAI provider not yet implemented. Please implement `callOpenAI`.");
+      return await callOpenAI(model, systemPrompt, messages, metadata, onChunk);
     case "anthropic":
       throw new Error("Anthropic provider not yet implemented. Please implement `callAnthropic`.");
     default:
@@ -27,9 +27,95 @@ exports.generateChatResponse = async ({ provider, model, systemPrompt, messages,
   }
 };
 
+async function callOpenAI(modelName, systemPrompt, messages, metadata, onChunk) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not defined in the environment.");
+  }
+
+  const formattedMessages = [
+    { role: "system", content: systemPrompt },
+    ...messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content
+    }))
+  ];
+
+  try {
+    const isJsonRequested = systemPrompt.includes("json") || (metadata && metadata.expectJson);
+    const body = {
+      model: modelName || "gpt-4o",
+      messages: formattedMessages,
+      response_format: isJsonRequested ? { type: "json_object" } : undefined,
+      stream: !!onChunk,
+    };
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`OpenAI Error: ${response.status} - ${errorData}`);
+    }
+
+    if (onChunk) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let fullText = "";
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunkStr = decoder.decode(value, { stream: true });
+        
+        // Very basic naive parsing of SSE. For a robust implementation you'd use a proper event stream parser.
+        const lines = chunkStr.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const data = JSON.parse(line.slice(6));
+              const delta = data.choices[0]?.delta?.content || "";
+              fullText += delta;
+              onChunk(delta);
+            } catch (e) {
+              // ignore parse errors for partial chunks
+            }
+          }
+        }
+      }
+      return { text: fullText }; 
+    } else {
+      const data = await response.json();
+      const text = data.choices[0]?.message?.content || "";
+      return {
+        text,
+        tokenUsage: {
+          promptTokens: data.usage?.prompt_tokens,
+          completionTokens: data.usage?.completion_tokens,
+          totalTokens: data.usage?.total_tokens,
+        }
+      };
+    }
+  } catch (err) {
+    console.error("OpenAI Error:", err);
+    throw err;
+  }
+}
+
 async function callGemini(modelName, systemPrompt, messages, metadata, onChunk) {
   const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: modelName, systemInstruction: systemPrompt });
+  
+  const modelConfig = { model: modelName, systemInstruction: systemPrompt };
+  if (metadata && metadata.expectJson) {
+    modelConfig.generationConfig = { responseMimeType: "application/json" };
+  }
+  const model = genAI.getGenerativeModel(modelConfig);
 
   // Convert schema if needed (GoogleGenerativeAI handles role: 'user'/'model')
   const formattedContents = messages.map(msg => ({

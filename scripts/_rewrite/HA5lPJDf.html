@@ -1,0 +1,75 @@
+<h2>1. 導入</h2>
+<p>SEKKEIYA の公式サイトにおいて、記事の発信基盤（Admin 記事エディタ）は、ユーザーとのコミュニケーションや最新情報の共有を担う重要なコンポーネントです。今回の改善では、(1) 記事内画像を確実に取り込む仕組みと、(2) 記事一覧（閲覧画面）の読みやすさ・回遊しやすさを同時に見直しました。本記事では、その背景と実装をまとめます。</p>
+<p>従来の運用では、AI で生成した HTML コンテンツに含まれる外部画像 URL をそのまま利用していました。しかしこの「外部 URL 依存」には、ネットワーク環境や参照先サーバーのポリシーに起因する不安定さが常につきまといます。画像が表示されない、取得時にエラーが発生するなど、公開直前の修正作業に追われるケースが散見されていました。</p>
+<p>そこで今回、外部 URL への依存を完全に断ち切り、<strong>「画像はすべてローカルファイルから確実に取り込む」</strong>方式へと統一しました。</p>
+<figure>
+<img src="https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/officialArticles%2Finline%2FdZLeURsXfIctrwkOBWUf7kiTJYV2%2FHA5lPJDfX6KT4xXLi0bP%2F1766807036989_01_1_2RNP6nS2.jpg?alt=media&amp;token=f18ffc72-971a-4413-a4b8-e2eb41eeece0" alt="刷新された記事編集画面のイメージ" loading="lazy">
+<figcaption>図1：刷新された Admin 記事編集画面。安定したワークフローとファイル管理を象徴する UI デザイン。</figcaption>
+</figure>
+
+<h2>2. なぜ外部 URL 依存が破綻したのか</h2>
+<p>生成 AI が出力した HTML には、<code>&lt;img src="https://external-site.com/image.jpg"&gt;</code> のように外部サーバー上の画像を指す URL が含まれます。これをそのまま表示・取得しようとすると、次のような問題が頻発しました。</p>
+<ul>
+<li><strong>CORS 制限：</strong> 多くのサーバーは、異なるドメインからのリソース要求をブロックします。JavaScript で画像データを取得しようとしても、CORS ヘッダーが許可されておらずアクセスが拒否されます。</li>
+<li><strong>Hotlink 対策による 403 Forbidden：</strong> 直リンクや帯域の盗用を防ぐため、サーバー側でリファラーをチェックし、外部サイトからの表示リクエストを遮断します。URL 自体は有効でも、管理画面上では「リンク切れ」として表示されてしまいます。</li>
+<li><strong>一時 URL の有効期限切れ：</strong> CDN が発行するトークン付き URL は、数時間後・数日後に無効になることがあり、公開後の記事で画像が消失するリスクがありました。</li>
+</ul>
+<p>クライアントサイドでの <code>fetch</code> によるプロキシ取得も検討しましたが、ブラウザのセキュリティポリシーが年々厳格化されるなか、複雑性を増やす割に「取得できる画像もあれば、できない画像もある」という不確実性が残りました。運用ツールに最も必要なのは<strong>予測可能性</strong>です。「やってみないと成功するか分からない」機能は、作業計画を狂わせる要因になります。</p>
+<figure>
+<img src="https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/officialArticles%2Finline%2FdZLeURsXfIctrwkOBWUf7kiTJYV2%2FHA5lPJDfX6KT4xXLi0bP%2F1766807037852_02_2_Lbayax7v.jpg?alt=media&amp;token=cf2d856e-2ea2-4127-ad75-096ba52832ae" alt="外部URL依存の問題点を視覚化した図" loading="lazy">
+<figcaption>図2：外部 URL 参照時に発生する CORS エラーや 403 Forbidden のメカニズムと、それによる表示崩れ。</figcaption>
+</figure>
+
+<h2>3. 「画像ファイルから取り込む（確実）」方式</h2>
+<p>新しいフローは、ローカル環境にある画像ファイルを正（マスター）とするアプローチです。</p>
+<ol>
+<li><strong>HTML の貼り付け：</strong> 生成された HTML テキストをエディタに貼り付ける。この時点では <code>img</code> の <code>src</code> は外部 URL やダミーのまま。</li>
+<li><strong>ローカル画像の選択：</strong> 記事内で使いたい画像をローカルから選択する（複数同時選択も可能）。</li>
+<li><strong>Firebase Storage へのアップロード：</strong> 選択画像を直ちに Storage へアップロードし、SEKKEIYA の管理下にある永続的なリソースにする。</li>
+<li><strong>src 属性の置換：</strong> アップロード完了後、取得した公開 URL で HTML 内の <code>img</code> の <code>src</code> を上から順に書き換える。</li>
+</ol>
+<p>最大の利点は、画像の実体が確実に自社の Storage に存在することが保証される点です。外部サイトの消滅や仕様変更の影響を二度と受けません。これに伴い、外部 URL への <code>fetch</code>、失敗時のリトライ、クロスドメイン回避といった複雑なコード群は不要になり、コードの見通しと保守性が大きく改善しました。</p>
+<figure>
+<img src="https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/officialArticles%2Finline%2FdZLeURsXfIctrwkOBWUf7kiTJYV2%2FHA5lPJDfX6KT4xXLi0bP%2F1766807038681_03_3_NchYcCZw.jpg?alt=media&amp;token=daed8acb-158f-46cf-9848-c683c0b33304" alt="新しい画像取り込みフローのアーキテクチャ図" loading="lazy">
+<figcaption>図3：ローカルファイル選択から Firebase Storage へのアップロード、HTML 置換に至る確実なデータフロー。</figcaption>
+</figure>
+<h3>置換ルールは「出現順」でシンプルに</h3>
+<ul>
+<li>HTML 内の <code>&lt;img&gt;</code> を上から順にスキャンしてリスト化する</li>
+<li>アップロードしたファイル群も選択順（あるいはファイル名順）でリスト化する</li>
+<li>1つ目の <code>&lt;img&gt;</code> に1つ目のファイル、2つ目に2つ目……とインデックスで機械的にマッピングして置換する</li>
+</ul>
+<p>「記事の上から順に画像を選んでアップロードする」という直感的な操作だけで、意図した配置を実現できます。</p>
+
+<h2>4. 記事一覧（閲覧画面）の UI/UX 改善</h2>
+<p>記事一覧ページは、単なるリンク集ではなく「読む価値のある情報に自然と出会える場」であることが重要です。今回、公式記事一覧の視認性・安定性・拡張性を大きく改善しました。</p>
+<h3>カードレイアウトの再設計</h3>
+<p>従来は、画像付き記事と画像なし記事が混在するとカード高さが揃わず、一覧のリズムが崩れて見えることが課題でした。記事カードを <strong>常に等しいフレームで並べる構造</strong>に統一し、タイトルや抜粋の長さに左右されずカード全体のバランスが保たれるようにしています。これにより、視線の移動がスムーズになり、どの記事も同じ重みで並んで見え、比較しながら読みやすくなりました。</p>
+<figure>
+<img src="https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/officialArticles%2Finline%2FdZLeURsXfIctrwkOBWUf7kiTJYV2%2FHA5lPJDfX6KT4xXLi0bP%2F1766807039413_04_4_8X42viXq.jpg?alt=media&amp;token=454686cd-d7cb-4d23-a62c-12bc999885ca" alt="Before/After比較と改善効果を示す図" loading="lazy">
+<figcaption>図4：導入前後の比較。エラーや手作業による混乱が解消され、スムーズなワークフローへ。</figcaption>
+</figure>
+<h3>余白・タグ・テキスト表示の最適化</h3>
+<ul>
+<li><strong>余白制御：</strong> カード間の距離を直感的に調整できる <code>gap</code> ベースの設計へ変更し、「詰まりすぎず、広すぎない」リズムを実現。レスポンシブ時にも崩れにくい。</li>
+<li><strong>タグの折り返し対応：</strong> 長いタグや複数タグでもカード外にはみ出さず、情報が欠落しない。</li>
+<li><strong>テキスト切れの解消：</strong> カード内部を flex ベースで再整理し、コンテンツ量に応じて自然に高さが確保される構造へ。</li>
+</ul>
+<p>「どの記事を読むか」を選ぶ前段階のストレスを減らし、一覧ページを「ただ並んでいる場所」から「読みたくなる入口」へと進化させることが狙いです。</p>
+
+<h2>5. 成果とまとめ</h2>
+<p>今回の改善により、画像取り込みの失敗率は実質ゼロになり、プレビューと本番の表示差も解消されました。管理者の作業は「HTML を貼る → 画像を選んで一括取り込み → プレビューで確認して公開」という直線的なフローになり、手戻り作業が消滅しています。あわせて記事一覧も読みやすく回遊しやすい体験へと刷新されました。</p>
+<figure>
+<img src="https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/officialArticles%2Finline%2FdZLeURsXfIctrwkOBWUf7kiTJYV2%2FHA5lPJDfX6KT4xXLi0bP%2F1766807040221_05_5_xrkgZTS8.jpg?alt=media&amp;token=19540618-1cf2-424c-80f7-5bd7a4c9436a" alt="今後の展望を示すビジュアル" loading="lazy">
+<figcaption>図5：今後のロードマップ。画像管理機能のさらなる高度化と UX 改善に向けた方向性。</figcaption>
+</figure>
+<blockquote>
+<p><strong>まとめの要点：</strong></p>
+<ul>
+<li>外部 URL 依存による画像表示トラブルを解消するため、ファイル取り込み方式へ完全移行</li>
+<li>ローカルファイルを Firebase Storage へアップロードし、HTML を置換する確実なフローを確立</li>
+<li>複雑なエラー処理が不要となり、システム構成がシンプルかつ堅牢に</li>
+<li>記事一覧の視認性・回遊性を改善し、閲覧体験そのものを底上げ</li>
+</ul>
+</blockquote>
+<p>今後は、画像の並び替え機能、カバー画像の統一ルール、アップロード時の自動最適化（リサイズ・WebP 変換）など、さらなる利便性向上を計画しています。使う人の体験を第一に、安定性と効率性を追求した開発を継続します。</p>

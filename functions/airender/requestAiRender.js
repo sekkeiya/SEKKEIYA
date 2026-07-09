@@ -3,10 +3,12 @@ const admin = require("firebase-admin");
 const { renderPricing } = require("./pricing");
 const { CREDIT_COST, consume } = require("../payments/creditLedger");
 const { geminiApiKey } = require("./providers/nanobananaProvider");
+// flux-schnell（fal.ai）用シークレット。FAL_KEY を Secret Manager に登録済み。
+const { falKey } = require("./providers/falFluxProvider");
 
 exports.requestAiRender = onCall(
   {
-    secrets: [geminiApiKey],
+    secrets: [geminiApiKey, falKey],
     // Image generation can legitimately take 30–90s; default 60s timeout is too tight.
     timeoutSeconds: 180,
     // Loading + base64-encoding a multi-MB image needs headroom over the 256Mi default.

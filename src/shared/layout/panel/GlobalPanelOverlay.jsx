@@ -35,7 +35,7 @@ export default function GlobalPanelOverlay({ children, panelName, isOpen: propIs
           open={isOpen}
           onClick={closePanelUrl}
           sx={{
-            zIndex: 100,
+            zIndex: 98,
             backdropFilter: 'blur(4px)',
             backgroundColor: 'rgba(0,0,0,0.5)'
           }}
@@ -45,12 +45,12 @@ export default function GlobalPanelOverlay({ children, panelName, isOpen: propIs
       <Slide direction="left" in={isOpen} mountOnEnter unmountOnExit>
         <Box
           sx={{
-            position: "fixed", // relative to viewport
-            top: { xs: 0, sm: 16 },
+            position: "fixed",
+            top: { xs: "calc(52px + env(safe-area-inset-top))", sm: 16 },
             right: { xs: 0, sm: 16 },
-            bottom: { xs: 84, sm: 16 }, // adjust for mobile bottom bar
-            left: { xs: 0, sm: 72 + 16 }, // 72px (MiniSidebar) + 16px margin
-            zIndex: 101, // Above backdrop
+            bottom: { xs: "calc(64px + env(safe-area-inset-bottom))", sm: 16 },
+            left: { xs: 0, sm: 56 + 16 }, // 56px (MiniSidebar) + 16px margin
+            zIndex: 99, // Above backdrop, below top/bottom bars
             display: "flex",
             flexDirection: "column",
             bgcolor: BRAND.bg,

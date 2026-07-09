@@ -1,0 +1,4 @@
+html.is-material-picking .ViewportCanvasRoot,
+html.is-material-picking .ViewportCanvasRoot * {
+    cursor: url("/cursors/eyedropper.png") 16 16, crosshair !important;
+}

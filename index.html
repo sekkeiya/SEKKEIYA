@@ -1,15 +1,69 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/assets/icons/sekkeiya.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>sekkeiya</title>
+  <meta name="theme-color" content="#0a0a0a" />
+  
+  <!-- Primary Meta Tags -->
+  <title>SEKKEIYA | AI空間設計OS - 設計は、対話になる。</title>
+  <meta name="title" content="SEKKEIYA | AI空間設計OS - 設計は、対話になる。" />
+  <meta name="description" content="SEKKEIYAは、最新のAIによって世界の建築設計と空間ビジュアライゼーションを再定義する「AI空間設計OS」です。ツールの操作からAIとの対話へ。全プロセスを単一の真実・資産へと変換します。" />
+  <meta name="keywords" content="建築, 設計, 空間デザイン, AI, ビジュアライゼーション, SEKKEIYA, 3Dモデリング, メタバース" />
+  <meta name="author" content="SEKKEIYA" />
+
+  <!-- Canonical（JS未実行クローラ向けのフォールバック。SPA各ページは react-helmet で上書き） -->
+  <link rel="canonical" href="https://sekkeiya.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SEKKEIYA" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:url" content="https://sekkeiya.com/" />
+  <meta property="og:title" content="SEKKEIYA | AI空間設計OS" />
+  <meta property="og:description" content="世界の建築設計と空間ビジュアライゼーションを再定義するAI空間設計OS。設計思考を「操作」からAIとの「対話」へ。" />
+  <meta property="og:image" content="https://sekkeiya.com/assets/og-image.jpg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@sekkeiya_jp" />
+  <meta property="twitter:url" content="https://sekkeiya.com/" />
+  <meta property="twitter:title" content="SEKKEIYA | AI空間設計OS" />
+  <meta property="twitter:description" content="世界の建築設計と空間ビジュアライゼーションを再定義するAI空間設計OS。設計思考を「操作」からAIとの「対話」へ。" />
+  <meta property="twitter:image" content="https://sekkeiya.com/assets/og-image.jpg" />
+
+  <link rel="icon" type="image/png" href="/assets/icons/sekkeiya.png" />
+  <link rel="apple-touch-icon" href="/assets/icons/sekkeiya.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- FOUC防止: JSロード前に背景色を確定させる -->
+  <style>
+    html, body { background-color: #0a0a0a; margin: 0; padding: 0; }
+    #root { min-height: 100vh; background-color: #0a0a0a; }
+  </style>
+
+  <!-- PWA: インストールして独立ウィンドウ（ブラウザのバーなし）で起動できるように -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="SEKKEIYA" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 </head>
 
-<body>
-  <div id="root"></div>
+<body style="background-color:#000;margin:0;padding:0">
+  <div id="root" style="background-color:#000;min-height:100vh"></div>
+  <!-- PWA: install prompt をできるだけ早く捕まえて保持（クリック時に出せるように） -->
+  <script>
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__deferredInstallPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa:installable'));
+    });
+    window.addEventListener('appinstalled', function () {
+      window.__deferredInstallPrompt = null;
+      window.dispatchEvent(new CustomEvent('pwa:installed'));
+    });
+  </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

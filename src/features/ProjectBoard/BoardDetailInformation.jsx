@@ -4,11 +4,11 @@ import {
   Box, Typography, TextField, Chip, Button, Autocomplete,
   Grid, Divider, Container,
 } from "@mui/material";
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/shared/config/firebase";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { updateMyBoardInfo } from "@/shared/api/boards/myBoards";
-import { useSelectedBoardContext } from "@/shared/contexts/SelectedBoardContext";
+import { updateProject } from "@sekkeiya/global-panel";
+import { useSelectedProjectContext } from "@/shared/contexts/SelectedProjectContext";
 import BoardCategories from "@/shared/constants/BoardCategories";
 import { boardDetailStyles } from "@/shared/styles/BoardDetail/BoardDetail";
 import BoardDetailArea from "./BoardDetailArea";
@@ -17,20 +17,6 @@ import ViewComfyOutlinedIcon from "@mui/icons-material/ViewComfyOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { renderSelect } from "./formUtils";
 
-/* ===== teamBoards で更新可のキー（ルール想定と一致） ===== */
-const TEAM_ALLOWED_UPDATE_KEYS = new Set([
-  "name","description","buildingType","floorCount","ceilingHeight",
-  "siteAreaSqm","siteAreaTsubo","roomTypes","requiredAreas","requiredFunctions",
-  "requiredSeats","budget","estimatedCompletion","clientName","projectType",
-  "areaSeats","ownerName","ownerHandle","ownerHandleLower","updatedAt",
-]);
-
-/* ===== 送信禁止キー（オーナーでも送らない） ===== */
-const TEAM_FORBIDDEN_KEYS = new Set([
-  "owner","ownerId","members","visibility","isPublic","isPrivate",
-  "publicId","publicMode","publicRefsUpdatedAt","createdAt","publishAt","writeAccess",
-]);
-
 /** @や前後空白を除いたハンドルへ整形 */
 const normalizeHandle = (raw) => {
   if (!raw) return null;
@@ -38,52 +24,13 @@ const normalizeHandle = (raw) => {
   return h || null;
 };
 
-/** 変更のあったキーのみ抽出 */
-const pickChanged = (before = {}, after = {}) => {
-  const out = {};
-  for (const [k, v] of Object.entries(after)) {
-    const a = v;
-    const b = before?.[k];
-    const same =
-      typeof a === "object" || typeof b === "object"
-        ? JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
-        : a === b;
-    if (!same) out[k] = a;
-  }
-  return out;
-};
-
-/** teamBoards へ送るデータのサニタイズ（ホワイトリスト＋禁止キー） */
-const sanitizeForTeamGlobal = (src) => {
-  const out = {};
-  for (const [k, v] of Object.entries(src || {})) {
-    if (TEAM_FORBIDDEN_KEYS.has(k)) continue;
-    if (!TEAM_ALLOWED_UPDATE_KEYS.has(k)) continue;
-    if (v === undefined) continue;
-    out[k] = v;
-  }
-  if (!("updatedAt" in out)) out.updatedAt = serverTimestamp();
-  return out;
-};
-
-/** users/{uid}/teamBoards の軽量ミラー */
-const sanitizeForUserLink = (src) => {
-  const out = {};
-  for (const [k, v] of Object.entries(src || {})) {
-    if (v === undefined) continue;
-    out[k] = v;
-  }
-  out.updatedAt = serverTimestamp();
-  return out;
-};
-
 const BoardDetailInformation = ({ board }) => {
   const { user } = useAuth();
-  const { selectedBoard, setSelectedBoard } = useSelectedBoardContext();
+  const { selectedProject, setSelectedProject } = useSelectedProjectContext();
 
   // Deduce IDs from the passed board prop or context fallback
-  const boardId = board?.id || board?.boardId || selectedBoard?.id;
-  const userId = board?.ownerId || board?.owner || board?.userId || selectedBoard?.ownerId || selectedBoard?.owner;
+  const boardId = board?.id || board?.boardId || selectedProject?.id;
+  const userId = board?.ownerId || board?.owner || board?.userId || selectedProject?.ownerId || selectedProject?.owner;
 
   const [boardData, setBoardData] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
@@ -109,36 +56,24 @@ const BoardDetailInformation = ({ board }) => {
   useEffect(() => {
     const fetchBoard = async () => {
       try {
-        // myBoards を優先
-        const myBoardRef = doc(db, "users", userId, "myBoards", boardId);
-        const mySnap = await getDoc(myBoardRef);
-        if (mySnap.exists()) {
-          const data = mySnap.data();
-          setBoardData({ ...data, boardType: "myBoards" });
-          setSelectedBoard({ id: boardId, ...data, boardType: "myBoards" });
-          setIsEditable(user?.uid === userId);
-          return;
-        }
+        const unifiedRef = doc(db, "projects", boardId);
+        const snap = await getDoc(unifiedRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          setBoardData(data);
+          setSelectedProject({ id: boardId, ...data });
 
-        // teamBoards（実体）
-        const teamBoardRef = doc(db, "teamBoards", boardId);
-        const teamSnap = await getDoc(teamBoardRef);
-        if (teamSnap.exists()) {
-          const data = teamSnap.data();
-          setBoardData({ ...data, boardType: "teamBoards" });
-          setSelectedBoard({ id: boardId, ...data, boardType: "teamBoards" });
-
-          const amOwner = data.owner === user?.uid || data.ownerId === user?.uid;
-          const isMember = Array.isArray(data.members) && data.members.includes(user?.uid);
+          const amOwner = data.ownerId === user?.uid;
+          const isMember = Array.isArray(data.memberIds) && data.memberIds.includes(user?.uid);
           setIsEditable(amOwner || isMember);
 
-          if (Array.isArray(data.members) && data.members.length) {
+          if (Array.isArray(data.memberIds) && data.memberIds.length) {
             const map = {};
             await Promise.all(
-              data.members.map(async (uid) => {
+              data.memberIds.map(async (uid) => {
                 try {
-                  const snap = await getDoc(doc(db, "users", uid));
-                  map[uid] = snap.exists() ? snap.data().username || "NoName" : "不明なユーザー";
+                  const uSnap = await getDoc(doc(db, "users", uid));
+                  map[uid] = uSnap.exists() ? uSnap.data().username || "NoName" : "不明なユーザー";
                 } catch {
                   map[uid] = "取得失敗";
                 }
@@ -151,28 +86,30 @@ const BoardDetailInformation = ({ board }) => {
         console.error("ボード取得エラー:", err);
       }
     };
-    fetchBoard();
-  }, [userId, boardId, user?.uid, setSelectedBoard]);
+    if (boardId) {
+      fetchBoard();
+    }
+  }, [boardId, user?.uid, setSelectedProject]);
 
   /* ===== ローカル state 初期化 ===== */
   useEffect(() => {
-    if (!selectedBoard) return;
-    setBoardName(selectedBoard.name || "");
-    setBoardDescription(selectedBoard.description || "");
-    setBuildingType(selectedBoard.buildingType || "");
-    setSiteAreaSqm(selectedBoard.siteAreaSqm || "");
-    setSiteAreaTsubo(selectedBoard.siteAreaTsubo || "");
-    setRoomTypes(selectedBoard.roomTypes || "");
-    setRequiredAreas(selectedBoard.requiredAreas || "");
-    setRequiredSeats(selectedBoard.requiredSeats || "");
-    setRequiredFunctions(selectedBoard.requiredFunctions || "");
-    setBudget(selectedBoard.budget || "");
-    setClientName(selectedBoard.clientName || "");
-    setEstimatedCompletion(selectedBoard.estimatedCompletion || "");
-    setProjectType(selectedBoard.projectType || "");
-    setFloorCount(selectedBoard.floorCount || "");
-    setCeilingHeight(selectedBoard.ceilingHeight || "");
-  }, [selectedBoard]);
+    if (!selectedProject) return;
+    setBoardName(selectedProject.name || "");
+    setBoardDescription(selectedProject.description || "");
+    setBuildingType(selectedProject.buildingType || "");
+    setSiteAreaSqm(selectedProject.siteAreaSqm || "");
+    setSiteAreaTsubo(selectedProject.siteAreaTsubo || "");
+    setRoomTypes(selectedProject.roomTypes || "");
+    setRequiredAreas(selectedProject.requiredAreas || "");
+    setRequiredSeats(selectedProject.requiredSeats || "");
+    setRequiredFunctions(selectedProject.requiredFunctions || "");
+    setBudget(selectedProject.budget || "");
+    setClientName(selectedProject.clientName || "");
+    setEstimatedCompletion(selectedProject.estimatedCompletion || "");
+    setProjectType(selectedProject.projectType || "");
+    setFloorCount(selectedProject.floorCount || "");
+    setCeilingHeight(selectedProject.ceilingHeight || "");
+  }, [selectedProject]);
 
   /* ===== 保存 ===== */
   const handleSave = async () => {
@@ -216,74 +153,18 @@ const BoardDetailInformation = ({ board }) => {
     };
 
     try {
-      const isMy = boardData.boardType === "myBoards";
-      const amOwner = boardData.owner === user.uid || boardData.ownerId === user.uid;
-      const isMember = Array.isArray(boardData.members) && boardData.members.includes(user.uid);
+      const amOwner = boardData.ownerId === user.uid;
+      const isMember = Array.isArray(boardData.memberIds) && boardData.memberIds.includes(user.uid);
 
-      console.log("[DEBUG] teamBoards save", {
-        boardId,
-        isMy,
-        amOwner,
-        isMember,
-        docOwner: boardData.owner,
-        docOwnerId: boardData.ownerId,
-        members: boardData.members,
-      });
+      if (!amOwner && !isMember) {
+        throw new Error("このボードを編集する権限がありません。");
+      }
 
-      if (isMy) {
-        const payload = { ...formValues, updatedAt: serverTimestamp() };
-        const mRef = doc(db, "users", user.uid, "myBoards", boardId);
-        console.log("[WRITE myBoards]", mRef.path, payload);
-        await updateMyBoardInfo(user.uid, boardId, payload);
-        const snap = await getDoc(mRef);
-        if (snap.exists()) {
-          setSelectedBoard({ id: boardId, ...snap.data(), boardType: "myBoards" });
-        }
-      } else {
-        // === ここが重要：不変フィールドを “常在させる” ためにパススルー ===
-        if (!amOwner) {
-          throw new Error("このボードはオーナーのみ編集できます。");
-        }
-
-        // 変更分を抽出
-        const changed = pickChanged(boardData, formValues);
-        // 変更がなくても updatedAt は更新
-        changed.updatedAt = serverTimestamp();
-
-        // 送信前に、**ルールが常在を要求する不変キー**をドキュメントからパススルーで同梱
-        // （※値は変更しない）
-        const invariants = {};
-        if (boardData.ownerId !== undefined) invariants.ownerId = boardData.ownerId;
-        if (boardData.members !== undefined) invariants.members = boardData.members;
-        if (boardData.writeAccess !== undefined) invariants.writeAccess = boardData.writeAccess;
-        if (boardData.createdAt !== undefined) invariants.createdAt = boardData.createdAt;
-        if (boardData.publicId !== undefined) invariants.publicId = boardData.publicId;
-        if (boardData.publicMode !== undefined) invariants.publicMode = boardData.publicMode;
-
-        // サニタイズ（可変キーのみ通す）＋ 不変キーを最後に上書き（= 変更しない）
-        const gPayload = { ...sanitizeForTeamGlobal(changed), ...invariants };
-
-        // 送る内容を最小化（名前だけ触ったケース）
-        const gRef = doc(db, "teamBoards", boardId);
-        console.log("[WRITE teamBoards]", gRef.path, gPayload);
-        await updateDoc(gRef, gPayload);
-
-        // user-link の軽同期
-        const lRef = doc(db, "users", user.uid, "teamBoards", boardId);
-        const lPayload = sanitizeForUserLink({
-          name: formValues.name,
-          projectType: formValues.projectType,
-          buildingType: formValues.buildingType,
-          siteAreaSqm: formValues.siteAreaSqm,
-          siteAreaTsubo: formValues.siteAreaTsubo,
-        });
-        console.log("[WRITE user link]", lRef.path, lPayload);
-        await setDoc(lRef, lPayload, { merge: true });
-
-        const snap = await getDoc(gRef);
-        if (snap.exists()) {
-          setSelectedBoard({ id: boardId, ...snap.data(), boardType: "teamBoards" });
-        }
+      await updateProject(boardId, formValues);
+      
+      const snap = await getDoc(doc(db, "projects", boardId));
+      if (snap.exists()) {
+        setSelectedProject({ id: boardId, ...snap.data() });
       }
 
       alert("保存しました！");
@@ -320,11 +201,11 @@ const BoardDetailInformation = ({ board }) => {
         <Divider sx={boardDetailStyles.divider} />
 
         {/* チームメンバー */}
-        {boardData?.boardType === "teamBoards" && Array.isArray(boardData?.members) && boardData.members.length > 0 && (
+        {Array.isArray(boardData?.memberIds) && boardData.memberIds.length > 0 && (
           <Box>
-            <Typography variant="subtitle1" sx={boardDetailStyles.subTitle}>チームメンバー</Typography>
+            <Typography variant="subtitle1" sx={boardDetailStyles.subTitle}>メンバー</Typography>
             <Box sx={boardDetailStyles.section}>
-              {boardData.members.map((uid) => (
+              {boardData.memberIds.map((uid) => (
                 <Chip key={uid} label={memberMap[uid] || "読み込み中..."} sx={boardDetailStyles.chip} />
               ))}
             </Box>

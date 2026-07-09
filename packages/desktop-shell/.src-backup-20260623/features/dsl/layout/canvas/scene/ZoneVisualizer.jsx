@@ -1,0 +1,180 @@
+import React, { useMemo } from "react";
+import * as THREE from "three";
+import { Html, Edges } from "@react-three/drei";
+import { useLayoutTaskStore } from "@desktop/features/dsl/layout/store/useLayoutTaskStore";
+import { useEditorModeStore } from "@desktop/features/dsl/layout/store/useEditorModeStore";
+import ZoneActiveGizmo from "./ZoneActiveGizmo.jsx";
+import CirculationVisualizer from "./CirculationVisualizer.jsx";
+import { useZoningStore } from "@desktop/features/dsl/layout/store/useZoningStore";
+import { useSelectionScopeStore, canSelectZone } from "@desktop/features/dsl/layout/store/useSelectionScopeStore";
+
+const BOX_H = 10; // Make thick enough for mm scale
+const LABEL_Y = 200; // Hover nicely above the box
+const PADDING = 100.0; // padding in mm
+
+/**
+ * zone.rect が存在するゾーン → rect から直接描画（正確な空間境界）
+ * zone.rect がないゾーン → 旧来の items ベースバウンディングボックス（後方互換）
+ */
+export default function ZoneVisualizer({ items, orbitRef }) {
+  const zones = useLayoutTaskStore((s) => s.zones);
+  const activeZoneId = useLayoutTaskStore((s) => s.activeZoneId);
+  const setActiveZoneId = useLayoutTaskStore((s) => s.setActiveZoneId);
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm);
+
+  const isVisibleMode = editorMode === "layout" || editorMode === "zoning";
+
+  // Zone は ALL / Zone スコープのみ表示する
+  const scope = useSelectionScopeStore((s) => s.scope);
+  const showZones = scope === "all" || scope === "zone";
+
+  const zoningSubMode = useZoningStore((s) => s.zoningSubMode);
+  const isZoningActionSelect = useZoningStore((s) => s.isZoningActionSelect);
+  const selectedCirculationId = useZoningStore((s) => s.selectedCirculationId);
+
+  const hiddenZoneIds = useZoningStore((s) => s.hiddenZoneIds);
+  const hiddenPatternIds = useZoningStore((s) => s.hiddenPatternIds);
+  const circulationPatterns = useLayoutTaskStore((s) => s.circulationPatterns) || [];
+  const activeCirculationPatternId = useLayoutTaskStore((s) => s.activeCirculationPatternId);
+
+  const zoneMeshes = useMemo(() => {
+    if (!isVisibleMode) return [];
+    if (!showZones) return [];
+
+    return zones.map((zone, idx) => {
+      if (hiddenZoneIds[zone.id]) return null;
+      
+      let cx, cz, width, depth;
+
+      if (zone.rect) {
+        // rect ベース（ゾーニング機能で作成）
+        cx = zone.rect.x;
+        cz = zone.rect.z;
+        width = Math.max(0.5, zone.rect.width);
+        depth = Math.max(0.5, zone.rect.depth);
+      } else {
+        // 旧来: items から境界を計算
+        const zoneItems = items.filter((it) => it?.zoneId === zone.id);
+        if (zoneItems.length === 0) return null;
+
+        let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+        zoneItems.forEach((it) => {
+          const px = it?.transform?.position?.[0] ?? 0;
+          const pz = it?.transform?.position?.[2] ?? 0;
+          minX = Math.min(minX, px);
+          minZ = Math.min(minZ, pz);
+          maxX = Math.max(maxX, px);
+          maxZ = Math.max(maxZ, pz);
+        });
+        minX -= PADDING; minZ -= PADDING; maxX += PADDING; maxZ += PADDING;
+        cx = (minX + maxX) / 2;
+        cz = (minZ + maxZ) / 2;
+        width = Math.max(1, maxX - minX);
+        depth = Math.max(1, maxZ - minZ);
+      }
+
+      const isActive = activeZoneId === zone.id;
+      const color = zone.color || "#cccccc";
+
+      const sortedVersions = [...(zone.versions || [])].sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+      const effectiveActiveVersionId = zone.activeVersionId || sortedVersions[0]?.id;
+      const activeVersionIndex = sortedVersions.findIndex(v => v.id === effectiveActiveVersionId);
+      const versionLabel = activeVersionIndex !== -1 ? ` / v${sortedVersions.length - activeVersionIndex}` : "";
+
+      return { zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder: idx };
+    }).filter(Boolean);
+  }, [items, zones, activeZoneId, isVisibleMode, showZones, hiddenZoneIds]);
+
+  if (!isVisibleMode) return null;
+
+  return (
+    <group>
+      {zoneMeshes.map(({ zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder }) => {
+        if (isActive && zone.rect) {
+          return <ZoneActiveGizmo key={zone.id} zone={zone} orbitRef={orbitRef} renderOrder={renderOrder} versionLabel={versionLabel} />;
+        }
+
+        return (
+          <group key={zone.id}>
+            <mesh
+              position={[cx, BOX_H / 2 + gridHeightMm, cz]}
+              renderOrder={renderOrder}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (editorMode === "zoning") {
+                  if (zoningSubMode !== "zone" || !isZoningActionSelect) return;
+                }
+                if (!canSelectZone(useSelectionScopeStore.getState().scope)) return;
+                setActiveZoneId(zone.id);
+              }}
+            >
+              <boxGeometry args={[width, BOX_H, depth]} />
+              <meshBasicMaterial
+                color={color}
+                transparent
+                opacity={isActive ? 0.35 : 0.20}
+                depthTest={false}
+                depthWrite={false}
+              />
+              {/* Edges removed as per user feedback */}
+            </mesh>
+
+            <Html
+              position={[cx, LABEL_Y + gridHeightMm, cz]}
+              center
+              style={{ pointerEvents: "none", opacity: isActive ? 1 : 0.4, transition: "opacity 0.2s ease-in-out" }}
+            >
+              <div style={{
+                background: color,
+                color: "#fff",
+                padding: "3px 9px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                whiteSpace: "nowrap",
+                boxShadow: isActive ? `0 0 10px ${color}` : "none",
+                fontFamily: "Inter, sans-serif",
+              }}>
+                {zone.name || "Unnamed Zone"}{versionLabel}
+                {zone.rect && (
+                  <span style={{ opacity: 0.75, marginLeft: 5, fontSize: 10 }}>
+                    {Math.round(zone.rect.width)}×{Math.round(zone.rect.depth)}mm
+                  </span>
+                )}
+              </div>
+            </Html>
+          </group>
+        );
+      })}
+
+      {circulationPatterns.map(pattern => {
+        const isHidden = hiddenPatternIds[pattern.id];
+        if (isHidden) return null;
+        
+        const isActivePattern = pattern.id === activeCirculationPatternId;
+        const circulations = isActivePattern 
+          ? useLayoutTaskStore.getState().circulations // Ensure we use the latest working draft for the active pattern
+          : pattern.circulations || [];
+
+        return (
+          <CirculationVisualizer 
+            key={pattern.id}
+            circulations={circulations}
+            isActive={isActivePattern && editorMode === "zoning" && zoningSubMode === "circulation" && isZoningActionSelect} 
+            selectedCirculationId={isActivePattern ? selectedCirculationId : null}
+            onSelect={(circId) => {
+              if (editorMode === "zoning") {
+                const state = useZoningStore.getState();
+                if (state.zoningSubMode !== "circulation" || !state.isZoningActionSelect) return;
+              }
+              const state = useZoningStore.getState();
+              state.setSelectedCirculationId(circId);
+            }} 
+          />
+        );
+      })}
+    </group>
+  );
+}

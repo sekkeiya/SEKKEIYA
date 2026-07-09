@@ -1,0 +1,10 @@
+{
+  "name": "@sekkeiya/desktop-shell",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/DesktopShellWeb.tsx",
+  "exports": {
+    ".": "./src/DesktopShellWeb.tsx"
+  }
+}

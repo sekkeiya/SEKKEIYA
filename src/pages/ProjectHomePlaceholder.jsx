@@ -1,69 +1,54 @@
-import React, { useEffect } from "react";
-import { Box, CircularProgress } from "@mui/material";
-import { useParams, useLocation } from "react-router-dom";
-import ProjectBoardPage from "@/features/projectBoard/pages/ProjectBoardPage";
-import { SelectedBoardProvider, useSelectedBoardContext } from "@/shared/contexts/SelectedBoardContext";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/shared/config/firebase";
+import React, { useEffect, useState } from "react";
+import { Box, CircularProgress, Typography, Tabs, Tab } from "@mui/material";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { getProject } from "@sekkeiya/global-panel/api/projects";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { normalizeToUnifiedBoard } from "@/shared/api/adapters/boardAdapters";
 
-function NativeBoardInner() {
-  const { id } = useParams();
+export default function ProjectWebsitePage() {
+  const { projectId, section } = useParams();
+  const navigate = useNavigate();
   const location = useLocation();
-  const { selectedBoard, setSelectedBoard } = useSelectedBoardContext();
   const { user } = useAuth();
+  
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // The definitive sections of a Project Website
+  const SECTIONS = [
+    { id: "landing", label: "Home" },
+    { id: "models", label: "3D Models" },
+    { id: "drawings", label: "Drawings" },
+    { id: "renders", label: "Renders" },
+    { id: "movies", label: "Movies" },
+    { id: "articles", label: "Articles" },
+    { id: "slides", label: "Slides" },
+    { id: "analysis", label: "Analysis" },
+  ];
+
+  const currentSection = section || "landing";
 
   useEffect(() => {
     let active = true;
-    
-    const fetchBoard = async () => {
-      if (selectedBoard && selectedBoard.id === id && selectedBoard.name) {
-        return;
-      }
-
-      const boardFromState = location.state?.board;
-      if (boardFromState) {
-        if (active) {
-          setSelectedBoard({
-            ...boardFromState,
-            boardId: boardFromState.id,
-            boardType: boardFromState.boardType || "personal",
-            userId: boardFromState.ownerId
-          });
-        }
-        return;
-      }
-
-      // No state, fetch from Firestore
+    const fetchProj = async () => {
+      setLoading(true);
       try {
-        let boardData = {
-          id: id,
-          boardId: id,
-          boardType: "myBoards",
-        };
-        
-        const snap = await getDoc(doc(db, "boards", id));
-        if (snap.exists()) {
-          boardData = normalizeToUnifiedBoard(snap.data(), id, snap.data().boardType === "teamBoards");
-        }
-
-        if (active) {
-          setSelectedBoard(boardData);
-        }
+        const p = await getProject(projectId);
+        if (active) setProject(p);
       } catch (err) {
-        console.error("Failed to fetch native board data:", err);
-        if (active) {
-          setSelectedBoard({ id: id, boardId: id, boardType: "myBoards" });
-        }
+        console.error("Failed to fetch project:", err);
+      } finally {
+        if (active) setLoading(false);
       }
     };
-
-    fetchBoard();
+    fetchProj();
     return () => { active = false; };
-  }, [id, location.state, selectedBoard, setSelectedBoard, user?.uid]);
+  }, [projectId]);
 
-  if (!selectedBoard || selectedBoard.id !== id) {
+  const handleTabChange = (event, newSection) => {
+    navigate(`/projects/${projectId}/${newSection}`);
+  };
+
+  if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: '#111' }}>
         <CircularProgress />
@@ -71,19 +56,50 @@ function NativeBoardInner() {
     );
   }
 
-  return (
-    <Box sx={{ width: "100%", height: "100%", overflowY: "auto", bgcolor: "#111" }}>
-      <ProjectBoardPage board={selectedBoard} />
-    </Box>
-  );
-}
+  if (!project) {
+    return (
+      <Box sx={{ p: 4, color: '#fff', textAlign: 'center' }}>
+        <Typography variant="h5">Project Not Found</Typography>
+      </Box>
+    );
+  }
 
-export default function ProjectHomePlaceholder() {
-  const { id } = useParams();
-  
   return (
-    <SelectedBoardProvider key={id}>
-      <NativeBoardInner />
-    </SelectedBoardProvider>
+    <Box sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", bgcolor: "#111", color: "#fff" }}>
+      {/* Website Header Menu */}
+      <Box sx={{ 
+        p: 2, 
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        bgcolor: "#1a1a1a"
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+          {project.name}
+        </Typography>
+
+        <Tabs 
+          value={currentSection} 
+          onChange={handleTabChange} 
+          textColor="inherit" 
+          indicatorColor="primary"
+          sx={{ minHeight: 48 }}
+        >
+          {SECTIONS.map(s => (
+            <Tab key={s.id} label={s.label} value={s.id} sx={{ minHeight: 48, textTransform: "none", fontWeight: 600 }} />
+          ))}
+        </Tabs>
+      </Box>
+
+      {/* Section Content Area */}
+      <Box sx={{ flex: 1, p: 4, overflowY: "auto" }}>
+        <Typography variant="h4" sx={{ mb: 2 }}>{SECTIONS.find(s => s.id === currentSection)?.label || currentSection}</Typography>
+        <Typography variant="body1" sx={{ color: "rgba(255,255,255,0.7)" }}>
+          Welcome to the {currentSection} section for {project.name}.
+          {/* Will be replaced by actual generator/viewer integrations */}
+        </Typography>
+      </Box>
+    </Box>
   );
 }

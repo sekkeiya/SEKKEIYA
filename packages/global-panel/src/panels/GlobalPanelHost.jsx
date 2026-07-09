@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGlobalPanelStore } from '../store/useGlobalPanelStore';
 import GlobalPanelOverlay from './GlobalPanelOverlay';
 

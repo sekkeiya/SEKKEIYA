@@ -6,8 +6,6 @@ export const SelectedPageProvider = ({ children, initialPage = "dashboard" }) =>
   // 履歴スタック（末尾が現在ページ）
   const [history, setHistory] = useState([initialPage]);
 
-  // 既存の public ボードIDはそのまま
-  const [selectedBoardPublicId, setSelectedBoardPublicId] = useState(null);
 
   const selectedPage = history[history.length - 1] || initialPage;
   const prevPage = history.length > 1 ? history[history.length - 2] : null;
@@ -39,9 +37,7 @@ export const SelectedPageProvider = ({ children, initialPage = "dashboard" }) =>
       setSelectedPage,
       goBack,
       replacePage,
-      // 既存フィールド
-      selectedBoardPublicId,
-      setSelectedBoardPublicId,
+
     }),
     [
       selectedPage,
@@ -51,7 +47,7 @@ export const SelectedPageProvider = ({ children, initialPage = "dashboard" }) =>
       setSelectedPage,
       goBack,
       replacePage,
-      selectedBoardPublicId,
+
     ]
   );
 

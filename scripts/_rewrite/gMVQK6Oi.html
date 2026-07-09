@@ -1,0 +1,63 @@
+<h2>導入</h2>
+<p>SEKKEIYA の <strong>S.Models</strong>（旧 3D Shape Share）Desktop版では、Rhino からアップロードした <code>.3dm</code> ファイルを Desktop 側で <code>.glb</code> に変換し、Web Viewer や Three.js 環境で扱える形にするローカル変換パイプラインを採用しています。</p>
+<p>この GLB 生成は、Viewer 表示やデータ共有の要となる重要な工程です。本記事では、初期リリースに向けて積み重ねてきた <strong>GLB 変換パイプラインの安定化設計</strong>を、一連の改善としてまとめて記録します。具体的には、(1) 生成責務の Desktop 側への移行、(2) rhino3dm 環境差分への耐性、(3) Rhino と Desktop の役割分離、(4) 座標系（Z-up / Y-up）の統一、(5) 結果連携の非同期基盤化、の5点です。</p>
+
+<h2>1. GLB 生成を Desktop 側へ移行する</h2>
+<h3>Rhino 側 GLB 出力が抱えていた課題</h3>
+<p>当初は <code>UploadSelectionTo3DSS</code> コマンド内で GLB を書き出していましたが、Rhino の Export ダイアログや内部挙動に依存するため、完全な自動化が困難でした。環境差や設定差によって出力に失敗し、<code>glbPath</code> が null になるケースが発生しやすく、運用上の不安定要因となっていました。</p>
+<h3>役割分担の再定義</h3>
+<p>そこで、<strong>Rhino は制作ツールとしての役割に集中し、Desktop は変換・最適化を担う</strong>という明確な分業構造へ切り替えました。Rhino から Desktop へ渡すジョブ情報 <code>upload-selection-job.json</code> には、次の要素を加えています。</p>
+<ul>
+<li><code>requestGlb: true</code> による GLB 生成リクエストの明示</li>
+<li><code>unitSystem</code> による単位系の正確な伝達</li>
+<li><code>jobId</code> による生成物の安定した紐付け</li>
+<li><code>glbPath</code> は Rhino 側では null 固定</li>
+</ul>
+<p>Rhino 側は「3dm 書き出し・サムネイル生成・寸法/カテゴリ等のメタデータ生成」に専念し、Viewer では GLB を優先表示することで体感速度を向上させています。</p>
+
+<h2>2. rhino3dm の環境差分に耐えるメッシュ解釈</h2>
+<p>Rhino 7 / Rhino 8 / wasm build といった <strong>rhino3dm 実行環境ごとの差分</strong>により、従来の Mesh 判定・頂点取得・面取得ロジックが一部環境で正しく動作しないことが判明しました。これらを「例外」ではなく「最初からあり得る前提」として吸収する耐性設計へ刷新しています。</p>
+<ul>
+<li><strong>Mesh 判定を構造ベースへ</strong>：<code>objectType</code> への依存を廃止し、<code>constructor === "Mesh"</code> かつ vertices / faces API が存在することを複合条件として判定。</li>
+<li><strong>頂点取得の耐性化</strong>：<code>{x, y, z}</code> 形式を前提とせず、配列形式 <code>[x, y, z]</code> も優先的に処理。</li>
+<li><strong>面の正規化</strong>：<code>getFaceVertices(i)</code> の返却（triangle / quad / <code>d = -1</code> 混在）を内部で吸収し、最終的に必ず三角形インデックスへ変換。</li>
+</ul>
+<p>これにより、Mesh が1枚でも取得できれば GLB 生成を継続できる「失敗しないための多重安全設計」へと転換しました。あわせて、Node.js 実行環境で Three.js の GLTFExporter が要求する <code>FileReader</code> をポリフィルし、CLI・自動変換フローでも安定して GLB を生成できる基盤を整えています。</p>
+
+<h2>3. Rhino と Desktop の役割を分離する（.mesh.3dm と .3dm）</h2>
+<p>Brep・Extrusion・SubD は Rhino 内部で表示用 Mesh を保持していますが、必ずしも <code>.3dm</code> に明示的な Mesh として保存されているわけではありません。そのため Desktop 側で Mesh が解釈できず、GLB が 2KB 程度の空ファイルになる問題が起きていました。</p>
+<p>そこで <code>UploadSelectionTo3DSS</code> を改修し、RhinoCommon を用いて <strong>Mesh を生成した状態で書き出す</strong>設計へ変更しました。</p>
+<ul>
+<li>Mesh 取得は <code>RenderMesh</code> を最優先し、存在しない場合のみ Geometry からの Mesh 化をフォールバックとして実行</li>
+<li>生成した Mesh は headless な Rhino Document に集約し、<strong>Mesh のみを追加した <code>.mesh.3dm</code></strong> として書き出す</li>
+<li>Desktop 側は <code>.mesh.3dm</code>（Mesh 化済み）と <code>.3dm</code>（元データ）を明確に分離して扱う</li>
+</ul>
+<p>「Rhino は正しい形状と Mesh を生成し、Desktop はそれを忠実に GLB 化する」という責務分離により、変換結果の再現性と信頼性が大きく向上しました。</p>
+
+<h2>4. 座標系（Z-up / Y-up）を統一する</h2>
+<p>Rhino は <strong>Z-up</strong>、glTF / Three.js は <strong>Y-up</strong> という仕様差により、GLB を Rhino で開くと向きが不正になる、Viewer 上で上下が逆に見える、といった問題が発生していました。</p>
+<p>今回、<strong>GLB 出力前に座標系を正しく変換</strong>し、Rhino で再インポートしても Z-up が維持されることを確認しています。これにより、Web Viewer / Desktop Viewer / Rhino 再読み込みのすべてで、一貫した向きと形状を保てるようになりました。</p>
+
+<h2>5. 生成結果を非同期で安全に連携する（Result Watcher / ACK）</h2>
+<p>GLB 生成は計算量が大きく実行時間も不定なため、UI や Web 側の処理と密結合させると安定性に影響します。そこで「重い生成処理は Desktop、データ管理と共有は Web」という役割分担を明確にした非同期連携基盤を整備しました。</p>
+<h3>フロントエンド監視から Rust（Tauri）統合へ</h3>
+<p>従来は生成後の result ファイルをフロントエンド（JavaScript）側で監視していましたが、Node / Browser 環境差による fs API の制限などで不安定になりがちでした。ファイル監視の責務を OS に近い Rust（Tauri）側へ統合し、UI は Tauri Event を listen して結果を受け取るだけに整理しました（<code>glbResultWatcher.js</code> は廃止）。</p>
+<h3>ACK 方式による信頼性の確保</h3>
+<p>result ファイルを検知した時点で即削除する設計は、Firebase 更新が途中で失敗した際に再処理の手がかりを失います。そこで、Rust 側は「結果を通知する役割」に徹し、フロント側が Firebase Storage / Firestore の更新に成功したときだけ <code>delete_glb_result_file</code> を呼んで result ファイルを削除する <strong>ACK 方式</strong>を採用しました。</p>
+<ul>
+<li>二重処理の防止</li>
+<li>取りこぼしの回避</li>
+<li>エラー時の再試行余地の確保（「安全に止まれる設計」）</li>
+</ul>
+<p>結果として、責務は「Rhino：ジョブの起点 / Rust：ジョブ管理・Result 監視・イベント発行 / React：結果受信・Firebase 反映・ACK 送信」という一本の流れに整理されました。</p>
+
+<h2>まとめ</h2>
+<p>一連の改善により、<strong>「Rhino からアップロードすれば必ず Web で正しく表示できる」</strong>という Desktop 連携の基盤が完成しました。要点は次の5つです。</p>
+<ol>
+<li>GLB 生成責務を Desktop 側へ移行し、Viewer は GLB を優先表示</li>
+<li>rhino3dm の環境差分に耐える Mesh 判定・頂点/面取得ロジック</li>
+<li><code>.mesh.3dm</code> と <code>.3dm</code> の役割分離による変換パイプラインの明確化</li>
+<li>Z-up / Y-up 座標系の統一による表示の一貫性確保</li>
+<li>Result Watcher の Rust 統合と ACK 方式による安全な非同期連携</li>
+</ol>
+<p>なお、本対応は Desktop 側のローカル変換処理の安定化を目的としたもので、Web 版のデータ構造や既存挙動には影響しません。引き続き、安定性と表現力の向上を進めていきます。</p>

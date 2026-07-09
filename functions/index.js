@@ -1,7 +1,7 @@
 /**
  * SEKKEIYA AI Orchestrator Main Entrypoint
  */
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { routeChatRequest } = require("./orchestrator/route");
 const { onUserModelsWritten } = require("./models/sync");
@@ -27,6 +27,18 @@ const { synthesizeInterviewArticle } = require("./reporter/synthesizeInterviewAr
 const { suggestTopics } = require("./reporter/suggestTopics");
 const { insertArticleVisuals, designBlogArticle } = require("./reporter/articleVisuals");
 const { blogDialogue } = require("./reporter/blogDialogue");
+const { generateBlogImage } = require("./reporter/generateBlogImage");
+exports.generateBlogImage = generateBlogImage;
+
+// 🗺 みんなの記事の動的サイトマップ（hosting rewrite: /sitemap-community.xml → この関数）。
+// S.Blog で公開された記事が再デプロイなしで Google に発見されるようにする。
+const { sitemapCommunity } = require("./reporter/sitemapCommunity");
+exports.sitemapCommunity = onRequest({ memory: "256MiB", timeoutSeconds: 60 }, sitemapCommunity);
+
+// 🤖 ブログ記事の動的レンダリング（hosting rewrite: /{handle}/blog/{slug} → この関数）。
+// ボットには完全なHTML（SEO/OGP/JSON-LD）、人間にはSPAを返す。手動運用ゼロでインデックス確実化。
+const { renderBlogArticle } = require("./reporter/renderBlogArticle");
+exports.renderBlogArticle = onRequest({ memory: "256MiB", timeoutSeconds: 30 }, renderBlogArticle);
 
 // SEKKEIYA Chat: クライアント主導の tool-calling ループの「1 ターン」エンドポイント。
 // docs/10_sekkeiya_chat_spec.md §7
@@ -35,7 +47,7 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
     throw new HttpsError("unauthenticated", "Only authenticated users can use SEKKEIYA Chat.");
   }
   try {
-    const { messages, model, projectId } = request.data || {};
+    const { messages, model, projectId, clientContext } = request.data || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       throw new HttpsError("invalid-argument", "Missing messages");
     }
@@ -53,7 +65,11 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
     } catch (e) {
       console.warn("agentTurn memory inject failed:", e.message);
     }
-    const result = await agentTurn({ messages, model, memorySection });
+    // 🗂 クライアント文脈（開いているタブのプレイブック・編集対象スナップショット等）。
+    // 暴走ペイロード対策で上限を切る（通常は数千〜1万文字程度）。
+    const safeClientContext =
+      typeof clientContext === "string" ? clientContext.slice(0, 60000) : "";
+    const result = await agentTurn({ messages, model, memorySection, clientContext: safeClientContext });
     return { success: true, result };
   } catch (error) {
     console.error("agentTurn Error:", error);
@@ -253,6 +269,42 @@ exports.generateKeywordArticle = onCall({ secrets: [geminiApiKey, anthropicApiKe
   } catch (e) {
     console.error("generateKeywordArticle Error:", e);
     throw new HttpsError("internal", e.message || "Keyword article generation failed");
+  }
+});
+
+// AI記者 モード③: SEKKEIYA の開発内容（gitコミット/変更点メモ）から「新機能/使い方/お知らせ」記事を生成
+const { generateDevUpdateArticle } = require("./reporter/generateDevUpdateArticle");
+exports.generateDevUpdateArticle = onCall({ secrets: [geminiApiKey, anthropicApiKey] }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+  try {
+    return await generateDevUpdateArticle(request.data, { auth: request.auth });
+  } catch (e) {
+    console.error("generateDevUpdateArticle Error:", e);
+    throw new HttpsError("internal", e.message || "Dev update article generation failed");
+  }
+});
+
+// AI投稿計画（編集長）: SEKKEIYA/ユーザー自身の状況を分析し「次に書くべき記事」を提案（執筆はしない）
+const { planBlogContent } = require("./reporter/planBlogContent");
+exports.planBlogContent = onCall({ secrets: [geminiApiKey, anthropicApiKey] }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+  try {
+    return await planBlogContent(request.data, { auth: request.auth });
+  } catch (e) {
+    console.error("planBlogContent Error:", e);
+    throw new HttpsError("internal", e.message || "Content planning failed");
+  }
+});
+
+// AIとブログ運営戦略・目標を議論して決める（planBlogContent が最優先材料として使う）
+const { blogStrategy } = require("./reporter/blogStrategy");
+exports.blogStrategy = onCall({ secrets: [geminiApiKey, anthropicApiKey] }, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+  try {
+    return await blogStrategy(request.data, { auth: request.auth });
+  } catch (e) {
+    console.error("blogStrategy Error:", e);
+    throw new HttpsError("internal", e.message || "Strategy chat failed");
   }
 });
 
