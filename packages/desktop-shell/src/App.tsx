@@ -870,8 +870,8 @@ function App() {
           }
         };
 
-        await registerSafe('CommandOrControl+Alt+S', (e: any) => {
-          console.log(`Shortcut S invoked, state: ${e.state}`);
+        await registerSafe('CommandOrControl+Alt+F', (e: any) => {
+          console.log(`Shortcut F (screenshot) invoked, state: ${e.state}`);
           if (e.state === 'Pressed') {
             startCaptureWindow('ask');
           }
@@ -879,7 +879,7 @@ function App() {
 
         // Ctrl+Alt+○ → 各サブアプリを独立窓で開くグローバルショートカット（D=Drive が起点）。
         // 各機能は既存の「ポップアウト窓を開く」ユーティリティへ委譲する（窓は1枚を使い回す）。
-        //   D = Drive / C = Chat(SEKKEIYA OS) / F = Search(Find; S はスクショで使用済) / R = Reader
+        //   D = Drive / C = Chat(SEKKEIYA OS) / S = Search / R = Reader（F=スクショは registerSafe 側）
         // registerSafe とは別枠で登録する（registerSafe は1ショットに絞られているため）。
         const registerAppShortcut = async (accel: string, label: string, open: () => Promise<unknown>) => {
           try {
@@ -895,11 +895,11 @@ function App() {
 
         await registerAppShortcut('CommandOrControl+Alt+D', 'SEKKEIYA Drive', () => openDriveWindow());
         await registerAppShortcut('CommandOrControl+Alt+C', 'SEKKEIYA OS (Chat)', () => openChatWindow(useAppStore.getState().activeProjectId ?? null));
-        await registerAppShortcut('CommandOrControl+Alt+F', 'SEKKEIYA Search', () => openSearchWindow());
+        await registerAppShortcut('CommandOrControl+Alt+S', 'SEKKEIYA Search', () => openSearchWindow());
         await registerAppShortcut('CommandOrControl+Alt+R', 'SEKKEIYA Reader', () => openReaderHome());
 
         // 拡張メニュー「スクショを保存」→ localhost /capture → Rust emit。
-        // Ctrl+Alt+S と同じく ask モードでキャプチャウィンドウを起動する。
+        // Ctrl+Alt+F（スクショ）と同じく ask モードでキャプチャウィンドウを起動する。
         const captureReqUnlisten = await listen('library-capture-requested', () => {
           startCaptureWindow('ask');
         });

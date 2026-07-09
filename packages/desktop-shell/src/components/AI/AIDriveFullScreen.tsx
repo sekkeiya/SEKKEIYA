@@ -47,6 +47,10 @@ import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
 import PptxPreview from './PptxPreview';
+import HtmlPreview from './HtmlPreview';
+import LinkPreview from './LinkPreview';
+import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 
 // Inspector Icons
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -62,6 +66,8 @@ const getFileIcon = (type: string) => {
     case 'model': case '3d-model': return <ViewInArRoundedIcon sx={{ color: 'light-dark(#0774a7, #81D4FA)', fontSize: 48 }} />;
     case 'pdf': return <PictureAsPdfRoundedIcon sx={{ color: 'light-dark(#c62828, #ef9a9a)', fontSize: 48 }} />;
     case 'presentation': return <SlideshowRoundedIcon sx={{ color: 'light-dark(#c2410c, #fdba74)', fontSize: 48 }} />;
+    case 'html': return <LanguageRoundedIcon sx={{ color: 'light-dark(#0d9488, #5eead4)', fontSize: 48 }} />;
+    case 'link': return <LinkRoundedIcon sx={{ color: 'light-dark(#0d9488, #5eead4)', fontSize: 48 }} />;
     case 'video': return <MovieRoundedIcon sx={{ color: 'light-dark(#6d28d9, #c4b5fd)', fontSize: 48 }} />;
     case 'document': return <DescriptionRoundedIcon sx={{ color: 'light-dark(#1d4ed8, #93c5fd)', fontSize: 48 }} />;
     case 'spreadsheet': return <TableChartRoundedIcon sx={{ color: 'light-dark(#15803d, #86efac)', fontSize: 48 }} />;
@@ -75,7 +81,7 @@ const getFileIcon = (type: string) => {
 //   サムネ未設定の pptx/pdf でも thumbnailUrl に本体URLが入る。それを <img> に出すと壊れ画像になる。
 //   → thumbnailUrl が「本体と同一URL」または「非画像拡張子」のときは画像扱いしない。
 const IMG_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg|avif|tiff?)($|\?)/i;
-const NON_IMG_EXT_RE = /\.(pptx?|ppsx?|potx?|key|docx?|xlsx?|csv|tsv|pdf|glb|gltf|3dm|fbx|obj|stl|blend|usdz?|zip|txt|md)($|\?)/i;
+const NON_IMG_EXT_RE = /\.(pptx?|ppsx?|potx?|key|docx?|xlsx?|csv|tsv|pdf|glb|gltf|3dm|fbx|obj|stl|blend|usdz?|zip|txt|md|html?|json|xml)($|\?)/i;
 const imageDisplayUrl = (a: { type?: string; storageUrl?: string; thumbnailUrl?: string }): string | null => {
   const t = (a.type || '').toLowerCase();
   const isImgType = t === 'image' || t === 'render' || t === 'screenshot' || t === 'cover';
@@ -1534,11 +1540,21 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               const t = (expandedAsset.type || '').toLowerCase();
               const name = expandedAsset.name || '';
               const isPptx = t === 'presentation' || /\.(pptx?|ppsx?|potx?)$/i.test(name);
+              const isHtml = t === 'html' || /\.html?($|\?)/i.test(name);
+              const isLink = t === 'link' || (!!(expandedAsset as any).sourceUrl && !expandedAsset.storageUrl && !isHtml && !isPptx);
               const isVideo = t === 'video' || /\.(mp4|mov|webm|avi|mkv|m4v)($|\?)/i.test(expandedAsset.storageUrl || name);
               const imgUrl = imageDisplayUrl(expandedAsset);
+              // リンク（URL）→ OG画像＋タイトル＋「ブラウザで開く」カード
+              if (isLink && (expandedAsset as any).sourceUrl) {
+                return <LinkPreview url={(expandedAsset as any).sourceUrl} title={name} image={expandedAsset.thumbnailUrl} />;
+              }
               // pptx → スライドをめくれる Quick Look ビューア
               if (isPptx && expandedAsset.storageUrl) {
                 return <PptxPreview url={expandedAsset.storageUrl} name={name} />;
+              }
+              // HTML → サンドボックス iframe でレンダリング
+              if (isHtml && expandedAsset.storageUrl) {
+                return <HtmlPreview url={expandedAsset.storageUrl} name={name} />;
               }
               // 動画 → インラインプレイヤー
               if (isVideo && expandedAsset.storageUrl) {

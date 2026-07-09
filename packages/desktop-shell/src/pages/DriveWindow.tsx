@@ -9,21 +9,37 @@
 // 同名の既存ファイルがある場合は「上書き / 別名で保存 / スキップ」を選ぶダイアログを出す。
 // ※ Tauri は OS ファイルドロップを横取りするため、HTML5 の ondrop ではなく onDragDropEvent で受ける。
 import React, { useEffect, useState } from 'react';
-import { Box, Fade, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+import { Box, Fade, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, TextField } from '@mui/material';
 import CloudDoneRoundedIcon from '@mui/icons-material/CloudDoneRounded';
+import AddLinkRoundedIcon from '@mui/icons-material/AddLinkRounded';
 import CircularProgress from '@mui/material/CircularProgress';
 import AIDriveFullScreen from '../components/AI/AIDriveFullScreen';
-import { stashFilesToDrive, type DuplicateMode } from '../features/drive/drivePublish';
+import { stashFilesToDrive, stashLinkToDrive, isHttpUrl, type DuplicateMode } from '../features/drive/drivePublish';
 import type { AIDriveAsset } from '../store/useAIDriveStore';
 import { useAppStore } from '../store/useAppStore';
 
 type DupPrompt = { name: string; existing: AIDriveAsset; resolve: (m: DuplicateMode) => void };
+
+// OS ドロップの File には type が無いため、拡張子から MIME を推定して付与する
+// （Storage の content-type を正しくし、HTML 等のプレビュー/配信を正常化）。
+const MIME_BY_EXT: Record<string, string> = {
+  html: 'text/html', htm: 'text/html', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript',
+  json: 'application/json', xml: 'application/xml', svg: 'image/svg+xml', csv: 'text/csv', md: 'text/markdown', txt: 'text/plain',
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', avif: 'image/avif',
+  pdf: 'application/pdf', mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', m4v: 'video/x-m4v',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
+const guessMime = (name: string): string => MIME_BY_EXT[(name.split('.').pop() || '').toLowerCase()] || '';
 
 export const DriveWindow: React.FC = () => {
   const projectId = useAppStore((s) => s.activeProjectId) ?? null;
   const [status, setStatus] = useState<{ busy: boolean; msg: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [dupPrompt, setDupPrompt] = useState<DupPrompt | null>(null);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
 
   const handleClose = () => {
     import('@tauri-apps/api/window')
@@ -65,6 +81,17 @@ export const DriveWindow: React.FC = () => {
     flash(summarize(r));
   };
 
+  const saveLink = async (url: string) => {
+    if (!isHttpUrl(url)) return;
+    setStatus({ busy: true, msg: 'リンクを保存中…' });
+    try {
+      await stashLinkToDrive(url, projectId);
+      flash('リンクを保存しました');
+    } catch (e: any) {
+      flash('リンク保存に失敗: ' + (e?.message || ''));
+    }
+  };
+
   // OS ファイルドロップ（Tauri がネイティブに横取りするイベント）→ Drive へ取り込み。
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -88,7 +115,8 @@ export const DriveWindow: React.FC = () => {
             try {
               const bytes = await invoke<number[]>('read_local_binary_file', { path });
               const name = path.split(/[\\/]/).pop() || 'file';
-              files.push(new File([new Uint8Array(bytes)], name));
+              const mime = guessMime(name);
+              files.push(new File([new Uint8Array(bytes)], name, mime ? { type: mime } : undefined));
             } catch (e) {
               console.warn('[DriveWindow] read dropped file failed:', path, e);
             }
@@ -116,7 +144,12 @@ export const DriveWindow: React.FC = () => {
           if (f) files.push(f);
         }
       }
-      if (!files.length) return;
+      if (!files.length) {
+        // ファイルが無ければ、貼り付けテキストが URL かを見てリンクとして保存。
+        const text = (e.clipboardData?.getData('text/plain') || '').trim();
+        if (isHttpUrl(text)) { e.preventDefault(); await saveLink(text); }
+        return;
+      }
       e.preventDefault();
       setStatus({ busy: true, msg: `${files.length}件を貼り付け中…` });
       await runStash(files);
@@ -157,6 +190,37 @@ export const DriveWindow: React.FC = () => {
           <Box sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)', whiteSpace: 'nowrap' }}>{status?.msg}</Box>
         </Box>
       </Fade>
+
+      {/* リンクを追加（URL 保存）ボタン。※Ctrl+V で URL を貼っても保存できる。 */}
+      <Button onClick={() => { setLinkInput(''); setLinkDialogOpen(true); }}
+        startIcon={<AddLinkRoundedIcon />}
+        sx={{ position: 'absolute', bottom: 18, left: 18, zIndex: 25, textTransform: 'none', fontWeight: 700,
+          bgcolor: 'rgba(18,22,32,0.92)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
+          px: 1.75, py: 0.75, borderRadius: 99, boxShadow: '0 6px 22px rgba(0,0,0,0.4)', '&:hover': { bgcolor: 'rgba(30,36,48,0.95)' } }}>
+        リンクを追加
+      </Button>
+
+      {/* URL 入力ダイアログ */}
+      <Dialog open={linkDialogOpen} onClose={() => setLinkDialogOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)' } }}>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: 16 }}>リンク（URL）を保存</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1.5 }}>
+            保存したい Web ページの URL を貼り付けてください。タイトルとサムネイルを自動取得します。
+          </Typography>
+          <TextField autoFocus fullWidth size="small" placeholder="https://…" value={linkInput}
+            onChange={(e) => setLinkInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && isHttpUrl(linkInput)) { setLinkDialogOpen(false); void saveLink(linkInput.trim()); } }}
+            sx={{ '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)' } }} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setLinkDialogOpen(false)} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button onClick={() => { setLinkDialogOpen(false); void saveLink(linkInput.trim()); }} disabled={!isHttpUrl(linkInput.trim())}
+            variant="contained" sx={{ textTransform: 'none', bgcolor: '#00BFFF', color: '#03121b', fontWeight: 700, '&:hover': { bgcolor: '#33ccff' } }}>
+            保存
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* 重複ダイアログ（同名ファイルが既にある場合） */}
       <Dialog open={!!dupPrompt} onClose={() => answerDup('skip')} maxWidth="xs" fullWidth

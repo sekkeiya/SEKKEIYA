@@ -16,7 +16,7 @@
 // もう一度 Win+H（同じトグルコマンド）を送ってパネルを閉じる。送信キーを
 // 持たないメモ欄などでもパネルが確実に消えるよう、送信時ではなく確定時に閉じる。
 //
-// 注意: スクリーンショットのグローバルショートカットは Ctrl+Alt+S。
+// 注意: スクリーンショットのグローバルショートカットは Ctrl+Alt+F（Ctrl+Alt+S は SEKKEIYA Search）。
 // Ctrl / Shift / Meta 併用時は発動しないようガードして競合を避けている。
 
 import { invoke } from '@tauri-apps/api/core';

@@ -6,6 +6,7 @@ import { newBlogDraft, slugify } from '../lib/blogUtils';
 import { useAppStore } from '../../../store/useAppStore';
 import { syncBlogArticleToKnowledge } from '../lib/blogKnowledgeSync';
 import { syncBlogArticleToLibrary } from '../lib/blogLibrarySync';
+import { syncBlogArticleToDrive, removeBlogArticleFromDrive } from '../lib/blogDriveSync';
 
 export interface SaveDraftResult {
   published: boolean;
@@ -302,6 +303,8 @@ export const useDsbStore = create<DsbState>((set, get) => ({
     const published = article.status === 'published';
     // ③ SEKKEIYA /articles「みんなの記事」ミラー（公開=upsert / 下書き=削除）
     try { await syncCommunityMirror(uid, article); } catch (e) { console.warn('[useDsbStore] community mirror failed', e); }
+    // ④ SEKKEIYA Drive「記事」資産（公開=upsert / 下書き=削除。公開記事のみ資産化する方針）。
+    try { await syncBlogArticleToDrive(uid, article); } catch (e) { console.warn('[useDsbStore] drive sync failed', e); }
     let knowledgeSynced = false;
     let knowledgeError: string | undefined;
     if (published) {
@@ -384,6 +387,8 @@ export const useDsbStore = create<DsbState>((set, get) => ({
       await saveBlogArticle(uid, article);
       // ③ /articles「みんなの記事」ミラー（公開=upsert / 下書き=削除。ベストエフォート）
       try { await syncCommunityMirror(uid, article); } catch (e) { console.warn('[useDsbStore] patch community mirror failed', e); }
+      // ④ SEKKEIYA Drive「記事」資産（公開=upsert / 下書き=削除。ベストエフォート）。
+      try { await syncBlogArticleToDrive(uid, article); } catch (e) { console.warn('[useDsbStore] patch drive sync failed', e); }
       // 公開状態なら S.Library / RAG へ同期（saveDraft と同じ dual-publish。ベストエフォート）。
       if (nextStatus === 'published') {
         try {
@@ -403,6 +408,8 @@ export const useDsbStore = create<DsbState>((set, get) => ({
   remove: async (uid, id) => {
     if (!uid) return;
     await deleteBlogArticle(uid, id);
+    // Drive の「記事」資産も消す（ベストエフォート）。
+    try { await removeBlogArticleFromDrive(id); } catch (e) { console.warn('[useDsbStore] drive remove failed', e); }
     await get().refresh(uid);
   },
 }));

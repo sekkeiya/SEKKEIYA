@@ -135,6 +135,7 @@ function classifyStashFile(name: string, mime?: string): { kind?: OutputKind; ty
   if (/\.(glb|gltf|3dm|fbx|obj|stl|blend|usdz?)$/.test(n)) return { kind: 'model', tag: '3Dモデル' };
   // PowerPoint 等のプレゼン → 'presentation'（プレゼン種別に自動分類）。
   if (m.includes('presentation') || /\.(pptx?|ppsx?|potx?|key)$/.test(n)) return { kind: 'presentation', appScope: '3dsp', tag: 'プレゼン' };
+  if (m === 'text/html' || /\.html?$/.test(n)) return { type: 'html', tag: 'HTML' };
   if (m === 'application/pdf' || /\.pdf$/.test(n)) return { type: 'pdf', tag: 'PDF' };
   if (/\.(docx?|rtf|txt|md)$/.test(n)) return { type: 'document', tag: '文書' };
   if (/\.(xlsx?|csv|tsv)$/.test(n)) return { type: 'spreadsheet', tag: '表計算' };
@@ -221,6 +222,59 @@ async function overwriteDriveAsset(asset: AIDriveAsset, file: File, thumbnailUrl
     size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
     updatedAt: Date.now(),
   });
+}
+
+/** http(s) の URL 文字列か。 */
+export const isHttpUrl = (s: string): boolean => /^https?:\/\/[^\s]+$/i.test((s || '').trim());
+
+/**
+ * URL をリンク資産として Drive に保存する（ブックマーク）。
+ * Rust の fetch_url_content（CORS 回避）でタイトル・OG画像を取得してカード化する。
+ */
+export async function stashLinkToDrive(rawUrl: string, projectId?: string | null): Promise<{ id: string }> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('ログインが必要です');
+  const url = (rawUrl || '').trim();
+  if (!isHttpUrl(url)) throw new Error('有効な URL ではありません');
+
+  // メタ情報（title / ogImageUrl）を Rust 経由で取得（失敗しても URL 単体で保存）。
+  let title = '';
+  let ogImage: string | undefined;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const meta = (await invoke('fetch_url_content', { url })) as { title?: string; ogImageUrl?: string };
+    title = (meta?.title || '').trim();
+    ogImage = meta?.ogImageUrl || undefined;
+  } catch (e) {
+    console.warn('[stashLinkToDrive] メタ取得に失敗（URL 単体で保存）:', e);
+  }
+  let host = url;
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* noop */ }
+  const name = title || host || url;
+
+  const doc: Record<string, any> = {
+    name,
+    type: 'link',
+    sourceUrl: url,
+    ...(ogImage ? { thumbnailUrl: ogImage, imageUrl: ogImage } : {}),
+    ownerId: uid,
+    visibility: 'private',
+    tags: ['放り込み', 'リンク'],
+    metadata: { host, publishedVia: 'driveAccess', kind: 'link' },
+    createdAt: Date.now(),
+  };
+  Object.keys(doc).forEach((k) => doc[k] === undefined && delete doc[k]);
+
+  if (projectId) {
+    doc.projectId = projectId;
+    doc.sourceCollection = 'assets';
+    const ref = await addDoc(collection(db, 'projects', projectId, 'assets'), doc);
+    return { id: ref.id };
+  }
+  doc.projectId = null;
+  doc.sourceCollection = 'global_assets';
+  const ref = await addDoc(collection(db, 'assets'), doc);
+  return { id: ref.id };
 }
 
 export async function stashFilesToDrive(
