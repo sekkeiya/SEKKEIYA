@@ -3,7 +3,7 @@ import {
   ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, Panel,
   useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals, useNodes,
   Handle, Position, MarkerType, ConnectionMode,
-  BaseEdge, EdgeLabelRenderer, getBezierPath,
+  BaseEdge, EdgeLabelRenderer,
   type Node, type NodeProps, type Edge, type EdgeProps, type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -718,8 +718,9 @@ const LaneNode: React.FC<NodeProps> = ({ data }) => {
 const nodeTypes = { note: NoteNode, image: ImageNode, link: LinkNode, quote: QuoteNode, source: SourceNode, lane: LaneNode };
 
 // ─── ワイヤー経路（自動迂回＋手動編集点） ─────────────────────────────────────
-// 経路は「編集点なし→ベジェ（他カードに刺さるときは自動で迂回点を挿入）」
-// 「編集点あり→その点列を通るなめらかな曲線」。編集点はワイヤー選択中に○として表示され、
+// 経路は直線ベース＋角丸: 接続口からスタブでまっすぐ出て、編集点/迂回点を直線でつなぎ、
+// 曲がり角にだけ丸みをつける（曲線ベースより膨らみ・交差が少なく読みやすい）。
+// 他カードに刺さるときは自動で迂回点を挿入する。編集点はワイヤー選択中に○として表示され、
 // 左ドラッグで移動・区間中央のゴースト○ドラッグで追加・ダブルクリックで削除できる。
 
 type WirePoint = { x: number; y: number };
@@ -767,17 +768,44 @@ function routeAvoiding(a: WirePoint, b: WirePoint, rects: ObstacleRect[], depth 
   return [...routeAvoiding(a, d, rest, depth + 1), d, ...routeAvoiding(d, b, rest, depth + 1)];
 }
 
-/** 点列を通るなめらかな曲線（Catmull-Rom→ベジェ変換）。 */
-function smoothPathThrough(pts: WirePoint[]): string {
-  if (pts.length < 2) return '';
-  let d = `M ${pts[0].x},${pts[0].y}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, pts.length - 1)];
-    d += ` C ${p1.x + (p2.x - p0.x) / 6},${p1.y + (p2.y - p0.y) / 6}`
-       + ` ${p2.x - (p3.x - p1.x) / 6},${p2.y - (p3.y - p1.y) / 6}`
-       + ` ${p2.x},${p2.y}`;
+const CORNER_RADIUS = 14; // 曲がり角の丸みの半径
+
+/** 点列を直線でつなぎ、曲がり角にだけ丸みをつけたパス（直線ベース＋角丸）。 */
+function roundedPolylinePath(pts: WirePoint[], radius = CORNER_RADIUS): string {
+  // ほぼ重なった点（スタブと編集点が接近した場合など）は除去してから描く
+  const p = pts.filter((pt, i) => i === 0 || Math.hypot(pt.x - pts[i - 1].x, pt.y - pts[i - 1].y) > 0.5);
+  if (p.length < 2) return '';
+  let d = `M ${p[0].x},${p[0].y}`;
+  for (let i = 1; i < p.length - 1; i++) {
+    const a = p[i - 1], c = p[i], b = p[i + 1];
+    const l1 = Math.hypot(c.x - a.x, c.y - a.y), l2 = Math.hypot(b.x - c.x, b.y - c.y);
+    const r = Math.min(radius, l1 / 2, l2 / 2);
+    // 角の手前 r で直線を止め、角を制御点にした2次ベジェで丸める
+    const p1 = { x: c.x - ((c.x - a.x) / l1) * r, y: c.y - ((c.y - a.y) / l1) * r };
+    const p2 = { x: c.x + ((b.x - c.x) / l2) * r, y: c.y + ((b.y - c.y) / l2) * r };
+    d += ` L ${p1.x},${p1.y} Q ${c.x},${c.y} ${p2.x},${p2.y}`;
   }
-  return d;
+  const last = p[p.length - 1];
+  return `${d} L ${last.x},${last.y}`;
+}
+
+/** 折れ線の全長のちょうど中間にある点（ラベル配置用）。 */
+function polylineMidpoint(pts: WirePoint[]): WirePoint {
+  const lens: number[] = [];
+  let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const l = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+    lens.push(l); total += l;
+  }
+  let acc = 0;
+  for (let i = 0; i < lens.length; i++) {
+    if (acc + lens[i] >= total / 2) {
+      const t = lens[i] > 0 ? (total / 2 - acc) / lens[i] : 0;
+      return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: pts[i].y + (pts[i + 1].y - pts[i].y) * t };
+    }
+    acc += lens[i];
+  }
+  return pts[Math.floor(pts.length / 2)];
 }
 
 /** 接続口の向きに沿って少し出た点（線の出入りの向きを保つスタブ）。 */
@@ -824,25 +852,18 @@ const RelationEdge: React.FC<EdgeProps> = ({
 
   const anchors = manual ?? autoWps;
 
-  // 経路: 編集点なし→控えめな曲率のベジェ / 編集点あり→点列を通るなめらかな曲線
-  let path: string, labelX: number, labelY: number;
-  if (anchors.length === 0) {
-    // 端点間の距離が近いほど曲率を下げて、短い線ほどすっきり見せる
-    const dist = Math.hypot(targetX - sourceX, targetY - sourceY);
-    const curvature = Math.min(0.18, 0.18 * (dist / 320));
-    [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, curvature });
-  } else {
-    const pts: WirePoint[] = [
-      { x: sourceX, y: sourceY }, stubPoint({ x: sourceX, y: sourceY }, sourcePosition),
-      ...anchors,
-      stubPoint({ x: targetX, y: targetY }, targetPosition), { x: targetX, y: targetY },
-    ];
-    path = smoothPathThrough(pts);
-    // ラベルは経路の中央付近へ（編集点の○と重ならないよう少し下げる）
-    const mi = (pts.length - 1) / 2;
-    labelX = (pts[Math.floor(mi)].x + pts[Math.ceil(mi)].x) / 2;
-    labelY = (pts[Math.floor(mi)].y + pts[Math.ceil(mi)].y) / 2 + 16;
-  }
+  // 経路: 直線ベース＋角丸。接続口からスタブでまっすぐ出て、編集点/迂回点を直線でつなぐ。
+  // 迂回計算も直線前提なので、判定と描画が一致して「カードに刺さらない」が正確に効く。
+  const pts: WirePoint[] = [
+    { x: sourceX, y: sourceY }, stubPoint({ x: sourceX, y: sourceY }, sourcePosition),
+    ...anchors,
+    stubPoint({ x: targetX, y: targetY }, targetPosition), { x: targetX, y: targetY },
+  ];
+  const path = roundedPolylinePath(pts);
+  // ラベルは経路長のちょうど中間へ（選択中は編集点○と重ならないよう少し下げる）
+  const mid = polylineMidpoint(pts);
+  const labelX = mid.x;
+  const labelY = mid.y + (selected && portsEditable ? 18 : 0);
 
   // 編集点のドラッグ（base[idx] を動かし、離したら保存）。ゴースト○は挿入してから同じ流れ。
   const beginDrag = (base: WirePoint[], idx: number) => (ev: React.PointerEvent) => {
