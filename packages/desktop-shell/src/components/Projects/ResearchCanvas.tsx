@@ -726,7 +726,12 @@ const RelationEdge: React.FC<EdgeProps> = ({
   const addPreset = useConnectorStore(s => s.addPreset);
   const removePreset = useConnectorStore(s => s.removePreset);
   const rel = getConnector(edge.relation);
-  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  // 曲率を控えめ(0.18)にして、線の膨らみ・重なりを抑えたなめらかな曲線にする。
+  // 接続元より戻る向き(target が source の左)の辺は大きくループしがちなので、
+  // 端点間の距離が近いほど曲率をさらに下げて、短い線ほどすっきり見せる。
+  const dist = Math.hypot(targetX - sourceX, targetY - sourceY);
+  const curvature = Math.min(0.18, 0.18 * (dist / 320));
+  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, curvature });
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(edge.label || '');
   // カスタムラベル追加（＋を押すと入力欄＋色スウォッチが出る）

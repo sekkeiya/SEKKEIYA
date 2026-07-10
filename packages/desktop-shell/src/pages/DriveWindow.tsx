@@ -17,6 +17,8 @@ import AIDriveFullScreen from '../components/AI/AIDriveFullScreen';
 import { stashFilesToDrive, stashLinkToDrive, isHttpUrl, type DuplicateMode } from '../features/drive/drivePublish';
 import type { AIDriveAsset } from '../store/useAIDriveStore';
 import { useAppStore } from '../store/useAppStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { fetchUserProjects } from '../features/projects/api/fetchProjects';
 
 type DupPrompt = { name: string; existing: AIDriveAsset; resolve: (m: DuplicateMode) => void };
 
@@ -52,6 +54,18 @@ export const DriveWindow: React.FC = () => {
       .then(({ getCurrentWindow }) => getCurrentWindow().setTitle('SEKKEIYA Drive'))
       .catch(() => {});
   }, []);
+
+  // ポップアウト窓は本体の MainAppInitGate を通らないため projects が空になる
+  // （→ サイドバーにプロジェクトが出ず、プロジェクト資産もプールに入らない）。ここで取得して補う。
+  const currentUser = useAuthStore((s) => s.currentUser);
+  useEffect(() => {
+    const uid = currentUser?.uid;
+    if (!uid) return;
+    if (useAppStore.getState().projects?.length) return;
+    fetchUserProjects(uid)
+      .then((ps) => useAppStore.getState().setProjects(ps))
+      .catch((e) => console.warn('[DriveWindow] projects fetch failed', e));
+  }, [currentUser]);
 
   const flash = (msg: string) => {
     setStatus({ busy: false, msg });

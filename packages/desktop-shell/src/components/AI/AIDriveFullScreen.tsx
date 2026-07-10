@@ -47,7 +47,6 @@ import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
 import PptxPreview from './PptxPreview';
-import GalleryPage from '../../pages/GalleryPage';
 import HtmlPreview from './HtmlPreview';
 import LinkPreview from './LinkPreview';
 import ArticlePreview from './ArticlePreview';
@@ -599,22 +598,36 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             </Box>
           </List>
 
-          <Box sx={{ mt: 3, px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.5 }}>プロジェクト</Typography>
-            <AddRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' } }} />
-          </Box>
-          
-          <List disablePadding>
-            {projects.map(p => (
-              <FolderItem
-                key={p.id}
-                label={p.name}
-                projectId={p.id}
-                active={activeScope === `project_${p.id}`}
-                onClick={() => setActiveScope(`project_${p.id}`)}
-              />
-            ))}
-          </List>
+          {/* プロジェクトは My Projects / Team Projects に分けて表示（isTeam で判別・各グループは該当時のみ）。 */}
+          {(() => {
+            const myProjects = projects.filter(p => !(p as any).isTeam);
+            const teamProjects = projects.filter(p => (p as any).isTeam);
+            const renderGroup = (title: string, list: typeof projects, withAdd: boolean) => (
+              <>
+                <Box sx={{ mt: 3, px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.4)', letterSpacing: 0.5 }}>{title}</Typography>
+                  {withAdd && <AddRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', cursor: 'pointer', '&:hover': { color: 'var(--brand-fg)' } }} />}
+                </Box>
+                <List disablePadding>
+                  {list.map(p => (
+                    <FolderItem
+                      key={p.id}
+                      label={p.name}
+                      projectId={p.id}
+                      active={activeScope === `project_${p.id}`}
+                      onClick={() => setActiveScope(`project_${p.id}`)}
+                    />
+                  ))}
+                </List>
+              </>
+            );
+            return (
+              <>
+                {myProjects.length > 0 && renderGroup('My Projects', myProjects, true)}
+                {teamProjects.length > 0 && renderGroup('Team Projects', teamProjects, false)}
+              </>
+            );
+          })()}
 
           {/* ── 絞り込み（種類 / カテゴリ） ── */}
           <Box sx={{ mt: 3, px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1159,18 +1172,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
         </Box>
       )}
 
-      {/* ALL（みんなの公開）＝Gallery の領分。Drive の素グリッドで再描画せず、正典の Gallery ビューを
-          中央領域に埋め込む（左のスコープ・サイドバーは残す）。Drive のグリッドは自分の資産に専念。 */}
-      {activeScope === 'all_public' && !isPickerMode && (
-        <Box sx={{ position: 'absolute', top: 0, bottom: 0, left: 240, right: 0, zIndex: 6, bgcolor: 'var(--brand-surface)' }}>
-          <GalleryPage />
-        </Box>
-      )}
-
       {/* 3. RIGHT INSPECTOR (Conditional or persistent) */}
-      {/* 狭幅(md未満)では常設せず、選択中のときだけ右からオーバーレイ表示してグリッドを圧迫しない。
-          ALL（Gallery 埋め込み）では Gallery 自身の詳細パネルを使うので Drive インスペクタは出さない。 */}
-      {!isPickerMode && activeScope !== 'all_public' && (
+      {/* 狭幅(md未満)では常設せず、選択中のときだけ右からオーバーレイ表示してグリッドを圧迫しない。 */}
+      {!isPickerMode && (
         <Box sx={{
           width: { xs: 300, md: 280 }, maxWidth: { xs: '86%', md: 'none' }, flexShrink: 0,
           bgcolor: 'var(--brand-surface2)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
