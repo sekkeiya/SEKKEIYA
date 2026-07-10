@@ -1605,8 +1605,56 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
 
   // 背景レーンノードの変更（選択・寸法等）は保存 state に混ぜない
   const handleNodesChange = useCallback((changes: any[]) => {
-    onNodesChange(changes.filter(c => !(typeof c?.id === 'string' && c.id.startsWith('lane-'))));
-  }, [onNodesChange]);
+    const filtered = changes.filter(c => !(typeof c?.id === 'string' && c.id.startsWith('lane-')));
+
+    // ノード移動に連動して、手動編集点を持つワイヤーの端の角を「水平垂直のまま」追従させる。
+    // （編集点なしのワイヤーは毎レンダー自動ルーティングし直すので元々追従する）
+    const moves = filtered
+      .filter(c => c.type === 'position' && c.position)
+      .map(c => {
+        const old = nodesRef.current.find(n => n.id === c.id);
+        if (!old) return null;
+        const dx = c.position.x - old.position.x, dy = c.position.y - old.position.y;
+        if (!dx && !dy) return null;
+        return {
+          id: c.id as string, dx, dy,
+          cx: c.position.x + (old.measured?.width ?? 240) / 2,
+          cy: c.position.y + (old.measured?.height ?? 140) / 2,
+        };
+      })
+      .filter((m): m is { id: string; dx: number; dy: number; cx: number; cy: number } => m != null);
+
+    if (moves.length) {
+      // 端点→隣接編集点の線分が縦(x共有)か横(y共有)かを、編集点とカード中心の近い軸で判定し、
+      // その共有軸だけノードの移動量ぶん動かす＝直角を保ったまま角がついてくる。
+      const followEnd = (wp: WirePoint, m: { dx: number; dy: number; cx: number; cy: number }): WirePoint =>
+        Math.abs(wp.x - m.cx) <= Math.abs(wp.y - m.cy)
+          ? { x: wp.x + m.dx, y: wp.y }   // 縦線（x共有）→ x を追従
+          : { x: wp.x, y: wp.y + m.dy };  // 横線（y共有）→ y を追従
+
+      setEdges(eds => eds.map(e => {
+        const data = (e.data as { edge: ResearchCanvasEdge }).edge;
+        if (!data.waypoints?.length) return e;
+        const srcMove = moves.find(m => m.id === e.source);
+        const tgtMove = moves.find(m => m.id === e.target);
+        if (!srcMove && !tgtMove) return e;
+
+        let wps: WirePoint[];
+        if (srcMove && tgtMove && srcMove.dx === tgtMove.dx && srcMove.dy === tgtMove.dy) {
+          // 両端が同じ量だけ動く（複数選択のグループ移動）→ 全編集点を平行移動して形を保つ
+          wps = data.waypoints.map(w => ({ x: w.x + srcMove.dx, y: w.y + srcMove.dy }));
+        } else {
+          wps = data.waypoints.map(w => ({ ...w }));
+          if (srcMove) wps[0] = followEnd(wps[0], srcMove);
+          if (tgtMove) wps[wps.length - 1] = followEnd(wps[wps.length - 1], tgtMove);
+        }
+        const merged = { ...data, waypoints: wps, updatedAt: new Date().toISOString() };
+        return { ...edgeToRf(merged), selected: e.selected };
+      }));
+    }
+
+    onNodesChange(filtered);
+  }, [onNodesChange, setEdges]);
 
   // モード切替時に全体表示へ寄せる（地図の俯瞰／手置きの俯瞰）
   useEffect(() => {
