@@ -25,6 +25,43 @@ exports.aggregateReactions = async (data = {}, context = {}) => {
   if (!admin.apps.length) admin.initializeApp();
   const db = admin.firestore();
 
+  // ── 期間モード（読み取り専用・学習モニターのグラフ用） ────────────────
+  // {days: N} で直近N日(JST)の日別推移を返す。insights への書き込みはしない。
+  // 単一フィールド例外 (reactionLogs.day COLLECTION_GROUP_ASC) は範囲クエリもカバーする。
+  if (typeof data.days === "number" && data.days > 1) {
+    const n = Math.min(60, Math.max(2, Math.floor(data.days)));
+    const end = jstDay();
+    const start = jstDay(new Date(Date.now() - (n - 1) * 86400e3));
+    const rsnap = await db.collectionGroup("reactionLogs")
+      .where("day", ">=", start).where("day", "<=", end).get();
+
+    const byDay = {}; // day → { impressions, clicks, events }
+    for (let i = 0; i < n; i++) {
+      byDay[jstDay(new Date(Date.now() - (n - 1 - i) * 86400e3))] = { impressions: 0, clicks: 0, events: 0 };
+    }
+    const rUsers = new Set();
+    const surfaceTotals = {}; // surface → { impressions, clicks }
+    for (const doc of rsnap.docs) {
+      const d = doc.data();
+      if (!d.day || !byDay[d.day]) continue;
+      rUsers.add(doc.ref.path.split("/")[1]);
+      byDay[d.day].events++;
+      const st = surfaceTotals[d.surface] = surfaceTotals[d.surface] || { impressions: 0, clicks: 0 };
+      if (d.action === "impression") { byDay[d.day].impressions++; st.impressions++; }
+      else if (d.action === "clicked") { byDay[d.day].clicks++; st.clicks++; }
+    }
+    const daily = Object.entries(byDay).map(([dy, v]) => ({
+      day: dy, ...v,
+      ctr: v.impressions > 0 ? Math.round((v.clicks / v.impressions) * 1000) / 1000 : null,
+    }));
+    const surfaces = {};
+    for (const [sName, v] of Object.entries(surfaceTotals)) {
+      surfaces[sName] = { ...v, ctr: v.impressions > 0 ? Math.round((v.clicks / v.impressions) * 1000) / 1000 : null };
+    }
+    return { success: true, mode: "range", start, end, daily, surfaces, eventCount: rsnap.size, userCount: rUsers.size };
+  }
+
+  // ── 単日モード（従来どおり集計して insights に保存） ──────────────────
   // 対象日: 指定があればそれ、なければ今日(JST)。前日を締めるなら {day:'YYYY-MM-DD'} で呼ぶ。
   const day = typeof data.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.day)
     ? data.day

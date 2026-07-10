@@ -4,13 +4,17 @@
 // - モデル台帳: 学習資産（モデル・索引・知識資産）の一覧と状態を一元把握する。
 //   右サイドバーに常時、選択中の資産の詳細説明を表示する（行クリックで切り替え）。
 // 管理者のみ到達（サイドバー＋シェルで二重ガード、CF 側は要認証）。
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box, Typography, Paper, CircularProgress, Chip, Button, TextField, Tooltip,
   Table, TableHead, TableRow, TableCell, TableBody, Divider,
 } from '@mui/material';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import BoltRoundedIcon from '@mui/icons-material/BoltRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import HistoryEduRoundedIcon from '@mui/icons-material/HistoryEduRounded';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../../lib/firebase/client';
 
@@ -32,6 +36,7 @@ interface LearningAsset {
   location?: string;   // データの場所（Firestore パス等）
   ladder?: string;     // 学習の梯子の何段目か
   next?: string;       // 次の一歩
+  benefit: string;     // 学習の成果 — 結果として何が良くなるのか
 }
 const REGISTRY: LearningAsset[] = [
   {
@@ -43,6 +48,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'users/{uid}/reactionLogs/{autoId}',
     ladder: '—（データ収集。全段の土台）',
     next: 'surface の追加（記事の公開/書き直し、読み上げの離脱位置、3D操作など）。現在は chat-suggest（先回り提案チップ）のみ。',
+    benefit: 'これが溜まるほど、下のすべての「良くなる」が可能になる。ユーザーには直接見えないが、全改善の燃料。溜まらなければ何も賢くならない。',
   },
   {
     name: 'reactionPatterns', kind: '集計', scope: 'グローバル',
@@ -53,6 +59,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'insights/reactionPatterns/days/{YYYY-MM-DD}',
     ladder: '—（集計。モデルの一歩手前）',
     next: 'Cloud Scheduler で毎晩自動実行に切り替え。数週間分溜まったら chip-ranker の学習データにする。',
+    benefit: 'どの提案が効いているかが数字（CTR）で見える → 勘ではなくデータで機能を改善できるようになる。',
   },
   {
     name: 'knowledgeChunks', kind: '索引(B)', scope: '個人',
@@ -62,6 +69,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'users/{uid}/knowledgeChunks（＋ knowledgeSources）',
     ladder: '2段目（RAG）＋ 5段目（埋め込み）',
     next: '検索ヒット率・引用された断片の反応を reactionLogs に記録し、索引の質を測れるようにする。',
+    benefit: 'AIが一般論ではなく「あなたの資料」を根拠に答えるようになる → 回答の的確さと信頼性が上がる。',
   },
   {
     name: 'driveAssets 埋め込み', kind: '索引(B)', scope: '個人',
@@ -71,6 +79,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'users/{uid}/driveAssets',
     ladder: '5段目（埋め込み）',
     next: '検索結果のクリック/採用を reactionLogs に記録して、検索品質の教師信号にする。',
+    benefit: 'ファイル名を覚えていなくても意味で見つかる → 探す時間が減り、過去の資産が死蔵されなくなる。',
   },
   {
     name: 'aiMemory', kind: '資産(C)', scope: '個人',
@@ -80,6 +89,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'users/{uid}/aiMemory ／ projects/{pid}/aiMemory',
     ladder: '2段目（メモリ）',
     next: 'R&M のユーザーロジック（思考の構造）をプレイブック化して、ここに合流させる構想。',
+    benefit: '毎回イチから説明し直さなくてよくなる → 会話が短くなり、手戻りが減る。使うほど「話が早い」AIになる。',
   },
   {
     name: 'chip-ranker', kind: 'モデル(A)', scope: 'グローバル',
@@ -90,6 +100,7 @@ const REGISTRY: LearningAsset[] = [
     location: '（学習ジョブ＋ suggestNextActions への組み込み）',
     ladder: '4段目（自前の小さなMLモデル）',
     next: 'CTR データが数週間分溜まったら着手。まず reactionPatterns で「表示順バイアス」「効く文言型」を目視確認するところから。',
+    benefit: '先回り提案の的中率が上がる → 次にやることをワンタップで開始でき、操作の迷いが減る。',
   },
   {
     name: 'chat-router', kind: 'モデル(A)', scope: 'グローバル',
@@ -99,6 +110,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'functions/llm/routeChat.js（ルール版が実装済み・enabled=false）',
     ladder: '4段目（自前の小さなMLモデル）',
     next: 'chat 本体の surface を reactionLogs に配線（応答への書き直し/再生成の記録）してから着手。',
+    benefit: '同じ品質のまま応答が速く・安くなる → 待ち時間とAPIコストが下がる（浮いた分は機能開発へ）。',
   },
   {
     name: 'ssot-case-index', kind: '索引(B)', scope: 'グローバル',
@@ -108,6 +120,7 @@ const REGISTRY: LearningAsset[] = [
     location: 'projects/{pid}/workspaces/{wid}/items（材料）',
     ladder: '5段目（埋め込み＋ベクトル検索）',
     next: 'SSOT のどのフィールドを埋め込みに含めるかの設計から。knowledgeChunks の実装パターンを流用できる。',
+    benefit: '「似た案件ではこうした」が提案に根拠として付く → 提案の説得力と設計の初速が上がる。',
   },
 ];
 
@@ -130,6 +143,46 @@ interface AggregateResult {
   userCount: number;
   surfaces: Record<string, SurfaceStat>;
 }
+/** 期間モード({days:N})のレスポンス。日別推移グラフ用。 */
+interface DailyPoint { day: string; impressions: number; clicks: number; events: number; ctr: number | null }
+interface RangeResult {
+  success: boolean;
+  mode: 'range';
+  start: string;
+  end: string;
+  daily: DailyPoint[];
+  surfaces: Record<string, { impressions: number; clicks: number; ctr: number | null }>;
+  eventCount: number;
+  userCount: number;
+}
+
+// ---- 「学習で何が良くなるのか」成果カード -------------------------------------
+const OUTCOMES: { icon: React.ReactNode; title: string; body: string; by: string }[] = [
+  {
+    icon: <AutoAwesomeRoundedIcon fontSize="small" />,
+    title: '提案が当たるようになる',
+    body: '先回りチップの的中率(CTR)が上がり、次にやることをワンタップで開始できる。',
+    by: 'reactionLogs → chip-ranker',
+  },
+  {
+    icon: <BoltRoundedIcon fontSize="small" />,
+    title: '速く・安くなる',
+    body: '質問の難易度に合ったモデルが選ばれ、同じ品質のまま待ち時間とコストが下がる。',
+    by: 'chat-router',
+  },
+  {
+    icon: <PersonRoundedIcon fontSize="small" />,
+    title: 'あなた仕様になる',
+    body: '決定・制約・好みを覚え、説明のし直しと手戻りが減る。使うほど話が早くなる。',
+    by: 'aiMemory / 設計スタイル',
+  },
+  {
+    icon: <HistoryEduRoundedIcon fontSize="small" />,
+    title: '過去の経験が活きる',
+    body: '「似た案件ではこうした」が提案に根拠として付き、説得力と初速が上がる。',
+    by: 'ssot-case-index / knowledgeChunks',
+  },
+];
 
 const jstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const pct = (r: number | null) => (r == null ? '—' : `${(r * 100).toFixed(1)}%`);
@@ -144,6 +197,26 @@ export const LearningSettingsPanel = () => {
   const [result, setResult] = useState<AggregateResult | null>(null);
   // 右サイドバーに常時表示する資産。初期値は台帳の先頭（reactionLogs）。
   const [selected, setSelected] = useState<LearningAsset>(REGISTRY[0]);
+  // 直近14日の推移（パネルを開いたら自動取得してグラフ表示）
+  const [range, setRangeData] = useState<RangeResult | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(true);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const fn = httpsCallable(functions, 'aggregateReactions');
+        const res = await fn({ days: 14 });
+        if (alive) setRangeData(res.data as RangeResult);
+      } catch (e: any) {
+        if (alive) setRangeError(e?.message || '取得に失敗しました');
+      } finally {
+        if (alive) setRangeLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const run = useCallback(async () => {
     setLoading(true);
@@ -192,6 +265,94 @@ export const LearningSettingsPanel = () => {
         学習サイクルの入力データ（反応ログ）と学習資産の状態を把握します。
         方針: 全体はモデルで、個人は記憶（RAG/メモリ）で。
       </Typography>
+
+      {/* ── 学習で何が良くなる？（成果カード） ─────────────── */}
+      <Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>学習すると、何が良くなる？</Typography>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 1.5 }}>
+          {OUTCOMES.map(o => (
+            <Paper key={o.title} elevation={0} sx={{ ...sectionSx, p: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'light-dark(#0875a6, #4fc3f7)', mb: 0.5 }}>
+                {o.icon}
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>{o.title}</Typography>
+              </Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.7 }}>{o.body}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', opacity: 0.7, fontFamily: 'monospace', display: 'block', mt: 1 }}>
+                担い手: {o.by}
+              </Typography>
+            </Paper>
+          ))}
+        </Box>
+      </Box>
+
+      {/* ── 学習の今（直近14日の推移グラフ） ─────────────── */}
+      <Paper elevation={0} sx={sectionSx}>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>学習の今 — 直近14日の反応</Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+          薄い棒＝提案が表示された回数、濃い棒＝クリックされた回数。
+          <b>濃い棒の割合（CTR）が上がっていけば「提案が当たるようになってきた」＝学習が効いている証拠</b>です。
+        </Typography>
+        {rangeLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={28} /></Box>
+        ) : rangeError ? (
+          <Typography variant="body2" sx={{ color: 'error.main' }}>取得エラー: {rangeError}</Typography>
+        ) : range && (
+          <>
+            {/* サマリー */}
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 2 }}>
+              {(() => {
+                const ti = range.daily.reduce((s, d) => s + d.impressions, 0);
+                const tc = range.daily.reduce((s, d) => s + d.clicks, 0);
+                return (
+                  <>
+                    <Typography variant="body2">表示 <b>{ti.toLocaleString()}</b> 回</Typography>
+                    <Typography variant="body2">クリック <b>{tc.toLocaleString()}</b> 回</Typography>
+                    <Typography variant="body2">CTR <b>{ti > 0 ? `${((tc / ti) * 100).toFixed(1)}%` : '—'}</b></Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>ユーザー {range.userCount} 人 / {range.start}〜{range.end}</Typography>
+                  </>
+                );
+              })()}
+            </Box>
+            {/* 日別バー: 表示(薄)とクリック(濃)を重ねる */}
+            {(() => {
+              const maxImp = Math.max(1, ...range.daily.map(d => d.impressions));
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, height: 120 }}>
+                  {range.daily.map(d => (
+                    <Tooltip key={d.day} title={`${d.day}: 表示${d.impressions} / クリック${d.clicks} / CTR ${d.ctr == null ? '—' : `${(d.ctr * 100).toFixed(1)}%`}`}>
+                      <Box sx={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative' }}>
+                        <Box sx={{
+                          width: '70%',
+                          height: `${Math.max(d.impressions > 0 ? 4 : 1, (d.impressions / maxImp) * 100)}%`,
+                          bgcolor: 'light-dark(rgba(8,117,166,0.25), rgba(79,195,247,0.25))',
+                          borderRadius: 1,
+                          position: 'relative',
+                        }}>
+                          <Box sx={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            height: d.impressions > 0 ? `${(d.clicks / Math.max(1, d.impressions)) * 100}%` : 0,
+                            bgcolor: 'light-dark(#0875a6, #4fc3f7)',
+                            borderRadius: 1,
+                          }} />
+                        </Box>
+                      </Box>
+                    </Tooltip>
+                  ))}
+                </Box>
+              );
+            })()}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>{range.start}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>{range.end}</Typography>
+            </Box>
+            {range.daily.every(d => d.events === 0) && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5 }}>
+                まだデータがありません。反応ログは Web 2026-07-10 / Desktop 0.1.12 から収集開始 — チップが表示・クリックされると、ここに棒が伸びていきます。
+              </Typography>
+            )}
+          </>
+        )}
+      </Paper>
 
       {/* ── モデル台帳 ─────────────────────────────── */}
       <Paper elevation={0} sx={sectionSx}>
@@ -325,6 +486,16 @@ export const LearningSettingsPanel = () => {
         )}
         <Divider />
         <DetailSection label="これは何？">{selected.summary}</DetailSection>
+        <Box sx={{
+          p: 1.5, borderRadius: 2,
+          bgcolor: 'light-dark(rgba(8,117,166,0.08), rgba(79,195,247,0.08))',
+          border: '1px solid', borderColor: 'light-dark(rgba(8,117,166,0.3), rgba(79,195,247,0.3))',
+        }}>
+          <Typography variant="caption" sx={{ color: 'light-dark(#0875a6, #4fc3f7)', letterSpacing: '0.08em', fontWeight: 700 }}>
+            何が良くなる？
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, lineHeight: 1.8 }}>{selected.benefit}</Typography>
+        </Box>
         <DetailSection label="仕組み">{selected.how}</DetailSection>
         {selected.location && <DetailSection label="データの場所" mono>{selected.location}</DetailSection>}
         <DetailSection label="材料">{selected.source}</DetailSection>
