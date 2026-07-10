@@ -717,18 +717,19 @@ const LaneNode: React.FC<NodeProps> = ({ data }) => {
 
 const nodeTypes = { note: NoteNode, image: ImageNode, link: LinkNode, quote: QuoteNode, source: SourceNode, lane: LaneNode };
 
-// ─── ワイヤー経路（自動迂回＋手動編集点） ─────────────────────────────────────
-// 経路は直線ベース＋角丸: 接続口からスタブでまっすぐ出て、編集点/迂回点を直線でつなぎ、
-// 曲がり角にだけ丸みをつける（曲線ベースより膨らみ・交差が少なく読みやすい）。
-// 他カードに刺さるときは自動で迂回点を挿入する。編集点はワイヤー選択中に○として表示され、
-// 左ドラッグで移動・区間中央のゴースト○ドラッグで追加・ダブルクリックで削除できる。
+// ─── ワイヤー経路（直交ルーティング＋手動編集点） ─────────────────────────────
+// 経路は水平垂直（Manhattan）ベース＋角丸: 接続口からスタブでまっすぐ出て、L字/Z字に
+// 水平・垂直の線分だけでつなぎ、曲がり角にだけ丸みをつける。障害物があれば中線をずらして
+// 回避する。編集点はワイヤー選択中に○として表示され、ドラッグで移動（隣接点と揃うと
+// 水平/垂直にスナップ）・区間中央のゴースト○で追加・ダブルクリックで削除できる。
 
 type WirePoint = { x: number; y: number };
 type ObstacleRect = { x: number; y: number; w: number; h: number };
 
 const AVOID_MARGIN = 14;   // カードの周囲に確保する余白（この内側を線が通らないようにする）
-const DETOUR_EXTRA = 10;   // 迂回点をカード縁からさらに離す距離
 const STUB_LEN = 22;       // 接続口から出る短い直線（線の出入りの向きを保つ）
+const SNAP_DIST = 12;      // 編集点ドラッグ時、隣接点とこの距離以内なら水平/垂直に吸着
+const CORNER_RADIUS = 14;  // 曲がり角の丸みの半径
 
 function rectContains(r: ObstacleRect, p: WirePoint): boolean {
   return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
@@ -747,28 +748,63 @@ function segIntersectsRect(a: WirePoint, b: WirePoint, r: ObstacleRect): boolean
   return !((c1 > 0 && c2 > 0 && c3 > 0 && c4 > 0) || (c1 < 0 && c2 < 0 && c3 < 0 && c4 < 0));
 }
 
-/** 矩形を避ける迂回点。線分から見て矩形中心の反対側（＝近い縁の外側）に置く。 */
-function detourPoint(a: WirePoint, b: WirePoint, r: ObstacleRect): WirePoint {
-  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
-  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-  const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;           // 線分の法線
-  const side = (cx - a.x) * nx + (cy - a.y) * ny;                  // 中心が法線のどちら側か
-  const s = side > 0 ? -1 : 1;                                     // 中心の反対側へ避ける
-  const ext = Math.abs(nx) * (r.w / 2) + Math.abs(ny) * (r.h / 2); // 法線方向の矩形の半径
-  return { x: cx + nx * s * (ext + DETOUR_EXTRA), y: cy + ny * s * (ext + DETOUR_EXTRA) };
+/** 接続口の向き（+x/-x/+y/-y）。 */
+function dirOf(pos: Position | undefined): WirePoint {
+  switch (pos) {
+    case Position.Left:   return { x: -1, y: 0 };
+    case Position.Right:  return { x: 1, y: 0 };
+    case Position.Top:    return { x: 0, y: -1 };
+    case Position.Bottom: return { x: 0, y: 1 };
+    default: return { x: 1, y: 0 };
+  }
 }
 
-/** a→b が他カードに刺さるとき、迂回点を再帰的に挿入して交差を解消する（深さ上限つき）。 */
-function routeAvoiding(a: WirePoint, b: WirePoint, rects: ObstacleRect[], depth = 0): WirePoint[] {
-  if (depth > 3) return [];
-  const hit = rects.find(r => !rectContains(r, a) && !rectContains(r, b) && segIntersectsRect(a, b, r));
-  if (!hit) return [];
-  const d = detourPoint(a, b, hit);
-  const rest = rects.filter(r => r !== hit);
-  return [...routeAvoiding(a, d, rest, depth + 1), d, ...routeAvoiding(d, b, rest, depth + 1)];
+/** 折れ線 pts が障害物に当たらないか（線分の端点が矩形内のものは自分のカード近傍として除外）。 */
+function polylineClear(pts: WirePoint[], rects: ObstacleRect[]): boolean {
+  for (let i = 0; i < pts.length - 1; i++) {
+    for (const r of rects) {
+      if (rectContains(r, pts[i]) || rectContains(r, pts[i + 1])) continue;
+      if (segIntersectsRect(pts[i], pts[i + 1], r)) return false;
+    }
+  }
+  return true;
 }
 
-const CORNER_RADIUS = 14; // 曲がり角の丸みの半径
+/**
+ * 接続口の向きから、スタブ端 a→b を水平垂直だけでつなぐ角（interior corners）を返す。
+ * 同軸（両方水平/両方垂直）は中線を挟んだ Z 字、直交する向きは L 字1角。
+ * 障害物があれば中線位置(f)をずらして当たらない候補を選ぶ（見つからなければ中央）。
+ */
+function orthogonalCorners(
+  s: WirePoint, sPos: Position | undefined, t: WirePoint, tPos: Position | undefined, obstacles: ObstacleRect[],
+): WirePoint[] {
+  const sd = dirOf(sPos), td = dirOf(tPos);
+  const a = { x: s.x + sd.x * STUB_LEN, y: s.y + sd.y * STUB_LEN };
+  const b = { x: t.x + td.x * STUB_LEN, y: t.y + td.y * STUB_LEN };
+  const sHoriz = sd.x !== 0, tHoriz = td.x !== 0;
+  const full = (c: WirePoint[]) => [s, a, ...c, b, t];
+
+  let candidates: WirePoint[][];
+  if (sHoriz && tHoriz) {
+    // 水平→水平: 中央の縦線でつなぐ Z 字（当たれば縦線Xを前後にずらす）
+    candidates = [0.5, 0.35, 0.65, 0.2, 0.8].map(f => {
+      const mx = a.x + (b.x - a.x) * f;
+      return [{ x: mx, y: a.y }, { x: mx, y: b.y }];
+    });
+  } else if (!sHoriz && !tHoriz) {
+    // 垂直→垂直: 中央の横線でつなぐ Z 字
+    candidates = [0.5, 0.35, 0.65, 0.2, 0.8].map(f => {
+      const my = a.y + (b.y - a.y) * f;
+      return [{ x: a.x, y: my }, { x: b.x, y: my }];
+    });
+  } else if (sHoriz && !tHoriz) {
+    candidates = [[{ x: b.x, y: a.y }]];  // L 字（水平に出て垂直に入る）
+  } else {
+    candidates = [[{ x: a.x, y: b.y }]];  // L 字（垂直に出て水平に入る）
+  }
+  for (const c of candidates) if (polylineClear(full(c), obstacles)) return c;
+  return candidates[0];
+}
 
 /** 点列を直線でつなぎ、曲がり角にだけ丸みをつけたパス（直線ベース＋角丸）。 */
 function roundedPolylinePath(pts: WirePoint[], radius = CORNER_RADIUS): string {
@@ -838,7 +874,8 @@ const RelationEdge: React.FC<EdgeProps> = ({
   const savedWps = portsEditable && edge.waypoints?.length ? edge.waypoints : null;
   const manual = dragWps ?? savedWps;
 
-  // 手動の編集点が無いときは、他のカードに刺さらないよう自動で迂回点を計算する
+  // 手動の編集点が無いときは、接続口の向きから水平垂直（L字/Z字）の経路を自動生成する。
+  // 他カードに刺さる場合は中線をずらして回避（見つからなければ中央）。
   const autoWps = useMemo<WirePoint[]>(() => {
     if (manual) return [];
     const obstacles: ObstacleRect[] = [];
@@ -847,13 +884,12 @@ const RelationEdge: React.FC<EdgeProps> = ({
       const w = n.measured?.width ?? 240, h = n.measured?.height ?? 140;
       obstacles.push({ x: n.position.x - AVOID_MARGIN, y: n.position.y - AVOID_MARGIN, w: w + AVOID_MARGIN * 2, h: h + AVOID_MARGIN * 2 });
     }
-    return routeAvoiding({ x: sourceX, y: sourceY }, { x: targetX, y: targetY }, obstacles);
-  }, [manual, nodes, source, target, sourceX, sourceY, targetX, targetY]);
+    return orthogonalCorners({ x: sourceX, y: sourceY }, sourcePosition, { x: targetX, y: targetY }, targetPosition, obstacles);
+  }, [manual, nodes, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
 
   const anchors = manual ?? autoWps;
 
-  // 経路: 直線ベース＋角丸。接続口からスタブでまっすぐ出て、編集点/迂回点を直線でつなぐ。
-  // 迂回計算も直線前提なので、判定と描画が一致して「カードに刺さらない」が正確に効く。
+  // 経路: 水平垂直ベース＋角丸。接続口からスタブでまっすぐ出て、角（自動/手動）を経由してつなぐ。
   const pts: WirePoint[] = [
     { x: sourceX, y: sourceY }, stubPoint({ x: sourceX, y: sourceY }, sourcePosition),
     ...anchors,
@@ -866,6 +902,7 @@ const RelationEdge: React.FC<EdgeProps> = ({
   const labelY = mid.y + (selected && portsEditable ? 18 : 0);
 
   // 編集点のドラッグ（base[idx] を動かし、離したら保存）。ゴースト○は挿入してから同じ流れ。
+  // 隣接点（前後の角。端は接続口座標）と近づいたら水平/垂直にスナップして直角を作りやすくする。
   const beginDrag = (base: WirePoint[], idx: number) => (ev: React.PointerEvent) => {
     if (ev.button !== 0) return;
     ev.stopPropagation(); ev.preventDefault();
@@ -873,7 +910,15 @@ const RelationEdge: React.FC<EdgeProps> = ({
     setDragWps(cur);
     const onMove = (e: PointerEvent) => {
       const p = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      cur = cur.map((w, i) => (i === idx ? { x: Math.round(p.x), y: Math.round(p.y) } : w));
+      let x = p.x, y = p.y;
+      const left = idx > 0 ? cur[idx - 1] : { x: sourceX, y: sourceY };
+      const right = idx < cur.length - 1 ? cur[idx + 1] : { x: targetX, y: targetY };
+      // 前後どちらかの点と X（or Y）が近ければ揃える＝縦線/横線になる
+      for (const ref of [left, right]) {
+        if (Math.abs(x - ref.x) < SNAP_DIST) x = ref.x;
+        if (Math.abs(y - ref.y) < SNAP_DIST) y = ref.y;
+      }
+      cur = cur.map((w, i) => (i === idx ? { x: Math.round(x), y: Math.round(y) } : w));
       setDragWps(cur);
     };
     const onUp = () => {
@@ -896,14 +941,16 @@ const RelationEdge: React.FC<EdgeProps> = ({
     if (text !== (edge.label || '')) patchEdge(id, { label: text || undefined });
   };
 
-  // 編集点○とゴースト○（区間中央。ドラッグでそこに編集点を追加）
+  // 編集点○とゴースト○（各線分の中央。ドラッグでそこに編集点を追加）
   const showHandles = !!selected && !dimmed && portsEditable;
   const ghostSegs: Array<{ p: WirePoint; base: WirePoint[]; idx: number }> = [];
   if (showHandles) {
-    const full: WirePoint[] = [{ x: sourceX, y: sourceY }, ...anchors, { x: targetX, y: targetY }];
-    for (let i = 0; i < full.length - 1; i++) {
-      const p = { x: (full[i].x + full[i + 1].x) / 2, y: (full[i].y + full[i + 1].y) / 2 };
-      ghostSegs.push({ p, base: [...anchors.slice(0, i), p, ...anchors.slice(i)], idx: i });
+    const n = anchors.length;
+    // pts = [s, sStub, ...anchors(n), tStub, t]。両端のスタブ区間(k=0, k=末尾)は除いて中央区間だけにゴーストを置く。
+    for (let k = 1; k <= n + 1; k++) {
+      const p = { x: (pts[k].x + pts[k + 1].x) / 2, y: (pts[k].y + pts[k + 1].y) / 2 };
+      const j = Math.max(0, Math.min(k - 1, n));  // anchors への挿入位置
+      ghostSegs.push({ p, base: [...anchors.slice(0, j), p, ...anchors.slice(j)], idx: j });
     }
   }
 
