@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, Panel,
-  useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals,
+  useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals, useNodes,
   Handle, Position, MarkerType, ConnectionMode,
   BaseEdge, EdgeLabelRenderer, getBezierPath,
   type Node, type NodeProps, type Edge, type EdgeProps, type Connection,
@@ -25,6 +25,8 @@ import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import RemoveRoundedIcon from '@mui/icons-material/RemoveRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useAppStore } from '../../store/useAppStore';
 import {
   ResearchCanvasRepository,
@@ -715,35 +717,156 @@ const LaneNode: React.FC<NodeProps> = ({ data }) => {
 
 const nodeTypes = { note: NoteNode, image: ImageNode, link: LinkNode, quote: QuoteNode, source: SourceNode, lane: LaneNode };
 
-// ─── 関係エッジ（型付き。選択で関係タイプ切替、ダブルクリックで理由を書ける） ──
+// ─── ワイヤー経路（自動迂回＋手動編集点） ─────────────────────────────────────
+// 経路は「編集点なし→ベジェ（他カードに刺さるときは自動で迂回点を挿入）」
+// 「編集点あり→その点列を通るなめらかな曲線」。編集点はワイヤー選択中に○として表示され、
+// 左ドラッグで移動・区間中央のゴースト○ドラッグで追加・ダブルクリックで削除できる。
+
+type WirePoint = { x: number; y: number };
+type ObstacleRect = { x: number; y: number; w: number; h: number };
+
+const AVOID_MARGIN = 14;   // カードの周囲に確保する余白（この内側を線が通らないようにする）
+const DETOUR_EXTRA = 10;   // 迂回点をカード縁からさらに離す距離
+const STUB_LEN = 22;       // 接続口から出る短い直線（線の出入りの向きを保つ）
+
+function rectContains(r: ObstacleRect, p: WirePoint): boolean {
+  return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+}
+
+/** 線分 a-b が矩形と交差するか（端点が内部にある場合も交差扱い）。 */
+function segIntersectsRect(a: WirePoint, b: WirePoint, r: ObstacleRect): boolean {
+  if (Math.max(a.x, b.x) < r.x || Math.min(a.x, b.x) > r.x + r.w ||
+      Math.max(a.y, b.y) < r.y || Math.min(a.y, b.y) > r.y + r.h) return false;
+  if (rectContains(r, a) || rectContains(r, b)) return true;
+  // 4隅が線分の同じ側に揃っていれば交差しない（bbox 重なりは上で確認済み）
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const cross = (px: number, py: number) => dx * (py - a.y) - dy * (px - a.x);
+  const c1 = cross(r.x, r.y), c2 = cross(r.x + r.w, r.y);
+  const c3 = cross(r.x, r.y + r.h), c4 = cross(r.x + r.w, r.y + r.h);
+  return !((c1 > 0 && c2 > 0 && c3 > 0 && c4 > 0) || (c1 < 0 && c2 < 0 && c3 < 0 && c4 < 0));
+}
+
+/** 矩形を避ける迂回点。線分から見て矩形中心の反対側（＝近い縁の外側）に置く。 */
+function detourPoint(a: WirePoint, b: WirePoint, r: ObstacleRect): WirePoint {
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;           // 線分の法線
+  const side = (cx - a.x) * nx + (cy - a.y) * ny;                  // 中心が法線のどちら側か
+  const s = side > 0 ? -1 : 1;                                     // 中心の反対側へ避ける
+  const ext = Math.abs(nx) * (r.w / 2) + Math.abs(ny) * (r.h / 2); // 法線方向の矩形の半径
+  return { x: cx + nx * s * (ext + DETOUR_EXTRA), y: cy + ny * s * (ext + DETOUR_EXTRA) };
+}
+
+/** a→b が他カードに刺さるとき、迂回点を再帰的に挿入して交差を解消する（深さ上限つき）。 */
+function routeAvoiding(a: WirePoint, b: WirePoint, rects: ObstacleRect[], depth = 0): WirePoint[] {
+  if (depth > 3) return [];
+  const hit = rects.find(r => !rectContains(r, a) && !rectContains(r, b) && segIntersectsRect(a, b, r));
+  if (!hit) return [];
+  const d = detourPoint(a, b, hit);
+  const rest = rects.filter(r => r !== hit);
+  return [...routeAvoiding(a, d, rest, depth + 1), d, ...routeAvoiding(d, b, rest, depth + 1)];
+}
+
+/** 点列を通るなめらかな曲線（Catmull-Rom→ベジェ変換）。 */
+function smoothPathThrough(pts: WirePoint[]): string {
+  if (pts.length < 2) return '';
+  let d = `M ${pts[0].x},${pts[0].y}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, pts.length - 1)];
+    d += ` C ${p1.x + (p2.x - p0.x) / 6},${p1.y + (p2.y - p0.y) / 6}`
+       + ` ${p2.x - (p3.x - p1.x) / 6},${p2.y - (p3.y - p1.y) / 6}`
+       + ` ${p2.x},${p2.y}`;
+  }
+  return d;
+}
+
+/** 接続口の向きに沿って少し出た点（線の出入りの向きを保つスタブ）。 */
+function stubPoint(p: WirePoint, pos: Position | undefined, len = STUB_LEN): WirePoint {
+  switch (pos) {
+    case Position.Left:   return { x: p.x - len, y: p.y };
+    case Position.Right:  return { x: p.x + len, y: p.y };
+    case Position.Top:    return { x: p.x, y: p.y - len };
+    case Position.Bottom: return { x: p.x, y: p.y + len };
+    default: return p;
+  }
+}
+
+// ─── 関係エッジ（ワイヤー。クリックで編集点＋右パネル、ダブルクリックで理由を書ける） ──
 
 const RelationEdge: React.FC<EdgeProps> = ({
-  id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, markerEnd,
+  id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, markerEnd,
 }) => {
-  const { patchEdge } = useCanvasCtx();
+  const { patchEdge, portsEditable } = useCanvasCtx();
   const { edge, dimmed } = data as { edge: ResearchCanvasEdge; dimmed?: boolean };
-  const connectors = useConnectors();
-  const addPreset = useConnectorStore(s => s.addPreset);
-  const removePreset = useConnectorStore(s => s.removePreset);
   const rel = getConnector(edge.relation);
-  // 曲率を控えめ(0.18)にして、線の膨らみ・重なりを抑えたなめらかな曲線にする。
-  // 接続元より戻る向き(target が source の左)の辺は大きくループしがちなので、
-  // 端点間の距離が近いほど曲率をさらに下げて、短い線ほどすっきり見せる。
-  const dist = Math.hypot(targetX - sourceX, targetY - sourceY);
-  const curvature = Math.min(0.18, 0.18 * (dist / 320));
-  const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, curvature });
+  const { screenToFlowPosition } = useReactFlow();
+  const nodes = useNodes();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(edge.label || '');
-  // カスタムラベル追加（＋を押すと入力欄＋色スウォッチが出る）
-  const [addingCustom, setAddingCustom] = useState(false);
-  const [customLabel, setCustomLabel] = useState('');
-  const [customColor, setCustomColor] = useState(CONNECTOR_COLOR_CHOICES[0]);
-  const commitCustom = () => {
-    const text = customLabel.trim();
-    if (!text) { setAddingCustom(false); return; }
-    const key = addPreset(text, customColor);
-    patchEdge(id, { relation: key });
-    setCustomLabel(''); setAddingCustom(false);
+
+  // ドラッグ中の編集点列（コミット前のプレビュー）。離した時点で保存する。
+  const [dragWps, setDragWps] = useState<WirePoint[] | null>(null);
+  // 手動の編集点は自由配置モードのみ有効（地図モードはカード座標が別物で、保存済みの点が合わない）
+  const savedWps = portsEditable && edge.waypoints?.length ? edge.waypoints : null;
+  const manual = dragWps ?? savedWps;
+
+  // 手動の編集点が無いときは、他のカードに刺さらないよう自動で迂回点を計算する
+  const autoWps = useMemo<WirePoint[]>(() => {
+    if (manual) return [];
+    const obstacles: ObstacleRect[] = [];
+    for (const n of nodes) {
+      if (n.id === source || n.id === target || n.id.startsWith('lane-')) continue;
+      const w = n.measured?.width ?? 240, h = n.measured?.height ?? 140;
+      obstacles.push({ x: n.position.x - AVOID_MARGIN, y: n.position.y - AVOID_MARGIN, w: w + AVOID_MARGIN * 2, h: h + AVOID_MARGIN * 2 });
+    }
+    return routeAvoiding({ x: sourceX, y: sourceY }, { x: targetX, y: targetY }, obstacles);
+  }, [manual, nodes, source, target, sourceX, sourceY, targetX, targetY]);
+
+  const anchors = manual ?? autoWps;
+
+  // 経路: 編集点なし→控えめな曲率のベジェ / 編集点あり→点列を通るなめらかな曲線
+  let path: string, labelX: number, labelY: number;
+  if (anchors.length === 0) {
+    // 端点間の距離が近いほど曲率を下げて、短い線ほどすっきり見せる
+    const dist = Math.hypot(targetX - sourceX, targetY - sourceY);
+    const curvature = Math.min(0.18, 0.18 * (dist / 320));
+    [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, curvature });
+  } else {
+    const pts: WirePoint[] = [
+      { x: sourceX, y: sourceY }, stubPoint({ x: sourceX, y: sourceY }, sourcePosition),
+      ...anchors,
+      stubPoint({ x: targetX, y: targetY }, targetPosition), { x: targetX, y: targetY },
+    ];
+    path = smoothPathThrough(pts);
+    // ラベルは経路の中央付近へ（編集点の○と重ならないよう少し下げる）
+    const mi = (pts.length - 1) / 2;
+    labelX = (pts[Math.floor(mi)].x + pts[Math.ceil(mi)].x) / 2;
+    labelY = (pts[Math.floor(mi)].y + pts[Math.ceil(mi)].y) / 2 + 16;
+  }
+
+  // 編集点のドラッグ（base[idx] を動かし、離したら保存）。ゴースト○は挿入してから同じ流れ。
+  const beginDrag = (base: WirePoint[], idx: number) => (ev: React.PointerEvent) => {
+    if (ev.button !== 0) return;
+    ev.stopPropagation(); ev.preventDefault();
+    let cur = base;
+    setDragWps(cur);
+    const onMove = (e: PointerEvent) => {
+      const p = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      cur = cur.map((w, i) => (i === idx ? { x: Math.round(p.x), y: Math.round(p.y) } : w));
+      setDragWps(cur);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      setDragWps(null);
+      patchEdge(id, { waypoints: cur });
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp, { once: true });
+  };
+
+  const removeWaypoint = (idx: number) => {
+    const rest = (savedWps ?? []).filter((_, i) => i !== idx);
+    patchEdge(id, { waypoints: rest.length ? rest : undefined });
   };
 
   const commitLabel = () => {
@@ -751,6 +874,17 @@ const RelationEdge: React.FC<EdgeProps> = ({
     const text = draft.trim();
     if (text !== (edge.label || '')) patchEdge(id, { label: text || undefined });
   };
+
+  // 編集点○とゴースト○（区間中央。ドラッグでそこに編集点を追加）
+  const showHandles = !!selected && !dimmed && portsEditable;
+  const ghostSegs: Array<{ p: WirePoint; base: WirePoint[]; idx: number }> = [];
+  if (showHandles) {
+    const full: WirePoint[] = [{ x: sourceX, y: sourceY }, ...anchors, { x: targetX, y: targetY }];
+    for (let i = 0; i < full.length - 1; i++) {
+      const p = { x: (full[i].x + full[i + 1].x) / 2, y: (full[i].y + full[i + 1].y) / 2 };
+      ghostSegs.push({ p, base: [...anchors.slice(0, i), p, ...anchors.slice(i)], idx: i });
+    }
+  }
 
   return (
     <>
@@ -769,62 +903,6 @@ const RelationEdge: React.FC<EdgeProps> = ({
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5,
             zIndex: selected ? 10 : 1,
           }}>
-          {selected && (
-            <Box sx={{
-              display: 'flex', flexWrap: 'wrap', maxWidth: 260, gap: 0.4, p: 0.5, borderRadius: 1.5,
-              bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.25)', justifyContent: 'center',
-            }}>
-              {connectors.map(r => (
-                <Box key={r.key}
-                  onClick={() => patchEdge(id, { relation: r.key })}
-                  // カスタムは右クリックで削除
-                  onContextMenu={r.builtin ? undefined : (e => { e.preventDefault(); e.stopPropagation(); removePreset(r.key); if (edge.relation === r.key) patchEdge(id, { relation: DEFAULT_CONNECTOR_KEY }); })}
-                  title={r.builtin ? undefined : 'クリックで適用 / 右クリックで削除'}
-                  sx={{
-                    px: 0.7, py: 0.15, borderRadius: 1, cursor: 'pointer',
-                    fontSize: 10, fontWeight: 800, lineHeight: 1.6,
-                    color: edge.relation === r.key ? '#000' : r.color,
-                    bgcolor: edge.relation === r.key ? r.color : 'transparent',
-                    border: `1px solid ${r.color}`,
-                    '&:hover': { bgcolor: edge.relation === r.key ? r.color : `${r.color}22` },
-                  }}>
-                  {r.label}
-                </Box>
-              ))}
-              {/* ＋ カスタムラベル追加 */}
-              {!addingCustom ? (
-                <Box onClick={() => setAddingCustom(true)} title="ラベルを追加"
-                  sx={{
-                    px: 0.7, py: 0.15, borderRadius: 1, cursor: 'pointer',
-                    fontSize: 10, fontWeight: 800, lineHeight: 1.6,
-                    color: 'rgb(var(--brand-fg-rgb) / 0.55)', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.3)',
-                    '&:hover': { color: '#00BFFF', borderColor: '#00BFFF' },
-                  }}>
-                  ＋
-                </Box>
-              ) : (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, width: '100%', mt: 0.4, justifyContent: 'center' }}>
-                  <InputBase
-                    autoFocus value={customLabel}
-                    onChange={e => setCustomLabel(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') commitCustom(); if (e.key === 'Escape') setAddingCustom(false); }}
-                    placeholder="ラベル名"
-                    sx={{ width: 96, px: 0.75, py: 0.15, borderRadius: 1, fontSize: 10.5, color: 'var(--brand-fg)', border: `1px solid ${customColor}` }}
-                  />
-                  {CONNECTOR_COLOR_CHOICES.map(c => (
-                    <Box key={c} onClick={() => setCustomColor(c)}
-                      sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', bgcolor: c,
-                        border: customColor === c ? '2px solid var(--brand-fg)' : '2px solid transparent' }} />
-                  ))}
-                  <Box onClick={commitCustom} title="追加"
-                    sx={{ px: 0.6, py: 0.15, borderRadius: 1, cursor: 'pointer', fontSize: 10, fontWeight: 800, bgcolor: '#00BFFF', color: '#000' }}>
-                    追加
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          )}
           {editing ? (
             <InputBase
               autoFocus
@@ -854,12 +932,192 @@ const RelationEdge: React.FC<EdgeProps> = ({
             </Box>
           )}
         </Box>
+
+        {/* ワイヤーの編集点（実線○=手動: ドラッグで移動・ダブルクリックで削除 / 破線○=自動迂回: ドラッグでその位置に固定） */}
+        {showHandles && anchors.map((p, i) => (
+          <Box key={`wp-${i}`} className="nodrag nopan"
+            onPointerDown={beginDrag([...anchors], i)}
+            onDoubleClick={manual ? (e => { e.stopPropagation(); removeWaypoint(i); }) : undefined}
+            title={manual ? 'ドラッグで移動 / ダブルクリックで削除' : 'ドラッグでこの位置に固定'}
+            sx={{
+              position: 'absolute', width: 13, height: 13, borderRadius: '50%', boxSizing: 'border-box',
+              transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y}px)`,
+              bgcolor: 'var(--brand-surface)', border: `2px ${manual ? 'solid' : 'dashed'} ${rel.color}`,
+              cursor: 'grab', pointerEvents: 'all', zIndex: 12,
+              '&:hover': { boxShadow: `0 0 0 3px ${rel.color}44` },
+            }} />
+        ))}
+        {/* 区間中央のゴースト○（ドラッグで編集点を追加） */}
+        {showHandles && ghostSegs.map(g => (
+          <Box key={`gh-${g.idx}`} className="nodrag nopan"
+            onPointerDown={beginDrag(g.base, g.idx)}
+            title="ドラッグで編集点を追加"
+            sx={{
+              position: 'absolute', width: 9, height: 9, borderRadius: '50%', boxSizing: 'border-box',
+              transform: `translate(-50%, -50%) translate(${g.p.x}px, ${g.p.y}px)`,
+              bgcolor: 'var(--brand-surface)', border: `1.5px dashed ${rel.color}`, opacity: 0.6,
+              cursor: 'grab', pointerEvents: 'all', zIndex: 11,
+              '&:hover': { opacity: 1, boxShadow: `0 0 0 3px ${rel.color}33` },
+            }} />
+        ))}
       </EdgeLabelRenderer>
     </>
   );
 };
 
 const edgeTypes = { relation: RelationEdge };
+
+// ─── 右サイドバー: 選択中ワイヤーの編集パネル ────────────────────────────────
+// ワイヤーを1本選択すると出る。接続詞（だから/でも/…＋カスタム）の切替・理由の記入・
+// 編集点のリセット・線の削除をここに集約する（エッジ上のポップアップだと地図を隠すため）。
+
+const EdgeInspector: React.FC<{
+  edge: ResearchCanvasEdge;
+  /** 編集点の操作が有効か（自由配置モードのみ。地図モードは自動配置で座標が合わない） */
+  canEditPoints: boolean;
+  patchEdge: (id: string, patch: Partial<ResearchCanvasEdge>) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}> = ({ edge, canEditPoints, patchEdge, onDelete, onClose }) => {
+  const connectors = useConnectors();
+  const addPreset = useConnectorStore(s => s.addPreset);
+  const removePreset = useConnectorStore(s => s.removePreset);
+  const rel = getConnector(edge.relation);
+  const [draft, setDraft] = useState(edge.label || '');
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [customLabel, setCustomLabel] = useState('');
+  const [customColor, setCustomColor] = useState(CONNECTOR_COLOR_CHOICES[0]);
+  // ボード側（ダブルクリック編集）でラベルが変わったら追従（レンダー中の派生state更新パターン）
+  const [prevLabel, setPrevLabel] = useState(edge.label || '');
+  if (prevLabel !== (edge.label || '')) {
+    setPrevLabel(edge.label || '');
+    setDraft(edge.label || '');
+  }
+
+  const commitCustom = () => {
+    const text = customLabel.trim();
+    if (!text) { setAddingCustom(false); return; }
+    const key = addPreset(text, customColor);
+    patchEdge(edge.id, { relation: key });
+    setCustomLabel(''); setAddingCustom(false);
+  };
+  const commitLabel = () => {
+    const text = draft.trim();
+    if (text !== (edge.label || '')) patchEdge(edge.id, { label: text || undefined });
+  };
+
+  const sectionSx = { fontSize: 10.5, fontWeight: 800, letterSpacing: '0.04em', color: 'rgb(var(--brand-fg-rgb) / 0.45)' } as const;
+
+  return (
+    <Box className="nodrag nopan" sx={{
+      position: 'absolute', top: 52, right: 12, width: 240, zIndex: 6,
+      maxHeight: 'calc(100% - 64px)', overflowY: 'auto',
+      p: 1.5, borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 1.25,
+      bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+      boxShadow: '0 8px 28px rgba(0,0,0,0.35)',
+    }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: rel.color, flexShrink: 0 }} />
+        <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: 'var(--brand-fg)', flex: 1 }}>
+          ワイヤーの編集
+        </Typography>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', p: 0.25 }}>
+          <CloseRoundedIcon sx={{ fontSize: 15 }} />
+        </IconButton>
+      </Box>
+
+      <Box>
+        <Typography sx={{ ...sectionSx, mb: 0.5 }}>つなぎ方（接続詞）</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4 }}>
+          {connectors.map(r => (
+            <Box key={r.key}
+              onClick={() => patchEdge(edge.id, { relation: r.key })}
+              // カスタムは右クリックで削除
+              onContextMenu={r.builtin ? undefined : (e => { e.preventDefault(); e.stopPropagation(); removePreset(r.key); if (edge.relation === r.key) patchEdge(edge.id, { relation: DEFAULT_CONNECTOR_KEY }); })}
+              title={r.builtin ? undefined : 'クリックで適用 / 右クリックで削除'}
+              sx={{
+                px: 0.7, py: 0.15, borderRadius: 1, cursor: 'pointer',
+                fontSize: 10, fontWeight: 800, lineHeight: 1.6,
+                color: edge.relation === r.key ? '#000' : r.color,
+                bgcolor: edge.relation === r.key ? r.color : 'transparent',
+                border: `1px solid ${r.color}`,
+                '&:hover': { bgcolor: edge.relation === r.key ? r.color : `${r.color}22` },
+              }}>
+              {r.label}
+            </Box>
+          ))}
+          {/* ＋ カスタムラベル追加 */}
+          {!addingCustom ? (
+            <Box onClick={() => setAddingCustom(true)} title="ラベルを追加"
+              sx={{
+                px: 0.7, py: 0.15, borderRadius: 1, cursor: 'pointer',
+                fontSize: 10, fontWeight: 800, lineHeight: 1.6,
+                color: 'rgb(var(--brand-fg-rgb) / 0.55)', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.3)',
+                '&:hover': { color: '#00BFFF', borderColor: '#00BFFF' },
+              }}>
+              ＋
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, width: '100%', mt: 0.4 }}>
+              <InputBase
+                autoFocus value={customLabel}
+                onChange={e => setCustomLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') commitCustom(); if (e.key === 'Escape') setAddingCustom(false); }}
+                placeholder="ラベル名"
+                sx={{ width: 92, px: 0.75, py: 0.15, borderRadius: 1, fontSize: 10.5, color: 'var(--brand-fg)', border: `1px solid ${customColor}` }}
+              />
+              {CONNECTOR_COLOR_CHOICES.map(c => (
+                <Box key={c} onClick={() => setCustomColor(c)}
+                  sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', bgcolor: c, flexShrink: 0,
+                    border: customColor === c ? '2px solid var(--brand-fg)' : '2px solid transparent' }} />
+              ))}
+              <Box onClick={commitCustom} title="追加"
+                sx={{ px: 0.6, py: 0.15, borderRadius: 1, cursor: 'pointer', fontSize: 10, fontWeight: 800, bgcolor: '#00BFFF', color: '#000' }}>
+                追加
+              </Box>
+            </Box>
+          )}
+        </Box>
+      </Box>
+
+      <Box>
+        <Typography sx={{ ...sectionSx, mb: 0.5 }}>理由（なぜ繋がるのか）</Typography>
+        <InputBase
+          value={draft} fullWidth multiline maxRows={3}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commitLabel}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitLabel(); } }}
+          placeholder="一言メモ..."
+          sx={{
+            px: 1, py: 0.4, borderRadius: 1.5, fontSize: 11, color: 'var(--brand-fg)',
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
+            '&.Mui-focused': { borderColor: rel.color },
+          }}
+        />
+      </Box>
+
+      {canEditPoints && (
+        <Box>
+          <Typography sx={{ ...sectionSx, mb: 0.5 }}>線の形</Typography>
+          <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.6 }}>
+            線上の○をドラッグ＝編集点を追加・移動 / 編集点をダブルクリック＝削除
+          </Typography>
+          {edge.waypoints?.length ? (
+            <Button size="small" onClick={() => patchEdge(edge.id, { waypoints: undefined })}
+              sx={{ mt: 0.5, fontSize: 10.5, textTransform: 'none', color: '#00BFFF', p: 0, minWidth: 0 }}>
+              編集点をリセット（自動経路に戻す）
+            </Button>
+          ) : null}
+        </Box>
+      )}
+
+      <Button size="small" startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 14 }} />} onClick={onDelete}
+        sx={{ alignSelf: 'flex-start', fontSize: 11, textTransform: 'none', color: '#f87171', p: 0.25, minWidth: 0 }}>
+        このワイヤーを削除
+      </Button>
+    </Box>
+  );
+};
 
 // ─── キャンバス本体 ───────────────────────────────────────────────────────────
 
@@ -1271,6 +1529,12 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
     [edges, trace],
   );
 
+  // 右サイドバー: ワイヤーをちょうど1本選択しているときに編集パネルを出す
+  const selectedEdge = useMemo(() => {
+    const sel = edges.filter(e => e.selected);
+    return sel.length === 1 ? sel[0] : null;
+  }, [edges]);
+
   // 背景レーンノードの変更（選択・寸法等）は保存 state に混ぜない
   const handleNodesChange = useCallback((changes: any[]) => {
     onNodesChange(changes.filter(c => !(typeof c?.id === 'string' && c.id.startsWith('lane-'))));
@@ -1664,7 +1928,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
           <Typography sx={{ mt: 0.75, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
             {viewMode === 'map'
               ? 'ロジックの地図: 根拠→解釈→結論のレーンにカードを自動配置（手置きは保持されます）／自由配置に戻せます'
-              : 'ダブルクリックで編集 / 左ドラッグで範囲選択→まとめて移動・Deleteでまとめて削除 / 右ドラッグで画面移動 / 辺の○をドラッグで接続・＋−で接続口を増減 / 線の端をドラッグで付け替え / Ctrl+Zで戻す'}
+              : 'ダブルクリックで編集 / 左ドラッグで範囲選択→まとめて移動・Deleteでまとめて削除 / 右ドラッグで画面移動 / 辺の○をドラッグで接続・＋−で接続口を増減 / 線をクリック→○ドラッグで形を調整（ラベルは右パネル） / Ctrl+Zで戻す'}
           </Typography>
           {saveError && (
             <Typography onClick={flushSave} sx={{
@@ -1677,6 +1941,17 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
           )}
         </Panel>
       </ReactFlow>
+
+      {selectedEdge && (
+        <EdgeInspector
+          key={selectedEdge.id}
+          edge={(selectedEdge.data as { edge: ResearchCanvasEdge }).edge}
+          canEditPoints={viewMode === 'free'}
+          patchEdge={patchEdge}
+          onDelete={() => setEdges(eds => eds.filter(e => e.id !== selectedEdge.id))}
+          onClose={() => setEdges(eds => eds.map(e => (e.selected ? { ...e, selected: false } : e)))}
+        />
+      )}
 
       <input ref={fileInputRef} type="file" accept="image/*" hidden
         onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ''; }} />

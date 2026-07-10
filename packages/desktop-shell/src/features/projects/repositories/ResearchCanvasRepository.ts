@@ -99,6 +99,8 @@ export interface ResearchCanvasEdge {
   sourceHandle?: string;
   /** 接続先カードのハンドル辺（top/right/bottom/left）。 */
   targetHandle?: string;
+  /** 手動の編集点（フロー座標）。ワイヤー選択→○をドラッグで曲げた形。未設定なら自動経路。 */
+  waypoints?: Array<{ x: number; y: number }>;
   createdAt: string;
   updatedAt: string;
 }
