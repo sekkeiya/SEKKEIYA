@@ -10,6 +10,7 @@ import { GeneralSettingsPanel }    from './panels/GeneralSettingsPanel';
 import { VoiceSettingsPanel }      from './panels/VoiceSettingsPanel';
 import { AiSettingsPanel }         from './panels/AiSettingsPanel';
 import { AdminSettingsPanel }      from './panels/AdminSettingsPanel';
+import { GitHubSyncPanel }         from './panels/GitHubSyncPanel';
 import { LearningSettingsPanel }   from './panels/LearningSettingsPanel';
 import { useAuthStore }            from '../../store/useAuthStore';
 import { isBlogAdmin }             from '../dsb/lib/blogAdmin';
@@ -35,8 +36,9 @@ export const GlobalSettingsShell = () => {
         {activeApp === 'ai'         && <AiSettingsPanel />}
         {/* 二重ガード: admin 判定を満たす場合のみ描画（サイドバー非表示だけに依存しない） */}
         {activeApp === 'admin'      && isAdmin && <AdminSettingsPanel />}
+        {activeApp === 'admin-git'  && isAdmin && <GitHubSyncPanel />}
         {activeApp === 'learning'   && isAdmin && <LearningSettingsPanel />}
-        {!KNOWN.includes(activeApp) && !((activeApp === 'admin' || activeApp === 'learning') && isAdmin) && (
+        {!KNOWN.includes(activeApp) && !((activeApp === 'admin' || activeApp === 'admin-git' || activeApp === 'learning') && isAdmin) && (
           <Box sx={{ p: 4, opacity: 0.5 }}>
             このアプリの設定パラメータは現在利用できません。
           </Box>

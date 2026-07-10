@@ -32,7 +32,8 @@ export async function syncBlogArticleToDrive(uid: string, article: BlogArticle):
     type: 'article',
     appScope: '3dsb',
     ownerId: uid,
-    visibility: 'private', // Drive 上の自ライブラリ可視性（記事の公開/非公開とは別軸）
+    // 公開記事＝公開層。My Public Folder（visibility=='public'）に出す（My Private ではなく）。
+    visibility: 'public',
     projectId: null,
     sourceCollection: 'global_assets',
     // ★storageUrl は設定しない（リンク的に扱い、ダブルクリックで sourceUrl を開く）。

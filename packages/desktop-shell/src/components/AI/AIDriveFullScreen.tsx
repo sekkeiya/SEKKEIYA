@@ -49,6 +49,7 @@ import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
 import PptxPreview from './PptxPreview';
 import HtmlPreview from './HtmlPreview';
 import LinkPreview from './LinkPreview';
+import ArticlePreview from './ArticlePreview';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
@@ -667,8 +668,8 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
           gap: 2
         }}>
           {/* Row 1: Title, Search, View Controls */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, minWidth: 180, display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', rowGap: 1.5 }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 700, minWidth: 160, flexShrink: 0, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
               {activeScope === 'all_public' ? 'ALL（みんなの公開）' :
                activeScope === 'unorganized' ? '未整理' :
                activeScope === 'my_public' ? 'My Public Folder' :
@@ -682,9 +683,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             </Typography>
 
             {/* AI Smart Search Bar */}
-            <Box sx={{ 
-              flexGrow: 1, display: 'flex', alignItems: 'center', 
-              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 2, px: 2, py: 0.75, 
+            <Box sx={{
+              flexGrow: 1, minWidth: 200, display: 'flex', alignItems: 'center',
+              bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', borderRadius: 2, px: 2, py: 0.75,
               border: `1px solid rgba(0,191,255,0.15)`,
               transition: 'all 0.2s',
               '&:focus-within': {
@@ -720,7 +721,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
           </Box>
 
           {/* Row 2: Active Filters & AI Status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', rowGap: 1 }}>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
             {/* 粒度セグメント（資産 / 作業ファイル / すべて） */}
@@ -731,7 +732,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                   size="small"
                   onClick={() => setGranularity(key)}
                   sx={{
-                    minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none',
+                    minWidth: 0, px: 1.5, py: 0.25, fontSize: '0.7rem', fontWeight: 700, borderRadius: 1.5, textTransform: 'none', whiteSpace: 'nowrap',
                     color: granularity === key ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.4)',
                     bgcolor: granularity === key ? '#00BFFF' : 'transparent',
                     '&:hover': { bgcolor: granularity === key ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
@@ -775,7 +776,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             </Box>
 
             {/* AI Status & Batch Actions (Right) */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', rowGap: 1, justifyContent: 'flex-end', flexShrink: 0 }}>
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -790,7 +791,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 const untaggedCount = assets.filter(a => !a.tags || a.tags.length === 0).length;
                 if (untaggedCount === 0) return null;
                 return (
-                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'flex', alignItems: 'center', gap: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
                     <ErrorOutlineRoundedIcon sx={{ fontSize: 14, color: '#FF9800' }} />
                     <span style={{ color: '#FF9800', fontWeight: 600 }}>未整理:</span> {untaggedCount}件
                   </Typography>
@@ -805,7 +806,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 sx={{
                   bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)', color: 'rgb(var(--brand-fg-rgb) / 0.8)',
                   textTransform: 'none', borderRadius: 1.5, px: 2, py: 0.5,
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
                   border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
                   '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
                   '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', opacity: 0.8 }
@@ -839,10 +840,10 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                 }}
                 disabled={isAITagging}
                 startIcon={isAITagging ? <CircularProgress size={12} color="inherit" /> : <AutoAwesomeRoundedIcon sx={{fontSize: 14}}/>}
-                sx={{ 
-                  bgcolor: 'rgba(0,191,255,0.1)', color: '#00BFFF', 
+                sx={{
+                  bgcolor: 'rgba(0,191,255,0.1)', color: '#00BFFF',
                   textTransform: 'none', borderRadius: 1.5, px: 2, py: 0.5,
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
                   border: '1px solid rgba(0,191,255,0.2)',
                   '&:hover': { bgcolor: 'rgba(0,191,255,0.2)' },
                   '&.Mui-disabled': { color: '#00BFFF', opacity: 0.8 }
@@ -1158,10 +1159,16 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
       )}
 
       {/* 3. RIGHT INSPECTOR (Conditional or persistent) */}
+      {/* 狭幅(md未満)では常設せず、選択中のときだけ右からオーバーレイ表示してグリッドを圧迫しない。 */}
       {!isPickerMode && (
-        <Box sx={{  
-          width: 280, flexShrink: 0, bgcolor: 'var(--brand-surface2)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', 
-          display: 'flex', flexDirection: 'column', height: '100%' 
+        <Box sx={{
+          width: { xs: 300, md: 280 }, maxWidth: { xs: '86%', md: 'none' }, flexShrink: 0,
+          bgcolor: 'var(--brand-surface2)', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.06)',
+          flexDirection: 'column', height: '100%',
+          display: { xs: selectedAssetIds.length > 0 ? 'flex' : 'none', md: 'flex' },
+          position: { xs: 'absolute', md: 'static' }, right: 0, top: 0, bottom: 0,
+          zIndex: { xs: 12, md: 'auto' },
+          boxShadow: { xs: '-8px 0 28px rgba(0,0,0,0.45)', md: 'none' },
         }}>
         {selectedAssetIds.length > 1 ? (
           <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -1543,7 +1550,18 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               const name = expandedAsset.name || '';
               const isPptx = t === 'presentation' || /\.(pptx?|ppsx?|potx?)$/i.test(name);
               const isHtml = t === 'html' || /\.html?($|\?)/i.test(name);
-              const isLink = t === 'link' || (!!(expandedAsset as any).sourceUrl && !expandedAsset.storageUrl && !isHtml && !isPptx);
+              const isArticle = t === 'article' || t === 'blog' || /^blog_/.test(expandedAsset.id || '');
+              const isLink = !isArticle && (t === 'link' || (!!(expandedAsset as any).sourceUrl && !expandedAsset.storageUrl && !isHtml && !isPptx));
+              // 記事 → Drive 内でスクロールして本文を読めるプレビュー
+              if (isArticle) {
+                return <ArticlePreview
+                  articleId={(expandedAsset.id || '').replace(/^blog_/, '')}
+                  ownerUid={expandedAsset.ownerId}
+                  coverUrl={expandedAsset.thumbnailUrl}
+                  publicUrl={(expandedAsset as any).sourceUrl}
+                  title={name}
+                />;
+              }
               const isVideo = t === 'video' || /\.(mp4|mov|webm|avi|mkv|m4v)($|\?)/i.test(expandedAsset.storageUrl || name);
               const imgUrl = imageDisplayUrl(expandedAsset);
               // リンク（URL）→ OG画像＋タイトル＋「ブラウザで開く」カード

@@ -1,5 +1,9 @@
-import React from 'react';
-import { Box, Typography, List, ListItemButton, ListItemText, ListItemIcon, Divider } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, List, ListItemButton, ListItemText, ListItemIcon, Divider, Collapse } from '@mui/material';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
+import GitHubIcon from '@mui/icons-material/GitHub';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import PresentToAllRoundedIcon from '@mui/icons-material/PresentToAllRounded';
@@ -13,7 +17,7 @@ import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 
-export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'learning';
+export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-git' | 'learning';
 
 interface Props {
   activeApp: SettingsAppId;
@@ -23,6 +27,7 @@ interface Props {
 }
 
 export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdmin = false }) => {
+  const [adminOpen, setAdminOpen] = useState(activeApp === 'admin' || activeApp === 'admin-git');
   const menuItems: { id: SettingsAppId; label: string; icon: React.ReactNode }[] = [
     { id: 'general',     label: '一般',            icon: <TuneRoundedIcon /> },
     { id: 'ai',          label: 'AI',              icon: <SmartToyRoundedIcon /> },
@@ -67,15 +72,39 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdm
         {isAdmin && (
           <>
             <Divider sx={{ my: 1, mx: 1 }} />
+            {/* 管理者: クリックで展開し「AI使用量モニター」「GitHub更新」を表示 */}
             <ListItemButton
               key="admin"
-              selected={activeApp === 'admin'}
-              onClick={() => onSelectApp('admin')}
+              selected={activeApp === 'admin' || activeApp === 'admin-git'}
+              onClick={() => setAdminOpen(o => !o)}
               sx={itemSx()}
             >
               <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><AdminPanelSettingsRoundedIcon /></ListItemIcon>
-              <ListItemText primary="管理者" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'admin' ? 600 : 500 }} />
+              <ListItemText primary="管理者" primaryTypographyProps={{ fontSize: 13, fontWeight: (activeApp === 'admin' || activeApp === 'admin-git') ? 600 : 500 }} />
+              {adminOpen ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
             </ListItemButton>
+            <Collapse in={adminOpen} timeout="auto" unmountOnExit>
+              <List disablePadding sx={{ pl: 2 }}>
+                <ListItemButton
+                  key="admin-usage"
+                  selected={activeApp === 'admin'}
+                  onClick={() => onSelectApp('admin')}
+                  sx={itemSx()}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><InsightsRoundedIcon /></ListItemIcon>
+                  <ListItemText primary="AI使用量モニター" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'admin' ? 600 : 500 }} />
+                </ListItemButton>
+                <ListItemButton
+                  key="admin-git"
+                  selected={activeApp === 'admin-git'}
+                  onClick={() => onSelectApp('admin-git')}
+                  sx={itemSx()}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><GitHubIcon /></ListItemIcon>
+                  <ListItemText primary="GitHub更新" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'admin-git' ? 600 : 500 }} />
+                </ListItemButton>
+              </List>
+            </Collapse>
             <ListItemButton
               key="learning"
               selected={activeApp === 'learning'}
