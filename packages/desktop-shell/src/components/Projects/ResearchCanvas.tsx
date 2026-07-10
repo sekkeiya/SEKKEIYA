@@ -1757,23 +1757,23 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   }, [viewMode, fitView]);
 
   // ─── 階層整列（根拠→解釈→結論を左→右に敷き直す）───────────────────────────
-  // エッジで繋がっているカードだけを dagre で LR 整列し、未接続カードは動かさない。
-  // 論証の向き（根拠 source → 結論 target）がそのまま左→右の流れになるので、
-  // 「一目で流れがわかる」状態を作る。役割（根拠/解釈/結論）を同ランク内の縦順の
-  // タイブレークに使い、根拠→解釈→結論が上から下に揃うようにする。
+  // エッジで繋がっているカードだけを格子状に整列し、未接続カードは動かさない。
+  // 列＝流れの段階（source→target の最長路）、列の左端 X は完全に揃え、列内は
+  // 等間隔で縦積み・列同士は縦中央を揃える。座標がグリッドに乗るので、直交ワイヤーが
+  // まっすぐな水平線/Z字になり「一目で流れがわかる」状態を作る。
+  // 手動編集点は整列で座標が全部変わるためリセットし、自動ルーティングに任せる。
   const [aligning, setAligning] = useState(false);
   const autoAlign = useCallback(async (opts?: { fit?: boolean }) => {
     const edgeItems = rfToEdgeItems(edgesRef.current);
     if (edgeItems.length === 0) return;
     setAligning(true);
     try {
-      const mod: any = await import('@dagrejs/dagre');
-      const dagre = mod.default ?? mod;
       const involved = new Set<string>();
       edgeItems.forEach(e => { involved.add(e.source); involved.add(e.target); });
       const targets = nodesRef.current.filter(n => involved.has(n.id));
       if (targets.length === 0) return;
       const targetIds = new Set(targets.map(n => n.id));
+      const compEdges = edgeItems.filter(e => targetIds.has(e.source) && targetIds.has(e.target));
 
       const FALLBACK_SIZE: Record<string, { width: number; height: number }> = {
         note: { width: 240, height: 140 }, quote: { width: 280, height: 130 },
@@ -1784,38 +1784,140 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
         height: n.measured?.height ?? FALLBACK_SIZE[n.data.item.kind]?.height ?? 120,
       });
 
-      const g = new dagre.graphlib.Graph();
-      // LR=左→右の流れ。network-simplex + UL で列を揃え、交差を減らして直感的にする。
-      g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 170, ranker: 'network-simplex', align: 'UL', marginx: 24, marginy: 24 });
-      g.setDefaultEdgeLabel(() => ({}));
-      // 役割の重み（根拠→解釈→結論）を weight に反映し、この向きの筋を優先して真っ直ぐ通す。
-      const ROLE_ORDER: Record<string, number> = { evidence: 0, interpretation: 1, conclusion: 2 };
-      targets.forEach(n => g.setNode(n.id, sizeOf(n)));
-      edgeItems.forEach(e => {
-        if (!targetIds.has(e.source) || !targetIds.has(e.target)) return;
-        const sr = ROLE_ORDER[nodesRef.current.find(n => n.id === e.source)?.data.item.role ?? ''];
-        const tr = ROLE_ORDER[nodesRef.current.find(n => n.id === e.target)?.data.item.role ?? ''];
-        // 根拠→解釈→結論の向きに沿うエッジは強め、逆行/横断は弱めにして骨格を安定させる
-        const weight = sr !== undefined && tr !== undefined && tr > sr ? 3 : 1;
-        g.setEdge(e.source, e.target, { weight });
-      });
-      dagre.layout(g);
+      const H_GAP = 150;  // 列間（直交ワイヤーの Z 折れ用の余白）
+      const V_GAP = 36;   // 列内のカード間
+      const COMP_GAP = 90; // 連結成分（別テーマ）どうしの縦間隔
 
-      // 整列前の左上を基準に平行移動して、グラフ全体がボード上で飛ばないようにする
+      // ── 無向の連結成分に分割（テーマごとに別ブロックとして整列）──
+      const adj = new Map<string, Set<string>>();
+      targets.forEach(n => adj.set(n.id, new Set()));
+      compEdges.forEach(e => { adj.get(e.source)!.add(e.target); adj.get(e.target)!.add(e.source); });
+      const compOf = new Map<string, number>();
+      let compCount = 0;
+      for (const n of targets) {
+        if (compOf.has(n.id)) continue;
+        const c = compCount++;
+        const stack = [n.id];
+        compOf.set(n.id, c);
+        while (stack.length) {
+          const cur = stack.pop()!;
+          for (const nb of adj.get(cur) ?? []) if (!compOf.has(nb)) { compOf.set(nb, c); stack.push(nb); }
+        }
+      }
+      const comps: CanvasNode[][] = Array.from({ length: compCount }, () => []);
+      targets.forEach(n => comps[compOf.get(n.id)!].push(n));
+      // 成分の順序は現在の位置（上にあるものから）で安定させる
+      comps.sort((A, B) => Math.min(...A.map(n => n.position.y)) - Math.min(...B.map(n => n.position.y)));
+
+      const posMap = new Map<string, { x: number; y: number }>();
+      let compTop = 0;
+      let placedMaxW = 0;
+
+      for (const comp of comps) {
+        const ids = new Set(comp.map(n => n.id));
+        const inComp = compEdges.filter(e => ids.has(e.source) && ids.has(e.target));
+
+        // ── 巡回（双方向の矢印など）を除いた DAG を作る（DFS の逆行辺を除外）──
+        // 巡回を残したまま最長路を取るとランクが膨張して空の列や無限大座標が生まれるため。
+        const outEdges = new Map<string, typeof inComp>(comp.map(n => [n.id, []]));
+        inComp.forEach(e => outEdges.get(e.source)!.push(e));
+        const color = new Map<string, number>(); // 0=未訪問 1=探索中 2=完了
+        const dagEdges: typeof inComp = [];
+        const dfs = (u: string) => {
+          color.set(u, 1);
+          for (const e of outEdges.get(u) ?? []) {
+            const cv = color.get(e.target) ?? 0;
+            if (cv === 1) continue; // 探索中の先祖へ戻る辺＝巡回 → ランク計算から除外
+            dagEdges.push(e);
+            if (cv === 0) dfs(e.target);
+          }
+          color.set(u, 2);
+        };
+        comp.forEach(n => { if (!(color.get(n.id) ?? 0)) dfs(n.id); });
+
+        // ── 列（rank）: DAG 上の source→target の最長路（DAG なので必ず収束）──
+        const rank = new Map<string, number>(comp.map(n => [n.id, 0]));
+        for (let pass = 0; pass < comp.length; pass++) {
+          let changed = false;
+          for (const e of dagEdges) {
+            const r = rank.get(e.source)! + 1;
+            if (r > rank.get(e.target)!) { rank.set(e.target, r); changed = true; }
+          }
+          if (!changed) break;
+        }
+        // 空の列が残らないよう、使われているランクだけを 0,1,2… に詰め直す
+        const usedRanks = [...new Set(comp.map(n => rank.get(n.id)!))].sort((a, b) => a - b);
+        const rankRemap = new Map(usedRanks.map((r, i) => [r, i]));
+        comp.forEach(n => rank.set(n.id, rankRemap.get(rank.get(n.id)!)!));
+
+        // ── 列ごとに分け、まず現在の縦位置で並べる ──
+        const maxRank = Math.max(...comp.map(n => rank.get(n.id)!));
+        const cols: CanvasNode[][] = Array.from({ length: maxRank + 1 }, () => []);
+        comp.forEach(n => cols[rank.get(n.id)!].push(n));
+        cols.forEach(col => col.sort((a, b) => a.position.y - b.position.y));
+
+        // ── 隣の列の接続相手の平均行位置（barycenter）で並び替え、交差を減らす ──
+        const rowIndex = new Map<string, number>();
+        const reindex = () => cols.forEach(col => col.forEach((n, i) => rowIndex.set(n.id, i)));
+        reindex();
+        const neighborsOf = (nid: string, colRank: number) =>
+          inComp.flatMap(e => {
+            const other = e.source === nid ? e.target : e.target === nid ? e.source : null;
+            return other && rank.get(other) === colRank ? [other] : [];
+          });
+        for (const dir of [1, -1] as const) {  // 左→右、右→左の2スイープ
+          const order = dir === 1 ? cols.keys() : [...cols.keys()].reverse();
+          for (const c of order) {
+            const refRank = c - dir;
+            if (refRank < 0 || refRank > maxRank) continue;
+            cols[c] = cols[c]
+              .map((n, i) => {
+                const nbs = neighborsOf(n.id, refRank);
+                const key = nbs.length ? nbs.reduce((s, o) => s + (rowIndex.get(o) ?? 0), 0) / nbs.length : i;
+                return { n, key, i };
+              })
+              .sort((a, b) => a.key - b.key || a.i - b.i)
+              .map(x => x.n);
+            reindex();
+          }
+        }
+
+        // ── 配置: 列の左端 X を揃え、列内は等間隔で縦積み・列同士は縦中央を揃える ──
+        const colWidths = cols.map(col => Math.max(...col.map(n => sizeOf(n).width)));
+        const colHeights = cols.map(col =>
+          col.reduce((s, n) => s + sizeOf(n).height, 0) + V_GAP * Math.max(0, col.length - 1));
+        const compH = Math.max(...colHeights);
+        let colX = 0;
+        cols.forEach((col, c) => {
+          let y = compTop + (compH - colHeights[c]) / 2;  // 縦中央揃え
+          for (const n of col) {
+            posMap.set(n.id, { x: Math.round(colX), y: Math.round(y) });
+            y += sizeOf(n).height + V_GAP;
+          }
+          colX += colWidths[c] + H_GAP;
+        });
+        placedMaxW = Math.max(placedMaxW, colX - H_GAP);
+        compTop += compH + COMP_GAP;
+      }
+
+      // ── 整列前の左上を基準に平行移動して、グラフ全体がボード上で飛ばないようにする ──
       const minX0 = Math.min(...targets.map(n => n.position.x));
       const minY0 = Math.min(...targets.map(n => n.position.y));
-      const placed = targets.map(n => {
-        const p = g.node(n.id);
-        const s = sizeOf(n);
-        return { id: n.id, x: p.x - s.width / 2, y: p.y - s.height / 2 };
-      });
-      const minX1 = Math.min(...placed.map(p => p.x));
-      const minY1 = Math.min(...placed.map(p => p.y));
-      const posMap = new Map(placed.map(p => [p.id, { x: p.x - minX1 + minX0, y: p.y - minY1 + minY0 }]));
+      const minX1 = Math.min(...[...posMap.values()].map(p => p.x));
+      const minY1 = Math.min(...[...posMap.values()].map(p => p.y));
       setNodes(nds => nds.map(n => {
         const pos = posMap.get(n.id);
-        return pos ? { ...n, position: pos } : n;
+        return pos ? { ...n, position: { x: pos.x - minX1 + minX0, y: pos.y - minY1 + minY0 } } : n;
       }));
+
+      // ── 手動編集点は座標が全部変わって崩れるためリセット（自動直交ルーティングへ）──
+      setEdges(eds => eds.map(e => {
+        const data = (e.data as { edge: ResearchCanvasEdge }).edge;
+        if (!data.waypoints?.length) return e;
+        const merged = { ...data, waypoints: undefined, updatedAt: new Date().toISOString() };
+        return { ...edgeToRf(merged), selected: e.selected };
+      }));
+
       // AI が組み上げた直後は流れ全体が視界に入るよう、ゆっくり全体表示に合わせる
       if (opts?.fit) window.setTimeout(() => { try { fitView({ maxZoom: 1, duration: 500 }); } catch { /* noop */ } }, 90);
     } catch (e) {
@@ -1823,7 +1925,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
     } finally {
       setAligning(false);
     }
-  }, [setNodes, fitView]);
+  }, [setNodes, setEdges, fitView]);
 
   // AI がカードを接続した直後などに、少し待ってから自動で整列する。
   // 連続する add_items / connect_items の呼び出しを1回の整列にまとめる（500ms デバウンス）。
