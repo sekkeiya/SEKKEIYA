@@ -2,16 +2,15 @@
 // - 反応ログ（reactionLogs）の日次集計を aggregateReactions CF で実行し、
 //   surface ごとの impressions / clicks / CTR / rank別 / モデル別を表示する。
 // - モデル台帳: 学習資産（モデル・索引・知識資産）の一覧と状態を一元把握する。
-//   行クリックで右サイドバー（Drawer）に詳細説明を表示する。
+//   右サイドバーに常時、選択中の資産の詳細説明を表示する（行クリックで切り替え）。
 // 管理者のみ到達（サイドバー＋シェルで二重ガード、CF 側は要認証）。
 import React, { useCallback, useState } from 'react';
 import {
   Box, Typography, Paper, CircularProgress, Chip, Button, TextField, Tooltip,
-  Table, TableHead, TableRow, TableCell, TableBody, Drawer, IconButton, Divider,
+  Table, TableHead, TableRow, TableCell, TableBody, Divider,
 } from '@mui/material';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../../lib/firebase/client';
 
@@ -143,7 +142,8 @@ export const LearningSettingsPanel = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AggregateResult | null>(null);
-  const [selected, setSelected] = useState<LearningAsset | null>(null);
+  // 右サイドバーに常時表示する資産。初期値は台帳の先頭（reactionLogs）。
+  const [selected, setSelected] = useState<LearningAsset>(REGISTRY[0]);
 
   const run = useCallback(async () => {
     setLoading(true);
@@ -181,7 +181,9 @@ export const LearningSettingsPanel = () => {
   );
 
   return (
-    <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto' }}>
+    <Box sx={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
+      {/* ── メインカラム ─────────────────────────────── */}
+      <Box sx={{ flex: 1, minWidth: 0, p: 4, display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <PsychologyRoundedIcon sx={{ color: 'light-dark(#0875a6, #4fc3f7)' }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>学習モニター</Typography>
@@ -195,7 +197,7 @@ export const LearningSettingsPanel = () => {
       <Paper elevation={0} sx={sectionSx}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>モデル台帳</Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-          1行＝1学習資産。何が・何のデータで・どこで効いているか。行をクリックすると詳細を表示します。
+          1行＝1学習資産。何が・何のデータで・どこで効いているか。行をクリックすると右の詳細が切り替わります。
           種別: モデル(A)=判定器 / 索引(B)=埋め込み検索 / 資産(C)=ユーザー固有の知識。
         </Typography>
         <Table size="small">
@@ -300,40 +302,36 @@ export const LearningSettingsPanel = () => {
         )}
       </Paper>
 
-      {/* ── 右サイドバー: 資産の詳細 ─────────────────────── */}
-      <Drawer
-        anchor="right"
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        PaperProps={{ sx: { width: 400, maxWidth: '90vw', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 } }}
+      </Box>
+
+      {/* ── 右サイドバー: 選択中の資産の詳細（常時表示） ─────────── */}
+      <Box
+        sx={{
+          width: 380, flexShrink: 0, borderLeft: '1px solid', borderColor: 'divider',
+          bgcolor: 'background.paper', p: 3, display: 'flex', flexDirection: 'column', gap: 2.5,
+          overflowY: 'auto',
+        }}
       >
-        {selected && (
-          <>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, fontFamily: 'monospace', flex: 1, wordBreak: 'break-all' }}>
-                {selected.name}
-              </Typography>
-              <IconButton size="small" onClick={() => setSelected(null)}><CloseRoundedIcon fontSize="small" /></IconButton>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-              <Chip label={selected.status} size="small" color={statusColor[selected.status]} variant={selected.status === '構想' ? 'outlined' : 'filled'} />
-              <Chip label={selected.kind} size="small" variant="outlined" />
-              <Chip label={selected.scope} size="small" variant="outlined" />
-            </Box>
-            {selected.note && (
-              <Typography variant="body2" sx={{ color: 'info.main', mt: -1 }}>{selected.note}</Typography>
-            )}
-            <Divider />
-            <DetailSection label="これは何？">{selected.summary}</DetailSection>
-            <DetailSection label="仕組み">{selected.how}</DetailSection>
-            {selected.location && <DetailSection label="データの場所" mono>{selected.location}</DetailSection>}
-            <DetailSection label="材料">{selected.source}</DetailSection>
-            <DetailSection label="使用場所">{selected.usedBy}</DetailSection>
-            {selected.ladder && <DetailSection label="学習の梯子">{selected.ladder}</DetailSection>}
-            {selected.next && <DetailSection label="次の一歩">{selected.next}</DetailSection>}
-          </>
+        <Typography variant="h6" sx={{ fontWeight: 700, fontFamily: 'monospace', wordBreak: 'break-all' }}>
+          {selected.name}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: -1 }}>
+          <Chip label={selected.status} size="small" color={statusColor[selected.status]} variant={selected.status === '構想' ? 'outlined' : 'filled'} />
+          <Chip label={selected.kind} size="small" variant="outlined" />
+          <Chip label={selected.scope} size="small" variant="outlined" />
+        </Box>
+        {selected.note && (
+          <Typography variant="body2" sx={{ color: 'info.main', mt: -1 }}>{selected.note}</Typography>
         )}
-      </Drawer>
+        <Divider />
+        <DetailSection label="これは何？">{selected.summary}</DetailSection>
+        <DetailSection label="仕組み">{selected.how}</DetailSection>
+        {selected.location && <DetailSection label="データの場所" mono>{selected.location}</DetailSection>}
+        <DetailSection label="材料">{selected.source}</DetailSection>
+        <DetailSection label="使用場所">{selected.usedBy}</DetailSection>
+        {selected.ladder && <DetailSection label="学習の梯子">{selected.ladder}</DetailSection>}
+        {selected.next && <DetailSection label="次の一歩">{selected.next}</DetailSection>}
+      </Box>
     </Box>
   );
 };
