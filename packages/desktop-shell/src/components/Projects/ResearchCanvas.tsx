@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, Panel,
-  useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals, useNodes,
+  useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals, useNodes, useStore,
   Handle, Position, MarkerType, ConnectionMode,
   BaseEdge, EdgeLabelRenderer,
   type Node, type NodeProps, type Edge, type EdgeProps, type Connection,
@@ -1035,6 +1035,80 @@ const RelationEdge: React.FC<EdgeProps> = ({
 
 const edgeTypes = { relation: RelationEdge };
 
+// ─── スマート整列ガイド（ノードを動かすと他ノードの端/中心に吸着＋青いガイド線） ──
+// ドラッグ中のノードABの端(左右上下)・中心が、他ノードBの対応する端/中心と閾値以内に
+// 近づいたら、その位置へスナップする座標(snapX/Y)と、引くべきガイド線の座標を返す。
+
+interface HelperLinesResult { horizontal?: number; vertical?: number; snapX?: number; snapY?: number }
+
+function getHelperLines(
+  change: { id: string; position?: { x: number; y: number } },
+  nodes: Node[],
+  distance: number,
+): HelperLinesResult {
+  const a = nodes.find(n => n.id === change.id);
+  if (!a || !change.position) return {};
+  const wA = a.measured?.width ?? 240, hA = a.measured?.height ?? 140;
+  const aLeft = change.position.x, aRight = aLeft + wA, aCX = aLeft + wA / 2;
+  const aTop = change.position.y, aBottom = aTop + hA, aCY = aTop + hA / 2;
+  let vDist = distance, hDist = distance;
+  const res: HelperLinesResult = {};
+
+  for (const b of nodes) {
+    if (b.id === a.id || b.id.startsWith('lane-')) continue;
+    const wB = b.measured?.width ?? 240, hB = b.measured?.height ?? 140;
+    const bLeft = b.position.x, bRight = bLeft + wB, bCX = bLeft + wB / 2;
+    const bTop = b.position.y, bBottom = bTop + hB, bCY = bTop + hB / 2;
+    // 縦ガイド（x をスナップ）: 左-左 / 右-右 / 左-右 / 右-左 / 中心-中心
+    const vx: Array<[number, number, number]> = [
+      [Math.abs(aLeft - bLeft), bLeft, bLeft],
+      [Math.abs(aRight - bRight), bRight - wA, bRight],
+      [Math.abs(aLeft - bRight), bRight, bRight],
+      [Math.abs(aRight - bLeft), bLeft - wA, bLeft],
+      [Math.abs(aCX - bCX), bCX - wA / 2, bCX],
+    ];
+    for (const [d, snap, line] of vx) if (d < vDist) { vDist = d; res.snapX = snap; res.vertical = line; }
+    // 横ガイド（y をスナップ）: 上-上 / 下-下 / 上-下 / 下-上 / 中心-中心
+    const hy: Array<[number, number, number]> = [
+      [Math.abs(aTop - bTop), bTop, bTop],
+      [Math.abs(aBottom - bBottom), bBottom - hA, bBottom],
+      [Math.abs(aTop - bBottom), bBottom, bBottom],
+      [Math.abs(aBottom - bTop), bTop - hA, bTop],
+      [Math.abs(aCY - bCY), bCY - hA / 2, bCY],
+    ];
+    for (const [d, snap, line] of hy) if (d < hDist) { hDist = d; res.snapY = snap; res.horizontal = line; }
+  }
+  return res;
+}
+
+/** 整列ガイド線を描くキャンバス（フロー座標→ビューポート変換して全面に線を1本ずつ）。 */
+const HelperLines: React.FC<{ horizontal?: number; vertical?: number }> = ({ horizontal, vertical }) => {
+  const width = useStore(s => s.width);
+  const height = useStore(s => s.height);
+  const transform = useStore(s => s.transform); // [x, y, zoom]
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+    const dpi = window.devicePixelRatio || 1;
+    canvas.width = width * dpi; canvas.height = height * dpi;
+    ctx.scale(dpi, dpi);
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = '#00BFFF';
+    ctx.lineWidth = 1;
+    if (typeof vertical === 'number') {
+      const x = vertical * transform[2] + transform[0];
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    if (typeof horizontal === 'number') {
+      const y = horizontal * transform[2] + transform[1];
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+  }, [width, height, transform, horizontal, vertical]);
+  return <canvas ref={ref} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 5 }} />;
+};
+
 // ─── 右サイドバー: 選択中ワイヤーの編集パネル ────────────────────────────────
 // ワイヤーを1本選択すると出る。接続詞（だから/でも/…＋カスタム）の切替・理由の記入・
 // 編集点のリセット・線の削除をここに集約する（エッジ上のポップアップだと地図を隠すため）。
@@ -1212,8 +1286,11 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   const [viewMode, setViewMode] = useState<BoardViewMode>('free');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView, getViewport } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
+  // 整列ガイド線（ドラッグ中に他ノードと揃う位置に出る）
+  const [helperLineV, setHelperLineV] = useState<number | undefined>(undefined);
+  const [helperLineH, setHelperLineH] = useState<number | undefined>(undefined);
 
   // 保存まわり: 最後に保存したJSONと比較して差分があるときだけ書き込む
   const lastSavedRef = useRef<string>('');
@@ -1607,7 +1684,22 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   const handleNodesChange = useCallback((changes: any[]) => {
     const filtered = changes.filter(c => !(typeof c?.id === 'string' && c.id.startsWith('lane-')));
 
+    // スマート整列スナップ（単一ノードのドラッグ中のみ）: 他ノードの端/中心に近づくと吸着し、
+    // 青いガイド線を出す。閾値は画面上で一定になるようズームで割る（低ズームでも効きすぎない）。
+    let vLine: number | undefined, hLine: number | undefined;
+    const dragPos = filtered.filter(c => c.type === 'position' && c.dragging && c.position);
+    if (dragPos.length === 1) {
+      const zoom = getViewport().zoom || 1;
+      const helpers = getHelperLines(dragPos[0], nodesRef.current, 6 / zoom);
+      if (helpers.snapX != null) dragPos[0].position.x = helpers.snapX;
+      if (helpers.snapY != null) dragPos[0].position.y = helpers.snapY;
+      vLine = helpers.vertical; hLine = helpers.horizontal;
+    }
+    setHelperLineV(vLine);
+    setHelperLineH(hLine);
+
     // ノード移動に連動して、手動編集点を持つワイヤーの端の角を「水平垂直のまま」追従させる。
+    // （※上で position をスナップ済みなので、以降の delta もスナップ後の値を使う）
     // （編集点なしのワイヤーは毎レンダー自動ルーティングし直すので元々追従する）
     const moves = filtered
       .filter(c => c.type === 'position' && c.position)
@@ -1654,7 +1746,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
     }
 
     onNodesChange(filtered);
-  }, [onNodesChange, setEdges]);
+  }, [onNodesChange, setEdges, getViewport]);
 
   // モード切替時に全体表示へ寄せる（地図の俯瞰／手置きの俯瞰）
   useEffect(() => {
@@ -1940,6 +2032,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
       >
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="rgb(var(--brand-fg-rgb) / 0.14)" />
         <Controls showInteractive={false} />
+        <HelperLines horizontal={helperLineH} vertical={helperLineV} />
 
         {/* 空キャンバスのスターター（対話が主役。チャットは自動で開き、AIが切り出す） */}
         {!loading && nodes.length === 0 && (
