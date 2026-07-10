@@ -16,8 +16,12 @@ import RecordVoiceOverRoundedIcon from '@mui/icons-material/RecordVoiceOverRound
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
+import FactCheckRoundedIcon from '@mui/icons-material/FactCheckRounded';
 
-export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-git' | 'learning';
+export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-git' | 'admin-dev' | 'learning';
+
+/** 管理者グループ配下の画面ID（親項目の選択状態・展開判定に使う） */
+const ADMIN_APPS: SettingsAppId[] = ['admin', 'admin-git', 'admin-dev', 'learning'];
 
 interface Props {
   activeApp: SettingsAppId;
@@ -27,7 +31,7 @@ interface Props {
 }
 
 export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdmin = false }) => {
-  const [adminOpen, setAdminOpen] = useState(activeApp === 'admin' || activeApp === 'admin-git');
+  const [adminOpen, setAdminOpen] = useState(ADMIN_APPS.includes(activeApp));
   const menuItems: { id: SettingsAppId; label: string; icon: React.ReactNode }[] = [
     { id: 'general',     label: '一般',            icon: <TuneRoundedIcon /> },
     { id: 'ai',          label: 'AI',              icon: <SmartToyRoundedIcon /> },
@@ -72,15 +76,15 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdm
         {isAdmin && (
           <>
             <Divider sx={{ my: 1, mx: 1 }} />
-            {/* 管理者: クリックで展開し「AI使用量モニター」「GitHub更新」を表示 */}
+            {/* 管理者: クリックで展開し「AI使用量モニター」「GitHub更新」「開発状況」「学習」を表示 */}
             <ListItemButton
               key="admin"
-              selected={activeApp === 'admin' || activeApp === 'admin-git'}
+              selected={ADMIN_APPS.includes(activeApp)}
               onClick={() => setAdminOpen(o => !o)}
               sx={itemSx()}
             >
               <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><AdminPanelSettingsRoundedIcon /></ListItemIcon>
-              <ListItemText primary="管理者" primaryTypographyProps={{ fontSize: 13, fontWeight: (activeApp === 'admin' || activeApp === 'admin-git') ? 600 : 500 }} />
+              <ListItemText primary="管理者" primaryTypographyProps={{ fontSize: 13, fontWeight: ADMIN_APPS.includes(activeApp) ? 600 : 500 }} />
               {adminOpen ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
             </ListItemButton>
             <Collapse in={adminOpen} timeout="auto" unmountOnExit>
@@ -103,17 +107,26 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdm
                   <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><GitHubIcon /></ListItemIcon>
                   <ListItemText primary="GitHub更新" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'admin-git' ? 600 : 500 }} />
                 </ListItemButton>
+                <ListItemButton
+                  key="admin-dev"
+                  selected={activeApp === 'admin-dev'}
+                  onClick={() => onSelectApp('admin-dev')}
+                  sx={itemSx()}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><FactCheckRoundedIcon /></ListItemIcon>
+                  <ListItemText primary="開発状況" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'admin-dev' ? 600 : 500 }} />
+                </ListItemButton>
+                <ListItemButton
+                  key="learning"
+                  selected={activeApp === 'learning'}
+                  onClick={() => onSelectApp('learning')}
+                  sx={itemSx()}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><PsychologyRoundedIcon /></ListItemIcon>
+                  <ListItemText primary="学習" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'learning' ? 600 : 500 }} />
+                </ListItemButton>
               </List>
             </Collapse>
-            <ListItemButton
-              key="learning"
-              selected={activeApp === 'learning'}
-              onClick={() => onSelectApp('learning')}
-              sx={itemSx()}
-            >
-              <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><PsychologyRoundedIcon /></ListItemIcon>
-              <ListItemText primary="学習" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'learning' ? 600 : 500 }} />
-            </ListItemButton>
           </>
         )}
       </List>

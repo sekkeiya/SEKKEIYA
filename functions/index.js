@@ -337,9 +337,14 @@ exports.aggregateWeeklyTrends = onCall({ secrets: [] }, async (request) => {
 });
 
 // 反応ログ日次集計: reactionLogs を insights/reactionPatterns に集計（学習サイクル Phase 1）
+// 管理者のみ（全ユーザー横断の集計を返すため。学習モニターUI自体も管理者専用）。
 // 実行: firebase functions:call aggregateReactions --data '{"day":"YYYY-MM-DD"}'（省略時は今日JST）
 exports.aggregateReactions = onCall({ secrets: [] }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+  const email = String(request.auth.token?.email || "").trim().toLowerCase();
+  const isAdmin = request.auth.token?.admin === true ||
+    ADMIN_EMAILS.some((e) => e.toLowerCase() === email);
+  if (!isAdmin) throw new HttpsError("permission-denied", "Admins only.");
   try {
     return await aggregateReactions(request.data, { auth: request.auth });
   } catch (e) {
