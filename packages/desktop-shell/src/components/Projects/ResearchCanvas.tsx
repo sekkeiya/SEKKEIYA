@@ -1095,8 +1095,10 @@ const HelperLines: React.FC<{ horizontal?: number; vertical?: number }> = ({ hor
     canvas.width = width * dpi; canvas.height = height * dpi;
     ctx.scale(dpi, dpi);
     ctx.clearRect(0, 0, width, height);
-    ctx.strokeStyle = '#00BFFF';
+    // 控えめに: 細い破線＋半透明（配置の目印として最低限、地図の邪魔をしない）
+    ctx.strokeStyle = 'rgba(0, 191, 255, 0.45)';
     ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
     if (typeof vertical === 'number') {
       const x = vertical * transform[2] + transform[0];
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
@@ -2019,7 +2021,10 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
         // 左ドラッグ=範囲選択（複数まとめて選択→まとめて移動）、右ドラッグ=画面パン
         selectionOnDrag
         panOnDrag={[2]}
-        selectNodesOnDrag
+        // false: ノードのドラッグ開始時に選択状態を書き換えない。これで未選択ノードも
+        // 「選択→再ドラッグ」の二手を踏まず、一度の左ドラッグでそのまま掴んで動かせる
+        // （クリック＝押して離すでの選択はそのまま。selectionOnDrag との競合も解消）。
+        selectNodesOnDrag={false}
         // 複数選択して Delete でまとめて削除（接続エッジも自動で除去される）
         deleteKeyCode="Delete"
         multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
