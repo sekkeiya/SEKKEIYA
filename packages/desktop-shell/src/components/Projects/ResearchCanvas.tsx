@@ -21,6 +21,8 @@ import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import LocalLibraryRoundedIcon from '@mui/icons-material/LocalLibraryRounded';
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
+import UnfoldLessRoundedIcon from '@mui/icons-material/UnfoldLessRounded';
+import UnfoldMoreRoundedIcon from '@mui/icons-material/UnfoldMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
@@ -293,6 +295,16 @@ interface CanvasCtx {
   removePort: (id: string, portId: string) => void;
   /** ポート編集（＋ボタン表示・右クリック削除）を許可するか（自由配置モードのみ true）。 */
   portsEditable: boolean;
+  /** コンパクト表示（タイトル/要点だけ）。false=詳細表示（全文）。ボード全体のトグル。 */
+  compact: boolean;
+}
+
+/** テキストの1行目（コンパクト表示のタイトルとして使う。空なら ''）。 */
+function firstLine(text?: string): string {
+  const t = (text || '').trim();
+  if (!t) return '';
+  const nl = t.indexOf('\n');
+  return nl === -1 ? t : t.slice(0, nl);
 }
 const Ctx = createContext<CanvasCtx | null>(null);
 const useCanvasCtx = () => useContext(Ctx)!;
@@ -476,7 +488,7 @@ const RoleBadge: React.FC<{ role?: ResearchNodeRole }> = ({ role }) => {
 // ─── 付箋ノード ───────────────────────────────────────────────────────────────
 
 const NoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const { patchItem } = useCanvasCtx();
+  const { patchItem, compact } = useCanvasCtx();
   const item = (data as any).item as ResearchCanvasItem;
   const tone = NOTE_COLORS[item.color || DEFAULT_NOTE_COLOR] || NOTE_COLORS[DEFAULT_NOTE_COLOR];
   const [editing, setEditing] = useState(!item.text);
@@ -486,6 +498,31 @@ const NoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     setEditing(false);
     if (draft !== item.text) patchItem(id, { text: draft });
   };
+
+  // コンパクト表示: 1行目をタイトルとして1行だけ（ダブルクリックで詳細編集に展開）
+  if (compact && !editing) {
+    const title = firstLine(item.text);
+    return (
+      <Box
+        onDoubleClick={() => { setDraft(item.text || ''); setEditing(true); }}
+        sx={{
+          width: 240, p: 1, borderRadius: 2, boxSizing: 'border-box',
+          bgcolor: tone.bg,
+          border: '1px solid', borderColor: selected ? '#00BFFF' : tone.border,
+          boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.15)',
+          display: 'flex', alignItems: 'center', gap: 0.75,
+        }}
+      >
+        <NodeHandles item={item} />
+        {item.role && NODE_ROLES[item.role] && (
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: NODE_ROLES[item.role].color }} />
+        )}
+        <Typography sx={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--brand-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {title || <span style={{ opacity: 0.4 }}>空のメモ</span>}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -549,18 +586,23 @@ const NoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 // ─── 画像ノード ───────────────────────────────────────────────────────────────
 
 const ImageNode: React.FC<NodeProps> = ({ data, selected }) => {
+  const { compact } = useCanvasCtx();
   const item = (data as any).item as ResearchCanvasItem;
+  // コンパクト表示: サムネを小さく・キャプションは隠す
+  const w = compact ? 150 : 280;
   return (
     <Box sx={{
-      width: 280, borderRadius: 2, overflow: 'hidden',
+      width: w, borderRadius: 2, overflow: 'hidden',
       border: '1px solid', borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.15)',
       boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.2)',
       bgcolor: 'var(--brand-surface)',
     }}>
       <NodeHandles item={item} />
       <img src={item.url} alt={item.text || ''} draggable={false}
-        style={{ width: '100%', display: 'block', pointerEvents: 'none' }} />
-      {item.text && (
+        style={compact
+          ? { width: '100%', height: 96, objectFit: 'cover', display: 'block', pointerEvents: 'none' }
+          : { width: '100%', display: 'block', pointerEvents: 'none' }} />
+      {!compact && item.text && (
         <Typography sx={{ px: 1.25, py: 0.75, fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>{item.text}</Typography>
       )}
     </Box>
@@ -600,7 +642,7 @@ const LinkNode: React.FC<NodeProps> = ({ data, selected }) => {
 // ─── 引用ノード（根拠の最小単位。出典に必ず遡れる） ────────────────────────────
 
 const QuoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
-  const { patchItem } = useCanvasCtx();
+  const { patchItem, compact } = useCanvasCtx();
   const item = (data as any).item as ResearchCanvasItem;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text || '');
@@ -609,6 +651,30 @@ const QuoteNode: React.FC<NodeProps> = ({ id, data, selected }) => {
     setEditing(false);
     if (draft !== item.text) patchItem(id, { text: draft });
   };
+
+  // コンパクト表示: 出典タイトル（無ければ引用1行目）を1行だけ
+  if (compact && !editing) {
+    const title = item.refTitle || firstLine(item.text);
+    return (
+      <Box
+        onDoubleClick={() => { setDraft(item.text || ''); setEditing(true); }}
+        sx={{
+          width: 280, p: 1, pl: 1.25, borderRadius: 2, boxSizing: 'border-box',
+          bgcolor: 'var(--brand-surface)',
+          border: '1px solid', borderColor: selected ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.15)',
+          borderLeft: '3px solid #a18cd1',
+          boxShadow: selected ? '0 0 0 2px rgba(0,191,255,0.25), 0 8px 20px rgba(0,0,0,0.25)' : '0 4px 12px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: 0.75,
+        }}
+      >
+        <NodeHandles item={item} />
+        <FormatQuoteRoundedIcon sx={{ fontSize: 15, color: '#a18cd1', flexShrink: 0 }} />
+        <Typography sx={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--brand-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {title || <span style={{ opacity: 0.4 }}>空の引用</span>}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -1313,6 +1379,8 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   const [linkTitle, setLinkTitle] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [driveOpen, setDriveOpen] = useState(false);
+  // カード表示密度: false=詳細（全文）/ true=コンパクト（タイトル/要点だけ）
+  const [compact, setCompact] = useState(false);
   // 表示モード: free=手置きのまま / map=ロジックの地図（レーン整列・非破壊）
   const [viewMode, setViewMode] = useState<BoardViewMode>('free');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1794,6 +1862,12 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
     return () => window.clearTimeout(t);
   }, [viewMode, fitView]);
 
+  // 表示密度の切替でカードサイズが変わるので、ハンドルを再計測してワイヤー端点を追従させる
+  useEffect(() => {
+    const t = window.setTimeout(() => nodesRef.current.forEach(n => updateNodeInternals(n.id)), 30);
+    return () => window.clearTimeout(t);
+  }, [compact, updateNodeInternals]);
+
   // ─── 階層整列（根拠→解釈→結論を左→右に敷き直す）───────────────────────────
   // エッジで繋がっているカードだけを格子状に整列し、未接続カードは動かさない。
   // 列＝流れの段階（source→target の最長路）、列の左端 X は完全に揃え、列内は
@@ -2115,7 +2189,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   } as const;
 
   return (
-    <Ctx.Provider value={{ patchItem, patchEdge, addPort, removePort, portsEditable: viewMode === 'free' }}>
+    <Ctx.Provider value={{ patchItem, patchEdge, addPort, removePort, portsEditable: viewMode === 'free', compact }}>
     <Box ref={wrapperRef}
       sx={{
         position: 'absolute', inset: 0,
@@ -2288,6 +2362,15 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
                 整列
               </Button>
             )}
+
+            {/* カード表示密度: コンパクト（タイトルだけ）⇄ 詳細（全文） */}
+            <Button
+              startIcon={compact ? <UnfoldMoreRoundedIcon sx={{ fontSize: 15 }} /> : <UnfoldLessRoundedIcon sx={{ fontSize: 15 }} />}
+              sx={{ ...toolButtonSx, ...(compact ? { borderColor: '#00BFFF', color: '#00BFFF' } : {}) }}
+              onClick={() => setCompact(v => !v)}
+              title={compact ? 'クリックで詳細表示（全文）に切替' : 'クリックでコンパクト表示（タイトルだけ）に切替'}>
+              {compact ? '詳細表示' : 'コンパクト'}
+            </Button>
             {loading && <CircularProgress size={14} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', ml: 0.5 }} />}
           </Box>
           <Typography sx={{ mt: 0.75, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
