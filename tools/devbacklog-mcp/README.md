@@ -1,4 +1,4 @@
-# sekkeiya-devbacklog-mcp (v2.3: スプリント方式)
+# sekkeiya-devbacklog-mcp (v2.5: スプリント方式 + Research&Memo + 公式記事)
 
 管理者（あなた）専用のローカル MCP サーバー。**Claude Code から SEKKEIYA の「開発状況」ボード
 （Firestore `/devBacklog` + `/devSprints`）を読み書き**する。書き込むと `onSnapshot` で
@@ -54,6 +54,35 @@ Web/Desktop の管理画面に即反映される。
 
 例:「Research & Memo のメインボードを見せて」「"○○" というメモを追加して、△△の根拠として□□につないで」
 
+## 公式記事（v2.5 追加）
+
+Firestore `/officialArticles` の公式ブログ記事を Claude Code から作成・編集・公開する。
+Web (`src/shared/api/blog/officialArticles.js`) と同じ正規化を再現（slug 自動生成 /
+`tagsLower` / `category={slug,name}` / `contentFormat:'html'` / `publishedAt` は初回公開時のみ）。
+著者は自動で公式アカウント（`hello@sekkeiya.com` / displayName `SEKKEIYA`）。
+カテゴリは `/categories`（ハブ+サブ2階層）の slug で指定する。
+
+| ツール | 引数 | 用途 |
+|---|---|---|
+| `article_list` | `status?` | 全記事一覧（本文なし・更新順）。status: draft/published/review/interview |
+| `article_get` | `id` | 1件を本文(HTML)・SEO込みで取得 |
+| `article_categories` | なし | 指定可能なカテゴリツリー（slug 付き） |
+| `article_create` | `title, body, slug?, excerpt?, categorySlug?, subCategorySlug?, tags?, coverUrl?, seoTitle?, seoDescription?, featured?, status?` | 作成（既定 draft）。slug 重複はエラー |
+| `article_update` | `id, {…partial}` | 部分更新（指定フィールドのみ）。categorySlug: null で解除 |
+| `article_publish` | `id` | 公開（公開前チェック＋warning 付き） |
+| `article_unpublish` | `id` | 下書きに戻す（公開URLは404に） |
+| `article_delete` | `id` | 完全削除（復元不可） |
+| `article_upload_image` | `filePath, purpose(cover/inline), articleId?, alt?` | ローカル画像を Storage にアップし URL を返す |
+
+- 本文は HTML フラグメント（`<h2>/<h3>/<p>/<ul>/<ol>/<strong>/<code>`、画像は
+  `<p><img src="…" alt="…" loading="lazy"></p>`）。既存記事と同じ書式。
+- 画像の保存先は Web と同じパス規約: カバー `officialArticles/covers/{uid}/`、
+  本文内 `officialArticles/inline/{uid}/{articleId}/`。ダウンロードトークン付きURLを返す。
+- **公開はアプリ上では即反映**されるが、**Google向けのサイトマップ/プリレンダーは
+  Webデプロイ時に生成**されるため、公開後に `/sekkeiya-web-deploy` を実行すること。
+
+例:「S.Image のLoRA機能の紹介記事を下書きで作って」「下書きXXXを公開して」
+
 ## セットアップ / 登録
 
 ```bash
@@ -79,5 +108,7 @@ node server.mjs --smoke   # 接続確認
 ## セキュリティ
 
 - Admin SDK は Firestore ルールをバイパスする。「管理者だけ」は鍵をローカルで持つあなただけ、で担保。
-- 鍵は**絶対にコミットしない**。このサーバーは `/devBacklog` と `/devSprints` 以外を操作しない。
+- 鍵は**絶対にコミットしない**。このサーバーが操作するのは `/devBacklog` `/devSprints`
+  `users/{公式uid}/research` `/officialArticles`（読取: `/categories`）と
+  Storage `officialArticles/covers|inline/{公式uid}/` のみ。
 - クライアントUI用に `firestore.rules` へ `/devSprints`（isAdmin のみ）を追加済み — **ルールのデプロイが必要**。

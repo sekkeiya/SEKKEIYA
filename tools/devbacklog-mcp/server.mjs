@@ -23,10 +23,12 @@
 // ============================================================================
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -42,7 +44,7 @@ if (!fs.existsSync(keyPath)) {
   process.exit(1);
 }
 const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-initializeApp({ credential: cert(serviceAccount) });
+initializeApp({ credential: cert(serviceAccount), storageBucket: 'shapeshare3d.firebasestorage.app' });
 const db = getFirestore();
 const items = () => db.collection('devBacklog');
 const sprintsCol = () => db.collection('devSprints');
@@ -50,7 +52,7 @@ const sprintsCol = () => db.collection('devSprints');
 // 接続状態の可視化: コネクタ画面（管理者向け「Claude Code」カード）が読むハートビート。
 // サーバー稼働中は60秒ごとに lastSeenAt を更新 → UI 側は「3分以内なら接続中」と表示する。
 const touchHeartbeat = () => db.collection('devMeta').doc('claudeMcp')
-  .set({ lastSeenAt: FieldValue.serverTimestamp(), version: '2.4.0' }, { merge: true })
+  .set({ lastSeenAt: FieldValue.serverTimestamp(), version: '2.5.0' }, { merge: true })
   .catch(() => { /* ハートビートは失敗しても本処理に影響させない */ });
 
 // ── ヘルパー（UI と同じ規約） ─────────────────────────────────────
@@ -181,7 +183,7 @@ async function boardSnapshot() {
 }
 
 // ── MCP サーバー定義 ──────────────────────────────────────────────
-const server = new McpServer({ name: 'sekkeiya-devbacklog', version: '2.4.0' });
+const server = new McpServer({ name: 'sekkeiya-devbacklog', version: '2.5.0' });
 
 server.registerTool('list_backlog', {
   title: '開発ボードを一覧',
@@ -538,6 +540,327 @@ server.registerTool('research_delete_board', {
   return ok({ deleted: { id: boardId } });
 });
 
+// ── 公式記事（officialArticles）ツール ─────────────────────────────
+// Web (src/shared/api/blog/officialArticles.js) と同じ正規化・規約を再現する:
+//   - slug 自動生成 / tagsLower / category={slug,name} / contentFormat:'html'
+//   - publishedAt は「初めて公開状態になった時」のみ付与（以後の更新で変えない）
+//   - author は公式アカウント（hello@sekkeiya.com / displayName 'SEKKEIYA'）
+// カテゴリは Firestore /categories（ハブ+サブの2階層・slug 参照）。
+const articlesCol = () => db.collection('officialArticles');
+const categoriesCol = () => db.collection('categories');
+
+const aStr = (v) => (typeof v === 'string' ? v.trim() : '');
+const aSlug = (v) => aStr(v).toLowerCase()
+  .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
+  .replace(/(^-|-$)/g, '');
+const aTags = (arr) => {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set(); const out = [];
+  for (const raw of arr) {
+    const t = aStr(raw);
+    if (!t || seen.has(t.toLowerCase())) continue;
+    seen.add(t.toLowerCase()); out.push(t);
+  }
+  return out;
+};
+const aIso = (t) => (t?.toDate?.() ? t.toDate().toISOString() : null);
+
+async function loadCategories() {
+  const snap = await categoriesCol().get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    .filter((c) => c.active !== false)
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+}
+/** slug から {slug,name} を解決。sub は指定カテゴリの子であることも確認する。 */
+async function resolveCategoryPair(categorySlug, subCategorySlug) {
+  if (!categorySlug && !subCategorySlug) return { category: null, subCategory: null };
+  const cats = await loadCategories();
+  const valid = () => cats.filter((c) => !c.parent).map((c) => c.slug).join(', ');
+  let category = null, subCategory = null;
+  if (categorySlug) {
+    const hit = cats.find((c) => c.slug === aSlug(categorySlug) && !c.parent);
+    if (!hit) throw new Error(`未知のカテゴリ: ${categorySlug}（有効: ${valid()}）`);
+    category = { slug: hit.slug, name: hit.name };
+  }
+  if (subCategorySlug) {
+    if (!category) throw new Error('subCategorySlug には categorySlug の指定が必要です');
+    const hit = cats.find((c) => c.slug === aSlug(subCategorySlug) && c.parent === category.slug);
+    if (!hit) {
+      const children = cats.filter((c) => c.parent === category.slug).map((c) => c.slug);
+      throw new Error(`カテゴリ ${category.slug} のサブカテゴリに ${subCategorySlug} はありません` +
+        (children.length ? `（有効: ${children.join(', ')}）` : '（サブカテゴリ未定義）'));
+    }
+    subCategory = { slug: hit.slug, name: hit.name };
+  }
+  return { category, subCategory };
+}
+/** slug の重複チェック（記事詳細ページは slug で1件引くため一意必須）。 */
+async function assertSlugFree(slug, excludeId) {
+  const snap = await articlesCol().where('slug', '==', slug).get();
+  const dup = snap.docs.find((d) => d.id !== excludeId);
+  if (dup) throw new Error(`slug "${slug}" は既存記事（${dup.id}: ${dup.data().title}）と重複しています`);
+}
+async function getArticle(id) {
+  const d = await articlesCol().doc(id).get();
+  if (!d.exists) throw new Error(`article not found: ${id}`);
+  return { id: d.id, ...d.data() };
+}
+const articleSummary = (a) => ({
+  id: a.id, title: a.title, slug: a.slug, status: a.status,
+  category: a.category?.slug || null, subCategory: a.subCategory?.slug || null,
+  tags: a.tags || [], featured: !!a.featured, coverUrl: a.coverUrl || '',
+  excerpt: a.excerpt || '',
+  publishedAt: aIso(a.publishedAt), updatedAt: aIso(a.updatedAt),
+  url: a.status === 'published' ? `https://sekkeiya.com/articles/${a.slug}` : null,
+});
+
+server.registerTool('article_list', {
+  title: '公式記事の一覧',
+  description: '公式記事（officialArticles）を下書き含め全件、更新日の新しい順で返す（本文は含まない。本文は article_get で取得）。status で絞り込み可。review/interview はAI記者パイプライン（トレンド下書き/取材中）の中間状態。',
+  inputSchema: { status: z.enum(['draft', 'published', 'review', 'interview']).optional() },
+}, async ({ status }) => {
+  const snap = await articlesCol().get();
+  let list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (status) list = list.filter((a) => a.status === status);
+  list.sort((a, b) => (aIso(b.updatedAt) || '').localeCompare(aIso(a.updatedAt) || ''));
+  return ok({ count: list.length, articles: list.map(articleSummary) });
+});
+
+server.registerTool('article_get', {
+  title: '公式記事を取得（本文込み）',
+  description: '記事1件を本文(HTML)・SEO情報込みで返す。',
+  inputSchema: { id: z.string().min(1) },
+}, async ({ id }) => {
+  const a = await getArticle(id);
+  return ok({
+    ...articleSummary(a),
+    body: a.body || '', contentFormat: a.contentFormat || 'html',
+    seoTitle: a.seoTitle || '', seoDescription: a.seoDescription || '',
+    categoryName: a.category?.name || null, subCategoryName: a.subCategory?.name || null,
+    author: a.author || null, createdAt: aIso(a.createdAt),
+  });
+});
+
+server.registerTool('article_categories', {
+  title: '記事カテゴリの一覧',
+  description: '記事に指定できるカテゴリ（ハブ→サブの2階層）を slug 付きで返す。article_create / article_update の categorySlug / subCategorySlug にはここの slug を使う。',
+  inputSchema: {},
+}, async () => {
+  const cats = await loadCategories();
+  const tops = cats.filter((c) => !c.parent);
+  return ok({
+    categories: tops.map((t) => ({
+      slug: t.slug, name: t.name, description: t.description || '',
+      subCategories: cats.filter((c) => c.parent === t.slug)
+        .map((c) => ({ slug: c.slug, name: c.name, description: c.description || '' })),
+    })),
+  });
+});
+
+// 本文HTMLの規約（既存記事と同じ書式に揃えるためツール説明に明記する）
+const BODY_CONVENTIONS = '本文はHTMLフラグメント（<html>や<body>は不要）。見出しは<h2>/<h3>、段落<p>、リスト<ul>/<ol>、強調<strong>、コードは<code>。' +
+  '画像は article_upload_image でアップロードしたURLを <p><img src="..." alt="説明" loading="lazy"></p> の形で挿入する。';
+
+server.registerTool('article_create', {
+  title: '公式記事を作成',
+  description: `公式記事を作成する（既定は下書き draft。status:'published' で即公開も可）。著者は自動で公式アカウント(SEKKEIYA)。slug 省略時はタイトルから自動生成し、重複時はエラー。${BODY_CONVENTIONS} 公開記事のSEO反映（サイトマップ/プリレンダー）はWebデプロイ時に行われる点に注意。`,
+  inputSchema: {
+    title: z.string().min(1),
+    body: z.string().min(1),
+    slug: z.string().optional(),          // 省略時はタイトルから生成（日本語タイトルなら英語slug指定を推奨）
+    excerpt: z.string().optional(),       // 一覧カード・SEO説明の既定に使われる要約（80〜120字目安）
+    categorySlug: z.string().optional(),  // article_categories の slug
+    subCategorySlug: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    coverUrl: z.string().optional(),      // article_upload_image (purpose:'cover') のURL
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+    featured: z.boolean().optional(),
+    status: z.enum(['draft', 'published']).optional(), // 既定 draft
+  },
+}, async (p) => {
+  const status = p.status === 'published' ? 'published' : 'draft';
+  const slug = aSlug(p.slug || p.title);
+  if (!slug) return fail('slug を生成できません（英数字を含む slug かタイトルを指定してください）');
+  await assertSlugFree(slug, null);
+  const { category, subCategory } = await resolveCategoryPair(p.categorySlug, p.subCategorySlug);
+  const tags = aTags(p.tags);
+  const uid = await researchUid(); // 公式アカウント(hello@sekkeiya.com)の uid
+  const now = FieldValue.serverTimestamp();
+  const ref = await articlesCol().add({
+    title: aStr(p.title), slug,
+    excerpt: aStr(p.excerpt || ''), coverUrl: aStr(p.coverUrl || ''),
+    body: aStr(p.body), contentFormat: 'html',
+    featured: !!p.featured,
+    seoTitle: aStr(p.seoTitle || ''), seoDescription: aStr(p.seoDescription || ''),
+    tags, tagsLower: tags.map((t) => t.toLowerCase()),
+    status, category, subCategory,
+    createdAt: now, updatedAt: now,
+    publishedAt: status === 'published' ? now : null,
+    author: { uid, displayName: 'SEKKEIYA' },
+  });
+  return ok({
+    created: { id: ref.id, title: aStr(p.title), slug, status },
+    url: status === 'published' ? `https://sekkeiya.com/articles/${slug}` : null,
+    note: status === 'published' ? 'アプリ上では即公開済み。Google向けのサイトマップ/プリレンダー反映にはWebデプロイが必要。' : '下書きとして保存。公開は article_publish で。',
+  });
+});
+
+server.registerTool('article_update', {
+  title: '公式記事を更新',
+  description: `記事を部分更新する（指定したフィールドのみ変更・他は保持）。categorySlug に null を渡すとカテゴリ解除。${BODY_CONVENTIONS}`,
+  inputSchema: {
+    id: z.string().min(1),
+    title: z.string().min(1).optional(),
+    body: z.string().min(1).optional(),
+    slug: z.string().optional(),
+    excerpt: z.string().optional(),
+    categorySlug: z.string().nullable().optional(),
+    subCategorySlug: z.string().nullable().optional(),
+    tags: z.array(z.string()).optional(),
+    coverUrl: z.string().optional(),
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+    featured: z.boolean().optional(),
+  },
+}, async (p) => {
+  const current = await getArticle(p.id);
+  const patch = { updatedAt: FieldValue.serverTimestamp() };
+  if (p.title !== undefined) patch.title = aStr(p.title);
+  if (p.body !== undefined) patch.body = aStr(p.body);
+  if (p.slug !== undefined) {
+    const slug = aSlug(p.slug);
+    if (!slug) return fail('無効な slug です');
+    if (slug !== current.slug) {
+      await assertSlugFree(slug, p.id);
+      patch.slug = slug; // 公開済みならURLが変わる（戻り値の warning で通知）
+    }
+  }
+  if (p.excerpt !== undefined) patch.excerpt = aStr(p.excerpt);
+  if (p.coverUrl !== undefined) patch.coverUrl = aStr(p.coverUrl);
+  if (p.seoTitle !== undefined) patch.seoTitle = aStr(p.seoTitle);
+  if (p.seoDescription !== undefined) patch.seoDescription = aStr(p.seoDescription);
+  if (p.featured !== undefined) patch.featured = !!p.featured;
+  if (p.tags !== undefined) {
+    const tags = aTags(p.tags);
+    patch.tags = tags; patch.tagsLower = tags.map((t) => t.toLowerCase());
+  }
+  if (p.categorySlug !== undefined) {
+    if (p.categorySlug === null) { patch.category = null; patch.subCategory = null; }
+    else {
+      const { category, subCategory } = await resolveCategoryPair(p.categorySlug, p.subCategorySlug || undefined);
+      patch.category = category;
+      if (p.subCategorySlug !== undefined) {
+        patch.subCategory = p.subCategorySlug === null ? null : subCategory;
+      } else if (current.category?.slug !== category.slug) {
+        patch.subCategory = null; // カテゴリが変わったら旧サブカテゴリは無効
+      }
+    }
+  } else if (p.subCategorySlug !== undefined) {
+    if (p.subCategorySlug === null) patch.subCategory = null;
+    else {
+      if (!current.category?.slug) return fail('カテゴリ未設定の記事にサブカテゴリだけは設定できません');
+      const { subCategory } = await resolveCategoryPair(current.category.slug, p.subCategorySlug);
+      patch.subCategory = subCategory;
+    }
+  }
+  await articlesCol().doc(p.id).update(patch);
+  const after = await getArticle(p.id);
+  const slugChanged = patch.slug && patch.slug !== current.slug && current.status === 'published';
+  return ok({
+    updated: articleSummary(after),
+    ...(slugChanged ? { warning: `公開記事のURLが変わりました（旧: /articles/${current.slug} は404になります）` } : {}),
+  });
+});
+
+server.registerTool('article_publish', {
+  title: '公式記事を公開',
+  description: '下書き記事を公開する。publishedAt は初回公開時のみ付与（再公開では変えない）。公開前チェック（タイトル/本文/カテゴリ/抜粋の有無）を行い、不足があれば警告付きで公開する。',
+  inputSchema: { id: z.string().min(1) },
+}, async ({ id }) => {
+  const a = await getArticle(id);
+  if (a.status === 'published') return fail(`「${a.title}」は既に公開済みです`);
+  const warnings = [];
+  if (!aStr(a.title)) return fail('タイトルが空のため公開できません');
+  if (!aStr(a.body)) return fail('本文が空のため公開できません');
+  if (!a.category?.slug) warnings.push('カテゴリ未設定（一覧のフィルタに載りません）');
+  if (!aStr(a.excerpt)) warnings.push('抜粋(excerpt)未設定（一覧カード・SEO説明が本文からの自動切り出しになります）');
+  if (!aStr(a.coverUrl)) warnings.push('カバー画像未設定');
+  const patch = { status: 'published', updatedAt: FieldValue.serverTimestamp() };
+  if (!a.publishedAt) patch.publishedAt = FieldValue.serverTimestamp();
+  await articlesCol().doc(id).update(patch);
+  return ok({
+    published: { id, title: a.title, url: `https://sekkeiya.com/articles/${a.slug}` },
+    warnings,
+    note: 'アプリ上では即公開済み。Google向けのサイトマップ/プリレンダー反映にはWebデプロイ（/sekkeiya-web-deploy）が必要。',
+  });
+});
+
+server.registerTool('article_unpublish', {
+  title: '公式記事を非公開（下書きに戻す）',
+  description: '公開中の記事を下書きに戻す。公開URLは404になる。publishedAt は保持（再公開時に順序が維持される）。',
+  inputSchema: { id: z.string().min(1) },
+}, async ({ id }) => {
+  const a = await getArticle(id);
+  if (a.status !== 'published') return fail(`「${a.title}」は公開されていません`);
+  await articlesCol().doc(id).update({ status: 'draft', updatedAt: FieldValue.serverTimestamp() });
+  return ok({ unpublished: { id, title: a.title }, note: `https://sekkeiya.com/articles/${a.slug} は404になります` });
+});
+
+server.registerTool('article_delete', {
+  title: '公式記事を削除',
+  description: '記事を完全に削除する（復元不可）。公開中の記事はまず article_unpublish で影響確認してからの削除を推奨。',
+  inputSchema: { id: z.string().min(1) },
+}, async ({ id }) => {
+  const a = await getArticle(id);
+  await articlesCol().doc(id).delete();
+  return ok({ deleted: { id, title: a.title, slug: a.slug, wasPublished: a.status === 'published' } });
+});
+
+// 画像アップロード: ローカルファイル → Storage（Webと同じパス規約）→ ダウンロードURL
+const IMG_TYPES = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
+  '.mp4': 'video/mp4', '.pdf': 'application/pdf',
+};
+server.registerTool('article_upload_image', {
+  title: '記事用画像をアップロード',
+  description: 'ローカルの画像ファイルを Firebase Storage にアップロードし、記事で使えるURLを返す。purpose:"cover"=カバー画像用（article_create/update の coverUrl へ）、"inline"=本文内画像用（<img src>へ）。対応: jpg/png/webp/gif/svg/mp4/pdf。',
+  inputSchema: {
+    filePath: z.string().min(1),           // ローカルの絶対パス
+    purpose: z.enum(['cover', 'inline']),
+    articleId: z.string().optional(),      // inline のとき整理用（省略時 'mcp'）
+    alt: z.string().optional(),            // 返却するimgタグ例に使う代替テキスト
+  },
+}, async ({ filePath, purpose, articleId, alt }) => {
+  if (!fs.existsSync(filePath)) return fail(`ファイルが見つかりません: ${filePath}`);
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = IMG_TYPES[ext];
+  if (!contentType) return fail(`未対応の拡張子: ${ext}（対応: ${Object.keys(IMG_TYPES).join(', ')}）`);
+  const stat = fs.statSync(filePath);
+  const maxMB = purpose === 'cover' ? 10 : 50; // storage.rules と同じ上限
+  if (stat.size > maxMB * 1024 * 1024) return fail(`ファイルが大きすぎます（${(stat.size / 1048576).toFixed(1)}MB > 上限${maxMB}MB）`);
+  const uid = await researchUid();
+  const base = path.basename(filePath).replace(/[^\w.-]+/g, '_');
+  const name = `${Date.now()}_${base}`;
+  const dest = purpose === 'cover'
+    ? `officialArticles/covers/${uid}/${name}`
+    : `officialArticles/inline/${uid}/${articleId || 'mcp'}/${name}`;
+  const token = crypto.randomUUID();
+  const bucket = getStorage().bucket();
+  await bucket.upload(filePath, {
+    destination: dest,
+    metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } },
+  });
+  const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(dest)}?alt=media&token=${token}`;
+  return ok({
+    url,
+    ...(purpose === 'inline'
+      ? { imgTag: `<p><img src="${url.replace(/&/g, '&amp;')}" alt="${aStr(alt) || ''}" loading="lazy"></p>` }
+      : { hint: 'このURLを article_create / article_update の coverUrl に指定する' }),
+  });
+});
+
 // ── 起動 / スモークテスト ─────────────────────────────────────────
 if (process.argv.includes('--smoke')) {
   const [all, sprints] = await Promise.all([loadItems(), loadSprints()]);
@@ -553,10 +876,19 @@ if (process.argv.includes('--smoke')) {
   } catch (e) {
     console.log(`[smoke] research: FAILED to resolve ${RESEARCH_ACCOUNT_EMAIL}: ${e?.message || e}`);
   }
+  try {
+    const [arts, cats] = await Promise.all([articlesCol().get(), loadCategories()]);
+    const byStatus = { draft: 0, published: 0 };
+    for (const d of arts.docs) byStatus[d.data().status] = (byStatus[d.data().status] || 0) + 1;
+    console.log(`[smoke] /officialArticles=${arts.size}`, byStatus,
+      `/categories=${cats.length}`, cats.filter((c) => !c.parent).map((c) => c.slug));
+  } catch (e) {
+    console.log(`[smoke] articles: FAILED: ${e?.message || e}`);
+  }
   process.exit(0);
 } else {
   await server.connect(new StdioServerTransport());
   void touchHeartbeat();
   setInterval(touchHeartbeat, 60_000).unref();
-  console.error('[devbacklog-mcp] v2.4 ready (stdio). /devBacklog + /devSprints + Research&Memo, project=' + serviceAccount.project_id);
+  console.error('[devbacklog-mcp] v2.5 ready (stdio). /devBacklog + /devSprints + Research&Memo + officialArticles, project=' + serviceAccount.project_id);
 }
