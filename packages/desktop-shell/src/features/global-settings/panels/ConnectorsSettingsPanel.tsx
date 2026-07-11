@@ -1,7 +1,7 @@
 // Global Settings > コネクタ。左=コネクタ一覧（クリックで選択）、右=詳細サイドバー。
 // 詳細には「何ができるか」「使い方」「こう言ってみましょう（例文）」を、誰でも分かるように表示する。
-// Claude Code（管理者向け）は MCP 経由で開発状況ボードを読み書きする接続で、接続状態は
-// /devMeta/claudeMcp のハートビートで可視化する。
+// Claude Code（管理者向け）は MCP 経由で開発状況ボード・Research & Memo・公式ブログ記事を
+// 読み書きする接続で、接続状態は /devMeta/claudeMcp のハートビートで可視化する。
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Chip, CircularProgress, Alert, Divider,
@@ -22,13 +22,15 @@ import { db }                  from '../../../lib/firebase/client';
 
 // ─── コネクタ定義＆詳細 ─────────────────────────────────────────────────────────
 
+interface ExampleGroupDef {
+  heading?: string;         // 例文グループの見出し（既定「こう言ってみましょう」）
+  items: string[];          // AI に言ってみる例文
+}
+
 interface ConnectorDetail {
   overview: string;         // 何ができるか（1〜2文・平易に）
   howto: string[];          // 使い方の手順
-  examples?: string[];      // AI に言ってみる例文
-  examplesHeading?: string; // 例文グループの見出し（既定「こう言ってみましょう」）
-  examples2?: string[];     // 2つ目の例文グループ（対象がもう1つあるとき）
-  examples2Heading?: string;
+  exampleGroups?: ExampleGroupDef[]; // 例文グループ（対象ごとに複数可）
   notes?: string[];         // 補足・注意
 }
 
@@ -56,10 +58,12 @@ const CONNECTORS: ConnectorDef[] = [
         '接続できたら、SEKKEIYA Chat で予定について言葉で頼むだけです。',
         '連携を止めたいときは、いつでも「切断」を押せます。',
       ],
-      examples: [
-        '来週の予定を教えて',
-        '金曜の15時に〇〇社との打ち合わせを入れて',
-        '明日の午後の予定を1時間うしろにずらして',
+      exampleGroups: [
+        { items: [
+          '来週の予定を教えて',
+          '金曜の15時に〇〇社との打ち合わせを入れて',
+          '明日の午後の予定を1時間うしろにずらして',
+        ] },
       ],
       notes: [
         '接続には Google アカウントへのアクセス許可が必要です。',
@@ -100,32 +104,41 @@ const CONNECTORS: ConnectorDef[] = [
 // Claude Code（管理者向け）の詳細。使い方をていねいに。
 const CLAUDE_CODE_LABEL = 'Claude Code';
 const CLAUDE_CODE_DETAIL: ConnectorDetail = {
-  overview: 'あなたの PC の Claude Code から、SEKKEIYA の2つのデータを直接読み書きできます —「開発状況」ボード（要求定義・要件定義・スプリント）と「Research & Memo」（メモや根拠を線でつなぐ思考の地図）。AI と相談しながら整理すると、その内容がそのまま反映されます。',
+  overview: 'あなたの PC の Claude Code から、SEKKEIYA の3つのデータを直接読み書きできます —「開発状況」ボード（要求定義・要件定義・スプリント）、「Research & Memo」（メモや根拠を線でつなぐ思考の地図）、そして「公式ブログ記事」（sekkeiya.com の公式記事の作成・編集・公開）。SEKKEIYA の仕様や機能を一番よく知っている Claude Code に、記事の下書きから公開まで任せられます。',
   howto: [
     'デスクトップで Claude Code を起動します（このカードが「接続中」なら準備OK）。',
     '作業フォルダに「040-sekkeiya」を選びます。この連携設定はこのフォルダに入っているため、ここを開いた状態が必要です。',
     '初回だけ「このプロジェクトの連携ツールを使いますか？」と確認が出るので「許可」します（次回以降は自動）。',
-    'あとは日本語で指示するだけ。追加・変更した内容は、開発状況画面や Research & Memo にすぐ反映されます。',
+    'あとは日本語で指示するだけ。追加・変更した内容は、開発状況画面・Research & Memo・公式ブログにすぐ反映されます。',
   ],
-  examplesHeading: '開発状況ボードで',
-  examples: [
-    '開発状況ボードを見せて',
-    '「モバイルで3DSCが重い」という要求を追加して',
-    '要件「描画のLOD対応」を追加して、カテゴリはS.Layout、今のスプリントに入れて',
-    '要件3をテスト中にして',
-    'Sprint 1 を完了して',
-  ],
-  examples2Heading: 'Research & Memo で',
-  examples2: [
-    'Research & Memo のメインボードを見せて',
-    '「〇〇という仮説」をメモに追加して',
-    'その仮説の根拠として「△△のデータ」を追加して、supports でつないで',
-    '「データの流れ」ボードを整理して、抜けている論点を教えて',
-    '新しいボード「□□の検討」を作って',
+  exampleGroups: [
+    { heading: '開発状況ボードで', items: [
+      '開発状況ボードを見せて',
+      '「モバイルで3DSCが重い」という要求を追加して',
+      '要件「描画のLOD対応」を追加して、カテゴリはS.Layout、今のスプリントに入れて',
+      '要件3をテスト中にして',
+      'Sprint 1 を完了して',
+    ] },
+    { heading: 'Research & Memo で', items: [
+      'Research & Memo のメインボードを見せて',
+      '「〇〇という仮説」をメモに追加して',
+      'その仮説の根拠として「△△のデータ」を追加して、supports でつないで',
+      '「データの流れ」ボードを整理して、抜けている論点を教えて',
+      '新しいボード「□□の検討」を作って',
+    ] },
+    { heading: '公式ブログ記事で', items: [
+      '公式記事の一覧を見せて',
+      'S.Image の LoRA 機能を紹介する記事を下書きで書いて（カテゴリは AI × 空間設計）',
+      'この下書きの導入をもう少し噛み砕いて、SEO 用の説明文も付けて',
+      'この記事にカバー画像をアップして設定して',
+      'さっきの下書きを公開して',
+    ] },
   ],
   notes: [
     '新規セッションでも、作業フォルダが「040-sekkeiya」なら同じように使えます。特別な「グループ」を作る必要はありません（作業フォルダ＝プロジェクトの単位です）。',
     'Research & Memo は SEKKEIYA 公式アカウント（hello@sekkeiya.com）のボードが対象です。メモの位置は自動で置かれるので、並びが気になれば「整列」で整えられます。',
+    '公式記事の著者は自動で「SEKKEIYA」になります。記事の本文は書けますが、画像の生成だけは Claude Code ではできないため、必要な画像は S.Image などで用意してアップロードします。',
+    '記事を公開すると、サイト上ではすぐ反映され、Google 向けのサイトマップにも自動で載ります（デプロイ不要）。ただし公開済み記事を後から編集した場合、その内容を検索結果に急いで反映したいときは Web の再デプロイが必要です。',
     'スマホや claude.ai のチャットからは、この連携は使えません（PC の Claude Code 専用）。外出先で思いつきを放り込むなら、スマホのブラウザで sekkeiya.com にログイン →「開発状況」→ 要求定義に入力するのが手軽です。',
   ],
 };
@@ -256,13 +269,12 @@ const DetailSidebar: React.FC<{
       </Box>
     </Box>
 
-    {/* 例文（1〜2グループ） */}
-    {detail.examples && detail.examples.length > 0 && (
-      <ExampleGroup heading={detail.examplesHeading ?? 'こう言ってみましょう'} items={detail.examples}/>
-    )}
-    {detail.examples2 && detail.examples2.length > 0 && (
-      <ExampleGroup heading={detail.examples2Heading ?? 'こう言ってみましょう'} items={detail.examples2}/>
-    )}
+    {/* 例文（対象ごとに複数グループ） */}
+    {detail.exampleGroups?.map((g, i) => (
+      g.items.length > 0 && (
+        <ExampleGroup key={i} heading={g.heading ?? 'こう言ってみましょう'} items={g.items}/>
+      )
+    ))}
 
     {/* メモ */}
     {detail.notes && detail.notes.length > 0 && (
@@ -388,7 +400,7 @@ export const ConnectorsSettingsPanel: React.FC = () => {
               </Typography>
               <SelectableCard
                 icon={CLAUDE_ICON} label={CLAUDE_CODE_LABEL}
-                description="Claude Code から開発状況ボードと Research & Memo を読み書きします。"
+                description="Claude Code から開発状況ボード・Research & Memo・公式ブログ記事を読み書きします。"
                 statusKind={mcp.active ? 'active' : 'off'}
                 selected={activeId === 'claude_code'} onSelect={() => setSelectedId('claude_code')}
                 subline={mcp.active ? 'MCP サーバー稼働中' : (mcp.lastSeenText ? `最終接続: ${mcp.lastSeenText}` : '未接続')}

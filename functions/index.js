@@ -64,6 +64,11 @@ exports.generateBlogImage = generateBlogImage;
 const { sitemapCommunity } = require("./reporter/sitemapCommunity");
 exports.sitemapCommunity = onRequest({ memory: "256MiB", timeoutSeconds: 60 }, sitemapCommunity);
 
+// 🗺 公式記事の動的サイトマップ（hosting rewrite: /sitemap-official.xml → この関数）。
+// MCP/管理画面から公開した公式記事が再デプロイなしで Google に発見されるようにする。
+const { sitemapOfficial } = require("./reporter/sitemapOfficial");
+exports.sitemapOfficial = onRequest({ memory: "256MiB", timeoutSeconds: 60 }, sitemapOfficial);
+
 // 🤖 ブログ記事の動的レンダリング（hosting rewrite: /{handle}/blog/{slug} → この関数）。
 // ボットには完全なHTML（SEO/OGP/JSON-LD）、人間にはSPAを返す。手動運用ゼロでインデックス確実化。
 const { renderBlogArticle } = require("./reporter/renderBlogArticle");

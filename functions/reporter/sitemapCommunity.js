@@ -9,6 +9,9 @@
  * URL は canonical と同じブランド形式 /{username}/blog/{slug} を出す。
  * username 未設定の著者はフォールバックの /articles/u/{uid}/{slug} を出す（こちらも有効なルート）。
  * 配信: hosting rewrite /sitemap-community.xml → この関数。robots.txt にも Sitemap 行を追加済み。
+ *
+ * 公式記事（officialArticles）は専用の sitemapOfficial（/sitemap-official.xml）が動的に受け持つため、
+ * ここでは扱わない（みんなの記事＝communityArticles に責務を絞る）。
  */
 const admin = require("firebase-admin");
 
@@ -28,13 +31,8 @@ const toYmd = (v) => {
 async function sitemapCommunity(req, res) {
   try {
     const db = admin.firestore();
-    // みんなの記事（公開ミラー）＋ 公式記事（published）を並列取得。
-    // 公式はビルド時 sitemap.xml にも載るが、デプロイ前の新記事を拾うためここにも含める
-    // （重複URLは Google 側で無害にデデュープされる）。
-    const [snap, officialSnap] = await Promise.all([
-      db.collection("communityArticles").limit(5000).get(),
-      db.collection("officialArticles").where("status", "==", "published").limit(5000).get(),
-    ]);
+    // みんなの記事（公開ミラー）を取得。公式記事は sitemapOfficial が別途受け持つ。
+    const snap = await db.collection("communityArticles").limit(5000).get();
 
     // 著者 uid → username をまとめて解決（重複 uid は1回だけ読む）
     const uids = [...new Set(snap.docs.map((d) => d.data().authorUid).filter(Boolean))];
@@ -59,13 +57,6 @@ async function sitemapCommunity(req, res) {
         : `${SITE_URL}/articles/u/${encodeURIComponent(a.authorUid)}/${encodeURIComponent(a.slug)}`;
       return entry(loc, toYmd(a.updatedAt) || toYmd(a.publishedAt), "0.6");
     }).filter(Boolean);
-
-    // 公式記事（/articles/{slug}）
-    for (const d of officialSnap.docs) {
-      const a = d.data();
-      if (!a?.slug) continue;
-      urls.push(entry(`${SITE_URL}/articles/${encodeURIComponent(a.slug)}`, toYmd(a.updatedAt) || toYmd(a.publishedAt), "0.7"));
-    }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
     res.set("Content-Type", "application/xml; charset=utf-8");

@@ -10,4 +10,5 @@ Disallow: /workspace
 Disallow: /clip
 
 Sitemap: https://sekkeiya.com/sitemap.xml
+Sitemap: https://sekkeiya.com/sitemap-official.xml
 Sitemap: https://sekkeiya.com/sitemap-community.xml
