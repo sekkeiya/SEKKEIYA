@@ -17,11 +17,20 @@ import FactCheckRoundedIcon from '@mui/icons-material/FactCheckRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { BRAND } from '../../styles/theme';
+import { CATEGORIES, REGISTRY } from './panels/learningRegistry';
 
 export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-git' | 'admin-dev' | 'learning';
 
 /** 各項目の Lv2 サブ項目。単一パネルの項目は overview 1件（暫定）。 */
-export interface SettingsSubItem { id: string; label: string; icon?: React.ReactNode; }
+export interface SettingsSubItem {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  /** カテゴリ見出し（クリック不可・ネストの区切り） */
+  header?: boolean;
+  /** 資産名などを等幅で表示 */
+  mono?: boolean;
+}
 export interface SettingsItem {
   id: SettingsAppId;
   label: string;
@@ -32,6 +41,15 @@ export interface SettingsItem {
 }
 
 const OVERVIEW: SettingsSubItem[] = [{ id: 'overview', label: '概要', icon: <InfoOutlinedIcon fontSize="small" /> }];
+
+/** AI学習モニター: 「モデル台帳」＋ カテゴリ→資産のネスト。資産IDは REGISTRY の name と一致。 */
+const LEARNING_SUBS: SettingsSubItem[] = [
+  { id: 'ledger', label: 'モデル台帳', icon: <FactCheckRoundedIcon fontSize="small" /> },
+  ...CATEGORIES.flatMap((c): SettingsSubItem[] => [
+    { id: `__cat_${c.key}`, label: c.label, header: true },
+    ...REGISTRY.filter(a => a.cat === c.key).map((a): SettingsSubItem => ({ id: a.name, label: a.name, mono: true })),
+  ]),
+];
 
 /**
  * 設定ナビ定義（Lv1 項目 → Lv2 サブ項目）。AI Studio と同じ2段ナビ:
@@ -57,12 +75,14 @@ export const SETTINGS_NAV: SettingsItem[] = [
   { id: 'admin',     label: 'AI使用量モニター', icon: <InsightsRoundedIcon />,  admin: true, subItems: OVERVIEW },
   { id: 'admin-git', label: 'GitHub更新',       icon: <GitHubIcon />,            admin: true, subItems: OVERVIEW },
   { id: 'admin-dev', label: '開発状況',         icon: <FactCheckRoundedIcon />,  admin: true, subItems: OVERVIEW },
-  { id: 'learning',  label: 'AI学習モニター',   icon: <PsychologyRoundedIcon />, admin: true, subItems: OVERVIEW },
+  { id: 'learning',  label: 'AI学習モニター',   icon: <PsychologyRoundedIcon />, admin: true, subItems: LEARNING_SUBS },
 ];
 
 /** 項目の先頭サブ項目ID（項目切替時の既定サブ）。 */
-export const firstSubOf = (appId: SettingsAppId): string =>
-  (SETTINGS_NAV.find(i => i.id === appId)?.subItems[0]?.id) ?? 'overview';
+export const firstSubOf = (appId: SettingsAppId): string => {
+  const it = SETTINGS_NAV.find(i => i.id === appId);
+  return (it?.subItems.find(s => !s.header)?.id) ?? 'overview';
+};
 
 interface Props {
   activeApp: SettingsAppId;
@@ -167,15 +187,33 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, activeSub, onSelec
         </Box>
         <List sx={{ px: 1.5 }}>
           {activeItem.subItems.map(sub => (
-            <ListItemButton
-              key={sub.id}
-              selected={activeSub === sub.id}
-              onClick={() => onSelectSub(sub.id)}
-              sx={subItemSx()}
-            >
-              {sub.icon && <ListItemIcon sx={{ color: 'inherit', minWidth: 34 }}>{sub.icon}</ListItemIcon>}
-              <ListItemText primary={sub.label} primaryTypographyProps={{ fontSize: 13, fontWeight: activeSub === sub.id ? 600 : 500 }} />
-            </ListItemButton>
+            sub.header ? (
+              <Typography
+                key={sub.id}
+                variant="caption"
+                sx={{ display: 'block', px: 1.5, mt: 1.5, mb: 0.5, fontWeight: 700, color: ACC_TEXT, letterSpacing: '0.04em' }}
+              >
+                {sub.label}
+              </Typography>
+            ) : (
+              <ListItemButton
+                key={sub.id}
+                selected={activeSub === sub.id}
+                onClick={() => onSelectSub(sub.id)}
+                sx={{ ...subItemSx(), pl: sub.mono ? 2.5 : 1.5 }}
+              >
+                {sub.icon && <ListItemIcon sx={{ color: 'inherit', minWidth: 34 }}>{sub.icon}</ListItemIcon>}
+                <ListItemText
+                  primary={sub.label}
+                  primaryTypographyProps={{
+                    fontSize: sub.mono ? 12 : 13,
+                    fontWeight: activeSub === sub.id ? 700 : 500,
+                    fontFamily: sub.mono ? 'monospace' : undefined,
+                    sx: { wordBreak: 'break-all' },
+                  }}
+                />
+              </ListItemButton>
+            )
           ))}
         </List>
       </Box>

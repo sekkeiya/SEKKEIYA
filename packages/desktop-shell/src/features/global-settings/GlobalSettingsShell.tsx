@@ -46,7 +46,7 @@ export const GlobalSettingsShell = () => {
         {activeApp === 'admin'      && isAdmin && <AdminSettingsPanel />}
         {activeApp === 'admin-git'  && isAdmin && <GitHubSyncPanel />}
         {activeApp === 'admin-dev'  && isAdmin && <DevStatusPanel />}
-        {activeApp === 'learning'   && isAdmin && <LearningSettingsPanel />}
+        {activeApp === 'learning'   && isAdmin && <LearningSettingsPanel section={activeSub} onSectionChange={setActiveSub} />}
         {!KNOWN.includes(activeApp) && !((activeApp === 'admin' || activeApp === 'admin-git' || activeApp === 'admin-dev' || activeApp === 'learning') && isAdmin) && (
           <Box sx={{ p: 4, opacity: 0.5 }}>
             このアプリの設定パラメータは現在利用できません。

@@ -1032,6 +1032,36 @@ const TOOLS = [
     },
   },
   {
+    name: "generate_image",
+    description:
+      "画像を AI で生成し、プロジェクトの S.Image に自動保存する（内観パース・コンセプトイメージ・素材イメージなど、ボード配置が目的でない汎用の画像生成）。" +
+      "プロンプトには空間の用途・素材・光・時間帯・アングルを具体的に含めること。" +
+      "1枚のときは完成を待って url が返るので、応答では必ず Markdown 画像 `![キャプション](url)` としてユーザーに見せること。" +
+      "複数案（最大4枚）は prompts[] に1回の呼び出しでまとめる（バックグラウンド生成・完成次第 S.Image に保存）。" +
+      "生成後にさらに調整したい場合は S.Image の該当画像から「AI編集」で続きができると案内する。" +
+      "リサーチボードに並べたい場合はこの tool ではなく research_board_generate_image を使う。",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "保存先プロジェクトID（省略時はアクティブ）" },
+        prompt: { type: "string", description: "1枚だけ生成する場合のプロンプト（複数枚は prompts を使う）。" },
+        caption: { type: "string", description: "prompt 用のタイトル/キャプション（省略時はプロンプト冒頭）。" },
+        prompts: {
+          type: "array",
+          description: "複数案の一括生成（最大4件）。案出し・比較にはこちらを使う。",
+          items: {
+            type: "object",
+            properties: {
+              prompt: { type: "string", description: "生成プロンプト（日本語可）。" },
+              caption: { type: "string", description: "タイトル/キャプション（省略時はプロンプト冒頭）。" },
+            },
+            required: ["prompt"],
+          },
+        },
+      },
+    },
+  },
+  {
     name: "research_board_update_item",
     description:
       "リサーチボードの既存カード1枚を更新する（本文の推敲・色分け・役割付け・位置の移動＝グルーピング）。id は research_board_get で取得する。ユーザーが書いたカードの本文を書き換えるときは事前に合意を取ること。",
