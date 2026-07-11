@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, Panel,
+  ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, MiniMap, Panel,
   useNodesState, useEdgesState, useReactFlow, useUpdateNodeInternals, useNodes, useStore,
   Handle, Position, MarkerType, ConnectionMode,
   BaseEdge, EdgeLabelRenderer,
@@ -785,6 +785,17 @@ const LaneNode: React.FC<NodeProps> = ({ data }) => {
 };
 
 const nodeTypes = { note: NoteNode, image: ImageNode, link: LinkNode, quote: QuoteNode, source: SourceNode, lane: LaneNode };
+
+/** ミニマップのノード色: 役割があればその色、無ければ種別ごとの色（レーン背景は透明）。 */
+const MINI_KIND_COLOR: Record<string, string> = {
+  note: '#eab308', quote: '#a18cd1', image: '#64748b', link: '#00BFFF', source: '#26a69a',
+};
+function miniMapNodeColor(n: Node): string {
+  if (n.id.startsWith('lane-')) return 'transparent';
+  const item = (n.data as { item?: ResearchCanvasItem } | undefined)?.item;
+  if (item?.role && NODE_ROLES[item.role]) return NODE_ROLES[item.role].color;
+  return MINI_KIND_COLOR[item?.kind ?? ''] ?? 'rgb(148 163 184)';
+}
 
 // ─── ワイヤー経路（直交ルーティング＋手動編集点） ─────────────────────────────
 // 経路は水平垂直（Manhattan）ベース＋角丸: 接続口からスタブでまっすぐ出て、L字/Z字に
@@ -2304,7 +2315,22 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="rgb(var(--brand-fg-rgb) / 0.14)" />
         <Controls showInteractive={false} />
         <HelperLines horizontal={helperLineH} vertical={helperLineV} />
-        <Panel position="bottom-right"><ConnectorLegend /></Panel>
+        <Panel position="top-right"><ConnectorLegend /></Panel>
+        {/* ナビゲーションマップ（右下・ドラッグ/ズームで移動） */}
+        <MiniMap
+          position="bottom-right"
+          pannable zoomable
+          nodeColor={miniMapNodeColor}
+          nodeStrokeColor="transparent"
+          nodeBorderRadius={3}
+          maskColor="rgb(var(--brand-fg-rgb) / 0.12)"
+          style={{
+            width: 200, height: 130,
+            backgroundColor: 'var(--brand-surface)',
+            border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+            borderRadius: 8,
+          }}
+        />
 
         {/* 空キャンバスのスターター（対話が主役。チャットは自動で開き、AIが切り出す） */}
         {!loading && nodes.length === 0 && (
