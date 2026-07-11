@@ -1,7 +1,8 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { renderPricing } = require("./pricing");
+const { renderPricing, renderUsageMeta } = require("./pricing");
 const { CREDIT_COST, consume } = require("../payments/creditLedger");
+const { recordUsage } = require("../usage/recordUsage");
 const { geminiApiKey } = require("./providers/nanobananaProvider");
 // flux-schnell（fal.ai）用シークレット。FAL_KEY を Secret Manager に登録済み。
 const { falKey } = require("./providers/falFluxProvider");
@@ -122,6 +123,20 @@ exports.requestAiRender = onCall(
     }
     throw new HttpsError("internal", err.message);
   }
+
+  // 管理者APIモニターへ記録。クレジット消費と同じくリクエスト時に固定原価で計上する
+  // （プロバイダ課金メタが返らないため概算）。recordUsage は内部で例外を握るので
+  // await しても本体を巻き込まない。void だとレスポンス後の CPU スロットリングで
+  // 書き込みが落ちうるため await する。
+  const usageMeta = renderUsageMeta[provider] || { costUsd: 0, provider, model: provider };
+  await recordUsage({
+    uid,
+    email: request.auth.token?.email || null,
+    feature: "image-render",
+    provider: usageMeta.provider,
+    model: usageMeta.model,
+    costUsd: usageMeta.costUsd,
+  });
 
   // Kick off provider asynchronously
   const { renderProviderFactory } = require("./providers/providerFactory");

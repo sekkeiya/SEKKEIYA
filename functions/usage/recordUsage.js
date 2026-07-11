@@ -45,19 +45,20 @@ function safeKey(s) {
  * @param {object} p
  * @param {string|null} p.uid
  * @param {string|null} p.email
- * @param {string} p.feature   例: 'chat' | 'chat-suggest' | 'site-narration' | 'blog-draft'
- * @param {string|null} p.provider  'anthropic' | 'gemini' | 'openai'
+ * @param {string} p.feature   例: 'chat' | 'chat-suggest' | 'site-narration' | 'image-render' | '3d-model'
+ * @param {string|null} p.provider  'anthropic' | 'gemini' | 'openai' | 'fal' | 'tripo'
  * @param {string|null} p.model
- * @param {object} p.usage     生 usage（snake/camel どちらでも可）
+ * @param {object} [p.usage]   生 usage（snake/camel どちらでも可）。画像/3Dなどトークンの無い呼び出しは省略可
+ * @param {number|null} [p.costUsd] 固定原価（USD）の直接指定。指定時はトークン単価表を使わない
  */
-async function recordUsage({ uid = null, email = null, feature, provider = null, model = null, usage }) {
+async function recordUsage({ uid = null, email = null, feature, provider = null, model = null, usage = null, costUsd: fixedCostUsd = null }) {
   try {
     const db = admin.firestore();
     const FieldValue = admin.firestore.FieldValue;
     const n = normalizeUsage(usage);
     const totalTokens = n.inputTokens + n.outputTokens + n.cacheReadTokens + n.cacheCreationTokens;
-    if (totalTokens === 0) return; // 記録に値するトークンが無ければスキップ
-    const costUsd = estimateCostUsd(model, n);
+    const costUsd = fixedCostUsd != null ? (Number(fixedCostUsd) || 0) : estimateCostUsd(model, n);
+    if (totalTokens === 0 && costUsd === 0) return; // 記録に値するトークンもコストも無ければスキップ
     const { day, month } = jstDateParts();
     const feat = safeKey(feature || "unknown");
     const modelKey = safeKey(model || "unknown");

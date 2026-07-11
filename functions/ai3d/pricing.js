@@ -25,4 +25,13 @@ for (const plan of Object.keys(PLAN_MONTHLY_CREDITS)) {
   };
 }
 
-module.exports = { aiPricing, aiLimits, PLAN_MONTHLY_CREDITS };
+// 管理者APIモニター(usageLogs/usageDaily)用の概算原価（USD/個）とラベル。
+// tripo3d: creditLedger の原価基準コメント（$0.30/個）に合わせる。meshy も同等と仮置き。
+const ai3dUsageMeta = {
+  tripo3d: { costUsd: 0.30, provider: "tripo", model: "tripo-v2.5" },
+  meshy: { costUsd: 0.30, provider: "meshy", model: "meshy" },
+  triposr: { costUsd: 0, provider: "local", model: "triposr" },
+  mock: { costUsd: 0, provider: "mock", model: "mock" },
+};
+
+module.exports = { aiPricing, aiLimits, PLAN_MONTHLY_CREDITS, ai3dUsageMeta };

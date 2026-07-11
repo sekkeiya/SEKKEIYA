@@ -32,4 +32,14 @@ for (const plan of Object.keys(NANOBANANA_MONTHLY)) {
   };
 }
 
-module.exports = { renderPricing, renderLimits };
+// 管理者APIモニター(usageLogs/usageDaily)用の概算原価（USD/枚）とラベル。
+// nanobanana: Gemini 2.5 Flash Image 出力 1290tok × $30/1M ≈ $0.039
+// flux-schnell: fal.ai $0.003/MP（1MP前提）/ flux-lora: fal.ai flux-lora $0.035/MP
+const renderUsageMeta = {
+  nanobanana: { costUsd: 0.039, provider: "gemini", model: "gemini-2.5-flash-image" },
+  "flux-schnell": { costUsd: 0.003, provider: "fal", model: "flux-1-schnell" },
+  "flux-lora": { costUsd: 0.035, provider: "fal", model: "flux-1-dev-lora" },
+  mock: { costUsd: 0, provider: "mock", model: "mock" },
+};
+
+module.exports = { renderPricing, renderLimits, renderUsageMeta };

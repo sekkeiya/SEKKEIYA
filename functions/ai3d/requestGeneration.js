@@ -1,7 +1,8 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const { aiPricing } = require("./pricing");
+const { aiPricing, ai3dUsageMeta } = require("./pricing");
 const { CREDIT_COST, consume } = require("../payments/creditLedger");
+const { recordUsage } = require("../usage/recordUsage");
 const { runMockProvider } = require("./providers/mockProvider");
 const { defineSecret } = require("firebase-functions/params");
 const tripoApiKey = defineSecret("TRIPO_API_KEY");
@@ -110,6 +111,19 @@ exports.requestAiGeneration = onCall({ secrets: [tripoApiKey], timeoutSeconds: 1
     }
     throw new HttpsError("internal", err.message);
   }
+
+  // 管理者APIモニターへ記録。クレジット消費と同じくリクエスト時に固定原価で計上する
+  // （Tripo/Meshy のレスポンスに課金メタが無いため概算）。recordUsage は内部で
+  // 例外を握るので await しても本体を巻き込まない。
+  const usageMeta = ai3dUsageMeta[provider] || { costUsd: 0, provider, model: provider };
+  await recordUsage({
+    uid,
+    email: request.auth.token?.email || null,
+    feature: "3d-model",
+    provider: usageMeta.provider,
+    model: usageMeta.model,
+    costUsd: usageMeta.costUsd,
+  });
 
   // Start the provider job BEFORE returning. Cloud Functions v2 throttles CPU to
   // near-zero after the response is sent, so fire-and-forget work (image download →
