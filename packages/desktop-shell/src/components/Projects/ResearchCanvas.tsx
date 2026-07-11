@@ -23,6 +23,7 @@ import LocalLibraryRoundedIcon from '@mui/icons-material/LocalLibraryRounded';
 import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
 import UnfoldLessRoundedIcon from '@mui/icons-material/UnfoldLessRounded';
 import UnfoldMoreRoundedIcon from '@mui/icons-material/UnfoldMoreRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
@@ -46,7 +47,7 @@ import { isTauri } from '../../lib/platform';
 import { KnowledgePickerDialog } from './KnowledgePickerDialog';
 import { DriveAssetSidebar, DRIVE_IMAGE_DND_TYPE } from './DriveAssetSidebar';
 import {
-  useConnectorStore, useConnectors, getConnector, DEFAULT_CONNECTOR_KEY, CONNECTOR_COLOR_CHOICES,
+  useConnectorStore, useConnectors, getConnector, DEFAULT_CONNECTOR_KEY, NONE_CONNECTOR_KEY, CONNECTOR_COLOR_CHOICES,
 } from '../../store/useConnectorStore';
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
@@ -1023,10 +1024,11 @@ const RelationEdge: React.FC<EdgeProps> = ({
     }
   }
 
-  // 既定コネクタ(だから)で理由も無い線は、未フォーカス時はラベルを出さず小さな点だけにして
-  // 「だから」の洪水を防ぐ。非既定(でも/例えば等)や理由付きは語だけのチップを出す。
-  const isDefault = edge.relation === DEFAULT_CONNECTOR_KEY;
-  const showDotOnly = !focused && isDefault && !edge.label;
+  // 接続詞は基本ドットだけ（色で判別・右下の凡例で意味がわかる）。ホバー/選択したときだけ
+  // 語＋理由のチップに展開する。「なし」(未設定)は語を出さず、理由がある時だけチップにする。
+  const isNone = edge.relation === NONE_CONNECTOR_KEY;
+  const pillText = isNone ? (edge.label || '') : `${rel.label}${edge.label ? `｜${edge.label}` : ''}`;
+  const hasPill = focused && pillText.length > 0;
 
   return (
     <>
@@ -1063,33 +1065,33 @@ const RelationEdge: React.FC<EdgeProps> = ({
                 border: `1px solid ${rel.color}`, boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
               }}
             />
-          ) : showDotOnly ? (
-            // 既定・理由なし・未フォーカス → 小さな点だけ（ホバー/選択で語＋理由に展開）
-            <Box
-              onDoubleClick={() => { setDraft(edge.label || ''); setEditing(true); }}
-              title={rel.label}
-              sx={{
-                width: 7, height: 7, borderRadius: '50%', cursor: 'pointer',
-                bgcolor: rel.color, opacity: 0.7, border: '1.5px solid var(--brand-bg)',
-                '&:hover': { opacity: 1 },
-              }} />
-          ) : (
+          ) : hasPill ? (
+            // ホバー/選択時のみ 語＋理由のチップを出す
             <Box
               onDoubleClick={() => { setDraft(edge.label || ''); setEditing(true); }}
               title={edge.label || rel.label}
               sx={{
-                px: 0.8, py: 0.15, borderRadius: 1.5, cursor: 'pointer',
-                maxWidth: focused ? 260 : 120,
+                px: 0.8, py: 0.15, borderRadius: 1.5, cursor: 'pointer', maxWidth: 260,
                 fontSize: 10.5, fontWeight: 700, lineHeight: 1.7, textAlign: 'center',
-                color: rel.color, bgcolor: 'var(--brand-surface)',
-                border: `1px solid ${focused ? rel.color : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
-                boxShadow: focused ? '0 3px 10px rgba(0,0,0,0.28)' : 'none',
+                color: isNone ? 'var(--brand-fg)' : rel.color, bgcolor: 'var(--brand-surface)',
+                border: `1px solid ${rel.color}`,
+                boxShadow: '0 3px 10px rgba(0,0,0,0.28)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                opacity: focused ? 1 : 0.82,
               }}>
-              {/* 未フォーカスは語だけ・フォーカスで理由まで（洪水を防ぐ） */}
-              {rel.label}{focused && edge.label ? `｜${edge.label}` : ''}
+              {pillText}
             </Box>
+          ) : (
+            // 基本表示: 色付きのドットだけ（意味は色＝右下の凡例）。ダブルクリックで理由編集。
+            <Box
+              onDoubleClick={() => { setDraft(edge.label || ''); setEditing(true); }}
+              title={isNone ? '接続詞なし' : rel.label}
+              sx={{
+                width: focused ? 9 : 7, height: focused ? 9 : 7, borderRadius: '50%', cursor: 'pointer',
+                bgcolor: rel.color, opacity: focused ? 1 : 0.75,
+                border: '1.5px solid var(--brand-bg)',
+                boxShadow: focused ? `0 0 0 3px ${rel.color}44` : 'none',
+                '&:hover': { opacity: 1 },
+              }} />
           )}
         </Box>
 
@@ -1126,6 +1128,40 @@ const RelationEdge: React.FC<EdgeProps> = ({
 };
 
 const edgeTypes = { relation: RelationEdge };
+
+// ─── 接続詞の凡例（右下。線の色＝関係の意味。折りたたみ可） ────────────────────
+const ConnectorLegend: React.FC = () => {
+  const connectors = useConnectors();
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <Box className="nodrag nopan" sx={{
+      bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+      borderRadius: 2, boxShadow: '0 4px 14px rgba(0,0,0,0.28)', overflow: 'hidden', minWidth: 96,
+    }}>
+      <Box onClick={() => setCollapsed(v => !v)}
+        sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.4, cursor: 'pointer',
+          '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.04em', color: 'rgb(var(--brand-fg-rgb) / 0.55)', flex: 1 }}>
+          凡例（接続詞）
+        </Typography>
+        <ExpandMoreRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.45)',
+          transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .12s' }} />
+      </Box>
+      {!collapsed && (
+        <Box sx={{ px: 1, pb: 0.75, pt: 0.25, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {connectors.map(c => (
+            <Box key={c.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 18, flexShrink: 0, borderTop: `2px ${c.dash ? 'dashed' : 'solid'} ${c.color}` }} />
+              <Typography sx={{ fontSize: 10.5, color: 'var(--brand-fg)', whiteSpace: 'nowrap' }}>
+                {c.key === NONE_CONNECTOR_KEY ? 'なし（未設定）' : c.label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 // ─── スマート整列ガイド（ノードを動かすと他ノードの端/中心に吸着＋青いガイド線） ──
 // ドラッグ中のノードABの端(左右上下)・中心が、他ノードBの対応する端/中心と閾値以内に
@@ -2268,6 +2304,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
         <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="rgb(var(--brand-fg-rgb) / 0.14)" />
         <Controls showInteractive={false} />
         <HelperLines horizontal={helperLineH} vertical={helperLineV} />
+        <Panel position="bottom-right"><ConnectorLegend /></Panel>
 
         {/* 空キャンバスのスターター（対話が主役。チャットは自動で開き、AIが切り出す） */}
         {!loading && nodes.length === 0 && (

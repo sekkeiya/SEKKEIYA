@@ -27,6 +27,10 @@ export const BUILTIN_CONNECTORS: ConnectorPreset[] = [
 
 export const DEFAULT_CONNECTOR_KEY = 'supports';
 
+/** 「接続詞を設定しない（未設定）」の特別キー。色は白系で、ラベルは出さず線を白で描く。 */
+export const NONE_CONNECTOR_KEY = 'none';
+export const NONE_CONNECTOR: ConnectorPreset = { key: NONE_CONNECTOR_KEY, label: 'なし', color: '#cbd5e1', builtin: true };
+
 /** カスタムプリセットの色パレット（追加ダイアログの選択肢）。 */
 export const CONNECTOR_COLOR_CHOICES = [
   '#26a69a', '#4facfe', '#a18cd1', '#f87171', '#ffb74d', '#63c58f', '#ec4899', '#888780',
@@ -54,9 +58,9 @@ export const useConnectorStore = create<ConnectorState>()(
   ),
 );
 
-/** ビルトイン＋カスタムの全プリセット（非React・module 用）。 */
+/** ビルトイン＋カスタム＋「なし」の全プリセット（非React・module 用）。 */
 export function allConnectors(): ConnectorPreset[] {
-  return [...BUILTIN_CONNECTORS, ...useConnectorStore.getState().custom];
+  return [...BUILTIN_CONNECTORS, ...useConnectorStore.getState().custom, NONE_CONNECTOR];
 }
 
 /** key からプリセットを解決（見つからなければ既定）。 */
@@ -64,8 +68,8 @@ export function getConnector(key: string): ConnectorPreset {
   return allConnectors().find(c => c.key === key) ?? BUILTIN_CONNECTORS[0];
 }
 
-/** React 用: カスタムの変更に追従する全プリセット。 */
+/** React 用: カスタムの変更に追従する全プリセット（末尾に「なし」）。 */
 export function useConnectors(): ConnectorPreset[] {
   const custom = useConnectorStore(s => s.custom);
-  return useMemo(() => [...BUILTIN_CONNECTORS, ...custom], [custom]);
+  return useMemo(() => [...BUILTIN_CONNECTORS, ...custom, NONE_CONNECTOR], [custom]);
 }
