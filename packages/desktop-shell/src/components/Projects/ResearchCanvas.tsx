@@ -2048,6 +2048,16 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   }, [autoAlign]);
   useEffect(() => () => { if (arrangeTimerRef.current) clearTimeout(arrangeTimerRef.current); }, []);
 
+  // 表示密度（コンパクト⇄詳細）を切り替えたら、その密度に合わせて自動で整列し直す。
+  // カードの再計測（ResizeObserver→measured更新）を待ってから走らせる。初回マウントは除く。
+  const compactInitRef = useRef(true);
+  useEffect(() => {
+    if (compactInitRef.current) { compactInitRef.current = false; return; }
+    if (loading) return;
+    const t = window.setTimeout(() => { autoAlign({ fit: true }); }, 180);
+    return () => window.clearTimeout(t);
+  }, [compact, loading, autoAlign]);
+
   // SEKKEIYA Chat（verb）からボードをライブ操作できるようホスト登録する。
   // 追加/削除は nodes/edges state に入るので、既存の debounce 保存にそのまま乗る。
   useEffect(() => {
