@@ -1,0 +1,19 @@
+{
+  "name": "sekkeiya-devbacklog-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Admin-only MCP server to read/write the SEKKEIYA dev backlog (/devBacklog) from Claude Code.",
+  "bin": {
+    "sekkeiya-devbacklog-mcp": "server.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node server.mjs --smoke"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "firebase-admin": "^13.7.0",
+    "zod": "^3.23.8"
+  }
+}

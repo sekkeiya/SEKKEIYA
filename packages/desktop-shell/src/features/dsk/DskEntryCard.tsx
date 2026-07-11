@@ -60,7 +60,7 @@ function firstImageFromMarkdown(md?: string | null): string | null {
 interface DskEntryCardProps {
   entry: LibraryEntry;
   active: boolean;
-  onClick: () => void;
+  onClick: (e?: React.MouseEvent) => void;
   /** 開く（書籍/PDF=ビューア、ローカルファイル=外部アプリ等。ダブルクリックでも発火） */
   onOpen?: () => void;
   onDelete?: () => void;
@@ -101,11 +101,11 @@ export const DskEntryCard: React.FC<DskEntryCardProps> = ({ entry, active, onCli
       onClick={onClick}
       onDoubleClick={onOpen}
       sx={{ borderRadius: 2.5, bgcolor: BRAND.panel, border: `1px solid ${selBorder}`, overflow: 'hidden',
-        position: 'relative', display: 'flex', flexDirection: 'column', cursor: 'pointer',
-        boxShadow: ragSelectMode && ragSelected ? '0 0 0 1px #a855f7' : 'none',
+        position: 'relative', display: 'flex', flexDirection: 'column', cursor: 'pointer', userSelect: 'none',
+        boxShadow: ragSelectMode && ragSelected ? '0 0 0 1px #a855f7' : (active ? `0 0 0 2px ${meta.color}` : 'none'),
         opacity: ragSelectMode && ragDisabled ? 0.5 : 1,
-        transition: 'border-color .15s, transform .15s, opacity .15s',
-        '&:hover': { borderColor: ragSelectMode && ragSelected ? '#a855f7' : `color-mix(in srgb, ${meta.color} 67%, transparent)`, transform: 'translateY(-2px)' },
+        transition: 'border-color .15s, box-shadow .15s, transform .15s, opacity .15s',
+        '&:hover': { borderColor: ragSelectMode && ragSelected ? '#a855f7' : (active ? meta.color : `color-mix(in srgb, ${meta.color} 67%, transparent)`), transform: 'translateY(-2px)' },
         '&:hover .dsk-actions': { opacity: 1 }, '&:hover .dsk-del': { opacity: 1 } }}
     >
       {/* サムネイル（Web=画像/地球、他種別=種別アイコン） */}
@@ -117,6 +117,12 @@ export const DskEntryCard: React.FC<DskEntryCardProps> = ({ entry, active, onCli
             sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           React.cloneElement(meta.icon, { sx: { fontSize: 42, color: meta.color, opacity: 0.8 } })
+        )}
+        {/* 選択中バッジ（通常選択・複数選択とも。RAG選択モード時は別UI） */}
+        {active && !ragSelectMode && (
+          <Box sx={{ position: 'absolute', top: 6, left: 6, zIndex: 3, display: 'flex', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.1, backdropFilter: 'blur(4px)' }}>
+            <CheckCircleRoundedIcon sx={{ fontSize: 22, color: meta.color }} />
+          </Box>
         )}
         {entry.summary && (
           <Tooltip title="AI要約済み">

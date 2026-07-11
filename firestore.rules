@@ -1161,5 +1161,16 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    /* スプリント（開発状況ボードの2週間単位の枠）。管理者のみ読み書き。 */
+    match /devSprints/{sprintId} {
+      allow read, write: if isAdmin();
+    }
+
+    /* 開発メタ（Claude Code MCP のハートビート等）。書き込みは Admin SDK のみ。 */
+    match /devMeta/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
   }
 }

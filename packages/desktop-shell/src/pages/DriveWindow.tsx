@@ -18,6 +18,7 @@ import { stashFilesToDrive, stashLinkToDrive, isHttpUrl, type DuplicateMode } fr
 import type { AIDriveAsset } from '../store/useAIDriveStore';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useTeamsStore } from '../store/useTeamsStore';
 import { fetchUserProjects } from '../features/projects/api/fetchProjects';
 
 type DupPrompt = { name: string; existing: AIDriveAsset; resolve: (m: DuplicateMode) => void };
@@ -61,10 +62,15 @@ export const DriveWindow: React.FC = () => {
   useEffect(() => {
     const uid = currentUser?.uid;
     if (!uid) return;
-    if (useAppStore.getState().projects?.length) return;
-    fetchUserProjects(uid)
-      .then((ps) => useAppStore.getState().setProjects(ps))
-      .catch((e) => console.warn('[DriveWindow] projects fetch failed', e));
+    if (!useAppStore.getState().projects?.length) {
+      fetchUserProjects(uid)
+        .then((ps) => useAppStore.getState().setProjects(ps))
+        .catch((e) => console.warn('[DriveWindow] projects fetch failed', e));
+    }
+    // 参加チームも取得（Team Folder のネスト表示に使う）。
+    if (!useTeamsStore.getState().teams.length) {
+      useTeamsStore.getState().loadTeams(uid).catch((e) => console.warn('[DriveWindow] teams fetch failed', e));
+    }
   }, [currentUser]);
 
   const flash = (msg: string) => {

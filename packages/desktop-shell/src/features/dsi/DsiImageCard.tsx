@@ -12,14 +12,19 @@ import LayersRoundedIcon from '@mui/icons-material/LayersRounded';
 import { TEXTURE_SLOTS, type TextureGroup } from './textureGrouping';
 
 /**
- * カードの正方形サムネイル一辺（= カード本体の横幅）。
- * グリッド（DsiImageGrid）はこの値を固定カラム幅として使う。
- * S.Model と同じ「固定ピクセルで正方形を作る」方式。CSS の aspect-ratio /
- * padding-top は実機（WebView2）で行高さに寄与せずカードが潰れるため使わない。
+ * カードは SEKKEIYA Drive の画像カードと同じ体裁に揃える。
+ *  - サムネイルは 16:10 の横長（Drive の aspectRatio '16/10' 相当）。
+ *  - カード背景は surface2、サムネ背景は surface、選択時はリング＋チェック。
+ *  - メタ（タイトル＋タグ）は中央寄せ。タグが無ければカテゴリ、それも無ければ「未整理」。
+ * 仮想グリッド（DsiImageGrid の FixedSizeGrid）は固定ピクセルで行高を計算するため、
+ * CSS の aspect-ratio ではなく固定の高さ定数を使う（WebView2 で行高が潰れるのを避ける）。
  */
-export const DSI_CARD_SIZE = 210;
-/** サムネイル下のメタ情報（タイトル＋カテゴリ）の確保高さ。FixedSizeGrid の行高さ計算に使う。 */
-export const DSI_META_HEIGHT = 56;
+/** カード本体の横幅（＝グリッドのカラム幅の基準）。Drive の既定カード幅に合わせる。 */
+export const DSI_CARD_WIDTH = 240;
+/** サムネイルの高さ（16:10 → 240 × 10/16 = 150）。 */
+export const DSI_THUMB_HEIGHT = 150;
+/** サムネイル下のメタ情報（中央寄せのタイトル＋タグ行）の確保高さ。 */
+export const DSI_META_HEIGHT = 68;
 
 const ACCENT = '#ec407a';
 
@@ -34,6 +39,27 @@ const SOURCE_LABEL: Record<string, string> = {
   'layout-render': 'S.Layout',
   'ai-render': 'AI Render',
 };
+
+type ChipColor = { color: string; bg: string; bd: string };
+const NEUTRAL_CHIP: ChipColor = { color: 'var(--brand-fg)', bg: 'rgb(var(--brand-fg-rgb) / 0.08)', bd: 'rgb(var(--brand-fg-rgb) / 0.14)' };
+const AI_CHIP: ChipColor = { color: '#00BFFF', bg: 'rgba(0,191,255,0.1)', bd: 'rgba(0,191,255,0.3)' };
+const APP_CHIP: ChipColor = { color: 'var(--brand-fg)', bg: 'rgba(102,187,106,0.28)', bd: 'rgba(102,187,106,0.6)' };
+
+/** Drive と同じ体裁の極小タグチップ（MUI Chip より軽量で overflow に強い Box 版）。 */
+const DriveTagChip: React.FC<{ label: string; color?: ChipColor }> = ({ label, color = NEUTRAL_CHIP }) => (
+  <Box
+    sx={{
+      px: 0.85, py: 0.15, borderRadius: 1, fontSize: 10, fontWeight: 600, lineHeight: 1.5,
+      color: color.color, bgcolor: color.bg, border: `1px solid ${color.bd}`,
+      maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    }}
+  >
+    {label}
+  </Box>
+);
+
+/** タグの表示名（AI:/Rule:/User: のプレフィックスを外す）。 */
+const cleanTag = (t: string) => String(t).replace(/^(AI|Rule|User):\s*/, '');
 
 export interface DsiCardProps {
   item: any;
@@ -66,17 +92,32 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
     ? (textureGroup?.title || item.title || item.name || 'マテリアル')
     : item.title || item.name || (variant === 'set' ? 'Untitled Set' : 'Untitled');
   const category = isGroup ? 'テクスチャ' : (item.category as string | undefined);
+  const tags: string[] = !isGroup && Array.isArray(item.tags) ? item.tags : [];
   const isVideo = item.mediaType === 'video';
   const isLinked = item.sourceType === 'layout-render' || item.sourceType === 'ai-render';
   const TEX_ACCENT = '#42a5f5';
   const selBlue = !!selectMode && !!selected;
   const highlighted = picked || active || selBlue;
+  const ringColor = selBlue ? TEX_ACCENT : ACCENT;
   // グループに含まれるスロット（重ねカードの後ろ枚数表現にも使う）。
   const presentSlots = isGroup && textureGroup
     ? TEXTURE_SLOTS.filter((s) => textureGroup.slots[s.key])
     : [];
   // 背面の重ね紙の枚数（最大 3 枚、ベースカラー以外のマップ数を反映）。
   const stackCount = isGroup ? Math.min(3, Math.max(1, presentSlots.length - 1 || (textureGroup?.items.length || 1) - 1)) : 0;
+
+  // メタ下部のチップ行（Drive: タグ→カテゴリ→未整理 の優先で中央寄せ表示）。
+  const metaChips = isGroup ? (
+    (textureGroup?.applications || []).slice(0, 4).map((a) => <DriveTagChip key={a} label={a} color={APP_CHIP} />)
+  ) : variant === 'set' ? (
+    <DriveTagChip label={`${setCount} 点`} />
+  ) : tags.length > 0 ? (
+    tags.slice(0, 3).map((t, i) => <DriveTagChip key={i} label={cleanTag(t)} color={/^AI:/.test(t) ? AI_CHIP : NEUTRAL_CHIP} />)
+  ) : category ? (
+    <DriveTagChip label={category} color={{ color: 'var(--brand-fg)', bg: `${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.15)'}33`, bd: `${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.2)'}55` }} />
+  ) : (
+    <Typography sx={{ fontSize: 10, fontWeight: 600, color: '#FF9800' }}>未整理</Typography>
+  );
 
   const mainCard = (
     <Box
@@ -85,23 +126,27 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
       sx={{
         width: '100%',
         position: 'relative',
-        borderRadius: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 1.5,
         overflow: 'hidden',
         cursor: 'pointer',
-        bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)',
-        border: `1px solid ${selBlue ? TEX_ACCENT : highlighted ? ACCENT : isGroup ? `${TEX_ACCENT}55` : 'rgb(var(--brand-fg-rgb) / 0.08)'}`,
-        boxShadow: selBlue ? `0 0 0 2px ${TEX_ACCENT}` : highlighted ? `0 0 0 1px ${ACCENT}` : 'none',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
-        '&:hover': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.25)', '& .dsi-card-actions': { opacity: 1 } },
+        userSelect: 'none',
+        bgcolor: 'var(--brand-surface2)',
+        border: '1px solid',
+        borderColor: highlighted ? ringColor : isGroup ? `${TEX_ACCENT}55` : 'transparent',
+        outline: highlighted ? `1px solid ${ringColor}` : 'none',
+        transition: 'border-color 0.15s, outline-color 0.15s',
+        '&:hover': { borderColor: highlighted ? ringColor : 'rgb(var(--brand-fg-rgb) / 0.25)', '& .dsi-card-actions': { opacity: 1 } },
       }}
     >
-      {/* Thumbnail: 固定ピクセルの正方形（一辺 = DSI_CARD_SIZE）。 */}
+      {/* Thumbnail: 16:10 の横長（Drive と同じ体裁）。 */}
       <Box
         sx={{
           position: 'relative',
           width: '100%',
-          height: DSI_CARD_SIZE,
-          bgcolor: 'light-dark(rgba(15,23,42,0.08), rgba(0,0,0,0.25))',
+          height: DSI_THUMB_HEIGHT,
+          bgcolor: 'var(--brand-surface)',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
@@ -142,7 +187,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
 
         {/* 複数選択モード: チェックボックス（top-right） */}
         {pickMode && (variant === 'image' || variant === 'texture-group') && (
-          <Box sx={{ position: 'absolute', top: 6, right: 6, zIndex: 2, display: 'flex', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.1 }}>
+          <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, display: 'flex', bgcolor: 'rgba(20,21,24,0.6)', borderRadius: '50%', p: 0.1, backdropFilter: 'blur(4px)' }}>
             {picked
               ? <CheckCircleRoundedIcon sx={{ fontSize: 22, color: ACCENT }} />
               : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 22, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }} />}
@@ -150,16 +195,22 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
         )}
         {/* テクスチャ手動セット化モード: チェック（top-right、青系） */}
         {selectMode && (
-          <Box sx={{ position: 'absolute', top: 6, right: 6, zIndex: 3, display: 'flex', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: '50%', p: 0.1 }}>
+          <Box sx={{ position: 'absolute', top: 8, right: 8, zIndex: 3, display: 'flex', bgcolor: 'rgba(20,21,24,0.6)', borderRadius: '50%', p: 0.1, backdropFilter: 'blur(4px)' }}>
             {selected
               ? <CheckCircleRoundedIcon sx={{ fontSize: 22, color: TEX_ACCENT }} />
               : <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 22, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }} />}
           </Box>
         )}
+        {/* 選択中（右パネル対象）: Drive と同じチェック丸を top-right に表示。 */}
+        {active && !pickMode && !selectMode && (
+          <CheckCircleRoundedIcon
+            sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2, fontSize: 20, color: ACCENT, bgcolor: 'rgba(20,21,24,0.6)', borderRadius: '50%', backdropFilter: 'blur(4px)' }}
+          />
+        )}
         {/* 生成済みバッジ（ピッカーモード時、top-left に表示） */}
         {pickMode && isGenerated && (
           <Box sx={{
-            position: 'absolute', top: 6, left: 6, zIndex: 3,
+            position: 'absolute', top: 8, left: 8, zIndex: 3,
             px: 0.75, py: 0.25, borderRadius: 1, fontSize: 9.5, fontWeight: 700,
             bgcolor: 'rgba(76,175,80,0.85)', color: 'var(--brand-fg)', letterSpacing: 0.3,
             backdropFilter: 'blur(2px)',
@@ -169,7 +220,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
         )}
 
         {/* Badges (top-left) */}
-        <Box sx={{ position: 'absolute', top: 6, left: 6, display: 'flex', gap: 0.5, zIndex: 1 }}>
+        <Box sx={{ position: 'absolute', top: 8, left: 8, display: 'flex', gap: 0.5, zIndex: 1 }}>
           {isGroup ? (
             <Chip
               size="small"
@@ -191,7 +242,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
 
         {/* Delete (hover) */}
         {onDelete && !pickMode && (
-          <Box className="dsi-card-actions" sx={{ position: 'absolute', top: 4, right: 4, opacity: 0, transition: 'opacity 0.15s', zIndex: 2 }}>
+          <Box className="dsi-card-actions" sx={{ position: 'absolute', top: 6, right: 6, opacity: 0, transition: 'opacity 0.15s', zIndex: 4 }}>
             <Tooltip title="削除" placement="top">
               <IconButton
                 size="small"
@@ -229,11 +280,11 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
             bgcolor: 'rgba(0,0,0,0.72)',
             backdropFilter: 'blur(4px)',
           }}>
-            <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
+            <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 11, fontWeight: 600, lineHeight: 1.3, textAlign: 'center' }}>
               {title}
             </Typography>
             {isGroup && (textureGroup?.tags || []).length > 0 && (
-              <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 9.5, lineHeight: 1.2, mt: 0.125 }}>
+              <Typography noWrap sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 9.5, lineHeight: 1.2, mt: 0.125, textAlign: 'center' }}>
                 {(textureGroup?.tags || []).slice(0, 4).join(' · ')}
               </Typography>
             )}
@@ -241,29 +292,15 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
         )}
       </Box>
 
-      {/* Meta（ピッカー時は非表示にして正方形カードに） */}
+      {/* Meta（Drive と同じく中央寄せ。ピッカー時は非表示にして正方形カードに） */}
       {!pickMode && (
-        <Box sx={{ px: 1.25, py: 1, height: DSI_META_HEIGHT, boxSizing: 'border-box', overflow: 'hidden' }}>
-          <Typography noWrap sx={{ color: 'var(--brand-fg)', fontSize: 12.5, fontWeight: 600 }}>{title}</Typography>
-          {isGroup ? (
-            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, overflow: 'hidden' }}>
-              {/* 用途・部位（どこに使えるか）を優先表示 */}
-              {(textureGroup?.applications || []).slice(0, 4).map((a) => (
-                <Chip
-                  key={a}
-                  size="small"
-                  label={a}
-                  sx={{ height: 18, fontSize: 10, fontWeight: 600, color: 'var(--brand-fg)', bgcolor: 'rgba(102,187,106,0.28)', border: '1px solid rgba(102,187,106,0.6)' }}
-                />
-              ))}
-            </Box>
-          ) : category && (
-            <Chip
-              size="small"
-              label={category}
-              sx={{ mt: 0.5, height: 18, fontSize: 10, color: 'var(--brand-fg)', bgcolor: `${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.15)'}33`, border: `1px solid ${CATEGORY_COLOR[category] || 'rgb(var(--brand-fg-rgb) / 0.2)'}55` }}
-            />
-          )}
+        <Box sx={{ p: 1.5, textAlign: 'center', minHeight: DSI_META_HEIGHT, boxSizing: 'border-box', overflow: 'hidden' }}>
+          <Typography noWrap sx={{ color: highlighted ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.85)', fontSize: 12, fontWeight: highlighted ? 600 : 500 }}>
+            {title}
+          </Typography>
+          <Box sx={{ mt: 0.75, display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'center', maxWidth: '100%' }}>
+            {metaChips}
+          </Box>
         </Box>
       )}
 
@@ -285,7 +322,7 @@ export const DsiImageCard: React.FC<DsiCardProps> = ({ item, variant, active, ch
               position: 'absolute',
               inset: 0,
               transform: `translate(${depth * 4}px, ${-depth * 4}px)`,
-              borderRadius: 2,
+              borderRadius: 1.5,
               bgcolor: 'rgba(28,32,40,0.95)',
               border: `1px solid ${TEX_ACCENT}33`,
               zIndex: 0,

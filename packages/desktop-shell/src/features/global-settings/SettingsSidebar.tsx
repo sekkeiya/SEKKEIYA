@@ -76,7 +76,7 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdm
         {isAdmin && (
           <>
             <Divider sx={{ my: 1, mx: 1 }} />
-            {/* 管理者: クリックで展開し「AI使用量モニター」「GitHub更新」「開発状況」「学習」を表示 */}
+            {/* 管理者: クリックで展開し「AI使用量モニター」「GitHub更新」「開発状況」「AI学習モニター」を表示 */}
             <ListItemButton
               key="admin"
               selected={ADMIN_APPS.includes(activeApp)}
@@ -123,7 +123,7 @@ export const SettingsSidebar: React.FC<Props> = ({ activeApp, onSelectApp, isAdm
                   sx={itemSx()}
                 >
                   <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}><PsychologyRoundedIcon /></ListItemIcon>
-                  <ListItemText primary="学習" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'learning' ? 600 : 500 }} />
+                  <ListItemText primary="AI学習モニター" primaryTypographyProps={{ fontSize: 13, fontWeight: activeApp === 'learning' ? 600 : 500 }} />
                 </ListItemButton>
               </List>
             </Collapse>

@@ -1,16 +1,40 @@
-import React, { useEffect } from 'react';
-import { Box, Typography, IconButton, Button, Tooltip } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Typography, IconButton, Button, Tooltip, CircularProgress } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import WallpaperRoundedIcon from '@mui/icons-material/WallpaperRounded';
 import HighlightAltRoundedIcon from '@mui/icons-material/HighlightAltRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { useDsiEditorStore } from './store/useDsiEditorStore';
+import TextFieldsRoundedIcon from '@mui/icons-material/TextFieldsRounded';
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import { useDsiEditorStore, type DsiEditorMode } from './store/useDsiEditorStore';
 import { DsiEditorChat } from './editor/DsiEditorChat';
 import { RegionSelectLayer } from './editor/RegionSelectLayer';
+import { uploadImageAndGetUrl } from '../../lib/firebase/uploadImage';
+import { isEditCapableProvider, DEFAULT_EDIT_PROVIDER } from '../../store/useAiSettingsStore';
 import { BRAND } from '../../styles/theme';
 
 const ACCENT = '#ec407a';
+
+/** 起動時のモード選択カード（テキストから / 画像から / 編集）。 */
+const ModeCard: React.FC<{ icon: React.ReactNode; title: string; desc: string; onClick: () => void; disabled?: boolean }>
+  = ({ icon, title, desc, onClick, disabled }) => (
+  <Box
+    onClick={disabled ? undefined : onClick}
+    sx={{
+      width: 210, p: 2.5, borderRadius: 3, cursor: disabled ? 'default' : 'pointer',
+      bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, textAlign: 'center',
+      opacity: disabled ? 0.5 : 1, transition: 'border-color .15s, transform .15s',
+      '&:hover': disabled ? undefined : { borderColor: ACCENT, transform: 'translateY(-2px)' },
+    }}
+  >
+    <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: `${ACCENT}1f`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT }}>{icon}</Box>
+    <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)' }}>{title}</Typography>
+    <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)', lineHeight: 1.6 }}>{desc}</Typography>
+  </Box>
+);
 
 interface DsiEditorProps {
   payload?: { projectId?: string; workspaceName?: string };
@@ -32,11 +56,38 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
   const regionMode = useDsiEditorStore(s => s.regionMode);
   const setRegion = useDsiEditorStore(s => s.setRegion);
   const setRegionMode = useDsiEditorStore(s => s.setRegionMode);
+  const mode = useDsiEditorStore(s => s.mode);
+  const showStart = useDsiEditorStore(s => s.showStart);
+  const chooseMode = useDsiEditorStore(s => s.chooseMode);
 
   const activeBranch = branches.find(b => b.id === activeBranchId) || branches[0] || null;
   const displayUrl = selectedImageUrl || activeBranch?.currentImageUrl || originImageUrl || null;
   const running = !!activeBranch?.messages.some(m => m.status === 'running');
-  const isEditing = !!originImageUrl;
+
+  // 「画像から生成 / 画像を編集」を選んだら、まずローカル画像を読み込んで元画像にする。
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pendingModeRef = useRef<Exclude<DsiEditorMode, 'text'>>('edit');
+  const [uploading, setUploading] = useState(false);
+  const startWithImage = (m: Exclude<DsiEditorMode, 'text'>) => { pendingModeRef.current = m; fileRef.current?.click(); };
+  const handleStartFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImageAndGetUrl(file);
+      const st = useDsiEditorStore.getState();
+      // 画像入力を使うモードは画像編集対応モデル必須（FLUX schnell 等は入力画像を無視する）。
+      const provider = isEditCapableProvider(st.provider) ? st.provider : DEFAULT_EDIT_PROVIDER;
+      st.initSession({ originImageUrl: url, originTitle: file.name.replace(/\.[^.]+$/, ''), targetProjectId: st.targetProjectId, provider });
+      st.chooseMode(pendingModeRef.current);
+    } catch (err: any) {
+      console.error('[DsiEditor] 画像読み込みに失敗', err);
+      alert('画像の読み込みに失敗しました: ' + (err?.message || ''));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // セッション未初期化（直接遷移など）でも落ちないように、最低限のガード。
   useEffect(() => {
@@ -57,7 +108,9 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
         <AutoAwesomeRoundedIcon sx={{ fontSize: 18, color: ACCENT }} />
         <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)' }}>S.Image エディター</Typography>
         <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
-          {isEditing ? `編集中: ${originTitle || '画像'}` : '画像生成'}
+          {mode === 'edit' ? `編集中: ${originTitle || '画像'}`
+            : mode === 'img2img' ? '画像から生成'
+            : 'テキストから生成'}
         </Typography>
 
         <Box sx={{ flex: 1 }} />
@@ -122,6 +175,24 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
                 <AutoAwesomeRoundedIcon sx={{ fontSize: 44, color: ACCENT, animation: 'pulse 1.2s ease-in-out infinite' }} />
                 <Typography sx={{ fontSize: 13 }}>生成中…</Typography>
+              </Box>
+            ) : showStart ? (
+              // 起動時のモード選択（テキストから / 画像から / 画像を編集）。
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2.5, px: 3 }}>
+                <Typography sx={{ fontSize: 16, fontWeight: 700, color: 'var(--brand-fg)' }}>何を作りますか？</Typography>
+                <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)', mt: -1 }}>作りたいものを選んでください</Typography>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <ModeCard icon={<TextFieldsRoundedIcon />} title="テキストから生成" desc="プロンプトだけで新しい画像を作る" onClick={() => chooseMode('text')} disabled={uploading} />
+                  <ModeCard icon={<ImageRoundedIcon />} title="画像から生成" desc="手持ちの画像を参考に新しい画像を作る" onClick={() => startWithImage('img2img')} disabled={uploading} />
+                  <ModeCard icon={<EditRoundedIcon />} title="画像を編集" desc="既存の画像の一部だけを指示で変える" onClick={() => startWithImage('edit')} disabled={uploading} />
+                </Box>
+                {uploading && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
+                    <CircularProgress size={16} sx={{ color: ACCENT }} />
+                    <Typography sx={{ fontSize: 12 }}>画像を読み込み中…</Typography>
+                  </Box>
+                )}
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleStartFile} />
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>

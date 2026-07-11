@@ -14,9 +14,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box, Typography, IconButton, Tooltip, Button, Slider, InputBase, Stack,
   CircularProgress, LinearProgress, Divider,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
 import MovieFilterRoundedIcon from '@mui/icons-material/MovieFilterRounded';
 import MusicNoteRoundedIcon from '@mui/icons-material/MusicNoteRounded';
@@ -51,6 +53,7 @@ import { needsFfmpegSetup, downloadFfmpeg } from './services/ffmpegService';
 import { totalSequenceDuration, effectiveClipDuration } from './services/movieComposeArgs';
 import type { MovieTransitionType } from './types';
 import { MaterialPickerDialog } from './components/MaterialPickerDialog';
+import { useMultiSelect } from '../../hooks/useMultiSelect';
 
 // デザイントークン（docs/14 §4 — S.Movie アクセント）
 const ACCENT = '#C98A4B';        // 木材アンバー = アクション
@@ -847,7 +850,13 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
   const addClip = useDsmStore(s => s.addClip);
   const [movies, setMovies] = useState<GalleryMovie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 複数選択（Shift=範囲 / Ctrl(⌘)=トグル / 通常=単一）。
+  const orderedIds = useMemo(() => movies.map((m) => m.id), [movies]);
+  const sel = useMultiSelect(orderedIds);
+  const { selectedIds, clear: clearSelection } = sel;
+  // 一括削除（ローカル動画のみ実ファイル削除。クラウドは削除経路が無いので対象外）。
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<GalleryMovie[] | null>(null);
+  const [deletingBulk, setDeletingBulk] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -883,9 +892,50 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
       setLoading(false);
     }
   }, [dsmScope, activeProjectId]);
-  useEffect(() => { load(); setSelectedId(null); }, [load]);
+  useEffect(() => { load(); clearSelection(); }, [load, clearSelection]);
 
-  const selected = movies.find(m => m.id === selectedId) ?? null;
+  // 単一選択時のみ右パネルに詳細を表示。
+  const selected = selectedIds.size === 1 ? (movies.find((m) => selectedIds.has(m.id)) ?? null) : null;
+  const selectedMovies = movies.filter((m) => selectedIds.has(m.id));
+
+  // 選択中のローカル動画をまとめて削除確認へ（クラウドは対象外）。
+  const openBulkDelete = useCallback(() => {
+    const local = movies.filter((m) => selectedIds.has(m.id) && m.isLocal);
+    if (local.length) setBulkDeleteConfirm(local);
+  }, [movies, selectedIds]);
+
+  const confirmBulkDelete = useCallback(async () => {
+    if (!bulkDeleteConfirm || deletingBulk) return;
+    const items = bulkDeleteConfirm;
+    setDeletingBulk(true);
+    setBulkDeleteConfirm(null);
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const paths = items.map((m) => m.path).filter(Boolean);
+      if (paths.length) await invoke('delete_local_files', { paths });
+      clearSelection();
+      await load();
+    } catch (e) {
+      console.error('[MovieGallery] bulk delete failed', e);
+      window.alert('削除に失敗しました: ' + String(e));
+    } finally { setDeletingBulk(false); }
+  }, [bulkDeleteConfirm, deletingBulk, clearSelection, load]);
+
+  // ESC で選択解除 / Delete で選択中のローカル動画をまとめて削除。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (bulkDeleteConfirm) return;
+      if (e.key === 'Escape') { if (selectedIds.size > 0) { e.preventDefault(); clearSelection(); } return; }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const local = movies.filter((m) => selectedIds.has(m.id) && m.isLocal);
+        if (local.length) { e.preventDefault(); setBulkDeleteConfirm(local); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [bulkDeleteConfirm, selectedIds, clearSelection, movies]);
 
   // ダブルクリック: その Movie をエディターで開く（新規シーケンスに 1 クリップとして読み込む）
   const openInEditor = useCallback((m: GalleryMovie) => {
@@ -916,7 +966,7 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
   const isCloudScope = !['local_movies', 'project_movies', 'team_project_movies'].includes(dsmScope);
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', bgcolor: BRAND.bg }}>
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', bgcolor: BRAND.bg, position: 'relative' }}>
       {/* ══ 左カラム: ヘッダー + グリッド ══ */}
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* ヘッダー */}
@@ -938,7 +988,7 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
       </Box>
 
         {/* グリッド */}
-        <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 3 }} onClick={() => setSelectedId(null)}>
+        <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 3 }} onClick={() => clearSelection()}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: ACCENT }} /></Box>
           ) : isCloudScope ? (
@@ -962,13 +1012,13 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
           ) : (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 2 }}>
               {movies.map(m => {
-                const isSel = m.id === selectedId;
+                const isSel = selectedIds.has(m.id);
                 return (
                   <Box key={m.id}
-                    onClick={(e) => { e.stopPropagation(); setSelectedId(m.id); }}
+                    onClick={(e) => { e.stopPropagation(); sel.handleClick(m.id, e); }}
                     onDoubleClick={(e) => { e.stopPropagation(); openInEditor(m); }}
                     sx={{
-                      borderRadius: 2, overflow: 'hidden', cursor: 'pointer', position: 'relative',
+                      borderRadius: 2, overflow: 'hidden', cursor: 'pointer', position: 'relative', userSelect: 'none',
                       border: `1.5px solid ${isSel ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.1)'}`,
                       boxShadow: isSel ? `0 0 12px ${ACCENT}55` : 'none',
                       bgcolor: 'rgb(var(--brand-fg-rgb) / 0.03)', transition: 'all 0.15s',
@@ -979,6 +1029,9 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
                       <PlayCircleFilledRoundedIcon className="play" sx={{ position: 'absolute', fontSize: 40, color: 'var(--brand-fg)', opacity: 0, transition: 'opacity 0.15s', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))', pointerEvents: 'none' }} />
                       {m.origin && (
                         <Typography sx={{ position: 'absolute', top: 6, left: 6, fontSize: 9, fontFamily: MONO, fontWeight: 700, color: '#191815', bgcolor: BLUEPRINT, px: 0.6, borderRadius: 1 }}>{m.origin}</Typography>
+                      )}
+                      {isSel && (
+                        <CheckCircleRoundedIcon sx={{ position: 'absolute', top: 6, right: 6, fontSize: 20, color: ACCENT, bgcolor: 'rgba(20,21,24,0.6)', borderRadius: '50%', backdropFilter: 'blur(4px)' }} />
                       )}
                     </Box>
                     <Box sx={{ p: 1.25 }}>
@@ -1047,6 +1100,55 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
             </Box>
           )}
         </Box>
+
+      {/* 複数選択フローティングバー */}
+      {selectedIds.size > 0 && (
+        <Box sx={{
+          position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 200, display: 'flex', alignItems: 'center', gap: 1.5,
+          bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
+          borderRadius: 3, px: 2.5, py: 1.25, boxShadow: '0 6px 32px rgba(0,0,0,0.6)',
+        }}>
+          <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 700 }}>{selectedIds.size} 件選択中</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
+            Shift+クリックで範囲選択 / Ctrl+クリックで追加・解除 / ESCで解除
+          </Typography>
+          <Button size="small" onClick={() => clearSelection()}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>解除</Button>
+          <Tooltip title={selectedMovies.every((m) => !m.isLocal) ? 'クラウド動画は削除できません' : ''}>
+            <span>
+              <Button size="small" variant="contained" color="error"
+                startIcon={deletingBulk ? <CircularProgress size={13} color="inherit" /> : <DeleteOutlineRoundedIcon />}
+                onClick={openBulkDelete} disabled={deletingBulk || selectedMovies.every((m) => !m.isLocal)}
+                sx={{ textTransform: 'none' }}>
+                {deletingBulk ? '削除中...' : '削除'}
+              </Button>
+            </span>
+          </Tooltip>
+        </Box>
+      )}
+
+      {/* 一括削除の確認ダイアログ */}
+      <Dialog open={!!bulkDeleteConfirm} onClose={() => !deletingBulk && setBulkDeleteConfirm(null)}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, minWidth: 400 } }}>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: 15 }}>{bulkDeleteConfirm?.length ?? 0} 件の動画を削除</DialogTitle>
+        <DialogContent sx={{ pt: 0 }}>
+          <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.65)', mb: 1.5 }}>
+            選択したローカル動画を削除します。ローカルファイルが削除され、この操作は元に戻せません。
+          </Typography>
+          <Box sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.25)', borderRadius: 1.5, p: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {(bulkDeleteConfirm || []).map((m) => (
+              <Typography key={m.id} noWrap sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.85)' }}>{m.name}</Typography>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setBulkDeleteConfirm(null)} disabled={deletingBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none' }}>キャンセル</Button>
+          <Button variant="contained" color="error" disabled={deletingBulk} onClick={confirmBulkDelete} sx={{ textTransform: 'none' }}>
+            {deletingBulk ? '削除中...' : `${bulkDeleteConfirm?.length ?? 0} 件を削除する`}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

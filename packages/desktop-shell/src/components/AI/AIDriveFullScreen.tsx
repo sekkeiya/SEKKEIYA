@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography, TextField, IconButton, Chip, Paper, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Slider, Button, Menu, MenuItem, CircularProgress } from '@mui/material';
 import { useAppStore } from '../../store/useAppStore';
+import { useTeamsStore } from '../../store/useTeamsStore';
 import { useAIDriveStore, isReusableAsset, type AIDriveAsset } from '../../store/useAIDriveStore';
 import { loadLocalAiDriveAssets, isTypeToken, matchesTypeToken, isCategoryTag, OUTPUT_KINDS, assetOutputKind, type OutputKind } from './aiDriveExtras';
 import { isTauri } from '../../lib/platform';
@@ -209,6 +210,8 @@ interface AIDriveFullScreenProps {
 
 const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onPickAsset, onClosePicker, onRequestClose }) => {
   const { setAIDriveExpanded, activeProjectId, projects } = useAppStore();
+  const teams = useTeamsStore(s => s.teams);
+  const [teamFolderOpen, setTeamFolderOpen] = useState(false);
   const { assets, selectedAssetIds, setSelectedAssetIds, activeScope, setActiveScope, subscribeToAssets, updateAsset, deleteAsset, moveOrCopyAssets, uploadImageToDrive } = useAIDriveStore();
   const { isDragging, startDrag, updateDrag, endDrag, pointerPosition, draggingAssets, pendingDropAsset, consumeDropAsset, isCopyMode } = useAIDriveDragStore();
   
@@ -416,13 +419,21 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
     sourceCollection: 'gallery',
   } as AIDriveAsset)), [galleryFeed.items]);
 
-  // 表示元アセット: ローカル＝端末内 / ALL＝公開フィード / それ以外＝クラウド（store）。
+  // 特定チーム（team_{teamId}）選択時: そのチームのプロジェクト（project.teamId 一致）の資産に絞る。
+  const teamProjectIds = React.useMemo(() => {
+    if (!activeScope.startsWith('team_') || activeScope === 'team_library') return null;
+    const teamId = activeScope.slice('team_'.length);
+    return new Set(projects.filter(p => (p as any).teamId === teamId).map(p => p.id));
+  }, [activeScope, projects]);
+
+  // 表示元アセット: ローカル＝端末内 / ALL＝公開フィード / 特定チーム＝そのチームのプロジェクト / それ以外＝クラウド（store）。
   const baseAssets = activeScope === 'local' ? localAssets
     : activeScope === 'all_public' ? galleryAssets
+    : teamProjectIds ? assets.filter(a => teamProjectIds.has(a.projectId as string) || (a as any).projectIds?.some((id: string) => teamProjectIds.has(id)))
     : assets;
 
   // 参照専用スコープ（他者公開/ローカル/チーム/ゴミ箱）ではアップロード・AI整理を出さない。
-  const isReadOnlyScope = activeScope === 'all_public' || activeScope === 'local' || activeScope === 'team_library' || activeScope === 'trash';
+  const isReadOnlyScope = activeScope === 'all_public' || activeScope === 'local' || activeScope.startsWith('team_') || activeScope === 'trash';
 
   // Total counts for active scope
   const totalCount = baseAssets.length;
@@ -586,9 +597,23 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
             <Box onClick={() => setActiveScope('local')}>
               <SidebarNavItem icon={<StorageRoundedIcon />} label="Local Folder" count={activeScope === 'local' ? totalCount : undefined} active={activeScope === 'local'} />
             </Box>
-            <Box onClick={() => setActiveScope('team_library')}>
+            {/* Team Folder: クリックで展開し、参加中のチームをネスト表示。チームを選ぶとそのチームの資産に絞る。 */}
+            <Box onClick={() => { setActiveScope('team_library'); setTeamFolderOpen(o => !o); }}>
               <SidebarNavItem icon={<GroupsRoundedIcon />} label="Team Folder" count={activeScope === 'team_library' ? totalCount : undefined} active={activeScope === 'team_library'} />
             </Box>
+            {teamFolderOpen && (
+              teams.length > 0 ? teams.map(t => (
+                <FolderItem
+                  key={t.id}
+                  label={t.name}
+                  depth={1}
+                  active={activeScope === `team_${t.id}`}
+                  onClick={() => setActiveScope(`team_${t.id}`)}
+                />
+              )) : (
+                <Typography sx={{ pl: 6, py: 0.5, fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>参加中のチームはありません</Typography>
+              )
+            )}
             <Divider sx={{ my: 1, borderColor: 'rgb(var(--brand-fg-rgb) / 0.06)', mx: 2 }} />
             <Box onClick={() => setActiveScope('unorganized')}>
               <SidebarNavItem icon={<ErrorOutlineRoundedIcon />} label="未整理" count={activeScope === 'unorganized' ? totalCount : undefined} active={activeScope === 'unorganized'} />

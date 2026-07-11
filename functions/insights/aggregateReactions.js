@@ -25,6 +25,31 @@ exports.aggregateReactions = async (data = {}, context = {}) => {
   if (!admin.apps.length) admin.initializeApp();
   const db = admin.firestore();
 
+  // ── 件数モード（学習モニターの「資産の規模」グラフ用） ───────────────
+  // {counts: true} で学習資産コレクションの現在の総件数を返す（読み取り専用）。
+  // count() 集計を使うので全ドキュメントを読まない（1コレクション=1読み取り）。
+  // collectionGroup はユーザー横断（users/… と projects/… の両方）を1本で数える。
+  if (data.counts === true) {
+    const groups = {
+      reactionLogs: "reactionLogs",     // 反応ログ（生データ）
+      knowledgeChunks: "knowledgeChunks", // RAG 索引の断片
+      knowledgeSources: "knowledgeSources", // 取り込み元ドキュメント
+      driveAssets: "driveAssets",       // Drive の分析済みファイル
+      aiMemory: "aiMemory",             // 長期記憶（users + projects）
+    };
+    const counts = {};
+    await Promise.all(Object.entries(groups).map(async ([key, cg]) => {
+      try {
+        const agg = await db.collectionGroup(cg).count().get();
+        counts[key] = agg.data().count;
+      } catch (e) {
+        console.warn(`[aggregateReactions] count ${cg} failed: ${e.message}`);
+        counts[key] = null; // 索引未整備などは null（UI 側で「—」表示）
+      }
+    }));
+    return { success: true, mode: "counts", counts, day: jstDay() };
+  }
+
   // ── 期間モード（読み取り専用・学習モニターのグラフ用） ────────────────
   // {days: N} で直近N日(JST)の日別推移を返す。insights への書き込みはしない。
   // 単一フィールド例外 (reactionLogs.day COLLECTION_GROUP_ASC) は範囲クエリもカバーする。
@@ -35,30 +60,49 @@ exports.aggregateReactions = async (data = {}, context = {}) => {
     const rsnap = await db.collectionGroup("reactionLogs")
       .where("day", ">=", start).where("day", "<=", end).get();
 
-    const byDay = {}; // day → { impressions, clicks, events }
+    // 日付キー（古→新）を先に確定。全体用と surface 別用で使い回す。
+    const dayKeys = [];
+    const byDay = {}; // day → { impressions, clicks, events }（全 surface 合算）
     for (let i = 0; i < n; i++) {
-      byDay[jstDay(new Date(Date.now() - (n - 1 - i) * 86400e3))] = { impressions: 0, clicks: 0, events: 0 };
+      const k = jstDay(new Date(Date.now() - (n - 1 - i) * 86400e3));
+      dayKeys.push(k);
+      byDay[k] = { impressions: 0, clicks: 0, events: 0 };
     }
     const rUsers = new Set();
-    const surfaceTotals = {}; // surface → { impressions, clicks }
+    const surfaceTotals = {};  // surface → { impressions, clicks }
+    const bySurfaceDay = {};   // surface → { day → { impressions, clicks, events } }
+    const surfDayBucket = (surface) => {
+      if (!bySurfaceDay[surface]) {
+        bySurfaceDay[surface] = {};
+        for (const k of dayKeys) bySurfaceDay[surface][k] = { impressions: 0, clicks: 0, events: 0 };
+      }
+      return bySurfaceDay[surface];
+    };
     for (const doc of rsnap.docs) {
       const d = doc.data();
       if (!d.day || !byDay[d.day]) continue;
       rUsers.add(doc.ref.path.split("/")[1]);
       byDay[d.day].events++;
-      const st = surfaceTotals[d.surface] = surfaceTotals[d.surface] || { impressions: 0, clicks: 0 };
-      if (d.action === "impression") { byDay[d.day].impressions++; st.impressions++; }
-      else if (d.action === "clicked") { byDay[d.day].clicks++; st.clicks++; }
+      const surface = d.surface || "(unknown)";
+      const sd = surfDayBucket(surface)[d.day];
+      sd.events++;
+      const st = surfaceTotals[surface] = surfaceTotals[surface] || { impressions: 0, clicks: 0 };
+      if (d.action === "impression") { byDay[d.day].impressions++; st.impressions++; sd.impressions++; }
+      else if (d.action === "clicked") { byDay[d.day].clicks++; st.clicks++; sd.clicks++; }
     }
-    const daily = Object.entries(byDay).map(([dy, v]) => ({
-      day: dy, ...v,
-      ctr: v.impressions > 0 ? Math.round((v.clicks / v.impressions) * 1000) / 1000 : null,
-    }));
+    // day バケツ → daily 配列（古→新・CTR 付き）
+    const mkDaily = (obj) => dayKeys.map((dy) => {
+      const v = obj[dy];
+      return { day: dy, ...v, ctr: v.impressions > 0 ? Math.round((v.clicks / v.impressions) * 1000) / 1000 : null };
+    });
+    const daily = mkDaily(byDay);
+    const dailyBySurface = {}; // surface → daily配列（台帳の資産別グラフ用）
+    for (const [sName, obj] of Object.entries(bySurfaceDay)) dailyBySurface[sName] = mkDaily(obj);
     const surfaces = {};
     for (const [sName, v] of Object.entries(surfaceTotals)) {
       surfaces[sName] = { ...v, ctr: v.impressions > 0 ? Math.round((v.clicks / v.impressions) * 1000) / 1000 : null };
     }
-    return { success: true, mode: "range", start, end, daily, surfaces, eventCount: rsnap.size, userCount: rUsers.size };
+    return { success: true, mode: "range", start, end, daily, dailyBySurface, surfaces, eventCount: rsnap.size, userCount: rUsers.size };
   }
 
   // ── 単日モード（従来どおり集計して insights に保存） ──────────────────

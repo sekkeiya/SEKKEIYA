@@ -110,8 +110,8 @@ function ScopeItem({ icon, label, active, onClick, color, onRenameClick, onDelet
 }
 
 // サブフォルダ集計（相対パス→直下件数）から、中間階層も補完したツリーノード一覧を作る。
-interface FolderNode { path: string; name: string; depth: number; count: number; }
-function buildFolderTree(map: Record<string, number> | undefined): FolderNode[] {
+interface FolderNode { path: string; name: string; depth: number; count: number; setCount: number; }
+function buildFolderTree(map: Record<string, number> | undefined, setMap?: Record<string, number>): FolderNode[] {
   if (!map) return [];
   const paths = new Set<string>();
   for (const key of Object.keys(map)) {
@@ -121,22 +121,34 @@ function buildFolderTree(map: Record<string, number> | undefined): FolderNode[] 
   }
   const nodes: FolderNode[] = [];
   for (const p of paths) {
-    // 集計件数 = そのフォルダ直下＋配下すべて。
+    // 集計件数 = そのフォルダ直下＋配下すべて（ファイル数／テクスチャは別途セット数も）。
     let count = 0;
+    let setCount = 0;
     for (const [k, v] of Object.entries(map)) {
       if (k === p || k.startsWith(p + '/')) count += v;
     }
+    if (setMap) {
+      for (const [k, v] of Object.entries(setMap)) {
+        if (k === p || k.startsWith(p + '/')) setCount += v;
+      }
+    }
     const parts = p.split('/');
-    nodes.push({ path: p, name: parts[parts.length - 1], depth: parts.length - 1, count });
+    nodes.push({ path: p, name: parts[parts.length - 1], depth: parts.length - 1, count, setCount });
   }
   nodes.sort((a, b) => a.path.localeCompare(b.path));
   return nodes;
 }
 
+// テクスチャフォルダ（トップ階層が「テクスチャ」）は Base/Normal/Rough/AO の4枚で1セットのため、
+// 件数はファイル数ではなくセット数で表示する。
+function isTextureFolder(path: string): boolean {
+  return path === 'テクスチャ' || path.startsWith('テクスチャ/');
+}
+
 // サブフォルダ1行（インデントで階層を表現）。子を持つフォルダは開閉トグル付き。
 // 行本体クリック=絞り込み、シェブロンクリック=開閉。
-function DsiSubfolderRow({ name, depth, count, active, hasChildren, expanded, onSelect, onToggle }: {
-  name: string; depth: number; count: number; active: boolean;
+function DsiSubfolderRow({ name, depth, count, setCount, isTexture, active, hasChildren, expanded, onSelect, onToggle }: {
+  name: string; depth: number; count: number; setCount?: number; isTexture?: boolean; active: boolean;
   hasChildren: boolean; expanded: boolean; onSelect: () => void; onToggle: () => void;
 }) {
   return (
@@ -167,7 +179,12 @@ function DsiSubfolderRow({ name, depth, count, active, hasChildren, expanded, on
         <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: active ? 600 : 500, color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)' }}>
           {name}
         </Typography>
-        <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }}>{count}</Typography>
+        <Typography
+          title={isTexture ? `${count} 枚` : undefined}
+          sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)', flexShrink: 0 }}
+        >
+          {isTexture ? `${setCount ?? 0} セット` : count}
+        </Typography>
       </Box>
     </Box>
   );
@@ -187,6 +204,7 @@ function LocalSourceManager() {
   const sources = useImageSourcesStore(s => s.sources);
   const counts = useImageSourcesStore(s => s.counts);
   const subfolderCounts = useImageSourcesStore(s => s.subfolderCounts);
+  const subfolderSetCounts = useImageSourcesStore(s => s.subfolderSetCounts);
   const sourceFilter = useImageSourcesStore(s => s.sourceFilter);
   const subfolderFilter = useImageSourcesStore(s => s.subfolderFilter);
   const setSourceFilter = useImageSourcesStore(s => s.setSourceFilter);
@@ -228,7 +246,7 @@ function LocalSourceManager() {
       />
 
       {sources.map(src => {
-        const tree = buildFolderTree(subfolderCounts[src.id]);
+        const tree = buildFolderTree(subfolderCounts[src.id], subfolderSetCounts[src.id]);
         // 親パス集合（子を持つフォルダの判定用）。空文字=直下フォルダの親（=ソース）。
         const parentPaths = new Set(tree.map(n => n.path.split('/').slice(0, -1).join('/')));
         return (
@@ -258,6 +276,8 @@ function LocalSourceManager() {
                   name={node.name}
                   depth={node.depth}
                   count={node.count}
+                  setCount={node.setCount}
+                  isTexture={isTextureFolder(node.path)}
                   active={sourceFilter === src.id && subfolderFilter === node.path}
                   hasChildren={parentPaths.has(node.path)}
                   expanded={expandedFolders.has(`${src.id}:${node.path}`)}

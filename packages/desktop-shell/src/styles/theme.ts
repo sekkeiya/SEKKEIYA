@@ -150,9 +150,23 @@ const buildDesktopTheme = (mode: 'dark' | 'light'): Theme => {
           },
         },
       },
+      // Select / Menu のドロップダウンは不透明面に（既定の background.paper は半透明で
+      // 背後が透けて選びにくいため）。--brand-glass はテーマ連動の不透明メニュー面。
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: 'var(--brand-glass)',
+            backgroundImage: 'none', // dark モードの elevation オーバーレイ（半透明）を無効化
+            border: `1px solid ${brand.line}`,
+          },
+        },
+      },
       MuiDialog: {
         styleOverrides: {
           paper: {
+            // ダイアログも不透明面に（背景が透けないように）。
+            backgroundColor: 'var(--brand-glass)',
+            backgroundImage: 'none',
             // Keep dialogs within the viewport on small screens (avoid horizontal overflow
             // from fixed widths) without forcing tiny confirm dialogs to full screen.
             '@media (max-width:768px)': {

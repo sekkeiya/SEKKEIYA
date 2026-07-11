@@ -47,6 +47,11 @@ interface ImageSourcesState {
   subfolderCounts: Record<string, Record<string, number>>;
   setSubfolderCounts: (m: Record<string, Record<string, number>>) => void;
 
+  /** ソースID → サブフォルダ相対パス → テクスチャのセット数（Base/Normal/Rough/AO の4枚=1セット）。
+   *  テクスチャフォルダはファイル数ではなくセット数で件数表示するために使う。 */
+  subfolderSetCounts: Record<string, Record<string, number>>;
+  setSubfolderSetCounts: (m: Record<string, Record<string, number>>) => void;
+
   /** Rust から最新のソース一覧を取得。 */
   refresh: () => Promise<void>;
   /** フォルダ選択ダイアログを開いてソースを追加。 */
@@ -80,6 +85,9 @@ export const useImageSourcesStore = create<ImageSourcesState>((set, get) => ({
 
   subfolderCounts: {},
   setSubfolderCounts: (subfolderCounts) => set({ subfolderCounts }),
+
+  subfolderSetCounts: {},
+  setSubfolderSetCounts: (subfolderSetCounts) => set({ subfolderSetCounts }),
 
   refresh: async () => {
     const core = await tauriCore();

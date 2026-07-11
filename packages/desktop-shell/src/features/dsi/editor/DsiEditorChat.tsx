@@ -110,21 +110,30 @@ export const DsiEditorChat: React.FC = () => {
     st.appendUserMessage(branchId, bubble);
     const msgId = st.startAssistant(branchId);
 
-    const editing = !!base; // ベース画像がある＝編集
-    // 編集は画像編集対応モデル必須（FLUX schnell 等は入力画像を無視し全く別の画像になる）。
-    const provider = editing && !isEditCapableProvider(st.provider) ? DEFAULT_EDIT_PROVIDER : (st.provider || 'nanobanana');
+    const usingImage = !!base; // ベース画像あり＝編集 or 画像から生成
+    const mode = st.mode;
+    // 画像入力を使うモードは画像編集対応モデル必須（FLUX schnell 等は入力画像を無視し全く別の画像になる）。
+    const provider = usingImage && !isEditCapableProvider(st.provider) ? DEFAULT_EDIT_PROVIDER : (st.provider || 'nanobanana');
 
     const regionText = region
       ? `対象範囲: 画像の 左${Math.round(region.x * 100)}%〜${Math.round((region.x + region.w) * 100)}% × 上${Math.round(region.y * 100)}%〜${Math.round((region.y + region.h) * 100)}% の矩形内。この範囲だけを変更し、範囲外は変えないでください。`
       : null;
-    const effectivePrompt = editing
-      ? [
-          'この画像を編集してください。元の構図・アングル・写っている物の配置・全体の雰囲気は保ち、指示された箇所だけを自然に変更してください。文字や新しい物体を勝手に追加しないでください。',
-          regionText,
-          detailText ? `希望: ${detailText}` : null,
-          `変更内容: ${instruction}`,
-        ].filter(Boolean).join('\n')
-      : [detailText ? `補足: ${detailText}` : null, instruction].filter(Boolean).join('\n');
+    const effectivePrompt =
+      (usingImage && mode === 'edit')
+        ? [
+            'この画像を編集してください。元の構図・アングル・写っている物の配置・全体の雰囲気は保ち、指示された箇所だけを自然に変更してください。文字や新しい物体を勝手に追加しないでください。',
+            regionText,
+            detailText ? `希望: ${detailText}` : null,
+            `変更内容: ${instruction}`,
+          ].filter(Boolean).join('\n')
+        : (usingImage && mode === 'img2img')
+        ? [
+            'この画像を参考（下絵・スタイル・被写体の雰囲気）にして、新しい画像を生成してください。構図やディテールは指示に沿って自由に発展させて構いません。',
+            regionText,
+            detailText ? `希望: ${detailText}` : null,
+            `方向性: ${instruction}`,
+          ].filter(Boolean).join('\n')
+        : [detailText ? `補足: ${detailText}` : null, instruction].filter(Boolean).join('\n');
 
     try {
       const requestAiRender = httpsCallable(functions, 'requestAiRender');
@@ -155,9 +164,11 @@ export const DsiEditorChat: React.FC = () => {
     const instruction = input.trim();
     if (!instruction || !activeBranch) return;
     const st = useDsiEditorStore.getState();
+    if (st.showStart) st.chooseMode(st.mode); // 起動オーバーレイが残っていれば閉じる
     const base = activeBranch.currentImageUrl || originImageUrl || null;
     setInput('');
-    if (base) {
+    // 編集モードのときだけ、生成前に選択式の確認カードを出す（画像から生成は自由度重視でスキップ）。
+    if (base && st.mode === 'edit') {
       const questions = buildClarifyQuestions(instruction, { hasRegion: !!st.region });
       if (questions.length) { setClarify({ instruction, questions, answers: {} }); return; }
     }

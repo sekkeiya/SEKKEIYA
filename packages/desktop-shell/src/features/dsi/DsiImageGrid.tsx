@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { FixedSizeGrid as Grid } from 'react-window';
 import PhotoLibraryRoundedIcon from '@mui/icons-material/PhotoLibraryRounded';
-import { DsiImageCard, DSI_CARD_SIZE, DSI_META_HEIGHT } from './DsiImageCard';
+import { DsiImageCard, DSI_CARD_WIDTH, DSI_THUMB_HEIGHT, DSI_META_HEIGHT } from './DsiImageCard';
 import { DsiLightbox } from './DsiLightbox';
 import { useDsiStore } from './store/useDsiStore';
 import { useImageSourcesStore } from './store/useImageSourcesStore';
@@ -13,7 +13,7 @@ const ACCENT = '#ec407a';
 /** 各セル内側の余白（カード周囲の隙間）。 */
 const CELL_PAD = 8;
 /** FixedSizeGrid のカラム幅（カード幅 + 左右余白）。 */
-const COLUMN_WIDTH = DSI_CARD_SIZE + CELL_PAD * 2;
+const COLUMN_WIDTH = DSI_CARD_WIDTH + CELL_PAD * 2;
 
 interface DsiImageGridProps {
   images: any[];
@@ -25,8 +25,8 @@ interface DsiImageGridProps {
   localError?: string;
   onDeleteItem?: (item: any) => void;
   onSelectItem?: (item: any) => void;
-  /** Shift+クリックで複数選択（削除用）トグル */
-  onMultiSelectToggle?: (id: string) => void;
+  /** 複数選択の変更（範囲/トグル/単一）。選択ID配列で丸ごと置き換える。 */
+  onMultiSelectChange?: (ids: string[]) => void;
   /** 複数選択中のID集合（リング表示に使用） */
   multiDeleteIds?: Set<string>;
 }
@@ -83,7 +83,7 @@ const WindowOuter = React.forwardRef<HTMLDivElement, any>(function WindowOuter(p
 });
 
 const Cell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
-  const { entries, columnCount, paddingLeft, pickMode, selectedImageId, selectedIds, onCardClick, onCardDoubleClick, onCardDelete, existingMaterialIds, textureSetMode, textureSetSelection, onMultiSelectToggle, multiDeleteIds } = data;
+  const { entries, columnCount, paddingLeft, pickMode, selectedImageId, selectedIds, onCardClick, onCardDoubleClick, onCardDelete, existingMaterialIds, textureSetMode, textureSetSelection, onMultiSelect, multiDeleteIds } = data;
   const index = rowIndex * columnCount + columnIndex;
   if (index >= entries.length) return null;
   const entry: Entry = entries[index];
@@ -97,6 +97,10 @@ const Cell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
     && entry.group.items.length > 0
     && entry.group.items.every((it: any) => textureSetSelection.has(it.id));
   const isMultiSelected = !!(multiDeleteIds && activeId && multiDeleteIds.has(activeId));
+  // 削除ボタンの対象: テクスチャグループはグループ全体（全マップ）を削除対象にする。
+  const deletePayload = entry.kind === 'texture-group'
+    ? { type: 'texture-group', _textureGroup: entry.group, id: entry.group.id, title: entry.group.title }
+    : cardItem;
 
   return (
     <div
@@ -107,11 +111,14 @@ const Cell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
         boxSizing: 'border-box',
       }}
       onClick={(e: React.MouseEvent) => {
-        if (e.shiftKey && activeId && onMultiSelectToggle) {
+        // 複数選択（Shift=範囲 / Ctrl(⌘)=トグル）。onMultiSelect は通常モード時のみ渡される。
+        if (activeId && onMultiSelect && (e.shiftKey || e.ctrlKey || e.metaKey)) {
           e.preventDefault();
-          onMultiSelectToggle(activeId);
+          onMultiSelect(index, activeId, e.shiftKey ? 'range' : 'toggle');
           return;
         }
+        // 通常クリック: 単一選択（アンカー更新・複数選択はクリア）。
+        if (activeId && onMultiSelect) onMultiSelect(index, activeId, 'single');
         onCardClick(entry);
       }}
     >
@@ -143,14 +150,14 @@ const Cell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
         selected={setSelected}
         onClick={() => onCardClick(entry)}
         onDoubleClick={isImage ? () => onCardDoubleClick(entry) : undefined}
-        onDelete={onCardDelete && (isImage || isGroup) ? () => onCardDelete(cardItem) : undefined}
+        onDelete={onCardDelete && (isImage || isGroup) ? () => onCardDelete(deletePayload) : undefined}
       />
     </div>
   );
 });
 Cell.displayName = 'DsiGridCell';
 
-export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textureGroups = [], isInitializing, isLocal, localError, onDeleteItem, onSelectItem, onMultiSelectToggle, multiDeleteIds }) => {
+export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textureGroups = [], isInitializing, isLocal, localError, onDeleteItem, onSelectItem, onMultiSelectChange, multiDeleteIds }) => {
   const categoryFilter = useDsiStore((s) => s.categoryFilter);
   const tagFilter = useDsiStore((s) => s.tagFilter);
   const applicationFilter = useDsiStore((s) => s.applicationFilter);
@@ -294,9 +301,43 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
     [pickMode, textureSetMode],
   );
 
+  // ── 複数選択（Shift=範囲 / Ctrl(⌘)=トグル / 通常=単一）。削除フローと選択集合を共有。 ──
+  const anchorIdRef = useRef<string | null>(null);
+  // entries 順の「選択できるID」（セットは選択対象外なので null）。範囲選択に使う。
+  const orderedSelectableIds = useMemo(
+    () => entries.map((e) => (e.kind === 'image' ? e.item.id : e.kind === 'texture-group' ? e.group.id : null)),
+    [entries],
+  );
+  const handleMultiSelect = useCallback(
+    (index: number, activeId: string, mode: 'single' | 'toggle' | 'range') => {
+      if (mode === 'single') {
+        anchorIdRef.current = activeId;
+        if (multiDeleteIds && multiDeleteIds.size > 0) onMultiSelectChange?.([]);
+        return;
+      }
+      if (mode === 'toggle') {
+        const next = new Set(multiDeleteIds || []);
+        if (next.has(activeId)) next.delete(activeId); else next.add(activeId);
+        anchorIdRef.current = activeId;
+        onMultiSelectChange?.(Array.from(next));
+        return;
+      }
+      // range: アンカー（無ければ現在の単一選択）からクリック位置までを連続選択。
+      const anchorId = anchorIdRef.current || selectedImageId;
+      const anchorIdx = anchorId ? orderedSelectableIds.indexOf(anchorId) : -1;
+      const from = anchorIdx >= 0 ? anchorIdx : index;
+      const lo = Math.min(from, index);
+      const hi = Math.max(from, index);
+      const ids: string[] = [];
+      for (let i = lo; i <= hi; i++) { const id = orderedSelectableIds[i]; if (id) ids.push(id); }
+      onMultiSelectChange?.(ids);
+    },
+    [multiDeleteIds, selectedImageId, orderedSelectableIds, onMultiSelectChange],
+  );
+
   const columnCount = Math.max(1, Math.floor(width / COLUMN_WIDTH));
   const rowCount = Math.ceil(entries.length / columnCount);
-  const rowHeight = DSI_CARD_SIZE + (pickMode ? 0 : DSI_META_HEIGHT) + CELL_PAD * 2;
+  const rowHeight = DSI_THUMB_HEIGHT + (pickMode ? 0 : DSI_META_HEIGHT) + CELL_PAD * 2;
   // 余ったスペースを左右に振ってグリッドを中央寄せ（S.Model と同じ）。
   const paddingLeft = Math.floor(Math.max(0, width - columnCount * COLUMN_WIDTH) / 2);
 
@@ -314,10 +355,10 @@ export const DsiImageGrid: React.FC<DsiImageGridProps> = ({ images, sets, textur
       onCardClick: handleCardClick,
       onCardDoubleClick: handleCardDoubleClick,
       onCardDelete: pickMode ? undefined : onDeleteItem,
-      onMultiSelectToggle,
+      onMultiSelect: (!pickMode && !textureSetMode && onMultiSelectChange) ? handleMultiSelect : undefined,
       multiDeleteIds,
     }),
-    [entries, columnCount, paddingLeft, pickMode, selectedImageId, selectedIds, existingMaterialIds, textureSetMode, textureSetSelection, handleCardClick, handleCardDoubleClick, onDeleteItem, onMultiSelectToggle, multiDeleteIds],
+    [entries, columnCount, paddingLeft, pickMode, selectedImageId, selectedIds, existingMaterialIds, textureSetMode, textureSetSelection, handleCardClick, handleCardDoubleClick, onDeleteItem, onMultiSelectChange, handleMultiSelect, multiDeleteIds],
   );
 
   if (isInitializing) {

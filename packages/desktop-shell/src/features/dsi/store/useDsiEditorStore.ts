@@ -35,11 +35,21 @@ export interface DsiBranch {
 /** 中央画像上の編集対象矩形（表示中画像に対する正規化座標 0..1） */
 export interface DsiRegion { x: number; y: number; w: number; h: number }
 
+/** エディターの作業モード。
+ *  - 'text'    : テキストから生成（元画像なし）
+ *  - 'img2img' : 画像から生成（元画像を参考に新しい画像を作る）
+ *  - 'edit'    : 画像編集（元画像の構図を保ち指定箇所だけ変える） */
+export type DsiEditorMode = 'text' | 'img2img' | 'edit';
+
 interface DsiEditorState {
   originImageUrl: string | null;
   originTitle: string;
   targetProjectId: string | null;
   provider: string;
+  /** 作業モード（生成プロンプトの組み立てを分岐する）。 */
+  mode: DsiEditorMode;
+  /** 起動直後のモード選択オーバーレイを出すか（元画像なしで開いたときだけ true）。 */
+  showStart: boolean;
   branches: DsiBranch[];
   activeBranchId: string | null;
   /** 中央に表示中の画像 URL（ツリーで選択したノード。null は元画像や空状態） */
@@ -55,6 +65,8 @@ interface DsiEditorState {
     targetProjectId: string | null;
     provider: string;
   }) => void;
+  /** 起動オーバーレイでモードを選ぶ（オーバーレイを閉じる）。 */
+  chooseMode: (mode: DsiEditorMode) => void;
   setProvider: (provider: string) => void;
   addBranch: () => string;
   setActiveBranch: (id: string) => void;
@@ -89,6 +101,8 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
   originTitle: '',
   targetProjectId: null,
   provider: 'nanobanana',
+  mode: 'text',
+  showStart: false,
   branches: [],
   activeBranchId: null,
   selectedImageUrl: null,
@@ -102,6 +116,9 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
       originTitle,
       targetProjectId,
       provider,
+      // 元画像ありで開いた＝編集。元画像なし＝テキスト生成の起点だが、起動時はモード選択を出す。
+      mode: originImageUrl ? 'edit' : 'text',
+      showStart: !originImageUrl,
       branches: [first],
       activeBranchId: first.id,
       selectedImageUrl: originImageUrl,
@@ -109,6 +126,8 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
       regionMode: false,
     });
   },
+
+  chooseMode: (mode) => set({ mode, showStart: false }),
 
   setProvider: (provider) => set({ provider }),
 
@@ -209,6 +228,8 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
     originImageUrl: null,
     originTitle: '',
     targetProjectId: null,
+    mode: 'text',
+    showStart: false,
     branches: [],
     activeBranchId: null,
     selectedImageUrl: null,

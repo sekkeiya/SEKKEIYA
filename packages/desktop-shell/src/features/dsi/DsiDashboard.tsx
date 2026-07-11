@@ -23,6 +23,7 @@ import LayersRoundedIcon from '@mui/icons-material/LayersRounded';
 import { useImagePickerStore } from '../../store/useImagePickerStore';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import { useAppStore } from '../../store/useAppStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useDsiEditorStore } from './store/useDsiEditorStore';
 import { useAiSettingsStore, isEditCapableProvider, DEFAULT_EDIT_PROVIDER } from '../../store/useAiSettingsStore';
 
@@ -51,6 +52,16 @@ const FILTER_TABS: { key: DsiCategoryFilter; label: string }[] = [
   // 動画は S.Movie 側で管理するため S.Image のカテゴリからは除外する。
   ...DSI_CATEGORIES.filter(c => c !== '動画').map(c => ({ key: c as DsiCategoryFilter, label: c })),
 ];
+
+// ヘッダーの大見出し = 左サイドバーで選択中のスコープ名（S.Movie と同様）。
+// プロジェクトスコープはプロジェクト名を出すため、ここには含めず下で解決する。
+const DSI_SCOPE_TITLES: Record<string, string> = {
+  global_images: 'Image',
+  global_projects: 'Public Projects',
+  local_assets: 'ローカル素材',
+  my_public_images: 'Public Image',
+  my_private_images: 'Private Image',
+};
 
 export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, sets, projects = null, isInitializing, isGlobal, isLocal, localError, onOpenProject }) => {
   const categoryFilter = useDsiStore(s => s.categoryFilter);
@@ -99,8 +110,20 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
   // targetProjectId は保存先。横断ビュー（Private/Public Image）では編集元画像の
   // projectId を渡し、その画像が属するプロジェクトへ保存する。
   const openImageEditor = useCallback((baseUrl?: string, targetProjectId?: string, title?: string) => {
-    const target = targetProjectId || projectId;
-    if (!target) return; // 保存先プロジェクトが無ければ開かない
+    // 保存先: 明示指定 → 選択中プロジェクト → アクティブ/自分の既定プロジェクト。
+    // 横断ビュー（Private/Public Image など、プロジェクト未選択）でも既定プロジェクトへ保存して開けるようにする。
+    let target = targetProjectId || projectId;
+    if (!target) {
+      const st = useAppStore.getState();
+      const uid = useAuthStore.getState().currentUser?.uid;
+      const projs = (st.projects || []) as any[];
+      target = st.activeProjectId
+        || projs.find((p) => p.ownerId === uid && !p.isTeam)?.id
+        || projs.find((p) => !p.isTeam)?.id
+        || projs[0]?.id
+        || '';
+    }
+    if (!target) { window.alert('保存先のプロジェクトがありません。先にプロジェクトを作成してください。'); return; }
     const configured = useAiSettingsStore.getState().imageProvider || 'nanobanana';
     // 編集（ベース画像あり）は画像編集対応モデルが必須。未対応なら編集対応の既定へ。
     const provider = baseUrl ? (isEditCapableProvider(configured) ? configured : DEFAULT_EDIT_PROVIDER) : configured;
@@ -120,6 +143,57 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
     return () => setAiTaskInnerRight(0);
   }, [isProjectsMode, setAiTaskInnerRight]);
   const openSet = useMemo(() => sets.find(s => s.id === openSetId) || null, [sets, openSetId]);
+
+  // 大見出しは左サイドバーで選択中のスコープ/プロジェクト名を表示する（S.Movie と同じ挙動）。
+  const dsiScope = useAppStore(s => s.dsiScope);
+  const activeProjectId = useAppStore(s => s.activeProjectId);
+  const allProjects = useAppStore(s => s.projects);
+  const scopeTitle = useMemo(() => {
+    if (dsiScope === 'project_images' || dsiScope === 'team_project_images') {
+      return allProjects.find((p: any) => p.id === activeProjectId)?.name || 'プロジェクト';
+    }
+    return DSI_SCOPE_TITLES[dsiScope] || '画像';
+  }, [dsiScope, activeProjectId, allProjects]);
+
+  // 削除可否: 自分のライブラリ（Private/Public Image）・プロジェクト・ローカルのみ。
+  // 「みんなの公開（global_images）」等の他人の画像は削除できない。
+  const canDelete = isLocal || canWrite || dsiScope === 'my_public_images' || dsiScope === 'my_private_images';
+
+  // 画像/動画ドキュメントを「出所（sourceCollection）」に応じて正しいコレクションから削除する。
+  const deleteImageDoc = useCallback(async (d: any) => {
+    const sc = d.sourceCollection;
+    const pid = d.projectId || projectId;
+    if (sc === 'global_assets') {
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('../../lib/firebase/client');
+      await deleteDoc(doc(db, 'assets', d.id));
+      return;
+    }
+    if (sc === 'assets' && pid && pid !== 'global') {
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('../../lib/firebase/client');
+      await deleteDoc(doc(db, 'projects', pid, 'assets', d.id));
+      return;
+    }
+    if (!pid) throw new Error('削除先プロジェクトが特定できません');
+    // workFiles（＋手動アップロードの実体 Storage）。参照リンクは元 Storage を守る。
+    await dsiUploadService.deleteImage(pid, d);
+  }, [projectId]);
+
+  // 複数の画像アイテムをまとめて削除（ローカルはファイル削除、クラウドは各コレクション）。
+  const performDeleteImages = useCallback(async (items: any[]) => {
+    const locals = items.filter((d) => d.isLocal || d.localPath || d.path);
+    const cloud = items.filter((d) => !(d.isLocal || d.localPath || d.path));
+    if (locals.length) {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const paths = locals.map((d) => d.localPath || d.path || d.id).filter(Boolean);
+      if (paths.length) await invoke('delete_local_files', { paths });
+    }
+    for (const d of cloud) {
+      try { await deleteImageDoc(d); }
+      catch (e) { console.warn('[DsiDashboard] delete doc failed', d?.id, e); }
+    }
+  }, [deleteImageDoc]);
 
   // テクスチャ（トップ階層）をマテリアル単位に束ねる。手動セットを最優先。
   // 部位カテゴリは手動上書き（appOverrides）があればそれを採用する。
@@ -308,16 +382,6 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
     }
   };
 
-  // Shift+クリック複数選択
-  const handleDsiMultiSelectToggle = (id: string) => {
-    setDsiMultiDeleteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   const handleDsiMultiDeleteOpen = () => {
     const items: any[] = [];
     for (const id of dsiMultiDeleteIds) {
@@ -335,26 +399,14 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
     setDeletingDsiMulti(true);
     setDsiMultiDeleteConfirm(null);
     try {
-      if (isLocal) {
-        const { invoke } = await import('@tauri-apps/api/core');
-        const paths = items.flatMap((d) => {
-          if (d._type === 'texture-group') return (d.items || []).map((it: any) => it.path || it.id);
-          return [d.path || d.id];
-        }).filter(Boolean);
-        if (paths.length) await invoke('delete_local_files', { paths });
-      } else if (projectId) {
-        for (const d of items) {
-          if (d._type === 'texture-group') {
-            for (const it of (d.items || [])) {
-              try { await dsiUploadService.deleteImage(projectId, it); } catch {}
-            }
-          } else {
-            try { await dsiUploadService.deleteImage(projectId, d); } catch {}
-          }
-        }
-      }
+      // テクスチャグループは全マップに展開してから、出所別に一括削除。
+      const flat = items.flatMap((d) => d._type === 'texture-group' ? (d.items || []) : [d]);
+      await performDeleteImages(flat);
       setDsiMultiDeleteIds(new Set());
       setSelectedImageId(null);
+    } catch (e) {
+      console.error('[DsiDashboard] multi delete failed', e);
+      window.alert('削除に失敗しました: ' + String(e));
     } finally { setDeletingDsiMulti(false); }
   };
 
@@ -402,23 +454,73 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
   };
 
   const handleConfirmDelete = async (cascade: boolean) => {
-    if (!projectId || !deleteTarget || deleting) return;
+    if (!deleteTarget || deleting) return;
     setDeleting(true);
     try {
       if (deleteTarget.type === 'image-set') {
-        await dsiUploadService.deleteImageSet(projectId, deleteTarget.id, cascade);
-        if (openSetId === deleteTarget.id) setOpenSetId(null);
+        if (projectId) {
+          await dsiUploadService.deleteImageSet(projectId, deleteTarget.id, cascade);
+          if (openSetId === deleteTarget.id) setOpenSetId(null);
+        }
+      } else if (deleteTarget.type === 'texture-group' && deleteTarget._textureGroup) {
+        // テクスチャセットは含まれる全マップ（Base/Normal/Rough/AO）をまとめて削除。
+        await performDeleteImages(deleteTarget._textureGroup.items || []);
+        if (selectedImageId === deleteTarget._textureGroup.id) setSelectedImageId(null);
       } else {
-        await dsiUploadService.deleteImage(projectId, deleteTarget);
+        await performDeleteImages([deleteTarget]);
         if (selectedImageId === deleteTarget.id) setSelectedImageId(null);
       }
       setDeleteTarget(null);
     } catch (e) {
       console.error('[DsiDashboard] delete failed', e);
+      window.alert('削除に失敗しました: ' + String(e));
     } finally {
       setDeleting(false);
     }
   };
+
+  // Delete / Backspace キーで選択中のアイテムを削除（確認ダイアログ経由）。
+  useEffect(() => {
+    if (!canDelete) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      if (pickMode || textureSetMode) return;
+      if (deleteTarget || dsiMultiDeleteConfirm) return; // ダイアログ表示中は無視
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      // Shift+クリックで複数選択済みならそれらを、無ければ単一選択（グループ優先）を対象にする。
+      if (dsiMultiDeleteIds.size > 0) {
+        e.preventDefault();
+        handleDsiMultiDeleteOpen();
+        return;
+      }
+      if (selectedGroup) {
+        e.preventDefault();
+        setDeleteTarget({ type: 'texture-group', _textureGroup: selectedGroup, id: selectedGroup.id, title: selectedGroup.title });
+      } else if (selectedImageId) {
+        const img = images.find((d) => d.id === selectedImageId);
+        if (img) { e.preventDefault(); setDeleteTarget(img); }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canDelete, pickMode, textureSetMode, deleteTarget, dsiMultiDeleteConfirm, dsiMultiDeleteIds, selectedGroup, selectedImageId, images, handleDsiMultiDeleteOpen]);
+
+  // ESC で選択を解除（複数選択・単一選択）。ダイアログ表示中はダイアログ側に委ねる。
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (pickMode || textureSetMode) return; // これらの解除は専用バーで行う
+      if (deleteTarget || dsiMultiDeleteConfirm) return; // ダイアログ優先
+      if (dsiMultiDeleteIds.size > 0 || selectedImageId) {
+        e.preventDefault();
+        if (dsiMultiDeleteIds.size > 0) setDsiMultiDeleteIds(new Set());
+        setSelectedImageId(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pickMode, textureSetMode, deleteTarget, dsiMultiDeleteConfirm, dsiMultiDeleteIds, selectedImageId, setSelectedImageId]);
 
   return (
     <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default', position: 'relative' }}>
@@ -510,20 +612,16 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
               <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
                 {isLocal ? 'Local Assets' : 'Image Library'}
               </Typography>
-              {isLocal ? (
-                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>ローカル素材</Typography>
-              ) : isProjectsMode ? (
-                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>公開プロジェクト</Typography>
-              ) : openSet ? (
+              {openSet ? (
                 <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />} sx={{ mt: 0.25 }}>
                   <Link component="button" underline="hover" onClick={() => setOpenSetId(null)}
                     sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 20, fontWeight: 700, '&:hover': { color: 'var(--brand-fg)' } }}>
-                    画像
+                    {scopeTitle}
                   </Link>
                   <Typography sx={{ color: 'var(--brand-fg)', fontSize: 20, fontWeight: 700 }}>{openSet.title || 'セット'}</Typography>
                 </Breadcrumbs>
               ) : (
-                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>画像</Typography>
+                <Typography sx={{ color: 'var(--brand-fg)', fontSize: 22, fontWeight: 700, mt: 0.25 }}>{scopeTitle}</Typography>
               )}
             </Box>
 
@@ -598,11 +696,11 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                   </Button>
                 </span>
               </Tooltip>
-              <Tooltip title={canWrite ? 'AIで画像を生成 / 編集' : 'プロジェクトを選択してください'} placement="bottom">
+              <Tooltip title={allProjects.length > 0 ? 'AIで画像を生成 / 編集（保存先は選択中／既定のプロジェクト）' : 'まずプロジェクトを作成してください'} placement="bottom">
                 <span>
                   <Button
                     variant="outlined" size="small" startIcon={<AutoAwesomeRoundedIcon />}
-                    disabled={!canWrite}
+                    disabled={allProjects.length === 0}
                     onClick={() => openImageEditor()}
                     sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
                   >
@@ -683,9 +781,9 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
               isInitializing={isInitializing}
               isLocal={isLocal}
               localError={localError}
-              onDeleteItem={canWrite ? (item) => setDeleteTarget(item) : undefined}
+              onDeleteItem={canDelete ? (item) => setDeleteTarget(item) : undefined}
               onSelectItem={(item) => setSelectedImageId(item.id)}
-              onMultiSelectToggle={!pickMode && !textureSetMode ? handleDsiMultiSelectToggle : undefined}
+              onMultiSelectChange={!pickMode && !textureSetMode ? (ids) => setDsiMultiDeleteIds(new Set(ids)) : undefined}
               multiDeleteIds={!pickMode ? dsiMultiDeleteIds : undefined}
             />
           )}
@@ -726,7 +824,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             {dsiMultiDeleteIds.size} 件選択中
           </Typography>
           <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
-            Shift+クリックで追加／解除
+            Shift+クリックで範囲選択 / Ctrl+クリックで追加・解除 / ESCで解除
           </Typography>
           <Button size="small" onClick={() => setDsiMultiDeleteIds(new Set())}
             sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>
@@ -971,7 +1069,9 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             </Typography>
           ) : (
             <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
-              「{deleteTarget?.title || deleteTarget?.name || 'このアイテム'}」を削除しますか？
+              「{deleteTarget?.title || deleteTarget?.name || 'このアイテム'}」
+              {deleteTarget?.type === 'texture-group' ? `（${deleteTarget?._textureGroup?.items?.length ?? 0} マップ）` : ''}
+              を削除しますか？
               {(deleteTarget?.sourceType === 'layout-render' || deleteTarget?.sourceType === 'ai-render')
                 ? ' これは元データへの参照です。S.Image の一覧から外れますが、元の S.Layout / AI Render のデータは残ります。'
                 : ' この操作は元に戻せません。'}

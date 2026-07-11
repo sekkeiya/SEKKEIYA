@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Typography, Button, InputBase, CircularProgress, Snackbar, Alert,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import LocalLibraryRoundedIcon from '@mui/icons-material/LocalLibraryRounded';
 import FolderOpenRoundedIcon from '@mui/icons-material/FolderOpenRounded';
@@ -61,6 +62,11 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
   const [regFilter, setRegFilter] = useState<RegistryFilter>({ ...DEFAULT_REGISTRY_FILTER });
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // 複数選択（Shift=範囲 / Ctrl(⌘)=トグル）＋ 一括削除。
+  const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
+  const multiAnchorRef = useRef<string | null>(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<string[] | null>(null);
+  const [deletingBulk, setDeletingBulk] = useState(false);
   const [ragBusy, setRagBusy] = useState(false);
   const [ragProgress, setRagProgress] = useState('');
   /** 一括RAG取り込みの結果ダイアログ（トーストだと見逃すため明示表示） */
@@ -121,13 +127,74 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
   // 「商品」の棚（家具・素材のEC/カタログ）は自動的に対象外にし、商品索引化へ誘導する。
   const canRag = (e: typeof filtered[number]) => canIngestRag(e);
 
-  const handleCardClick = (entry: typeof filtered[number]) => {
+  const handleCardClick = (entry: typeof filtered[number], e?: React.MouseEvent) => {
     if (ragSelectMode) {
       if (canRag(entry)) toggleRagSelection(entry.localId);
       return;
     }
-    setSelectedId(entry.localId);
+    const id = entry.localId;
+    if (e?.shiftKey) {
+      e.preventDefault();
+      const ordered = filtered.map((x) => x.localId);
+      const anchor = multiAnchorRef.current ?? id;
+      const a = ordered.indexOf(anchor);
+      const b = ordered.indexOf(id);
+      if (a < 0 || b < 0) { multiAnchorRef.current = id; setMultiSelectedIds(new Set([id])); return; }
+      setMultiSelectedIds(new Set(ordered.slice(Math.min(a, b), Math.max(a, b) + 1)));
+      return;
+    }
+    if (e?.ctrlKey || e?.metaKey) {
+      e.preventDefault();
+      multiAnchorRef.current = id;
+      setMultiSelectedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+      return;
+    }
+    multiAnchorRef.current = id;
+    if (multiSelectedIds.size > 0) setMultiSelectedIds(new Set());
+    setSelectedId(id);
   };
+
+  // 選択中をまとめて削除（isLocalFile はスキャン専用で削除不可のため除外）。
+  const openBulkDelete = () => {
+    const ids = filtered.filter((e) => multiSelectedIds.has(e.localId) && !e.isLocalFile).map((e) => e.localId);
+    if (ids.length) setBulkDeleteConfirm(ids);
+  };
+  const handleBulkDeleteConfirm = async () => {
+    if (!bulkDeleteConfirm || deletingBulk) return;
+    const ids = bulkDeleteConfirm;
+    setDeletingBulk(true);
+    setBulkDeleteConfirm(null);
+    try {
+      for (const id of ids) {
+        try { await remove(id); } catch (err) { console.warn('[DskDashboard] bulk delete skipped', id, err); }
+      }
+      setMultiSelectedIds(new Set());
+    } finally { setDeletingBulk(false); }
+  };
+
+  // ESC で選択解除 / Delete で選択中をまとめて削除（確認ダイアログ経由）。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (ragSelectMode) return;
+      if (deleteTarget || bulkDeleteConfirm || addOpen || lawOpen || viewerId || ragReport) return;
+      if (e.key === 'Escape') {
+        if (multiSelectedIds.size > 0) { e.preventDefault(); setMultiSelectedIds(new Set()); }
+        else if (selectedId) { e.preventDefault(); setSelectedId(null); }
+        return;
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const src = multiSelectedIds.size > 0
+          ? filtered.filter((x) => multiSelectedIds.has(x.localId))
+          : (selectedId ? filtered.filter((x) => x.localId === selectedId) : []);
+        const ids = src.filter((x) => !x.isLocalFile).map((x) => x.localId);
+        if (ids.length) { e.preventDefault(); setBulkDeleteConfirm(ids); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ragSelectMode, deleteTarget, bulkDeleteConfirm, addOpen, lawOpen, viewerId, ragReport, multiSelectedIds, selectedId, filtered]);
 
   const handleSelectAllRag = () => {
     setRagSelection(filtered.filter(canRag).map((e) => e.localId));
@@ -162,7 +229,7 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default', position: 'relative' }}>
       {/* Main column */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {view === 'brain' ? (
@@ -309,11 +376,11 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
                 <DskEntryCard
                   key={entry.localId}
                   entry={entry}
-                  active={selectedId === entry.localId}
+                  active={selectedId === entry.localId || multiSelectedIds.has(entry.localId)}
                   ragSelectMode={ragSelectMode}
                   ragSelected={ragSelection.has(entry.localId)}
                   ragDisabled={!canRag(entry)}
-                  onClick={() => handleCardClick(entry)}
+                  onClick={(e) => handleCardClick(entry, e)}
                   onOpen={() => {
                     // 内蔵ビューアで開けるのは実体が PDF のものと法令だけ。書類(kind 'pdf')でも
                     // docx/xlsx 等は OS 既定アプリで開く。
@@ -377,6 +444,46 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
           <Button onClick={() => setDeleteTarget(null)} disabled={deleting} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
           <Button onClick={handleConfirmDelete} disabled={deleting} variant="contained" color="error">
             {deleting ? '削除中...' : '削除'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 複数選択フローティングバー */}
+      {multiSelectedIds.size > 0 && view !== 'brain' && view !== 'products' && view !== 'registry' && (
+        <Box sx={{
+          position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 200, display: 'flex', alignItems: 'center', gap: 1.5,
+          bgcolor: 'var(--brand-surface2)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.18)',
+          borderRadius: 3, px: 2.5, py: 1.25, boxShadow: '0 6px 32px rgba(0,0,0,0.6)',
+        }}>
+          <Typography sx={{ fontSize: 13, color: 'var(--brand-fg)', fontWeight: 700 }}>{multiSelectedIds.size} 件選択中</Typography>
+          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
+            Shift+クリックで範囲選択 / Ctrl+クリックで追加・解除 / ESCで解除
+          </Typography>
+          <Button size="small" onClick={() => setMultiSelectedIds(new Set())}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>解除</Button>
+          <Button size="small" variant="contained" color="error"
+            startIcon={deletingBulk ? <CircularProgress size={13} color="inherit" /> : <DeleteOutlineRoundedIcon />}
+            onClick={openBulkDelete} disabled={deletingBulk}
+            sx={{ textTransform: 'none' }}>
+            {deletingBulk ? '削除中...' : '削除'}
+          </Button>
+        </Box>
+      )}
+
+      {/* 一括削除の確認ダイアログ */}
+      <Dialog open={!!bulkDeleteConfirm} onClose={() => !deletingBulk && setBulkDeleteConfirm(null)}
+        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', minWidth: 420 } }}>
+        <DialogTitle sx={{ pb: 1 }}>{bulkDeleteConfirm?.length ?? 0} 件の知識を削除</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.8)', fontSize: 14 }}>
+            選択した知識を削除します。ローカルのフォルダごと削除され、元に戻せません。
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0, gap: 1 }}>
+          <Button onClick={() => setBulkDeleteConfirm(null)} disabled={deletingBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)' }}>キャンセル</Button>
+          <Button onClick={handleBulkDeleteConfirm} disabled={deletingBulk} variant="contained" color="error">
+            {deletingBulk ? '削除中...' : `${bulkDeleteConfirm?.length ?? 0} 件を削除`}
           </Button>
         </DialogActions>
       </Dialog>

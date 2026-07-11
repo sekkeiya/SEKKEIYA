@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, InputBase, Chip, CircularProgress, Button, Tooltip, IconButton, ToggleButtonGroup, ToggleButton, Switch, Divider, LinearProgress, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, RadioGroup, FormControlLabel, Radio, List, ListItem, ListItemText, Slider } from '@mui/material';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import SkipNextRoundedIcon from '@mui/icons-material/SkipNextRounded';
@@ -77,7 +77,7 @@ const MaterialCard: React.FC<{
       onDoubleClick={onDoubleClick}
       sx={{
         position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-        p: 1.5, borderRadius: 2, cursor: 'pointer',
+        p: 1.5, borderRadius: 2, cursor: 'pointer', userSelect: 'none',
         bgcolor: multiSelected ? 'rgba(66,165,245,0.1)' : selected ? 'rgba(236,64,122,0.14)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
         border: `1px solid ${multiSelected ? '#42a5f5' : selected ? 'rgba(236,64,122,0.6)' : 'rgb(var(--brand-fg-rgb) / 0.06)'}`,
         boxShadow: multiSelected ? '0 0 0 2px rgba(66,165,245,0.45)' : 'none',
@@ -210,8 +210,9 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
   const [selected, setSelected] = useState<DsmtMaterial | null>(null);
   const [detail, setDetail] = useState<DsmtMaterial | null>(null);
   const [seeding, setSeeding] = useState(false);
-  // Shift+クリック複数選択
+  // 複数選択（Shift=範囲 / Ctrl(⌘)=トグル）。範囲選択の起点。
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
+  const multiAnchorRef = useRef<string | null>(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<DsmtMaterial[] | null>(null);
   const [deletingBulk, setDeletingBulk] = useState(false);
   // 類似検出しきい値ダイアログ
@@ -237,10 +238,23 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
   const openCreate = () => { setDialogOpen(true); };
   const openDetail = (m: DsmtMaterial) => { setDetail(m); };
 
-  // Shift+クリック複数選択ハンドラ
+  // 複数選択ハンドラ（Shift=範囲 / Ctrl(⌘)=トグル / 通常=単一）。
   const handleCardClick = (m: DsmtMaterial, e: React.MouseEvent) => {
     if (e.shiftKey) {
       e.preventDefault();
+      const orderedIds = filtered.map((x) => x.id);
+      const anchor = multiAnchorRef.current ?? m.id;
+      const a = orderedIds.indexOf(anchor);
+      const b = orderedIds.indexOf(m.id);
+      if (a < 0 || b < 0) { multiAnchorRef.current = m.id; setMultiSelectedIds(new Set([m.id])); return; }
+      const lo = Math.min(a, b);
+      const hi = Math.max(a, b);
+      setMultiSelectedIds(new Set(orderedIds.slice(lo, hi + 1)));
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      multiAnchorRef.current = m.id;
       setMultiSelectedIds((prev) => {
         const next = new Set(prev);
         if (next.has(m.id)) next.delete(m.id);
@@ -249,6 +263,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
       });
       return;
     }
+    multiAnchorRef.current = m.id;
     if (multiSelectedIds.size > 0) setMultiSelectedIds(new Set());
     setSelectedId(m.id);
     setSelected(m);
@@ -312,6 +327,28 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
   const hasSeeds = materials.some((m) => m.id?.startsWith('dsmt_seed_') && m.projectId);
   // 管理操作は「自分のプロジェクト由来 or プロジェクトスコープ」で可能。グローバル閲覧では読み取りのみ。
   const canManage = (m: DsmtMaterial) => !!(m.projectId || projectId);
+
+  // ESC で選択解除 / Delete で選択中をまとめて削除（確認ダイアログ経由）。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (bulkDeleteConfirm || detail || dialogOpen || pendingImages) return; // ダイアログ優先
+      if (e.key === 'Escape') {
+        if (multiSelectedIds.size > 0) { e.preventDefault(); setMultiSelectedIds(new Set()); }
+        else if (selected) { e.preventDefault(); setSelected(null); setSelectedId(null); }
+        return;
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const ids = multiSelectedIds.size > 0 ? multiSelectedIds : (selected ? new Set([selected.id]) : new Set<string>());
+        if (ids.size === 0) return;
+        const toDelete = filtered.filter((m) => ids.has(m.id) && canManage(m));
+        if (toDelete.length) { e.preventDefault(); setBulkDeleteConfirm(toDelete); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [bulkDeleteConfirm, detail, dialogOpen, pendingImages, multiSelectedIds, selected, filtered]);
 
   const seedDefaults = async () => {
     if (!projectId) return;
@@ -742,7 +779,7 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
             {multiSelectedIds.size} 件選択中
           </Typography>
           <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
-            Shift+クリックで追加／解除
+            Shift+クリックで範囲選択 / Ctrl+クリックで追加・解除 / ESCで解除 / Deleteで削除
           </Typography>
           <Button size="small" onClick={() => setMultiSelectedIds(new Set())}
             sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', textTransform: 'none', minWidth: 0, ml: 0.5 }}>

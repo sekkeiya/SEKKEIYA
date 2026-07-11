@@ -1077,6 +1077,8 @@ const useDslService = () => {
 import { useAppStore } from '../../../store/useAppStore';
 import { useDsiEditorStore } from '../../../features/dsi/store/useDsiEditorStore';
 import { useImageSourcesStore } from '../../../features/dsi/store/useImageSourcesStore';
+import { buildTextureGroups } from '../../../features/dsi/textureGrouping';
+import { useTextureSetStore } from '../../../features/dsi/store/useTextureSetStore';
 import { useModelSourcesStore } from '../../../features/dss/store/useModelSourcesStore';
 import { useLocalUploadStore } from '../../../features/dss/store/useLocalUploadStore';
 import { useDscStore } from '../../../features/dsc/store/useDscStore';
@@ -1883,7 +1885,53 @@ const DSI_GLOBAL_SCOPES = ['global_images', 'global_projects', 'my_public_images
 // ──────────────────────────────────────────────────────────────────────────────
 // 3DSI グローバル画像サービス（3DSR と同パターン）。
 // collectionGroup('workFiles') を appScope='3dsi' + visibility で購読。
+// さらに、SEKKEIYA Drive と表示を揃えるため、ユーザーのグローバル資産（collection('assets')）
+// にある画像/AIレンダーもマージする。AI Render や「放り込み」はプロジェクト無しだと assets 側にしか
+// 保存されず workFiles に出ないため（Drive には出るのに S.Image が空になる問題への対処）。
 // ──────────────────────────────────────────────────────────────────────────────
+
+/** http(s) の正規 URL だけ通す（ローカルパスの 404 サムネを描画しない）。 */
+function httpUrlOnly(u: any): string | undefined {
+  const s = typeof u === 'string' ? u.trim() : '';
+  return /^https?:\/\//i.test(s) ? s : undefined;
+}
+
+/** Drive のグローバル資産ドキュメントを S.Image の image-file アイテム形へ正規化する。
+ *  画像（type==='image'）のみ対象。動画・3Dモデル等は S.Image の担当外なので null を返す。 */
+function assetDocToImageItem(id: string, data: any): any | null {
+  const type = String(data?.type || '').toLowerCase();
+  if (type !== 'image') return null; // render/texture は publishToDrive で type='image'
+  const url = httpUrlOnly(data.storageUrl) || httpUrlOnly(data.imageUrl) || httpUrlOnly(data.thumbnailUrl);
+  if (!url) return null; // 表示できる本体 URL が無いものは出さない
+  const kind = String(data?.metadata?.kind || '').toLowerCase();
+  const tags: string[] = Array.isArray(data.tags) ? data.tags : [];
+  // カテゴリ（DsiCategory）を kind / タグから決定。
+  const category =
+    kind === 'texture' || tags.includes('テクスチャ') ? 'テクスチャ'
+    : kind === 'render' || tags.includes('ai-render') || tags.includes('AIレンダー') ? 'AIレンダー'
+    : '静止画';
+  return {
+    id,
+    projectId: data.projectId ?? null,
+    type: 'image-file',
+    name: data.name || data.title || 'Untitled',
+    title: data.name || data.title || 'Untitled',
+    category,
+    mediaType: 'image',
+    downloadUrl: url,
+    thumbnailUrl: httpUrlOnly(data.thumbnailUrl) || httpUrlOnly(data.imageUrl) || url,
+    tags,
+    ownerId: data.ownerId,
+    createdBy: data.ownerId,
+    visibility: data.visibility,
+    // 実体は Drive 資産（assets）を指す参照扱い。削除時に元 Storage を消さないよう storagePath は持たせない。
+    sourceType: 'ai-render',
+    sourceCollection: data.sourceCollection || (data.projectId ? 'assets' : 'global_assets'),
+    isDeleted: data.isDeleted === true,
+    createdAt: data.createdAt,
+  };
+}
+
 const useGlobalImagesService = (scope: string) => {
   const user = useAuthStore(s => s.currentUser);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -1893,7 +1941,6 @@ const useGlobalImagesService = (scope: string) => {
     const validScopes = ['global_images', 'my_public_images', 'my_private_images'];
     if (!validScopes.includes(scope)) { setIsInitializing(false); return; }
 
-    let unsubscribe: any;
     const wfGroup = collectionGroup(db, 'workFiles');
     let q: any;
 
@@ -1909,7 +1956,34 @@ const useGlobalImagesService = (scope: string) => {
 
     if (!q) { setIsInitializing(false); return; }
 
-    unsubscribe = onSnapshot(q, (snapshot: any) => {
+    const unsubs: any[] = [];
+    // workFiles と assets の 2 系統を別々に保持し、届くたびに結合して反映する。
+    let wfDocs: any[] = [];
+    let assetDocs: any[] = [];
+    let wfReady = false;
+    let assetReady = false;
+
+    const emit = () => {
+      // 結合。workFiles を優先し、同一画像（downloadUrl 一致）の assets 重複は落とす
+      //（プロジェクトを開いて生成した分は workFiles にリンク済みのため二重表示を防ぐ）。
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const it of [...wfDocs, ...assetDocs]) {
+        const key = it.downloadUrl || it.id;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(it);
+      }
+      const sets = merged.filter((item: any) => item.type === 'image-set');
+      const items = merged.filter((item: any) => item.type === 'image-file');
+      setData({ status: 'ready', items, sets });
+      if (wfReady && (assetReady || !(scope === 'my_public_images' || scope === 'my_private_images'))) {
+        setIsInitializing(false);
+      }
+    };
+
+    // 1) workFiles（従来）
+    unsubs.push(onSnapshot(q, (snapshot: any) => {
       let all = snapshot.docs.map((d: any) => ({
         id: d.id,
         projectId: d.ref.parent.parent?.id,
@@ -1919,18 +1993,39 @@ const useGlobalImagesService = (scope: string) => {
       if (scope === 'my_private_images') {
         all = all.filter((item: any) => !item.visibility || item.visibility === 'private');
       }
-
-      const sets = all.filter((item: any) => item.type === 'image-set');
-      const items = all.filter((item: any) => item.type === 'image-file');
-      setData({ status: 'ready', items, sets });
-      setIsInitializing(false);
+      wfDocs = all;
+      wfReady = true;
+      emit();
     }, (err: any) => {
-      console.error(`[useGlobalImagesService] Error for scope ${scope}:`, err);
-      setData({ status: 'error', items: [], sets: [] });
-      setIsInitializing(false);
-    });
+      console.error(`[useGlobalImagesService] workFiles error for scope ${scope}:`, err);
+      wfReady = true;
+      emit();
+    }));
 
-    return () => { if (unsubscribe) unsubscribe(); };
+    // 2) グローバル資産（assets）— 自分のライブラリ（Private/Public Image）のみマージ。
+    //    「みんなの公開（global_images）」は全ユーザー横断のため対象外（従来どおり workFiles のみ）。
+    if ((scope === 'my_public_images' || scope === 'my_private_images') && user?.uid) {
+      const qAssets = query(collection(db, 'assets'), where('ownerId', '==', user.uid), limit(400));
+      unsubs.push(onSnapshot(qAssets, (snapshot: any) => {
+        const arr = snapshot.docs
+          .map((d: any) => assetDocToImageItem(d.id, d.data()))
+          .filter((it: any) => it && !it.isDeleted)
+          .filter((it: any) => scope === 'my_public_images'
+            ? it.visibility === 'public'
+            : (!it.visibility || it.visibility === 'private'));
+        assetDocs = arr;
+        assetReady = true;
+        emit();
+      }, (err: any) => {
+        console.error(`[useGlobalImagesService] assets error for scope ${scope}:`, err);
+        assetReady = true;
+        emit();
+      }));
+    } else {
+      assetReady = true;
+    }
+
+    return () => { unsubs.forEach((u) => { try { u?.(); } catch { /* noop */ } }); };
   }, [scope, user?.uid]);
 
   return { isInitializing, data };
@@ -2001,9 +2096,22 @@ const useLocalImagesService = (active: boolean) => {
             if (!subCounts[it.sourceId]) subCounts[it.sourceId] = {};
             subCounts[it.sourceId][sub] = (subCounts[it.sourceId][sub] || 0) + 1;
           }
+          // テクスチャは Base/Normal/Rough/AO の4枚で1マテリアル(=1セット)。フォルダツリーの
+          // 件数を「セット数」で見せるため、テクスチャ画像をマテリアル単位に束ねてサブフォルダ別に集計する。
+          const manualSets = useTextureSetStore.getState().sets;
+          const textureImages = items.filter((it) => it.category === 'テクスチャ');
+          const setCounts: Record<string, Record<string, number>> = {};
+          for (const g of buildTextureGroups(textureImages, manualSets)) {
+            const cover = g.items[0] || g.cover;
+            const srcId = cover?.sourceId || 'default';
+            const sub = String(cover?.subfolder || '');
+            if (!setCounts[srcId]) setCounts[srcId] = {};
+            setCounts[srcId][sub] = (setCounts[srcId][sub] || 0) + 1;
+          }
           const imgStore = useImageSourcesStore.getState();
           imgStore.setCounts(counts);
           imgStore.setSubfolderCounts(subCounts);
+          imgStore.setSubfolderSetCounts(setCounts);
           setData({ status: 'ready', items, sets: [] });
           setIsInitializing(false);
         }
