@@ -1059,6 +1059,15 @@ service cloud.firestore {
     match /users/{userId}/aiMemory/{memId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
+
+    /* ======================================================
+     * ★ S.Image 生成チャットのセッション（本人のみ）
+     *    /users/{uid}/imageSessions/{sessionId}
+     *    プロジェクトごとの生成/編集チャット履歴（系統＋生成画像URL）を永続化。
+     * ==================================================== */
+    match /users/{userId}/imageSessions/{sessionId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
     match /projects/{projectId}/aiMemory/{memId} {
       function memProj() { return get(/databases/$(database)/documents/projects/$(projectId)).data; }
       allow read, write: if isSignedIn() && (
