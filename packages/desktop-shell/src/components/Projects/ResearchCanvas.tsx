@@ -20,6 +20,7 @@ import FormatQuoteRoundedIcon from '@mui/icons-material/FormatQuoteRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import LocalLibraryRoundedIcon from '@mui/icons-material/LocalLibraryRounded';
+import CloudOutlinedIcon from '@mui/icons-material/CloudOutlined';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
@@ -41,6 +42,7 @@ import {
 import { registerResearchBoardHost, RESEARCH_BOARD_CHANGED_EVENT } from '../../features/projects/chat/researchBoardBridge';
 import { isTauri } from '../../lib/platform';
 import { KnowledgePickerDialog } from './KnowledgePickerDialog';
+import { DriveAssetSidebar, DRIVE_IMAGE_DND_TYPE } from './DriveAssetSidebar';
 import {
   useConnectorStore, useConnectors, getConnector, DEFAULT_CONNECTOR_KEY, CONNECTOR_COLOR_CHOICES,
 } from '../../store/useConnectorStore';
@@ -1146,7 +1148,9 @@ const EdgeInspector: React.FC<{
   patchEdge: (id: string, patch: Partial<ResearchCanvasEdge>) => void;
   onDelete: () => void;
   onClose: () => void;
-}> = ({ edge, canEditPoints, patchEdge, onDelete, onClose }) => {
+  /** 右端からの距離(px)。Drive パネルと重ならないよう開いているときは左へ寄せる。 */
+  rightPx?: number;
+}> = ({ edge, canEditPoints, patchEdge, onDelete, onClose, rightPx = 12 }) => {
   const connectors = useConnectors();
   const addPreset = useConnectorStore(s => s.addPreset);
   const removePreset = useConnectorStore(s => s.removePreset);
@@ -1178,7 +1182,7 @@ const EdgeInspector: React.FC<{
 
   return (
     <Box className="nodrag nopan" sx={{
-      position: 'absolute', top: 52, right: 12, width: 240, zIndex: 6,
+      position: 'absolute', top: 52, right: rightPx, width: 240, zIndex: 6,
       maxHeight: 'calc(100% - 64px)', overflowY: 'auto',
       p: 1.5, borderRadius: 3, display: 'flex', flexDirection: 'column', gap: 1.25,
       bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
@@ -1308,6 +1312,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkTitle, setLinkTitle] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [driveOpen, setDriveOpen] = useState(false);
   // 表示モード: free=手置きのまま / map=ロジックの地図（レーン整列・非破壊）
   const [viewMode, setViewMode] = useState<BoardViewMode>('free');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2084,11 +2089,15 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    // 右の Drive パネルからのドラッグ → URL 参照でそのまま画像カードに（アップロード不要）
+    const driveUrl = e.dataTransfer.getData(DRIVE_IMAGE_DND_TYPE);
+    if (driveUrl) { addItem({ kind: 'image', url: driveUrl, text: '' }, pos); return; }
+    // OS からのファイルドロップ → アップロードして画像カードに
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     handleImageFile(file, pos);
-  }, [screenToFlowPosition, handleImageFile]);
+  }, [screenToFlowPosition, handleImageFile, addItem]);
 
   const handleAddLink = () => {
     const url = linkUrl.trim();
@@ -2216,7 +2225,7 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
               </Box>
 
               <Typography sx={{ mt: 2.5, fontSize: '0.7rem', color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
-                メモ・画像・リンク・知識はツールバーから / 画像はドラッグ&ドロップでも追加できます
+                メモ・画像・リンク・知識はツールバーから / 画像はドラッグ&ドロップ・Drive パネルからも追加できます
               </Typography>
             </Box>
           </Box>
@@ -2240,6 +2249,11 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
             <Button startIcon={<LocalLibraryRoundedIcon sx={{ fontSize: 15 }} />} sx={toolButtonSx}
               onClick={() => setPickerOpen(true)}>
               知識
+            </Button>
+            <Button startIcon={<CloudOutlinedIcon sx={{ fontSize: 15 }} />}
+              sx={{ ...toolButtonSx, ...(driveOpen ? { borderColor: '#00BFFF', color: '#00BFFF' } : {}) }}
+              onClick={() => setDriveOpen(v => !v)}>
+              Drive
             </Button>
 
             {/* ── 表示モード切替（自由配置 ⇄ ロジックの地図）── */}
@@ -2301,8 +2315,15 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
           patchEdge={patchEdge}
           onDelete={() => setEdges(eds => eds.filter(e => e.id !== selectedEdge.id))}
           onClose={() => setEdges(eds => eds.map(e => (e.selected ? { ...e, selected: false } : e)))}
+          rightPx={driveOpen ? 12 + 264 + 8 : 12}
         />
       )}
+
+      <DriveAssetSidebar
+        open={driveOpen}
+        onClose={() => setDriveOpen(false)}
+        onPick={url => addItem({ kind: 'image', url, text: '' })}
+      />
 
       <input ref={fileInputRef} type="file" accept="image/*" hidden
         onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ''; }} />
