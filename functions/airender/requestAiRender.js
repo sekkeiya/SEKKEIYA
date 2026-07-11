@@ -27,6 +27,7 @@ exports.requestAiRender = onCall(
     inputImageStoragePath = null,
     projectId = null,
     workspaceId = null,
+    loraId = null, // flux-lora プロバイダ用（どの公式LoRAを使うか。既定は provider 側で解決）
   } = request.data || {};
 
   if (renderPricing.imageRender[provider] === undefined) {
@@ -132,6 +133,7 @@ exports.requestAiRender = onCall(
       inputImageStoragePath,
       projectId,
       workspaceId,
+      loraId,
     })
     .catch(console.error);
 

@@ -1,0 +1,15 @@
+{
+  "name": "sekkeiya-lora-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "公式LoRA第一号(内観パース)のPoCハーネス: キュレーション→fal.aiで学習1本→1枚生成。本番functionsとは独立したdev専用ツール。",
+  "scripts": {
+    "train": "node lora-poc.mjs train",
+    "generate": "node lora-poc.mjs generate"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.2.0",
+    "adm-zip": "^0.5.16"
+  }
+}

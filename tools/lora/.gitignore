@@ -1,0 +1,14 @@
+# 秘匿情報（絶対にコミットしない）
+.env.local
+.env
+
+# 依存
+node_modules/
+
+# 生成物・教師画像（重い/権利物なので原則リポジトリ外）
+out/
+datasets/*/images/*
+# ただしフォルダ構成と説明・configは残す
+!datasets/*/images/.gitkeep
+!datasets/*/README.md
+!datasets/*/config.json

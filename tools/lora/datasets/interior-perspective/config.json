@@ -1,0 +1,6 @@
+{
+  "trigger_word": "skvintr",
+  "steps": 1000,
+  "is_style": true,
+  "_note": "trigger_word はプロンプトで作風を呼び出す合言葉（他語と衝突しない造語）。steps はfal課金に比例（$2基準/1000step目安）。is_style=true は『作風』学習（内観パースの質感・光・構図を学ばせる用途向け）。"
+}
