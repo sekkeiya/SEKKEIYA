@@ -146,8 +146,8 @@ async function openBoardSource(item: ResearchCanvasItem) {
 // ─── ノード → アイテム相互変換 ────────────────────────────────────────────────
 
 type CanvasNode = Node<{ item: ResearchCanvasItem }>;
-/** dimmed は経路ハイライト時の表示用フラグ（表示コピーにだけ乗せる。永続化されない）。 */
-type CanvasEdge = Edge<{ edge: ResearchCanvasEdge; dimmed?: boolean }>;
+/** dimmed=経路ハイライト時の減光 / hovered=ホバー中の強調。表示コピーにだけ乗せる（非永続）。 */
+type CanvasEdge = Edge<{ edge: ResearchCanvasEdge; dimmed?: boolean; hovered?: boolean }>;
 
 function itemToNode(item: ResearchCanvasItem): CanvasNode {
   return { id: item.id, type: item.kind, position: { x: item.x, y: item.y }, data: { item } };
@@ -861,8 +861,9 @@ const RelationEdge: React.FC<EdgeProps> = ({
   id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, markerEnd,
 }) => {
   const { patchEdge, portsEditable } = useCanvasCtx();
-  const { edge, dimmed } = data as { edge: ResearchCanvasEdge; dimmed?: boolean };
+  const { edge, dimmed, hovered } = data as { edge: ResearchCanvasEdge; dimmed?: boolean; hovered?: boolean };
   const rel = getConnector(edge.relation);
+  const focused = !!selected || !!hovered;  // 選択 or ホバー中＝際立たせる
   const { screenToFlowPosition } = useReactFlow();
   const nodes = useNodes();
   const [editing, setEditing] = useState(false);
@@ -954,12 +955,21 @@ const RelationEdge: React.FC<EdgeProps> = ({
     }
   }
 
+  // 既定コネクタ(だから)で理由も無い線は、未フォーカス時はラベルを出さず小さな点だけにして
+  // 「だから」の洪水を防ぐ。非既定(でも/例えば等)や理由付きは語だけのチップを出す。
+  const isDefault = edge.relation === DEFAULT_CONNECTOR_KEY;
+  const showDotOnly = !focused && isDefault && !edge.label;
+
   return (
     <>
+      {/* フォーカス中は背景色のケーシング(縁取り)を線の下に敷き、交差する他線の上を跨ぐように見せる */}
+      {focused && !dimmed && (
+        <path d={path} fill="none" stroke="var(--brand-bg)" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+      )}
       <BaseEdge id={id} path={path} markerEnd={markerEnd as string}
         style={{
-          stroke: rel.color, strokeWidth: selected ? 2.4 : 1.8, strokeDasharray: rel.dash,
-          opacity: dimmed ? 0.12 : selected ? 1 : 0.8, transition: 'opacity .15s',
+          stroke: rel.color, strokeWidth: focused ? 2.6 : 1.7, strokeDasharray: rel.dash,
+          opacity: dimmed ? 0.1 : focused ? 1 : 0.66, transition: 'opacity .15s, stroke-width .1s',
         }} />
       <EdgeLabelRenderer>
         <Box className="nodrag nopan"
@@ -969,7 +979,7 @@ const RelationEdge: React.FC<EdgeProps> = ({
             pointerEvents: dimmed ? 'none' : 'all',
             opacity: dimmed ? 0.15 : 1, transition: 'opacity .15s',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5,
-            zIndex: selected ? 10 : 1,
+            zIndex: focused ? 20 : 2,
           }}>
           {editing ? (
             <InputBase
@@ -985,18 +995,32 @@ const RelationEdge: React.FC<EdgeProps> = ({
                 border: `1px solid ${rel.color}`, boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
               }}
             />
+          ) : showDotOnly ? (
+            // 既定・理由なし・未フォーカス → 小さな点だけ（ホバー/選択で語＋理由に展開）
+            <Box
+              onDoubleClick={() => { setDraft(edge.label || ''); setEditing(true); }}
+              title={rel.label}
+              sx={{
+                width: 7, height: 7, borderRadius: '50%', cursor: 'pointer',
+                bgcolor: rel.color, opacity: 0.7, border: '1.5px solid var(--brand-bg)',
+                '&:hover': { opacity: 1 },
+              }} />
           ) : (
             <Box
               onDoubleClick={() => { setDraft(edge.label || ''); setEditing(true); }}
+              title={edge.label || rel.label}
               sx={{
-                px: 0.8, py: 0.15, borderRadius: 1.5, cursor: 'pointer', maxWidth: 220,
+                px: 0.8, py: 0.15, borderRadius: 1.5, cursor: 'pointer',
+                maxWidth: focused ? 260 : 120,
                 fontSize: 10.5, fontWeight: 700, lineHeight: 1.7, textAlign: 'center',
                 color: rel.color, bgcolor: 'var(--brand-surface)',
-                border: `1px solid ${selected ? rel.color : 'rgb(var(--brand-fg-rgb) / 0.15)'}`,
+                border: `1px solid ${focused ? rel.color : 'rgb(var(--brand-fg-rgb) / 0.12)'}`,
+                boxShadow: focused ? '0 3px 10px rgba(0,0,0,0.28)' : 'none',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                opacity: selected || edge.label ? 1 : 0.75,
+                opacity: focused ? 1 : 0.82,
               }}>
-              {rel.label}{edge.label ? `｜${edge.label}` : ''}
+              {/* 未フォーカスは語だけ・フォーカスで理由まで（洪水を防ぐ） */}
+              {rel.label}{focused && edge.label ? `｜${edge.label}` : ''}
             </Box>
           )}
         </Box>
@@ -1293,6 +1317,8 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   // 整列ガイド線（ドラッグ中に他ノードと揃う位置に出る）
   const [helperLineV, setHelperLineV] = useState<number | undefined>(undefined);
   const [helperLineH, setHelperLineH] = useState<number | undefined>(undefined);
+  // ホバー中のワイヤー（その線を強調＝密なボードで追跡しやすく）
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
 
   // 保存まわり: 最後に保存したJSONと比較して差分があるときだけ書き込む
   const lastSavedRef = useRef<string>('');
@@ -1671,9 +1697,16 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
     return viewMode === 'map' ? [...laneNodes, ...traced] : traced;
   }, [nodes, viewMode, laneLayout, laneNodes, trace]);
 
+  // 表示エッジ: 経路ハイライトの減光（trace）＋ホバー強調（hovered/zIndex）を表示コピーに乗せる
   const displayEdges = useMemo(
-    () => (trace ? edges.map(e => (trace.edgeIds.has(e.id) ? e : { ...e, data: { ...e.data!, dimmed: true } })) : edges),
-    [edges, trace],
+    () => edges.map(e => {
+      const dimmed = trace ? !trace.edgeIds.has(e.id) : false;
+      const hovered = e.id === hoveredEdgeId;
+      const focused = hovered || !!e.selected;
+      if (!dimmed && !hovered && !focused) return e;
+      return { ...e, zIndex: focused ? 1000 : undefined, data: { ...e.data!, dimmed, hovered } };
+    }),
+    [edges, trace, hoveredEdgeId],
   );
 
   // 右サイドバー: ワイヤーをちょうど1本選択しているときに編集パネルを出す
@@ -2111,6 +2144,8 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         onReconnect={onReconnect}
+        onEdgeMouseEnter={(_, e) => setHoveredEdgeId(e.id)}
+        onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         // loose: どの辺のハンドルからでも source/target 両方向に接続できる（矢印を自由に引ける）
