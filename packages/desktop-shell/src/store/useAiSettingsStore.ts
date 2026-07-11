@@ -113,6 +113,7 @@ export const IMAGE_PROVIDER_OPTIONS: ImageProviderOption[] = [
   { value: 'nanobanana', label: 'Gemini（標準）', description: '高品質・約1分/枚・画像編集対応', available: true, edit: true },
   { value: 'flux-schnell', label: 'FLUX schnell', description: '高速（数秒/枚）· 生成専用（編集不可）', available: true, edit: false },
   { value: 'flux-lora', label: '内観LoRA（公式）', description: 'SEKKEIYA公式・内観パース特化 · 約10秒/枚 · 生成専用（編集不可）', available: true, edit: false },
+  { value: 'flux-lora-local', label: '内観LoRA（ローカル・無料）', description: 'あなたのGPUで生成（クラウド課金ゼロ）· 要ComfyUI起動 · 生成専用（編集不可）', available: true, edit: false },
 ];
 
 /** 画像→画像編集に対応する provider か（false は text→image 専用で編集に使うと入力画像を無視する）。 */

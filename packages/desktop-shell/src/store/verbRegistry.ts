@@ -8,12 +8,14 @@
 import type { VerbDef } from './verb/verbTypes';
 import { layoutVerbs } from '../features/dsl/layout/chat/layoutVerbs';
 import { researchVerbs } from '../features/projects/chat/researchVerbs';
+import { imageVerbs } from '../features/projects/chat/imageVerbs';
 import { presentationVerbs } from '../features/dsp/chat/presentationVerbs';
 import { driveVerbs } from '../features/drive/chat/driveVerbs';
 
 export const ALL_VERBS: VerbDef[] = [
   ...layoutVerbs,
   ...researchVerbs,
+  ...imageVerbs,
   ...presentationVerbs,
   ...driveVerbs,
 ];

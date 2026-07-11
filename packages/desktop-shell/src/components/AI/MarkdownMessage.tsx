@@ -85,6 +85,11 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ text, isNew = false, 
           px: 1, py: 0.5, textAlign: 'left', verticalAlign: 'top',
         },
         '& th': { fontWeight: 600, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' },
+        // 生成画像など（generate_image の結果）。クリックで S.Image エディタへ（ハンドオフ）。
+        '& img': {
+          maxWidth: '100%', borderRadius: '8px', display: 'block', my: 0.75,
+          cursor: 'pointer', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)',
+        },
       }}
     >
       <ReactMarkdown
@@ -95,6 +100,37 @@ const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ text, isNew = false, 
           // リンクは新規タブで開く
           a: ({ children, href }) => (
             <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+          ),
+          // 生成画像: クリックでその画像を元に S.Image エディタを開く（チャット→専門工房のハンドオフ）。
+          img: ({ src, alt }) => (
+            <img
+              src={src}
+              alt={alt || ''}
+              title="クリックで S.Image エディタで編集"
+              onClick={async () => {
+                if (!src) return;
+                try {
+                  const [{ useDsiEditorStore }, { useAppStore }, aiSettings] = await Promise.all([
+                    import('../../features/dsi/store/useDsiEditorStore'),
+                    import('../../store/useAppStore'),
+                    import('../../store/useAiSettingsStore'),
+                  ]);
+                  const app = useAppStore.getState();
+                  const target = app.activeProjectId || (app.projects || []).find((p: any) => !p.isTeam)?.id || '';
+                  if (!target) return;
+                  const configured = aiSettings.useAiSettingsStore.getState().imageProvider || 'nanobanana';
+                  // 編集は編集対応モデル or ローカルLoRA（comfy_edit 対応）のみ。それ以外は既定の編集対応へ。
+                  const provider = (aiSettings.isEditCapableProvider(configured) || configured === 'flux-lora-local')
+                    ? configured : aiSettings.DEFAULT_EDIT_PROVIDER;
+                  useDsiEditorStore.getState().initSession({
+                    originImageUrl: src, originTitle: alt || 'チャット生成画像', targetProjectId: target, provider,
+                  });
+                  app.setActiveWorkspaceId('image');
+                  useAppStore.getState().setCurrentMainView('workspace');
+                  app.setDsiShellMode('editor');
+                } catch (e) { console.warn('[MarkdownMessage] S.Image handoff failed', e); }
+              }}
+            />
           ),
         }}
       >

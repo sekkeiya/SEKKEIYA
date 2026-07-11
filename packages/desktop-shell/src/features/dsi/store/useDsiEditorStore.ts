@@ -41,7 +41,24 @@ export interface DsiRegion { x: number; y: number; w: number; h: number }
  *  - 'edit'    : 画像編集（元画像の構図を保ち指定箇所だけ変える） */
 export type DsiEditorMode = 'text' | 'img2img' | 'edit';
 
+/** Firestore から読み込んだセッション（imageSessions ドキュメント）。 */
+export interface LoadedDsiSession {
+  id: string;
+  projectId?: string | null;
+  title?: string;
+  provider?: string;
+  mode?: DsiEditorMode;
+  originImageUrl?: string | null;
+  originTitle?: string;
+  branches?: DsiBranch[];
+  createdAtMs?: number;
+}
+
 interface DsiEditorState {
+  /** 永続化セッション（チャット）ID。Firestore users/{uid}/imageSessions/{id}。 */
+  sessionId: string | null;
+  /** セッション作成時刻（ms）。保存時 createdAt に使う。 */
+  sessionCreatedAt: number | null;
   originImageUrl: string | null;
   originTitle: string;
   targetProjectId: string | null;
@@ -65,9 +82,15 @@ interface DsiEditorState {
     targetProjectId: string | null;
     provider: string;
   }) => void;
+  /** 保存済みセッション（Firestore）をエディタに読み込む。 */
+  hydrate: (session: LoadedDsiSession) => void;
   /** 起動オーバーレイでモードを選ぶ（オーバーレイを閉じる）。 */
   chooseMode: (mode: DsiEditorMode) => void;
+  /** モードを切り替える（セッション中の「新規生成/画像から生成/画像を編集」トグル）。 */
+  setMode: (mode: DsiEditorMode) => void;
   setProvider: (provider: string) => void;
+  /** 保存先プロジェクトを切り替える（採用/保存時の書き込み先）。 */
+  setTargetProject: (projectId: string) => void;
   addBranch: () => string;
   setActiveBranch: (id: string) => void;
   removeBranch: (id: string) => void;
@@ -97,6 +120,8 @@ const makeBranch = (name: string, currentImageUrl: string | null): DsiBranch => 
 });
 
 export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
+  sessionId: null,
+  sessionCreatedAt: null,
   originImageUrl: null,
   originTitle: '',
   targetProjectId: null,
@@ -112,6 +137,8 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
   initSession: ({ originImageUrl, originTitle = '', targetProjectId, provider }) => {
     const first = makeBranch('v1', originImageUrl);
     set({
+      sessionId: uid(),
+      sessionCreatedAt: Date.now(),
       originImageUrl,
       originTitle,
       targetProjectId,
@@ -127,9 +154,34 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
     });
   },
 
+  hydrate: (s) => {
+    const branches = (s.branches && s.branches.length > 0)
+      ? s.branches
+      : [makeBranch('v1', s.originImageUrl ?? null)];
+    set({
+      sessionId: s.id,
+      sessionCreatedAt: s.createdAtMs ?? Date.now(),
+      originImageUrl: s.originImageUrl ?? null,
+      originTitle: s.originTitle ?? '',
+      targetProjectId: s.projectId ?? null,
+      provider: s.provider ?? 'nanobanana',
+      mode: s.mode ?? 'text',
+      showStart: false,
+      branches,
+      activeBranchId: branches[0]?.id ?? null,
+      selectedImageUrl: branches[0]?.currentImageUrl ?? s.originImageUrl ?? null,
+      region: null,
+      regionMode: false,
+    });
+  },
+
   chooseMode: (mode) => set({ mode, showStart: false }),
 
+  setMode: (mode) => set({ mode }),
+
   setProvider: (provider) => set({ provider }),
+
+  setTargetProject: (projectId) => set({ targetProjectId: projectId }),
 
   addBranch: () => {
     const { branches, originImageUrl } = get();
@@ -225,6 +277,8 @@ export const useDsiEditorStore = create<DsiEditorState>((set, get) => ({
   },
 
   reset: () => set({
+    sessionId: null,
+    sessionCreatedAt: null,
     originImageUrl: null,
     originTitle: '',
     targetProjectId: null,

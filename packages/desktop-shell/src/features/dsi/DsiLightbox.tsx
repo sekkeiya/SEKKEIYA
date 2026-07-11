@@ -5,6 +5,7 @@ import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import PreviewGalleryStrip from '../../components/AI/PreviewGalleryStrip';
 
 const ACCENT = '#ec407a';
 
@@ -143,6 +144,16 @@ export const DsiLightbox: React.FC<DsiLightboxProps> = ({ images, currentId, onC
           <ChevronRightRoundedIcon sx={{ fontSize: 34 }} />
         </IconButton>
       </Box>
+
+      {/* 下部ギャラリー（SEKKEIYA Reader と同じ UX で前後移動・ドラッグ/クリック/←→） */}
+      {images.length > 1 && (
+        <PreviewGalleryStrip
+          items={images.map((im) => ({ id: im.id, image: im.thumbnailUrl || im.downloadUrl, title: im.title || im.name, subtitle: im.category }))}
+          activeIndex={index}
+          onSelect={(i) => onChange(images[i].id)}
+          accent={ACCENT}
+        />
+      )}
     </Box>
   );
 };

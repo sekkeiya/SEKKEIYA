@@ -127,12 +127,19 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
     const configured = useAiSettingsStore.getState().imageProvider || 'nanobanana';
     // 編集（ベース画像あり）は画像編集対応モデルが必須。未対応なら編集対応の既定へ。
     const provider = baseUrl ? (isEditCapableProvider(configured) ? configured : DEFAULT_EDIT_PROVIDER) : configured;
-    useDsiEditorStore.getState().initSession({
-      originImageUrl: baseUrl || null,
-      originTitle: title || '',
-      targetProjectId: target,
-      provider,
-    });
+    const editorStore = useDsiEditorStore.getState();
+    // ベース画像指定（特定画像の編集）or 既存チャットが無い場合のみ新規セッション。
+    // それ以外（「画像生成・編集」で再入）は既存チャットを維持して開き直す＝ダッシュボード
+    // 往復で生成履歴がリセットされないようにする。
+    const hasSession = editorStore.branches.some((b) => b.messages.length > 0);
+    if (baseUrl || !hasSession) {
+      editorStore.initSession({
+        originImageUrl: baseUrl || null,
+        originTitle: title || '',
+        targetProjectId: target,
+        provider,
+      });
+    }
     setDsiShellMode('editor');
   }, [projectId, setDsiShellMode]);
 
@@ -696,7 +703,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                   </Button>
                 </span>
               </Tooltip>
-              <Tooltip title={allProjects.length > 0 ? 'AIで画像を生成 / 編集（保存先は選択中／既定のプロジェクト）' : 'まずプロジェクトを作成してください'} placement="bottom">
+              <Tooltip title={allProjects.length > 0 ? 'AIで画像を生成・編集（エディタが開きます・保存先は選択中／既定のプロジェクト）' : 'まずプロジェクトを作成してください'} placement="bottom">
                 <span>
                   <Button
                     variant="outlined" size="small" startIcon={<AutoAwesomeRoundedIcon />}
@@ -704,7 +711,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
                     onClick={() => openImageEditor()}
                     sx={{ color: 'var(--brand-fg)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', '&:hover': { borderColor: ACCENT }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.3)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.1)' } }}
                   >
-                    新規Image
+                    画像生成・編集
                   </Button>
                 </span>
               </Tooltip>

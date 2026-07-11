@@ -10,7 +10,10 @@ import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import { useDsiEditorStore, type DsiEditorMode } from './store/useDsiEditorStore';
 import { DsiEditorChat } from './editor/DsiEditorChat';
+import { DsiHistoryPanel } from './editor/DsiHistoryPanel';
 import { RegionSelectLayer } from './editor/RegionSelectLayer';
+import { useAuthStore } from '../../store/useAuthStore';
+import { saveCurrentSession } from './dsiSessions';
 import { uploadImageAndGetUrl } from '../../lib/firebase/uploadImage';
 import { isEditCapableProvider, DEFAULT_EDIT_PROVIDER } from '../../store/useAiSettingsStore';
 import { BRAND } from '../../styles/theme';
@@ -68,6 +71,8 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingModeRef = useRef<Exclude<DsiEditorMode, 'text'>>('edit');
   const [uploading, setUploading] = useState(false);
+  // 右パネルのタブ: 'chat'=生成/編集チャット, 'projects'=プロジェクト→チャット一覧。
+  const [rightTab, setRightTab] = useState<'chat' | 'history'>('chat');
   const startWithImage = (m: Exclude<DsiEditorMode, 'text'>) => { pendingModeRef.current = m; fileRef.current?.click(); };
   const handleStartFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,6 +101,24 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
       st.initSession({ originImageUrl: null, originTitle: '', targetProjectId: st.targetProjectId || payload?.projectId || null, provider: st.provider });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 自動保存: 生成履歴（branches）が変わるたびに Firestore へ debounce 保存（クラウド同期）。
+  useEffect(() => {
+    const uid = useAuthStore.getState().currentUser?.uid;
+    if (!uid) return;
+    let prev = useDsiEditorStore.getState().branches;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = useDsiEditorStore.subscribe((s) => {
+      if (s.branches === prev) return;
+      prev = s.branches;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { saveCurrentSession(uid).catch((e) => console.warn('[DsiEditor] session save failed', e)); }, 1200);
+    });
+    return () => {
+      unsub();
+      if (timer) { clearTimeout(timer); saveCurrentSession(uid).catch(() => {}); } // 保留中を離脱時にフラッシュ
+    };
   }, []);
 
   return (
@@ -147,9 +170,6 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
 
         <Box sx={{ flex: 1 }} />
 
-        {activeBranch && (
-          <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>系統 {activeBranch.name}</Typography>
-        )}
       </Box>
 
       <Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -206,8 +226,35 @@ export const DsiEditor: React.FC<DsiEditorProps> = ({ payload, onBack }) => {
           </Box>
         </Box>
 
-        {/* 右: 派生系統チャット */}
-        <DsiEditorChat />
+        {/* 右: タブ（チャット / プロジェクト→チャット一覧） */}
+        <Box sx={{ width: 360, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', borderLeft: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel }}>
+          <Box sx={{ display: 'flex', flexShrink: 0, borderBottom: `1px solid ${BRAND.line}` }}>
+            {([['chat', 'チャット'], ['history', '生成履歴']] as const).map(([key, label]) => (
+              <Box
+                key={key}
+                onClick={() => setRightTab(key)}
+                sx={{
+                  flex: 1, textAlign: 'center', py: 1, fontSize: 12, cursor: 'pointer',
+                  fontWeight: rightTab === key ? 700 : 500,
+                  color: rightTab === key ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.5)',
+                  borderBottom: rightTab === key ? `2px solid ${ACCENT}` : '2px solid transparent',
+                  '&:hover': { color: 'var(--brand-fg)' },
+                }}
+              >
+                {label}
+              </Box>
+            ))}
+          </Box>
+          {/* チャットは非表示時もアンマウントしない（生成中ジョブ購読を保つため display 切替）。 */}
+          <Box sx={{ flex: 1, minHeight: 0, display: rightTab === 'chat' ? 'flex' : 'none' }}>
+            <DsiEditorChat />
+          </Box>
+          {rightTab === 'history' && (
+            <Box sx={{ flex: 1, minHeight: 0 }}>
+              <DsiHistoryPanel />
+            </Box>
+          )}
+        </Box>
       </Box>
 
       <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>

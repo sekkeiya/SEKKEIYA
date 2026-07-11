@@ -20,6 +20,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db, functions, auth } from '../../../lib/firebase/client';
 import { IMAGE_PROVIDER_OPTIONS, isEditCapableProvider, DEFAULT_EDIT_PROVIDER } from '../../../store/useAiSettingsStore';
 import { dsiUploadService } from '../upload/dsiUploadService';
+import { uploadImageAndGetUrl } from '../../../lib/firebase/uploadImage';
 import { useDsiEditorStore } from '../store/useDsiEditorStore';
 import { buildClarifyQuestions, buildDetailText, type ClarifyQuestion } from './clarify';
 import { BRAND } from '../../../styles/theme';
@@ -35,11 +36,16 @@ export const DsiEditorChat: React.FC = () => {
   const originImageUrl = useDsiEditorStore(s => s.originImageUrl);
   const targetProjectId = useDsiEditorStore(s => s.targetProjectId);
   const setProvider = useDsiEditorStore(s => s.setProvider);
+  const mode = useDsiEditorStore(s => s.mode);
+  const setMode = useDsiEditorStore(s => s.setMode);
+  const sessionId = useDsiEditorStore(s => s.sessionId);
   const region = useDsiEditorStore(s => s.region);
   const setRegion = useDsiEditorStore(s => s.setRegion);
   const setRegionMode = useDsiEditorStore(s => s.setRegionMode);
 
   const [input, setInput] = useState('');
+  // ローカル(無料)生成の可否。ComfyUI が起動している時だけ「内観LoRA（ローカル・無料）」を出す。
+  const [localAvailable, setLocalAvailable] = useState(false);
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
   const [clarify, setClarify] = useState<{ instruction: string; questions: ClarifyQuestion[]; answers: Record<string, string[]> } | null>(null);
@@ -48,13 +54,58 @@ export const DsiEditorChat: React.FC = () => {
   const activeBranch = branches.find(b => b.id === activeBranchId) || branches[0] || null;
   const activeRunning = !!activeBranch?.messages.some(m => m.status === 'running');
 
-  // 編集（ベース画像あり）か。編集は画像編集対応モデルに限定する。
-  const isEditing = !!(activeBranch?.currentImageUrl || originImageUrl);
-  const availableModels = isEditing ? MODELS.filter(m => m.edit) : MODELS;
-  // 編集時に非対応モデル（FLUX schnell 等）が選ばれていたら編集対応モデルへ矯正。
+  // 基準画像の有無（画像から生成/編集モードを選べるか）と、「編集の意図」（モード由来）。
+  // 画像が存在するだけでは編集にしない ＝ 生成後も「新規生成」モードならローカルで作り続けられる。
+  const hasBaseImage = !!(activeBranch?.currentImageUrl || originImageUrl);
+  const editingIntent = mode === 'edit' || mode === 'img2img';
+  // 候補モデル: 編集の意図では「編集対応 or ローカル(comfy_edit で編集可)」のみ。
+  // flux-lora-local は ComfyUI 導入時のみ。
+  const availableModels = MODELS.filter(m => {
+    if (m.value === 'flux-lora-local' && !localAvailable) return false;
+    if (editingIntent && !(m.edit || m.value === 'flux-lora-local')) return false;
+    return true;
+  });
+  // 編集の意図で非対応モデル（FLUX schnell 等）が選ばれていたら編集対応モデルへ矯正。
+  // ローカルは comfy_edit で編集できるので矯正しない。
   useEffect(() => {
-    if (isEditing && !isEditCapableProvider(provider)) setProvider(DEFAULT_EDIT_PROVIDER);
-  }, [isEditing, provider, setProvider]);
+    if (editingIntent && !isEditCapableProvider(provider) && provider !== 'flux-lora-local') {
+      setProvider(DEFAULT_EDIT_PROVIDER);
+    }
+  }, [editingIntent, provider, setProvider]);
+
+  // 起動時に一度、ローカル ComfyUI が「インストール済み」か確認（起動中でなくても項目を出す。
+  // 生成時にアプリが自動起動するため、導入済みなら選べるようにする）。Tauri 環境のみ true。
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const ok = await invoke<boolean>('comfy_installed');
+        if (alive) setLocalAvailable(!!ok);
+      } catch { if (alive) setLocalAvailable(false); }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // ローカルを選んだら裏で ComfyUI をウォームアップ（初回生成の待ち時間を短縮）。
+  useEffect(() => {
+    if (provider !== 'flux-lora-local') return;
+    (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        await invoke('comfy_ensure_started');
+      } catch { /* 生成時に再試行される */ }
+    })();
+  }, [provider]);
+
+  // 既定モデル: ComfyUI 導入済み(localAvailable)なら、新規チャット(生成なし)の既定を
+  // 「内観LoRA（ローカル・無料）」にする。生成履歴のあるチャットや明示選択は上書きしない。
+  useEffect(() => {
+    if (!localAvailable) return;
+    const st = useDsiEditorStore.getState();
+    const hasGen = st.branches.some((b) => b.messages.length > 0);
+    if (!hasGen && st.provider !== 'flux-lora-local') st.setProvider('flux-lora-local');
+  }, [localAvailable, sessionId]);
 
   // ── 実行中ジョブの購読（系統横断・並行）─────────────────────────────
   const subsRef = useRef<Map<string, () => void>>(new Map());
@@ -110,10 +161,13 @@ export const DsiEditorChat: React.FC = () => {
     st.appendUserMessage(branchId, bubble);
     const msgId = st.startAssistant(branchId);
 
-    const usingImage = !!base; // ベース画像あり＝編集 or 画像から生成
     const mode = st.mode;
-    // 画像入力を使うモードは画像編集対応モデル必須（FLUX schnell 等は入力画像を無視し全く別の画像になる）。
-    const provider = usingImage && !isEditCapableProvider(st.provider) ? DEFAULT_EDIT_PROVIDER : (st.provider || 'nanobanana');
+    // 「編集/画像から生成」モードのときだけ基準画像を使う。新規生成モードなら画像があっても無視して作り直す。
+    const usingImage = (mode === 'edit' || mode === 'img2img') && !!base;
+    // 画像入力を使うモードは画像編集対応モデル必須（FLUX schnell 等は入力画像を無視する）。
+    // ただし flux-lora-local は comfy_edit で編集できるので矯正しない。
+    const provider = usingImage && !isEditCapableProvider(st.provider) && st.provider !== 'flux-lora-local'
+      ? DEFAULT_EDIT_PROVIDER : (st.provider || 'nanobanana');
 
     const regionText = region
       ? `対象範囲: 画像の 左${Math.round(region.x * 100)}%〜${Math.round((region.x + region.w) * 100)}% × 上${Math.round(region.y * 100)}%〜${Math.round((region.y + region.h) * 100)}% の矩形内。この範囲だけを変更し、範囲外は変えないでください。`
@@ -134,6 +188,42 @@ export const DsiEditorChat: React.FC = () => {
             `方向性: ${instruction}`,
           ].filter(Boolean).join('\n')
         : [detailText ? `補足: ${detailText}` : null, instruction].filter(Boolean).join('\n');
+
+    // ── ローカル(無料)生成: あなたのGPUの ComfyUI で生成し、結果を Storage に上げて解決する。
+    //    クラウド(requestAiRender)は通さない＝fal課金ゼロ。テキスト生成専用（edit-gate 済）。
+    if (provider === 'flux-lora-local') {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const dataUrl = (usingImage && base)
+          ? await invoke<string>('comfy_edit', { prompt: effectivePrompt, inputImage: base, denoise: 0.6, loraStrength: 1.0 })
+          : await invoke<string>('comfy_generate', { prompt: effectivePrompt, steps: 4, loraStrength: 1.0 });
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], `local_${Date.now()}.png`, { type: 'image/png' });
+        const url = await uploadImageAndGetUrl(file);
+        // msgId を直接解決（ローカルは jobId が無いため resolveJob 相当を手で行う）
+        useDsiEditorStore.setState((s) => {
+          let hitBranch: string | null = null;
+          const branches = s.branches.map(b => {
+            if (!b.messages.some(m => m.id === msgId)) return b;
+            hitBranch = b.id;
+            return {
+              ...b,
+              currentImageUrl: url,
+              messages: b.messages.map(m => m.id === msgId ? { ...m, status: 'done' as const, imageUrl: url } : m),
+            };
+          });
+          return (hitBranch && hitBranch === s.activeBranchId) ? { branches, selectedImageUrl: url } : { branches };
+        });
+      } catch (e: any) {
+        useDsiEditorStore.setState((s) => ({
+          branches: s.branches.map(b => ({
+            ...b,
+            messages: b.messages.map(m => m.id === msgId ? { ...m, status: 'error' as const, error: e?.message || 'ローカル生成に失敗しました' } : m),
+          })),
+        }));
+      }
+      return;
+    }
 
     try {
       const requestAiRender = httpsCallable(functions, 'requestAiRender');
@@ -223,7 +313,7 @@ export const DsiEditorChat: React.FC = () => {
   };
 
   return (
-    <Box sx={{ width: 360, flexShrink: 0, height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel, borderLeft: `1px solid ${BRAND.line}` }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel }}>
       {/* ヘッダー */}
       <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${BRAND.line}`, display: 'flex', alignItems: 'center', gap: 1 }}>
         <AutoAwesomeRoundedIcon sx={{ fontSize: 16, color: ACCENT }} />
@@ -360,6 +450,26 @@ export const DsiEditorChat: React.FC = () => {
             sx={{ alignSelf: 'flex-start', height: 22, fontSize: 11, color: 'var(--brand-fg)', bgcolor: 'rgba(255,59,107,0.18)', border: '1px solid rgba(255,59,107,0.5)', '& .MuiChip-deleteIcon': { fontSize: 15, color: 'rgba(255,59,107,0.8)' } }}
           />
         )}
+        {/* モード切替: 新規生成 / 画像から生成 / 画像を編集。後2つは基準画像がある時のみ。 */}
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {([['text', '新規生成', true], ['img2img', '画像から生成', hasBaseImage], ['edit', '画像を編集', hasBaseImage]] as const).map(([m, label, enabled]) => (
+            <Button
+              key={m}
+              size="small"
+              disabled={!enabled}
+              onClick={() => setMode(m)}
+              sx={{
+                flex: 1, minWidth: 0, fontSize: 10.5, textTransform: 'none', py: 0.3, borderRadius: 1.5,
+                bgcolor: mode === m ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.06)',
+                color: mode === m ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                '&:hover': { bgcolor: mode === m ? ACCENT_HOVER : 'rgb(var(--brand-fg-rgb) / 0.12)' },
+                '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.25)' },
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </Box>
         <FormControl size="small" sx={{ '& .MuiOutlinedInput-root': { color: 'var(--brand-fg)', fontSize: 12, borderRadius: 2, '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } }}>
           <Select
             value={availableModels.some(m => m.value === provider) ? provider : (availableModels[0]?.value || 'nanobanana')}
@@ -369,9 +479,9 @@ export const DsiEditorChat: React.FC = () => {
             {availableModels.map(m => <MenuItem key={m.value} value={m.value} sx={{ fontSize: 12 }}>{m.label}</MenuItem>)}
           </Select>
         </FormControl>
-        {isEditing && (
+        {editingIntent && (
           <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: -0.5 }}>
-            画像編集は Gemini（画像編集対応）を使用します。FLUX schnell は新規生成専用です。
+            編集は Gemini か「内観LoRA（ローカル・無料）」が使えます。新しい画像を作るときは「新規生成」に切り替えてください。
           </Typography>
         )}
         <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'flex-end' }}>

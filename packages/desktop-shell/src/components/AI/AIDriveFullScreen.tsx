@@ -48,6 +48,7 @@ import MovieRoundedIcon from '@mui/icons-material/MovieRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
 import PptxPreview from './PptxPreview';
+import PreviewGalleryStrip from './PreviewGalleryStrip';
 import HtmlPreview from './HtmlPreview';
 import LinkPreview from './LinkPreview';
 import ArticlePreview from './ArticlePreview';
@@ -562,6 +563,27 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
   };
 
   const expandedAsset = baseAssets.find(a => a.id === expandedAssetId);
+
+  // ライトボックス表示中: ←/→ で前後のアセットへ移動（Reader と同じ操作感）。
+  // ただし pptx はスライド送りに ←/→ を使うので、その時はアセット送りしない（下部ギャラリーで移動）。
+  useEffect(() => {
+    if (!expandedAssetId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      const cur = filteredAssets.find(a => a.id === expandedAssetId);
+      const nm = cur?.name || '';
+      const isPptx = (cur?.type || '').toLowerCase() === 'presentation' || /\.(pptx?|ppsx?|potx?)$/i.test(nm);
+      if (isPptx) return;
+      const idx = filteredAssets.findIndex(a => a.id === expandedAssetId);
+      if (idx < 0) return;
+      const next = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
+      if (next >= 0 && next < filteredAssets.length) { e.preventDefault(); setExpandedAssetId(filteredAssets[next].id); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [expandedAssetId, filteredAssets]);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'row', bgcolor: 'var(--brand-surface)', position: 'relative', color: 'var(--brand-fg)' }}>
@@ -1647,6 +1669,20 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               );
             })()}
           </Box>
+
+          {/* 下部ギャラリー: フィルタ中のアセットを横断（Reader と同じ ←/→・ドラッグ・クリックで前後移動）。 */}
+          {filteredAssets.length > 1 && (
+            <PreviewGalleryStrip
+              items={filteredAssets.map(a => ({
+                id: a.id,
+                image: imageDisplayUrl(a),
+                title: a.name,
+                subtitle: (assetOutputKind(a) || a.type || undefined) as string | undefined,
+              }))}
+              activeIndex={filteredAssets.findIndex(a => a.id === expandedAssetId)}
+              onSelect={(i) => { const a = filteredAssets[i]; if (a) setExpandedAssetId(a.id); }}
+            />
+          )}
         </Box>
       )}
 
