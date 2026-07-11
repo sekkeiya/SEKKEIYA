@@ -35,9 +35,18 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 const RELEASES = [
   {
+    version: "0.1.13",
+    label: "β 0.1.13",
+    tag: "Latest",
+    date: "2026-07-11",
+    note: "画像生成に「内観LoRA（公式）」を追加 — SEKKEIYA製の内観パース特化AIモデル。S.Imageのテキスト生成で選択可能",
+    url: "https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/installers%2FSEKKEIYA%20Desktop_0.1.13_x64-setup.exe?alt=media&token=ce4a3a4b-346d-478f-a164-ae5fdf4e6453",
+    os: "Windows",
+  },
+  {
     version: "0.1.10",
     label: "β 0.1.10",
-    tag: "Latest",
+    tag: null,
     date: "2026-07-03",
     note: "S.Blog: 新ホーム＝建築メディアの記事フィード。読みながらAIと議論→記事生成",
     url: "https://firebasestorage.googleapis.com/v0/b/shapeshare3d.firebasestorage.app/o/installers%2FSEKKEIYA%20Desktop_0.1.10_x64-setup.exe?alt=media",
