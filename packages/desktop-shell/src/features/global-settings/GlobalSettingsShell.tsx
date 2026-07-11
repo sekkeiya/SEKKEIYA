@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Box } from '@mui/material';
-import { SettingsSidebar, type SettingsAppId } from './SettingsSidebar';
+import { SettingsSidebar, firstSubOf, type SettingsAppId } from './SettingsSidebar';
 import { DssSettingsPanel }        from './panels/DssSettingsPanel';
 import { SekkeiyaSettingsPanel }   from './panels/SekkeiyaSettingsPanel';
 import { AutosaveSettingsPanel }   from './panels/AutosaveSettingsPanel';
@@ -18,14 +18,21 @@ import { isBlogAdmin }             from '../dsb/lib/blogAdmin';
 
 export const GlobalSettingsShell = () => {
   const [activeApp, setActiveApp] = useState<SettingsAppId>('general');
+  // Lv2 サブ項目。項目切替時に先頭サブへリセットする。
+  const [activeSub, setActiveSub] = useState<string>(firstSubOf('general'));
   const currentUser = useAuthStore((s: any) => s.currentUser);
   const isAdmin = isBlogAdmin(currentUser);
+
+  const selectApp = (id: SettingsAppId) => {
+    setActiveApp(id);
+    setActiveSub(firstSubOf(id));
+  };
 
   const KNOWN = ['general', '3dss', 'sekkeiya', 'autosave', 'connectors', '3dsb', 'voice', 'ai'];
 
   return (
     <Box sx={theme => ({ display: 'flex', width: '100%', height: '100%', bgcolor: theme.palette.mode === 'dark' ? 'var(--brand-surface)' : '#f4f5f7', color: 'text.primary', overflow: 'hidden' })}>
-      <SettingsSidebar activeApp={activeApp} onSelectApp={setActiveApp} isAdmin={isAdmin} />
+      <SettingsSidebar activeApp={activeApp} activeSub={activeSub} onSelectApp={selectApp} onSelectSub={setActiveSub} isAdmin={isAdmin} />
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {activeApp === 'general'    && <GeneralSettingsPanel />}
         {activeApp === '3dss'       && <DssSettingsPanel />}
@@ -34,7 +41,7 @@ export const GlobalSettingsShell = () => {
         {activeApp === 'connectors' && <ConnectorsSettingsPanel />}
         {activeApp === '3dsb'       && <DsbSettingsPanel />}
         {activeApp === 'voice'      && <VoiceSettingsPanel />}
-        {activeApp === 'ai'         && <AiSettingsPanel />}
+        {activeApp === 'ai'         && <AiSettingsPanel section={activeSub as 'models' | 'image'} />}
         {/* 二重ガード: admin 判定を満たす場合のみ描画（サイドバー非表示だけに依存しない） */}
         {activeApp === 'admin'      && isAdmin && <AdminSettingsPanel />}
         {activeApp === 'admin-git'  && isAdmin && <GitHubSyncPanel />}

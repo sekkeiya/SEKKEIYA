@@ -18,8 +18,13 @@ import { useT } from '../../../lib/i18n';
  *   - 画像生成モデル（プロバイダ）
  * チャット下部のモデル切替は一時的な上書き、ここが起動時の既定値。
  */
-export const AiSettingsPanel = () => {
+/** Lv2 サブ項目に対応。未指定なら全セクションを表示（後方互換）。 */
+interface AiSettingsPanelProps { section?: 'models' | 'image'; }
+
+export const AiSettingsPanel = ({ section }: AiSettingsPanelProps = {}) => {
   const t = useT();
+  const showModels = !section || section === 'models';
+  const showImage  = !section || section === 'image';
   const taskModels = useAiSettingsStore(s => s.taskModels);
   const imageProvider = useAiSettingsStore(s => s.imageProvider);
   const setTaskModel = useAiSettingsStore(s => s.setTaskModel);
@@ -42,6 +47,7 @@ export const AiSettingsPanel = () => {
       </Typography>
 
       {/* ── 用途別モデル ── */}
+      {showModels && (
       <Paper elevation={0} sx={sectionSx}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
           <TuneRoundedIcon sx={{ color: accent }} />
@@ -112,8 +118,10 @@ export const AiSettingsPanel = () => {
           })}
         </Box>
       </Paper>
+      )}
 
       {/* ── 画像生成モデル ── */}
+      {showImage && (
       <Paper elevation={0} sx={sectionSx}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
           <ImageRoundedIcon sx={{ color: accent }} />
@@ -161,6 +169,7 @@ export const AiSettingsPanel = () => {
           })}
         </Box>
       </Paper>
+      )}
     </Box>
   );
 };
