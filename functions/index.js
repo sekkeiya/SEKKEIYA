@@ -81,7 +81,7 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
     throw new HttpsError("unauthenticated", "Only authenticated users can use SEKKEIYA Chat.");
   }
   try {
-    const { messages, model, projectId, clientContext, excludeSilos } = request.data || {};
+    const { messages, model, projectId, clientContext, excludeSilos, keepSilos } = request.data || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       throw new HttpsError("invalid-argument", "Missing messages");
     }
@@ -134,6 +134,13 @@ exports.agentTurn = onCall({ secrets: [anthropicApiKey] }, async (request) => {
       if (auto.length) console.log(`[agentTurn] silo exclude=[${mergedExcludeSilos.join(",")}]`);
     } catch (e) {
       console.warn("agentTurn tool silo failed, keeping all tools:", e.message);
+    }
+    // 子アプリスコープのチャット（例 S.Layout 埋め込み）: クライアントが keepSilos で指定した
+    // silo は、自動キーワード判定が除外していても必ず残す（ドメイン語を含まない発話で
+    // そのアプリのツールが欠落するのを防ぐ）。
+    const keep = Array.isArray(keepSilos) ? keepSilos : [];
+    if (keep.length) {
+      mergedExcludeSilos = mergedExcludeSilos.filter((s) => !keep.includes(s));
     }
     const result = await agentTurn({
       messages, model: routedModel, memorySection, clientContext: safeClientContext, gcalConnected,
