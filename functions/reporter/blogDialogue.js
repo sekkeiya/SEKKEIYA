@@ -203,6 +203,36 @@ async function fetchArticleText(url, maxChars = 1800) {
   return decodeEntities(text.slice(0, maxChars));
 }
 
+/* リーダー本文のテキスト上限。旧7000字では長文ニュースレター（Substack等）の後半が
+ * 丸ごと消えたため、全文が収まる水準へ引き上げ（翻訳側もバッチ化して出力切れを防止）。 */
+const READER_TEXT_CAP = 36000;
+const READER_BLOCK_CAP = 300;
+
+/**
+ * 長すぎる段落テキストを文境界（。．！？!?.）優先で max 字以下のチャンク列に分割する。
+ * 旧実装は翻訳入力を900字でsliceしており超過分が無言で消えていた（Substackの
+ * <br>区切り巨大<p>で顕在化）。分割して全文を翻訳・表示できるようにする。
+ */
+function splitLongText(text, max = 900) {
+  const t = String(text || "").replace(/\s+/g, " ").trim();
+  if (!t) return [];
+  const out = [];
+  let rest = t;
+  while (rest.length > max) {
+    const win = rest.slice(0, max);
+    let cut = Math.max(
+      win.lastIndexOf("。"), win.lastIndexOf("．"), win.lastIndexOf("！"), win.lastIndexOf("？"),
+      win.lastIndexOf(". "), win.lastIndexOf("! "), win.lastIndexOf("? "),
+    );
+    if (cut < max * 0.4) cut = win.lastIndexOf(" "); // 文末が見つからなければ単語境界
+    if (cut < max * 0.4) cut = max - 1;              // それも無ければ強制分割
+    out.push(rest.slice(0, cut + 1).trim());
+    rest = rest.slice(cut + 1).trim();
+  }
+  if (rest) out.push(rest);
+  return out;
+}
+
 /**
  * リーダーモード用の本文抽出。<article>/<main> を優先し、ナビ・フッター等を除去して
  * <p>/<h2>/<h3>/<img> を出現順のブロック列にする（画像は元記事の位置のまま表示できる）。
@@ -263,7 +293,7 @@ function extractReadableBlocks(html, baseUrl) {
 
   const re = /<iframe\b[^>]*>|<img\b[^>]*>|<(p|h2|h3|figure)\b[^>]*>[\s\S]*?<\/\1>/gi;
   let m;
-  while ((m = re.exec(article)) && blocks.length < 120) {
+  while ((m = re.exec(article)) && blocks.length < READER_BLOCK_CAP) {
     const tag = m[0];
     if (/^<iframe/i.test(tag)) {
       pushVideo(tag);
@@ -273,12 +303,20 @@ function extractReadableBlocks(html, baseUrl) {
       // 段落/figure 内にネストした画像・動画も拾う（WordPress は <p><img></p> が典型）
       for (const it of tag.match(/<iframe\b[^>]*>/gi) || []) pushVideo(it);
       for (const it of tag.match(/<img\b[^>]*>/gi) || []) pushImg(it);
-      const text = decodeEntities(tag.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
       const isHead = /^<h/i.test(tag);
-      if (!text || (!isHead && text.length < 40)) continue; // ナビ断片・キャプション未満は除外
-      if (charCount > 7000) continue; // テキスト上限。後続の画像は引き続き収集する
-      charCount += text.length;
-      blocks.push({ t: isHead ? "h" : "p", text });
+      // Substack 等は1つの<p>に<br>区切りで記事全文を詰めるため、まず<br>で行に分割
+      const segs = isHead ? [tag] : tag.split(/<br\s*\/?>/i);
+      for (const seg of segs) {
+        const text = decodeEntities(String(seg).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+        const minLen = segs.length > 1 ? 25 : 40; // <br>行は短めでも本文（ナビ断片ではない）
+        if (!text || (!isHead && text.length < minLen)) continue; // ナビ断片・キャプション未満は除外
+        // 巨大段落は文境界で分割して全文を保持（翻訳入力の切り詰め対策）
+        for (const chunk of splitLongText(text)) {
+          if (charCount > READER_TEXT_CAP || blocks.length >= READER_BLOCK_CAP) break; // テキスト上限。後続の画像は引き続き収集する
+          charCount += chunk.length;
+          blocks.push({ t: isHead ? "h" : "p", text: chunk });
+        }
+      }
     }
   }
   // 本文中に画像が無ければ OGP 画像をヒーローとして先頭へ
@@ -294,6 +332,8 @@ function extractReadableBlocks(html, baseUrl) {
  * 抽出+翻訳済みブロックを全ユーザーで共有する。翻訳は記事1本につき1回だけ。
  * クライアントの localStorage キャッシュ（L1）の上に載る L2。7日で鮮度切れ。 */
 const READER_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// 抽出・翻訳パイプライン変更時に上げる（v2: 巨大段落の分割＋全文翻訳。旧キャッシュは切り詰め済みのため破棄）
+const READER_CACHE_VERSION = 2;
 const readerCacheRef = (db, url) =>
   db.collection("readerCache").doc(crypto.createHash("sha1").update(url).digest("hex"));
 
@@ -303,13 +343,14 @@ async function readerCacheGet(db, url) {
     if (!snap.exists) return null;
     const d = snap.data();
     if (!Array.isArray(d.blocks) || !d.blocks.length || Date.now() - (d.at || 0) > READER_CACHE_TTL_MS) return null;
+    if ((d.v || 1) !== READER_CACHE_VERSION) return null;
     return { blocks: d.blocks, translated: !!d.translated };
   } catch { return null; }
 }
 
 async function readerCacheSet(db, url, blocks, translated) {
   try {
-    await readerCacheRef(db, url).set({ url, blocks, translated, at: Date.now() });
+    await readerCacheRef(db, url).set({ url, blocks, translated, at: Date.now(), v: READER_CACHE_VERSION });
   } catch (e) {
     console.warn(`[readerCache] set failed: ${e.message}`);
   }
@@ -327,25 +368,41 @@ async function translateBlocksJaIfNeeded(blocks) {
   if (!isJa && joined.trim()) {
     try {
       const srcTexts = blocks.filter((b) => b.t === "p" || b.t === "h").map((b) => b.text);
-      const prompt = `
+      // 出力トークン上限（8192）でJSONが途中で切れないよう、約6000字ごとのバッチに分けて並列翻訳。
+      // 旧実装の「全段落を1回で・入力900字slice」は長文記事の後半を無言で消していた。
+      const batches = [];
+      let cur = [];
+      let curChars = 0;
+      for (const t of srcTexts) {
+        if (cur.length && curChars + t.length > 6000) { batches.push(cur); cur = []; curChars = 0; }
+        cur.push(t);
+        curChars += t.length;
+      }
+      if (cur.length) batches.push(cur);
+      const translateBatch = async (texts) => {
+        const prompt = `
 以下は建築・デザイン系Web記事の段落です。各要素を自然で読みやすい日本語に翻訳してください。
 - 入力と**同じ数・同じ順序**の配列で返す（結合・分割しない）
 - 固有名詞（人名/事務所名/プロジェクト名）は原語のまま or 一般的なカタカナ表記
 - 意訳しすぎず、事実関係を正確に
 
 【入力(JSON)】
-${JSON.stringify({ texts: srcTexts.map((t) => t.slice(0, 900)) })}
+${JSON.stringify({ texts: texts.map((t) => t.slice(0, 4000)) })}
 
 【出力（JSONのみ）】
 {"texts":["翻訳1","翻訳2",...]}
 `.trim();
-      // 翻訳は速度優先で常に Gemini Flash（Claude設定でも読み込みを待たせない。品質は翻訳用途に十分）
-      const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: "gemini", model: "gemini-2.5-flash", maxTokens: 8192 })));
-      if (Array.isArray(out.texts) && out.texts.length === srcTexts.length) {
-        let i = 0;
-        blocks = blocks.map((b) => (b.t === "p" || b.t === "h" ? { ...b, text: String(out.texts[i++] || b.text) } : b));
-        translated = true;
-      }
+        // 翻訳は速度優先で常に Gemini Flash（Claude設定でも読み込みを待たせない。品質は翻訳用途に十分）
+        const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: "gemini", model: "gemini-2.5-flash", maxTokens: 8192 })));
+        if (!Array.isArray(out.texts) || out.texts.length !== texts.length) {
+          throw new Error(`batch count mismatch (${texts.length} -> ${Array.isArray(out.texts) ? out.texts.length : "?"})`);
+        }
+        return out.texts.map((t, i) => String(t || texts[i]));
+      };
+      const flat = (await Promise.all(batches.map(translateBatch))).flat();
+      let i = 0;
+      blocks = blocks.map((b) => (b.t === "p" || b.t === "h" ? { ...b, text: flat[i++] || b.text } : b));
+      translated = true;
     } catch (e) {
       console.warn(`[translateBlocksJaIfNeeded] translate failed (原文のまま表示): ${e.message}`);
     }
@@ -364,13 +421,17 @@ function sanitizeClientBlocks(raw) {
   const out = [];
   let textChars = 0;
   for (const b of raw) {
-    if (out.length >= 200) break;
+    if (out.length >= 400) break;
     const t = b && b.t;
     if (t === "p" || t === "h") {
-      const text = String(b.text || "").replace(/\s+/g, " ").trim().slice(0, 2000);
-      if (!text || textChars >= 30000) continue;
-      textChars += text.length;
-      out.push({ t, text });
+      // 旧: 2000字slice（超過分が消える）→ 文境界で分割して全文を保持
+      const text = String(b.text || "").replace(/\s+/g, " ").trim();
+      if (!text || textChars >= READER_TEXT_CAP) continue;
+      for (const chunk of splitLongText(text)) {
+        if (out.length >= 400 || textChars >= READER_TEXT_CAP) break;
+        textChars += chunk.length;
+        out.push({ t, text: chunk });
+      }
     } else if (t === "img") {
       const src = String(b.src || "");
       if (!/^https:\/\/[^\s"'<>]+$/.test(src) || src.length > 2000) continue;
@@ -422,6 +483,15 @@ async function buildReaderBlocks(url, fallbackFeed) {
 
   // 日本語判定＋翻訳は共通関数へ（clientBlocks パスと同じ処理）
   return await translateBlocksJaIfNeeded(blocks);
+}
+
+// blogMediaMeta のドキュメントID（feed URL の安定ハッシュ）。
+// メディアの内容分析（keywords/tone/summary）は全ユーザー共有キャッシュにして、分析は媒体ごと1回だけ。
+function blogMediaDocId(feed) {
+  let h = 5381;
+  const str = String(feed || "");
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+  return "m" + h.toString(36);
 }
 
 exports.blogDialogue = async (data = {}, context = {}) => {
@@ -819,6 +889,284 @@ ${items.map((it, i) => `${i}: ${it.title}（${it.source || "不明"}）`).join("
       success: true,
       sources: items.slice(0, 5).map((it) => ({ title: it.title, url: it.url, source: it.source || "", date: it.date || "", summary: "" })),
     };
+  }
+
+  /* ---------- AI によるメディア（RSSソース）候補の発見 ----------
+   * ソース記事の「AIおまかせ検索」用。関心（カテゴリ/サブトピック/クエリ）から実在する
+   * メディア/ブログ/ニュースサイトを LLM に提案させ、各 feed を実際に取得できた
+   * （＝実在性が確認できた）候補だけを返す。壊れた/存在しない RSS は自動で除外。 */
+  if (mode === "discoverMedia") {
+    const uid = context.auth?.uid;
+    if (!uid) return { success: false, reason: "unauthenticated" };
+    const interests = (Array.isArray(data.interests) ? data.interests : [])
+      .map((x) => String(x || "").slice(0, 40).trim()).filter(Boolean).slice(0, 12);
+    const query = String(data.query || "").trim().slice(0, 120);
+    const exclude = new Set(
+      (Array.isArray(data.exclude) ? data.exclude : [])
+        .map((x) => String(x || "").toLowerCase().trim()).filter(Boolean));
+    const focus = [query, ...interests].filter(Boolean).join(" / ") || "建築・インテリア・デザイン";
+
+    const prompt = `
+あなたは建築・インテリア・デザイン・テック分野に詳しいメディアリサーチャーです。
+下記の関心に沿って、継続的に読む価値がある「実在する」メディア/ブログ/ニュースサイトを最大14件挙げてください。
+現在も更新されていて公開RSS/Atomフィードを持つものを優先。日本語・英語どちらでも構いません。
+公式ブログ（例: Anthropic, OpenAI, Google AI / DeepMind, Meta AI, Microsoft AI）や定番テックメディア
+（例: The Verge, Ars Technica, TechCrunch, MIT Technology Review, VentureBeat）、建築・インテリア系メディアなど、
+関心に直結し、かつ RSS が実在しそうなものを優先してください。憶測で存在しない媒体を作らないこと。
+
+【関心】${focus}
+
+【各メディアに付ける情報】
+- name: 媒体名（正式名・40字以内）
+- feed: 公開RSS/AtomフィードのURL（分かる限り正確に。WordPress系なら .../feed/ など。トップURLでなくフィードURL）
+- note: 日本語1行の説明（40字前後・何が読めるか）
+- lang: "ja" か "en"
+- category: 建築 / インテリア / デザイン / 住まい・暮らし / 海外・トレンド / AI・テック のうち最も近いもの
+
+【出力（JSONのみ・コードブロックや前置き無し）】
+{"media":[{"name":"","feed":"https://...","note":"","lang":"ja","category":""}]}
+`.trim();
+
+    let proposed = [];
+    try {
+      const out = JSON.parse(cleanJson(await callLLM(prompt, {
+        provider: textCfg.provider, model: textCfg.model, maxTokens: 2048,
+      })));
+      proposed = Array.isArray(out.media) ? out.media : [];
+    } catch (e) {
+      console.warn(`[blogDialogue:discoverMedia] llm failed: ${e.message}`);
+      return { success: false, reason: `AI候補の生成に失敗しました: ${e.message}` };
+    }
+
+    // 実在性検証: feed を実際に取得できた候補だけ返す（URL の一般的な派生も試す）。
+    const seen = new Set();
+    const results = await Promise.all(proposed.slice(0, 16).map(async (m) => {
+      const name = String(m.name || "").slice(0, 40).trim();
+      const rawFeed = String(m.feed || "").trim();
+      if (!name || !/^https?:\/\//.test(rawFeed)) return null;
+      const lower = name.toLowerCase();
+      if (exclude.has(lower) || seen.has(lower)) return null;
+      const base = rawFeed.replace(/\/+$/, "");
+      const variants = [...new Set([rawFeed, base, `${base}/feed/`, `${base}/feed`, `${base}/rss`, `${base}/rss.xml`, `${base}/atom.xml`])];
+      for (const f of variants) {
+        try {
+          const items = await fetchSiteFeed(f, 1);
+          if (items && items.length) {
+            seen.add(lower);
+            return {
+              name,
+              feed: f,
+              note: String(m.note || "").slice(0, 80).trim(),
+              lang: m.lang === "en" ? "en" : "ja",
+              category: String(m.category || "").slice(0, 40).trim(),
+            };
+          }
+        } catch (_) { /* 次の派生URLを試す */ }
+      }
+      return null;
+    }));
+    const candidates = results.filter(Boolean).slice(0, 12);
+    return { success: true, candidates };
+  }
+
+  /* ---------- 関心ワードランキングの自動生成 ----------
+   * ブログのカテゴリ＋購読メディアの最近のタイトルから、関心キーワードを重要度順に抽出。
+   * ユーザーは返り値をベースに手動で微調整（ソース記事の関心ワードランキング）。 */
+  if (mode === "suggestKeywords") {
+    const uid = context.auth?.uid;
+    if (!uid) return { success: false, reason: "unauthenticated" };
+    const categories = Array.isArray(data.categories) ? data.categories.map(String).slice(0, 20) : [];
+    const sites = (Array.isArray(data.sites) ? data.sites : []).slice(0, 10)
+      .map((s) => ({ name: String(s.name || "").slice(0, 40), feed: String(s.feed || "") }))
+      .filter((s) => /^https:\/\//.test(s.feed));
+    let titles = [];
+    if (sites.length) {
+      const results = await Promise.all(sites.map(async (s) => {
+        try { const items = await fetchSiteFeed(s.feed, 6); return items.map((it) => it.title).filter(Boolean); }
+        catch { return []; }
+      }));
+      titles = results.flat().slice(0, 80);
+    }
+    const prompt = `
+建築・インテリア・デザイン・テックの個人ブロガーの「関心ワードランキング」を作ります。
+下記のカテゴリと、購読メディアの最近の記事タイトルから、この人が関心を持つキーワードを重要度順に最大12語抽出してください。
+固有名詞（例: Claude, Gemini, OpenAI）も一般語（例: AI, 建築, インテリア）も可。短く検索に使える語で。重複や冗長な語は避ける。
+
+【ブログのカテゴリ】${categories.join("、") || "（未設定）"}
+
+【購読メディアの最近のタイトル】
+${titles.map((t) => `- ${t}`).join("\n") || "（なし）"}
+
+【出力（JSONのみ・コードブロック無し）】{"keywords":["最重要", "次点", ...]}
+`.trim();
+    try {
+      const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: textCfg.provider, model: textCfg.model, maxTokens: 512 })));
+      const keywords = (Array.isArray(out.keywords) ? out.keywords : [])
+        .map((k) => String(k || "").trim()).filter(Boolean).slice(0, 12);
+      return { success: true, keywords };
+    } catch (e) {
+      console.warn(`[blogDialogue:suggestKeywords] failed: ${e.message}`);
+      return { success: false, reason: `関心ワードの生成に失敗しました: ${e.message}` };
+    }
+  }
+
+  /* ---------- 関心を深めるチャット ----------
+   * セマンティックグラフの右サイドバーの専用チャット。関心テーマについて対話しながら、
+   * 関心ワードランキングへの操作（追加/削除/順位変更）を提案する。
+   * クライアントは ops を適用してグラフへ即時反映する。 */
+  if (mode === "interestChat") {
+    const uid = context.auth?.uid;
+    if (!uid) return { success: false, reason: "unauthenticated" };
+    const messages = (Array.isArray(data.messages) ? data.messages : []).slice(-12)
+      .map((m) => ({ role: m.role === "user" ? "user" : "ai", text: String(m.text || "").slice(0, 1200) }))
+      .filter((m) => m.text);
+    const keywords = (Array.isArray(data.keywords) ? data.keywords : []).map(String).slice(0, 20);
+    const categories = (Array.isArray(data.categories) ? data.categories : []).map(String).slice(0, 20);
+    if (!messages.length) return { success: false, reason: "messages is required" };
+
+    const prompt = `
+あなたは建築・インテリア・デザイン・テック分野の「関心探索パートナー」です。
+ユーザーと対話しながら、興味のあるワードや事柄を一緒に深掘りします。関連トピック・対比・具体例を出して会話を広げ、
+必要に応じて「関心ワードランキング」への操作（追加/削除/順位変更）を提案してください。
+
+【現在の関心ワードランキング（上から順位順）】
+${keywords.map((k, i) => `${i + 1}位: ${k}`).join("\n") || "（まだ無し）"}
+
+【ブログのカテゴリ】${categories.join("、") || "（未設定）"}
+
+【これまでの会話】
+${messages.map((m) => `${m.role === "user" ? "ユーザー" : "AI"}: ${m.text}`).join("\n")}
+
+【指示】
+- 返答は日本語で3〜6文。会話を深める問いかけを1つ含める。
+- ランキング操作は会話の流れから自然な場合のみ提案（無理に毎回出さない）。
+- add は新しいワード（rank 指定は任意・1始まり）、remove は既存ワード、move は既存ワードを to 位へ。
+
+【出力（JSONのみ・コードブロック無し）】
+{"reply":"返答本文","ops":[{"op":"add","word":"Claude Code","rank":3},{"op":"remove","word":"○○"},{"op":"move","word":"AI","to":1}]}
+opsが不要なら "ops":[] とする。
+`.trim();
+    try {
+      const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: textCfg.provider, model: textCfg.model, maxTokens: 1200 })));
+      const reply = String(out.reply || "").trim();
+      const ops = (Array.isArray(out.ops) ? out.ops : [])
+        .map((o) => ({
+          op: String(o.op || ""),
+          word: String(o.word || "").trim().slice(0, 40),
+          rank: Number.isFinite(Number(o.rank)) ? Number(o.rank) : undefined,
+          to: Number.isFinite(Number(o.to)) ? Number(o.to) : undefined,
+        }))
+        .filter((o) => ["add", "remove", "move"].includes(o.op) && o.word)
+        .slice(0, 6);
+      if (!reply) return { success: false, reason: "応答を生成できませんでした" };
+      return { success: true, reply, ops };
+    } catch (e) {
+      console.warn(`[blogDialogue:interestChat] failed: ${e.message}`);
+      return { success: false, reason: `応答の生成に失敗しました: ${e.message}` };
+    }
+  }
+
+  /* ---------- メディア内容タグのバッチ取得（カード表示用・全ユーザー共有キャッシュ） ----------
+   * blogMediaMeta（feedハッシュ）を読み、鮮度内はキャッシュを返す。未取得/古いものだけ
+   * 上限件数まで分析して共有キャッシュへ保存。分析は媒体ごと1回だけ＝コストは媒体数で頭打ち。
+   * 未処理が残ればクライアントが再度呼んで順次埋める（pending を返す）。 */
+  if (mode === "mediaMeta") {
+    const uid = context.auth?.uid;
+    if (!uid) return { success: false, reason: "unauthenticated" };
+    const sites = (Array.isArray(data.sites) ? data.sites : []).slice(0, 60)
+      .map((s) => ({ name: String(s.name || "").slice(0, 40), feed: String(s.feed || "").trim() }))
+      .filter((s) => /^https?:\/\//.test(s.feed));
+    if (!sites.length) return { success: true, meta: {}, pending: 0 };
+
+    const db = admin.firestore();
+    const col = db.collection("blogMediaMeta");
+    const FRESH_MS = 30 * 24 * 3600 * 1000; // 30日鮮度
+    const now = Date.now();
+    const refs = sites.map((s) => col.doc(blogMediaDocId(s.feed)));
+    let snaps = [];
+    try { snaps = await db.getAll(...refs); } catch (e) { console.warn(`[mediaMeta] getAll failed: ${e.message}`); }
+
+    const meta = {}; // feed -> {keywords, tone, summary}
+    const missing = [];
+    sites.forEach((s, i) => {
+      const d = snaps[i] && snaps[i].exists ? snaps[i].data() : null;
+      if (d && d.updatedAt && (now - d.updatedAt) < FRESH_MS && Array.isArray(d.keywords)) {
+        meta[s.feed] = { keywords: d.keywords, tone: d.tone || "", summary: d.summary || "" };
+      } else {
+        missing.push({ ...s, ref: refs[i] });
+      }
+    });
+
+    // 未取得のうち上限件数だけ今回分析（タイムアウト/レート回避）。残りは pending で返す。
+    const CAP = 12;
+    const toAnalyze = missing.slice(0, CAP);
+    await Promise.all(toAnalyze.map(async (s) => {
+      try {
+        const items = await fetchSiteFeed(s.feed, 20);
+        const titles = items.map((it) => it.title).filter(Boolean).slice(0, 20);
+        if (!titles.length) return;
+        const prompt = `
+メディア「${s.name}」の最近の記事タイトルです。どんな内容を多く扱うか日本語で簡潔に分析してください。
+${titles.map((t) => `- ${t}`).join("\n")}
+【出力（JSONのみ）】{"summary":"1〜2文","keywords":["よく出るトピック", ...最大8語],"tone":"文体/レベルを一言"}
+`.trim();
+        const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: textCfg.provider, model: textCfg.model, maxTokens: 500 })));
+        const rec = {
+          name: s.name, feed: s.feed,
+          summary: String(out.summary || "").trim(),
+          keywords: (Array.isArray(out.keywords) ? out.keywords : []).map((k) => String(k || "").trim()).filter(Boolean).slice(0, 8),
+          tone: String(out.tone || "").trim(),
+          updatedAt: now,
+        };
+        await s.ref.set(rec, { merge: true });
+        meta[s.feed] = { keywords: rec.keywords, tone: rec.tone, summary: rec.summary };
+      } catch (e) { /* この媒体は次回に回す */ }
+    }));
+
+    return { success: true, meta, pending: Math.max(0, missing.length - toAnalyze.length) };
+  }
+
+  /* ---------- メディアの内容傾向の分析 ----------
+   * 1媒体の最近のタイトルから「どんな内容が多いか」を LLM が要約。ソース記事のメディア詳細ダイアログ用。 */
+  if (mode === "analyzeMedia") {
+    const name = String(data.name || "").slice(0, 40).trim();
+    const feed = String(data.feed || "").trim();
+    if (!/^https:\/\//.test(feed)) return { success: false, reason: "feed is required" };
+    let items = [];
+    try { items = await fetchSiteFeed(feed, 20); }
+    catch (e) { return { success: false, reason: `記事を取得できませんでした: ${e.message}` }; }
+    if (!items.length) return { success: false, reason: "記事が取得できませんでした（時間をおいて再試行してください）" };
+    const titles = items.map((it) => it.title).filter(Boolean).slice(0, 20);
+    const sample = items.slice(0, 8).map((it) => ({ title: it.title, url: it.url, date: it.date || "" }));
+    const prompt = `
+メディア「${name}」の最近の記事タイトル一覧です。このメディアがどんな内容を多く扱うか、日本語で分析してください。
+
+【最近のタイトル】
+${titles.map((t) => `- ${t}`).join("\n")}
+
+【出力（JSONのみ・コードブロック無し）】
+{"summary":"2〜3文で、このメディアの傾向・強み・読者にとっての価値","keywords":["よく出るトピック", ...最大8語],"tone":"文体/レベルを一言（例: 速報系 / 専門的 / 初心者向け 等）"}
+`.trim();
+    try {
+      const out = JSON.parse(cleanJson(await callLLM(prompt, { provider: textCfg.provider, model: textCfg.model, maxTokens: 700 })));
+      const summary = String(out.summary || "").trim();
+      const keywords = (Array.isArray(out.keywords) ? out.keywords : []).map((k) => String(k || "").trim()).filter(Boolean).slice(0, 8);
+      const tone = String(out.tone || "").trim();
+      // 全ユーザー共有キャッシュに保存（カード用バッチ mediaMeta と共用・再分析を防ぐ）
+      try {
+        await admin.firestore().collection("blogMediaMeta").doc(blogMediaDocId(feed))
+          .set({ name, feed, summary, keywords, tone, updatedAt: Date.now() }, { merge: true });
+      } catch (e) { console.warn(`[analyzeMedia] cache write failed: ${e.message}`); }
+      return { success: true, analysis: {
+        summary, keywords, tone,
+        sampleTitles: titles.slice(0, 8),
+        items: sample,
+      } };
+    } catch (e) {
+      console.warn(`[blogDialogue:analyzeMedia] llm failed: ${e.message}`);
+      // LLM 失敗でも最近のタイトルは返す（最低限の確認はできる）
+      return { success: true, analysis: { summary: "", keywords: [], tone: "", sampleTitles: titles.slice(0, 8), items: sample } };
+    }
   }
 
   /* ---------- テーマ(+Web記事)から下書き ---------- */

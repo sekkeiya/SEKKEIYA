@@ -9,7 +9,7 @@
  * 「議論から記事を生成する」で bodyMarkdown が入ると、親(DsbEditor)が自動でエディタ表示に切り替える。
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, Chip, CircularProgress, Divider, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Button, Chip, CircularProgress, Divider, IconButton, Tooltip, Slider } from '@mui/material';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
@@ -18,12 +18,18 @@ import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import TranslateRoundedIcon from '@mui/icons-material/TranslateRounded';
 import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
+import SkipPreviousRoundedIcon from '@mui/icons-material/SkipPreviousRounded';
+import SkipNextRoundedIcon from '@mui/icons-material/SkipNextRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import BookmarkAddRoundedIcon from '@mui/icons-material/BookmarkAddRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import { speakSentences, splitSentences, stopSpeaking, isTtsAvailable, getTtsSettings } from './lib/tts';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
+import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
+import { speakSentences, splitSentences, stopSpeaking, isTtsAvailable, getTtsSettings, pauseSpeaking, resumeSpeaking, toPlaybackRate } from './lib/tts';
 import { isTauri } from '../../lib/platform';
 import { saveArticleToLibrary, findLibraryEntryByUrl } from './lib/articleToLibrary';
 import { AiTtsPlayer, prepareAiTts, isAiTtsLimited, aiTtsLimitedUntil } from '../../lib/aiTts';
@@ -37,6 +43,8 @@ import { openReaderRaw, openReaderRawAndWait } from './lib/openReader';
 import { extractArticleLocally, blocksLookJapanese } from './lib/localArticleExtract';
 import { getSiteLogin, getSiteLoginEpoch, markSiteLoggedIn, setSitePreferRaw } from './lib/siteLoginState';
 import { isSpeechSkippable } from './lib/speechFilter';
+import { getRatingFor, setArticleRating } from './lib/articleRatings';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const ACCENT = '#e57373';
 
@@ -126,6 +134,8 @@ interface SourceArticleReaderProps {
 // 全キャッシュが自動的にミス扱いになる（＝次に開いた記事から新Cookieで取り直し）。
 const CACHE_PREFIX = 'sblog-read:';
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6時間
+// 抽出・翻訳パイプライン変更時に上げる（v2: 巨大段落分割＋全文翻訳。旧エントリは切り詰め済みのため破棄）
+const CACHE_VERSION = 2;
 
 function loadReadCache(url: string): { blocks: ReaderBlock[]; translated: boolean } | null {
   try {
@@ -133,13 +143,14 @@ function loadReadCache(url: string): { blocks: ReaderBlock[]; translated: boolea
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (!Array.isArray(data.blocks) || Date.now() - (data.at || 0) > CACHE_TTL) return null;
+    if ((data.v || 1) !== CACHE_VERSION) return null; // 旧パイプラインの結果は使わない
     if ((data.siteEpoch || 0) !== getSiteLoginEpoch(url)) return null; // ログイン状態が変わった
     return { blocks: data.blocks, translated: !!data.translated };
   } catch { return null; }
 }
 
 function saveReadCache(url: string, blocks: ReaderBlock[], translated: boolean): void {
-  const entry = JSON.stringify({ blocks, translated, at: Date.now(), siteEpoch: getSiteLoginEpoch(url) });
+  const entry = JSON.stringify({ blocks, translated, at: Date.now(), siteEpoch: getSiteLoginEpoch(url), v: CACHE_VERSION });
   try {
     localStorage.setItem(CACHE_PREFIX + url, entry);
   } catch {
@@ -191,6 +202,18 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
     }
   };
 
+  // ⭐ 関心度評価（★1〜5）: この記事がどれくらい好みだったか。ホームのおすすめ順が学習する。
+  // localStorage 正本＋Firestore 同期（articleRatings.ts）。同じ★をもう一度押すと取り消し。
+  const [rating, setRating] = useState(() => getRatingFor(source.url));
+  const [ratingHover, setRatingHover] = useState(0);
+  useEffect(() => { setRating(getRatingFor(source.url)); setRatingHover(0); }, [source.url]);
+  const handleRate = (n: number) => {
+    const next = n === rating ? 0 : n;
+    setRating(next);
+    const uid = useAuthStore.getState().currentUser?.uid;
+    setArticleRating(uid ?? null, { url: source.url, title: source.title, source: source.source || '', rating: next });
+  };
+
   // 🔊 記事の読み上げ（日本語訳された本文を再生。読んでいる文をハイライト＋自動スクロール）
   const [reading, setReading] = useState(false);
   const [ttsSettingsOpen, setTtsSettingsOpen] = useState(false);
@@ -198,6 +221,12 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
   const bodyScrollRef = useRef<HTMLDivElement>(null);
   // 手動停止・アンマウントでは onReadEnd（連続読み上げの次記事トリガー）を発火させない
   const manualStopRef = useRef(false);
+  // 🎬 動画プレイヤー風の再生バー: 一時停止・シーク・推定時間表示のための状態
+  const [paused, setPaused] = useState(false);          // 再生中の一時停止（停止＝別）
+  const [buffering, setBuffering] = useState(false);    // AI音声のチャンク合成待ち（無音）。バーを止めてくるくるを出す
+  const [elapsedSec, setElapsedSec] = useState(0);      // 表示用の経過秒（推定・文境界で補正）
+  const [seekFrac, setSeekFrac] = useState<number | null>(null); // シークバーをドラッグ中のプレビュー位置(0..1)
+  const [settingsNonce, setSettingsNonce] = useState(0);         // 読み上げ設定（速度）変更で推定時間を引き直す
 
   // 冒頭で読み上げるタイトル文（連続読み上げの自動遷移時はアナウンスを前置）
   const titleSpoken = announceNext ? `次の記事を読み上げます。${source.title}。` : `${source.title}。`;
@@ -220,6 +249,37 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
     const speechFlat = flat.map((s, i) => (i > 0 && isSpeechSkippable(s) ? '' : s));
     return { flat, rangeByBlock, speechFlat };
   }, [blocks, titleSpoken]);
+
+  // 🎬 プレイヤーのタイムライン: 各文の「先頭からの累計文字数」で位置を表す。
+  //   offsets[i] = 文 i の直前までの発話文字数 / totalChars = 全発話文字数 /
+  //   playable   = 実際に読む文（空でない）の index 列（前後スキップ・シークの座標系）。
+  // 標準/AI どちらのエンジンでも currentSentence を offsets で秒に変換して進捗を出す。
+  const timeline = React.useMemo(() => {
+    const offsets: number[] = [];
+    const playable: number[] = [];
+    let acc = 0;
+    for (let i = 0; i < readModel.speechFlat.length; i++) {
+      offsets.push(acc);
+      const len = readModel.speechFlat[i]?.length || 0;
+      if (len > 0) playable.push(i);
+      acc += len;
+    }
+    return { offsets, playable, totalChars: Math.max(1, acc) };
+  }, [readModel]);
+
+  // 推定総再生時間（秒）。1文字あたりの発話秒 × 文字数 ÷ 実再生速度。
+  // TTS の実尺は環境で変わるため厳密ではない“目安”。文境界で実位置に補正するので破綻しない。
+  const SEC_PER_CHAR = 0.17;
+  const estTotalSec = React.useMemo(() => {
+    const rate = toPlaybackRate(getTtsSettings().rate) || 1;
+    return (timeline.totalChars * SEC_PER_CHAR) / rate;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeline, settingsNonce]);
+  const timeAt = (chars: number) => (chars / timeline.totalChars) * estTotalSec;
+  const fmtTime = (s: number) => {
+    const t = Math.max(0, Math.floor(s));
+    return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+  };
 
   // AI音声（ニューラルTTS）: 連続する段落を大きめのまとまり（~1200字）に結合して合成する。
   // 段落ごとに別々に合成すると抑揚・声色が毎回リセットされ「別人が読んでいる」ように
@@ -298,6 +358,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
     setReading(false);
     setAiSynthesizing(false);
     setAiPrep(null);
+    setBuffering(false);
     setCurrentSentence(-1);
     setCurrentBlocks([]);
   };
@@ -305,6 +366,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
   const readFrom = (startIndex: number) => {
     if (readModel.flat.length <= 1) return;
     manualStopRef.current = false;
+    setPaused(false); // 新規再生・シーク開始は一時停止を解除
     const settings = getTtsSettings();
 
     // 標準音声（OS・無料/無制限）で idx から最後まで読む。
@@ -412,6 +474,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
           aiPlayerRef.current?.stop();
           setAiSynthesizing(false);
           setAiPrep(null);
+          setBuffering(false);
           setCurrentBlocks([]);
           setAiError(`${msg}。ここから標準音声（無料）で続けます`);
           const at = sentenceAtChunk(fromChunk);
@@ -453,6 +516,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
           slice.map((c) => c.text),
           { voice: settings.aiVoice, style: settings.aiStyle, rate: settings.rate },
           {
+            onBuffering: (b) => { if (session === readSessionRef.current) setBuffering(b); },
             onChunkStart: (i) => {
               setAiSynthesizing(false); // 音が出始めた
               const c = slice[i];
@@ -493,6 +557,85 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
     if (reading) { manualStopRef.current = true; stopAll(); return; }
     readFrom(0);
   };
+
+  // ⏯ プレイヤーの再生/一時停止/シーク（動画のような操作感）。
+  //   一時停止＝“続きから再開できる停止”（stopAll の完全停止とは別）。標準/AI 両エンジンに効かせる。
+  const pauseRead = () => {
+    setPaused(true);
+    try { pauseSpeaking(); } catch { /* noop */ }
+    aiPlayerRef.current?.pause();
+  };
+  const resumeRead = () => {
+    setPaused(false);
+    try { resumeSpeaking(); } catch { /* noop */ }
+    aiPlayerRef.current?.resume();
+  };
+  // ▶/⏸ メインボタン: 未再生→頭から / 再生中→一時停止 / 一時停止中→再開
+  const togglePlayPause = () => {
+    if (!reading) { readFrom(0); return; }
+    if (paused) resumeRead(); else pauseRead();
+  };
+  // ⏮⏭ 前後の文へ（読む文だけを辿る）。その位置から再生し直す＝聞きたい所から。
+  const stepSentence = (dir: 1 | -1) => {
+    const list = timeline.playable;
+    if (!list.length) return;
+    const cur = currentSentence;
+    const target = dir > 0 ? list.find((i) => i > cur) : [...list].reverse().find((i) => i < cur);
+    if (target == null) return;
+    readFrom(target);
+  };
+  // シークバーで選んだ割合(0..1)に最も近い「読む文」から再生する
+  const seekToFraction = (f: number) => {
+    const list = timeline.playable;
+    if (!list.length) return;
+    const targetChars = f * timeline.totalChars;
+    let target = list[0];
+    for (const i of list) { if ((timeline.offsets[i] || 0) <= targetChars) target = i; else break; }
+    readFrom(target);
+  };
+
+  // 読み上げが止まったら（自然終了・完全停止）プレイヤーを初期状態へ戻す
+  useEffect(() => { if (!reading) { setPaused(false); setElapsedSec(0); } }, [reading]);
+  // 文が進むたび、経過秒を「その文の実位置」へスナップ（推定タイマーのズレを補正）
+  useEffect(() => {
+    if (currentSentence >= 0) setElapsedSec(timeAt(timeline.offsets[currentSentence] || 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSentence]);
+  // 再生中は経過秒をなめらかに進める（現在の文の枠を越えない＝実位置より先走らない）。
+  // 音が出ていない/本文以外を読んでいる間は進めない:
+  //  - buffering（チャンク合成待ちの無音）→ バーを止めてくるくるを出す
+  //  - 画像ナレーション中（currentSentence=-1）→ 画像はテキスト時間軸に無いので位置を保持
+  // 以前はこの2状態で上限なしに進んでいて「無音なのにバーだけ進む」ように見えていた。
+  useEffect(() => {
+    if (!reading || paused || buffering || seekFrac !== null) return;
+    const id = setInterval(() => {
+      setElapsedSec((e) => {
+        if (currentSentence < 0) return e; // 画像ナレーション等: 本文の位置は動いていない
+        const curOff = timeline.offsets[currentSentence] || 0;
+        const curLen = readModel.speechFlat[currentSentence]?.length || 0;
+        const cap = Math.max(e, timeAt(curOff + curLen) - 0.1);
+        return Math.min(e + 0.25, cap);
+      });
+    }, 250);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reading, paused, buffering, seekFrac, currentSentence, estTotalSec, timeline]);
+  // Space キーで再生/一時停止（動画プレイヤーと同じ）。入力欄・文字選択中は無効。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;
+      if (!isTtsAvailable() || loading || !!error || readModel.flat.length <= 1) return;
+      e.preventDefault();
+      togglePlayPause();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reading, paused, loading, error, readModel.flat.length]);
 
   // 🔄 本文を再取得: キャッシュを破棄して読み直す（アプリ内ログイン直後のCookieを反映）
   const handleRefetch = () => {
@@ -912,6 +1055,37 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
             </>
           )}
           <Box sx={{ flex: 1 }} />
+          {/* ⭐ 関心度（★1〜5）: 評価するとホームのフィードがあなた好みに並び替わる */}
+          {!loading && !error && (
+            <Tooltip title={rating > 0
+              ? `関心度 ★${rating} — もう一度同じ★を押すと取り消し。評価はホームの「おすすめ順」に反映されます`
+              : 'この記事への関心度を★1〜5で評価。評価するとホームに表示される記事があなた好みに最適化されます'}>
+              <Box onMouseLeave={() => setRatingHover(0)}
+                sx={{ display: 'flex', alignItems: 'center', gap: 0, mr: 0.5,
+                  px: 0.75, py: 0.25, borderRadius: 99,
+                  border: rating > 0 ? '1px solid rgba(255,215,64,0.4)' : '1px solid rgb(var(--brand-fg-rgb) / 0.12)',
+                  bgcolor: rating > 0 ? 'rgba(255,215,64,0.07)' : 'transparent' }}>
+                <Typography sx={{ fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mr: 0.5 }}>
+                  関心度
+                </Typography>
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const active = n <= (ratingHover || rating);
+                  return (
+                    <IconButton key={n} size="small" disableRipple
+                      onClick={() => handleRate(n)}
+                      onMouseEnter={() => setRatingHover(n)}
+                      sx={{ p: 0.1, color: active ? 'light-dark(#c77800, #ffd740)' : 'rgb(var(--brand-fg-rgb) / 0.3)',
+                        transition: 'color .1s, transform .1s',
+                        '&:hover': { transform: 'scale(1.2)', bgcolor: 'transparent' } }}>
+                      {active
+                        ? <StarRoundedIcon sx={{ fontSize: 18 }} />
+                        : <StarBorderRoundedIcon sx={{ fontSize: 18 }} />}
+                    </IconButton>
+                  );
+                })}
+              </Box>
+            </Tooltip>
+          )}
           {onDiscuss && (
             <Button size="small" variant="contained" startIcon={<ForumRoundedIcon sx={{ fontSize: '14px !important' }} />}
               onClick={onDiscuss}
@@ -1063,7 +1237,79 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
         )}
       </Box>
 
-      <TtsSettingsDialog open={ttsSettingsOpen} onClose={() => setTtsSettingsOpen(false)} />
+      {/* 🎬 読み上げプレイヤー（動画のような下部バー）: ▶/⏸・前後の文・シーク・推定時間 */}
+      {isTtsAvailable() && !loading && !error && readModel.flat.length > 1 && (() => {
+        const displayCur = seekFrac != null ? seekFrac * estTotalSec : elapsedSec;
+        const sliderVal = seekFrac != null ? seekFrac : Math.min(1, estTotalSec > 0 ? elapsedSec / estTotalSec : 0);
+        // 音が出ていない待ち時間（初回のAI準備 or チャンク合成待ち）＝動画の「くるくる」
+        const busy = reading && (aiSynthesizing || buffering);
+        const canStep = reading || paused;
+        return (
+          <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1.25, px: 2.5, py: 1,
+            borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.09)',
+            bgcolor: 'var(--brand-surface2)' }}>
+            <Tooltip title="前の文へ">
+              <span>
+                <IconButton size="small" onClick={() => stepSentence(-1)} disabled={!canStep}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)' }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.22)' } }}>
+                  <SkipPreviousRoundedIcon sx={{ fontSize: 22 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title={busy ? '音声を読み込み中…' : reading ? (paused ? '再開（Space）' : '一時停止（Space）') : '読み上げを再生（Space）'}>
+              <IconButton onClick={togglePlayPause}
+                sx={{ width: 42, height: 42, flexShrink: 0, bgcolor: ACCENT, color: '#1a1a1a',
+                  boxShadow: '0 2px 10px rgba(229,115,115,0.4)',
+                  '&:hover': { bgcolor: '#ef5350' } }}>
+                {busy
+                  ? <CircularProgress size={20} thickness={5} sx={{ color: '#1a1a1a' }} />
+                  : reading && !paused
+                    ? <PauseRoundedIcon sx={{ fontSize: 26 }} />
+                    : <PlayArrowRoundedIcon sx={{ fontSize: 28 }} />}
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="次の文へ">
+              <span>
+                <IconButton size="small" onClick={() => stepSentence(1)} disabled={!canStep}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: 'var(--brand-fg)' }, '&.Mui-disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.22)' } }}>
+                  <SkipNextRoundedIcon sx={{ fontSize: 22 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+
+            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.7)',
+              fontVariantNumeric: 'tabular-nums', minWidth: 36, textAlign: 'right' }}>
+              {fmtTime(displayCur)}
+            </Typography>
+
+            <Slider size="small" min={0} max={1} step={0.001} value={sliderVal}
+              aria-label="再生位置"
+              onChange={(_, v) => setSeekFrac(v as number)}
+              onChangeCommitted={(_, v) => { const f = v as number; setSeekFrac(null); seekToFraction(f); }}
+              sx={{ flex: 1, color: ACCENT, py: 1.5,
+                '& .MuiSlider-rail': { opacity: 0.28, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.5)' },
+                '& .MuiSlider-thumb': { width: 13, height: 13,
+                  '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 7px rgba(229,115,115,0.18)' },
+                  '&.Mui-active': { boxShadow: '0 0 0 11px rgba(229,115,115,0.22)' } } }} />
+
+            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.45)',
+              fontVariantNumeric: 'tabular-nums', minWidth: 36 }}>
+              {fmtTime(estTotalSec)}
+            </Typography>
+
+            <Tooltip title="読み上げの設定（速度・声）">
+              <IconButton size="small" onClick={() => setTtsSettingsOpen(true)}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'rgb(var(--brand-fg-rgb) / 0.8)' } }}>
+                <TuneRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      })()}
+
+      <TtsSettingsDialog open={ttsSettingsOpen} onClose={() => { setTtsSettingsOpen(false); setSettingsNonce((n) => n + 1); }} />
 
       {/* 📖 選択した言葉の意味（フローティングカード） */}
       {lookup && (

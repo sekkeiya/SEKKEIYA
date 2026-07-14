@@ -125,7 +125,7 @@ function buildReaderExtractScript(crawlId: string): string {
     'if(location.hostname==="127.0.0.1")return;' + // ブリッジ遷移後は何もしない
     'var CRAWL_ID=' + JSON.stringify(crawlId) + ';' +
     'var BRIDGE=' + JSON.stringify(BRIDGE_URL) + ';' +
-    'var MAX_TEXT=26000,MAX_BLOCKS=160,MAX_IMGS=40,MAX_WAIT=12000;' +
+    'var MAX_TEXT=40000,MAX_BLOCKS=300,MAX_IMGS=40,MAX_WAIT=12000;' +
     'var sent=false;' +
     'function abs(h){try{return new URL(h,location.href).href;}catch(e){return null;}}' +
     // ── 記事コンテナ推定: 候補のうちテキスト量が最大のもの（無ければ body）──
@@ -173,15 +173,23 @@ function buildReaderExtractScript(crawlId: string): string {
         '}' +
         // li 内の p / 入れ子 li は親側で拾えるので、内側は飛ばして二重取りを防ぐ
         'if(el.parentElement&&el.parentElement.closest("p,li"))continue;' +
-        'var text=(el.textContent||"").replace(/\\s+/g," ").trim();' +
+        // innerText を使うと <br> が改行として残る（textContent は行が連結され境界が消える）。
+        // Substack 等は1つの <p> に <br> 区切りで記事全文を詰めるため、行に分割して拾う。
+        'var raw=String(el.innerText!=null?el.innerText:(el.textContent||""));' +
         'if(tag.charAt(0)==="h"){' +
+          'var text=raw.replace(/\\s+/g," ").trim();' +
           'if(text.length<2||text.length>300)continue;' +
           'if(seenText[text])continue;seenText[text]=1;' +
           'blocks.push({t:"h",text:text});textChars+=text.length;' +
         '}else{' +
-          'if(text.length<25)continue;' +                             // ボタン/キャプション等の短片除外
-          'if(seenText[text])continue;seenText[text]=1;' +
-          'blocks.push({t:"p",text:text});textChars+=text.length;' +
+          'var lines=raw.split(/\\n+/);' +
+          'for(var L=0;L<lines.length;L++){' +
+            'if(blocks.length>=MAX_BLOCKS||textChars>=MAX_TEXT)break;' +
+            'var line=lines[L].replace(/\\s+/g," ").trim();' +
+            'if(line.length<25)continue;' +                           // ボタン/キャプション等の短片除外
+            'if(seenText[line])continue;seenText[line]=1;' +
+            'blocks.push({t:"p",text:line});textChars+=line.length;' +
+          '}' +
         '}' +
       '}' +
       'return{blocks:blocks,diag:{root:root.sel,blockCount:blocks.length,textChars:textChars,ready:document.readyState}};' +
