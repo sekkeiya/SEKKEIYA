@@ -29,6 +29,7 @@ import { Home as HomeIcon, Search, User, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MiniSidebar from '../components/Sidebar/MiniSidebar';
 import { ProjectSidebar } from '../shared/layout/project-sidebar/ProjectSidebar';
+import { WorkspaceTabBar } from '../shared/layout/workspace/WorkspaceTabBar';
 import AIChatPanel from '../components/AI/AIChatPanel';
 import { TeamChatPanel } from '../features/team-chat/TeamChatPanel';
 import ProjectChatBrowser from '../features/team-chat/ProjectChatBrowser';
@@ -65,7 +66,6 @@ import AI3DCreatePanel from '../components/AI/AI3DCreatePanel';
 import AI3DCreateFullScreen from '../components/AI/AI3DCreateFullScreen';
 import AIRenderPanel from '../components/AI/AIRenderPanel';
 import AIRenderFullScreen from '../components/AI/AIRenderFullScreen';
-import AIToolbar from '../components/AI/AIToolbar';
 import { BRAND } from '../styles/theme';
 import { useAppTheme } from '../styles/useAppTheme';
 import MobileFeed from '../pages/MobileFeed';
@@ -502,50 +502,72 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     if (currentMainView === 'project-management') return null;
     // モバイルはボトムバー＋一覧画面でナビするため、ナビ系の左サイドバーは出さない
     if (currentMainView === 'gallery') return isMobile ? null : <GallerySidebar />;
+    // 全幅ヘッダー化: デスクトップの S.Model は左のモデル一覧サイドバーを
+    // DssDashboard 内（ツールバー下の 3 ゾーン行）へ埋め込むため、グローバル左サイドバーは出さない。
+    // モバイルは従来どおりドロワーとして表示する。
+    if (showModelsSidebar && !isMobile) return null;
     if (showModelsSidebar) return <ModelsSidebar />;
     if (showCanvasSidebar) return <AiCanvasSidebar />;
+    // ── 全幅ヘッダー化（S.Model と同パターン）─────────────────────────────
+    // デスクトップの各サブアプリはダッシュボード内へ左サイドバーを埋め込むため、
+    // ダッシュボードモードではグローバル左サイドバーを出さない（モバイルは従来どおり）。
+    // エディターモードのサイドバー（DspEditorSidebar 等）は従来どおりここで出す。
     if (showDspSidebar) {
       // ファイルが開かれている かつ プロジェクトブラウザトグル OFF → エディターサイドバー（3DSL パターン）
       if (dspIsHydrated && !dspShowProjectBrowser) return <DspEditorSidebar />;
+      // ダッシュボード（未 hydrate）はデスクトップでは埋め込みへ移譲。
+      // エディター中のプロジェクトブラウザ（hydrated＋トグルON）は従来どおり表示。
+      if (!isMobile && !dspIsHydrated) return null;
       return <DspSidebar />;
     }
 
     if (showDscSidebar) {
       // スタジオが開かれている かつ プロジェクトブラウザトグル OFF → エディターサイドバー（3DSP パターン）
       if (dscShellMode === 'studio' && !dscShowProjectBrowser) return <DscEditorSidebar />;
+      // ダッシュボードはデスクトップでは埋め込みへ移譲（スタジオ中のブラウザ表示は維持）。
+      if (!isMobile && dscShellMode !== 'studio') return null;
       return <DscSidebar />;
     }
 
     if (showDsdSidebar) {
       if (dsdShellMode === 'editor') return <DsdEditorSidebar />;
+      if (!isMobile) return null;
       return <DsdSidebar />;
     }
 
-    if (showDsrSidebar) return <DsrSidebar />;
+    if (showDsrSidebar) return isMobile ? <DsrSidebar /> : null;
 
     if (showDsiSidebar) {
       // エディター中は素材サイドバー、それ以外はプロジェクトナビ（S.Movie パターン）
       if (dsiShellMode === 'editor') return <DsiEditorSidebar />;
+      if (!isMobile) return null;
       return <DsiSidebar />;
     }
 
-    if (showDsqSidebar) return <DsqSidebar />;
+    if (showDsqSidebar) return isMobile ? <DsqSidebar /> : null;
 
-    if (showDsfSidebar) return <DsfSidebar />;
+    if (showDsfSidebar) return isMobile ? <DsfSidebar /> : null;
 
-    if (showDskSidebar) return <DskSidebar />;
+    if (showDskSidebar) return isMobile ? <DskSidebar /> : null;
 
-    if (showDsbSidebar) return <DsbSidebar />;
+    if (showDsbSidebar) return isMobile ? <DsbSidebar /> : null;
 
     if (showDsmSidebar) {
       // エディター中は素材サイドバー、それ以外はプロジェクトナビ（3DSD パターン）
       if (dsmShellMode === 'editor') return <DsmEditorSidebar />;
+      if (!isMobile) return null;
       return <DsmSidebar />;
     }
 
-    if (showDsmtSidebar) return <DsmtSidebar />;
+    if (showDsmtSidebar) return isMobile ? <DsmtSidebar /> : null;
 
     if (isLayoutWorkspace) {
+      // 全幅ヘッダー化: デスクトップの S.Layout は、左サイドバーを中央（グローバル閲覧=DslDashboard /
+      // プロジェクト・編集=LayoutShell）内へ埋め込むため、外部左サイドバーは一切出さない。
+      // これによりヘッダーが全幅になり、S.Model と同じ「全幅ヘッダー＋左＋中央＋右」構成になる。
+      // モバイルは従来どおりドロワーとして外部サイドバーを表示する。
+      if (!isMobile) return null;
+
       // hasActiveLayout: true when any level of the Base→Plan→Option hierarchy is selected.
       // planId must be included so that selecting a Plan (before its Option is auto-resolved)
       // does NOT fall back to DslSidebar.
@@ -621,6 +643,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       dspIsHydrated, dspShowProjectBrowser,
       dsdShellMode, dsmShellMode, dsiShellMode,
       panelSelections, hasDslLeftSections, showDslDashboard,
+      isMobile,
     ],
   );
   const hasSidebarContent = !!leftSidebarEl;
@@ -657,8 +680,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         transition: 'padding-right 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
 
-        {/* ── AI ツールバー（デスクトップのみ・ネイティブメニュー直下） ── */}
-        {!isMobile && <AIToolbar />}
+        {/* 旧 AI ツールバー（File/Edit/Help バー）は廃止して全体を上へ詰めた。
+            プロジェクトバー開閉のハンバーガーはタブバー（WorkspaceTabBar）左端へ移設。 */}
 
         {/* 旧モバイルトップバー（SEKKEIYA + 通知ベル）は廃止し画面を広く使用。
             通知はボトムバーのプロフィールアイコンに未読バッジを表示し、中身はマイページ（CreatorProfilePage）から閲覧。 */}
@@ -676,8 +699,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {/* Rest of the layout container (relative so fullscreen overlay can cover it all) */}
         <Box sx={{ display: 'flex', flexGrow: 1, position: 'relative', overflow: 'hidden', minWidth: 0 }}>
           
+          {/* Workspace 列ラッパー: 全幅ヘッダー（タブバー）を最上部に置き、その下に [左サイドバー | 中央 | 右] を並べる */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+            {/* 全幅ヘッダー: ワークスペース表示中のみ、左サイドバーの上にも被る全幅タブバー */}
+            {!isMobile && currentMainView === 'workspace' && (
+              <Box sx={{ flexShrink: 0, width: '100%' }}>
+                <WorkspaceTabBar />
+              </Box>
+            )}
           {/* Main Area Container (so inner overlays don't cover Right Panels) */}
-          <Box sx={{ display: 'flex', flexGrow: 1, position: 'relative', overflow: 'hidden', minWidth: 0 }}>
+          <Box sx={{ display: 'flex', flex: 1, position: 'relative', overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
             {/* Mobile scrim: tap to dismiss the overlaid sidebar */}
             {isMobile && hasSidebarContent && currentSidebarWidth > 0 && (
               <Box
@@ -762,6 +793,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </Box>
             </Slide>
           </Box>
+          </Box>{/* /Workspace 列ラッパー */}
 
           {/* Right Auxiliary Panels */}
 

@@ -41,6 +41,27 @@ export async function discoverFeedSource(input: string): Promise<BlogSourceSite>
   }
   const name = url.hostname.replace(/^www\./, '');
   const fn = httpsCallable(functions, 'blogDialogue');
+
+  // 🎬 YouTube チャンネル: @ハンドル等のURLから CF が channelId を解決し、
+  // 公式の Atom フィード（feeds/videos.xml）を購読する。動画はReaderで再生+字幕表示できる。
+  if (/(^|\.)(youtube\.com|youtu\.be)$/.test(url.hostname)) {
+    // /channel/UC... はクライアントで直接フィードURL化できる
+    const chm = /\/channel\/(UC[\w-]{10,})/.exec(url.pathname);
+    let feed = chm ? `https://www.youtube.com/feeds/videos.xml?channel_id=${chm[1]}` : '';
+    let ytName = '';
+    if (!feed) {
+      const r: any = await fn({ mode: 'youtubeChannelFeed', url: url.href });
+      if (r.data?.success && r.data.feed) { feed = r.data.feed; ytName = String(r.data.name || ''); }
+      else throw new Error(r.data?.reason || 'YouTubeチャンネルを特定できませんでした');
+    }
+    // 実際に動画が取れるか検証してから返す
+    const probe: any = await fn({ mode: 'feed', sites: [{ name: 'yt', feed }], perSite: 2 });
+    const items = probe.data?.success && Array.isArray(probe.data.feeds) ? (probe.data.feeds[0]?.items || []) : [];
+    if (!items.length) throw new Error('このチャンネルの動画フィードを取得できませんでした');
+    const handle = (/\/@([\w.-]+)/.exec(url.pathname) || [])[1];
+    return { name: ytName || (handle ? `@${handle}` : 'YouTubeチャンネル'), feed, group: 'カスタム', note: 'YouTubeチャンネル（動画）' };
+  }
+
   for (const feed of feedCandidates(url)) {
     try {
       const r: any = await fn({ mode: 'feed', sites: [{ name, feed }], perSite: 2 });

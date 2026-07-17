@@ -12,6 +12,7 @@ import LabelRoundedIcon from "@mui/icons-material/LabelRounded";
 import { useSelectionScopeStore } from "../../../../store/useSelectionScopeStore";
 import { useEditorModeStore } from "../../../../store/useEditorModeStore";
 import { applySelectionScope } from "../../../../utils/applySelectionScope";
+import { scopesForGroup } from "../../../../utils/applyViewGroup";
 
 const OPTIONS = [
   { value: "all",      label: "ALL",      icon: <SelectAllRoundedIcon sx={{ fontSize: 13 }} />, tooltip: "すべて選択可" },
@@ -31,6 +32,14 @@ export default function SelectionScopeButtons() {
   // structureTagging は「Base のみ表示中（躯体編集）」と一致する自動シグナル。
   // この間は家具が無いため Item スコープは無効化する。
   const isBaseOnly = useEditorModeStore((s) => s.structureTagging);
+
+  // ✅ 2D 配置 / 3D 演出 グループで表示するスコープを絞る
+  //    （2D: ALL/Item/Zone/Map、3D: ALL/Lighting/Material/Label）
+  const viewGroup = useEditorModeStore((s) => s.editorViewGroup);
+  const visibleOptions = React.useMemo(() => {
+    const allowed = scopesForGroup(viewGroup);
+    return OPTIONS.filter((o) => allowed.includes(o.value));
+  }, [viewGroup]);
 
   // Base に切り替わったとき Item を選んだままなら ALL に戻す（無効スコープを保持しない）。
   useEffect(() => {
@@ -95,7 +104,7 @@ export default function SelectionScopeButtons() {
           },
         }}
       >
-        {OPTIONS.map((opt) => {
+        {visibleOptions.map((opt) => {
           const disabled = !!opt.disabledOnBase && isBaseOnly;
           return (
             <ToggleButton key={opt.value} value={opt.value} disabled={disabled} disableRipple>

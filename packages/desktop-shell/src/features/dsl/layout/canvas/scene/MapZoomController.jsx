@@ -42,7 +42,7 @@ export default function MapZoomController({ orbitRef }) {
     const onWheel = (e) => {
       e.preventDefault();
       // deltaY<0（上スクロール）で拡大。
-      dolly(Math.pow(1.0015, -e.deltaY));
+      dolly(Math.pow(1.0025, -e.deltaY));
     };
 
     const onPointerDown = (e) => {

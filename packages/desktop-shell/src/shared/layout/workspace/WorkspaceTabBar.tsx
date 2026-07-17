@@ -3,6 +3,7 @@ import { Box, Typography, Menu, MenuItem, Tooltip, Divider } from '@mui/material
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import iconShare    from '../../../../src-tauri/src/assets/icons/share.png';
 import iconLayout   from '../../../../src-tauri/src/assets/icons/layout.png';
 import iconPresents from '../../../../src-tauri/src/assets/icons/presents.png';
@@ -253,6 +254,7 @@ export const WorkspaceTabBar: React.FC = () => {
   const togglePinnedTab     = useAppStore(s => s.togglePinnedTab);
   const setPinnedTabIds     = useAppStore(s => s.setPinnedTabIds);
   const dirtyScopes         = useAppStore(s => s.dirtyScopes);
+  const toggleProjectSidebar = useAppStore(s => s.toggleProjectSidebar);
 
 
   // S.Model(3dss): ローカルモデルファイルが未アップロード（編集後）なら未保存扱い。
@@ -379,6 +381,25 @@ export const WorkspaceTabBar: React.FC = () => {
         '&::-webkit-scrollbar': { display: 'none' },
       }}
     >
+      {/* プロジェクトバー開閉（旧 AIToolbar から移設）。左のミニレール幅 56px に合わせ中央寄せ。 */}
+      <Tooltip title="プロジェクトバーを開閉" placement="bottom" arrow>
+        <Box
+          onClick={() => toggleProjectSidebar()}
+          sx={{
+            height: '100%',
+            width: 56,
+            flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            color: BRAND.sub2,
+            borderRight: `1px solid ${BRAND.line}`,
+            '&:hover': { color: BRAND.text, bgcolor: BRAND.panel },
+          }}
+        >
+          <MenuRoundedIcon sx={{ fontSize: 18 }} />
+        </Box>
+      </Tooltip>
+
       {/* Sortable child tabs */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleTabs.map(t => t.scope)} strategy={horizontalListSortingStrategy}>

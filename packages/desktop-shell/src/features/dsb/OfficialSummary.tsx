@@ -7,7 +7,6 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, CircularProgress, Tabs, Tab, Button, Stack, Collapse } from '@mui/material';
-import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
@@ -82,17 +81,6 @@ export const OfficialSummary: React.FC = () => {
       {/* メイン（スクロール） */}
       <Box sx={{ flex: 1, height: '100%', overflowY: 'auto' }}>
         <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: { xs: 2.5, md: 4 } }}>
-          {/* ヘッダ */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-            <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <InsightsRoundedIcon sx={{ color: ACCENT }} />
-            </Box>
-            <Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1.2 }}>概要・分析・戦略</Typography>
-              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: '0.76rem' }}>公式ブログの状況と運営戦略</Typography>
-            </Box>
-          </Box>
-
           {/* タブ */}
           <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, minHeight: 40, borderBottom: `1px solid ${BRAND.line}`,
             '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontWeight: 700, fontSize: '0.88rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)' },

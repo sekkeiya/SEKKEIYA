@@ -27,6 +27,11 @@ import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
+import ImageSearchRoundedIcon from '@mui/icons-material/ImageSearchRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
+import AutoAwesomeMotionRoundedIcon from '@mui/icons-material/AutoAwesomeMotionRounded';
+import ThreeDRotationRoundedIcon from '@mui/icons-material/ThreeDRotationRounded';
 import { ToggleButton, ToggleButtonGroup, Tabs, Tab } from '@mui/material';
 import { DssFurnitureSwap } from './DssFurnitureSwap';
 import { useAppStore } from '../../../store/useAppStore';
@@ -63,9 +68,22 @@ interface Props {
   canImageSearch?: boolean;
   imgSearchBusy?: boolean;
   onCameraClick?: (el: HTMLElement) => void;
+  // 表示中の 1 モデルに対するアクション（関連URL/カタログ/AI入力/Rhino/Blender）。
+  // これまで画面下のフロートバーにあったものを右ペインへ移設するために配線する。
+  detailActions?: {
+    canRegister: boolean;
+    canRhino: boolean;
+    canBlender: boolean;
+    dccBusy: 'rhino' | 'blender' | null;
+    onRegisterLinks: () => void;
+    onCatalog: () => void;
+    onAutoFill: () => void;
+    onRhino: () => void;
+    onBlender: () => void;
+  };
 }
 
-export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, onSelectRelated, usageMap, prevModel, nextModel, onNavigate, searchQuery, onSearchChange, onSearchSubmit, canImageSearch, imgSearchBusy, onCameraClick }) => {
+export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, onSelectRelated, usageMap, prevModel, nextModel, onNavigate, searchQuery, onSearchChange, onSearchSubmit, canImageSearch, imgSearchBusy, onCameraClick, detailActions }) => {
   const glbUrl = useMemo(() => getDownloadUrlForModel(model, 'glb'), [model]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -543,6 +561,75 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
              </IconButton>
            </Box>
 
+           {/* ── このモデルへのアクション（旧・画面下フロートバーから移設） ───────── */}
+           {detailActions && (() => {
+             const actBtnSx = (bg: string, hover: string) => ({
+               textTransform: 'none' as const, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' as const,
+               minWidth: 0, px: 1.25, py: 0.6, borderRadius: 999, bgcolor: bg, color: 'var(--brand-fg)',
+               justifyContent: 'flex-start', gap: 0.5,
+               '& .MuiButton-startIcon': { mr: 0.5, ml: 0 },
+               '&:hover': { bgcolor: hover },
+               '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
+             });
+             const busy = detailActions.dccBusy;
+             return (
+               <Box>
+                 <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 0.75 }}>
+                   このモデルの操作
+                 </Typography>
+                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75 }}>
+                   <Tooltip title="実在する商品リンク（関連URL）を自動登録" arrow>
+                     <span>
+                       <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRegister}
+                         startIcon={<ImageSearchRoundedIcon sx={{ fontSize: 16 }} />}
+                         onClick={detailActions.onRegisterLinks} sx={actBtnSx('#2563eb', '#1d4ed8')}>
+                         関連URL
+                       </Button>
+                     </span>
+                   </Tooltip>
+                   <Tooltip title="S.Library カタログの似た商品を自動登録" arrow>
+                     <span>
+                       <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRegister}
+                         startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
+                         onClick={detailActions.onCatalog} sx={actBtnSx('#16a34a', '#15803d')}>
+                         カタログ
+                       </Button>
+                     </span>
+                   </Tooltip>
+                   <Tooltip title="AIで寸法・カテゴリを自動入力" arrow>
+                     <span>
+                       <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRegister}
+                         startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 16 }} />}
+                         onClick={detailActions.onAutoFill} sx={actBtnSx('#7c3aed', '#6d28d9')}>
+                         AI入力
+                       </Button>
+                     </span>
+                   </Tooltip>
+                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75 }}>
+                     <Tooltip title="Rhino へ配置（開いて取り込み）" arrow>
+                       <span style={{ display: 'inline-flex', width: '100%' }}>
+                         <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRhino || busy !== null}
+                           startIcon={busy === 'rhino' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />}
+                           onClick={detailActions.onRhino} sx={actBtnSx('#0d9488', '#0f766e')}>
+                           Rhino
+                         </Button>
+                       </span>
+                     </Tooltip>
+                     <Tooltip title="Blender へ配置（開いて取り込み）" arrow>
+                       <span style={{ display: 'inline-flex', width: '100%' }}>
+                         <Button fullWidth size="small" variant="contained" disabled={!detailActions.canBlender || busy !== null}
+                           startIcon={busy === 'blender' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 16 }} />}
+                           onClick={detailActions.onBlender} sx={actBtnSx('#ea7317', '#c2620f')}>
+                           Blender
+                         </Button>
+                       </span>
+                     </Tooltip>
+                   </Box>
+                 </Box>
+               </Box>
+             );
+           })()}
+
            {/* 詳細サマリー: 余白を埋め、要点（仕様・素材・タグ・説明・関連URL）を一望できるようにする。 */}
            {(() => {
              const cat = [model.macroCategory, model.mainCategory, model.subCategory || model.userCategory].filter(Boolean).join(' / ');
@@ -941,6 +1028,60 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           </Box>
         </Box>
       )}
+
+      {/* ── ギャラリー（このリストの他モデル・Drive プレビュー風カードグリッド） ──
+          メイングリッドは仮想化だがここは非仮想化のため、表示中モデルを中心に上限件数へ絞る。 */}
+      {(() => {
+        const list = Array.isArray(allItems) ? allItems : [];
+        if (list.length <= 1) return null;
+        const CAP = 60;
+        let shown = list;
+        if (list.length > CAP) {
+          const idx = list.findIndex((m) => m.id === model.id);
+          if (idx < 0) shown = list.slice(0, CAP);
+          else {
+            const start = Math.max(0, Math.min(idx - Math.floor(CAP / 2), list.length - CAP));
+            shown = list.slice(start, start + CAP);
+          }
+        }
+        return (
+          <Box sx={{ p: 2, pt: 0, mb: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.5, gap: 2 }}>
+              <Typography variant="h6" sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 16 }}>
+                ギャラリー
+                <Typography component="span" sx={{ ml: 1, fontSize: 12, fontWeight: 500, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
+                  このリストのモデル（{list.length}）
+                </Typography>
+              </Typography>
+              {list.length > CAP && (
+                <Typography
+                  onClick={onBack}
+                  sx={{ fontSize: 12, fontWeight: 600, color: 'light-dark(#0352aa, #93c5fd)', cursor: 'pointer', whiteSpace: 'nowrap', '&:hover': { textDecoration: 'underline' } }}
+                >
+                  グリッドで全 {list.length} 件を見る →
+                </Typography>
+              )}
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 1.5 }}>
+              {shown.map((gm) => (
+                <Box
+                  key={gm.id || gm.entityId}
+                  sx={{ borderRadius: '10px', outline: gm.id === model.id ? '2px solid #3b82f6' : 'none', outlineOffset: '2px' }}
+                >
+                  <DssModelCard
+                    model={gm}
+                    onClick={() => {
+                      if (gm.id === model.id) return;
+                      scrollContainerRef.current?.scrollTo(0, 0);
+                      onSelectRelated?.(gm);
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        );
+      })()}
 
     </Box>
   );

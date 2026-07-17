@@ -147,7 +147,7 @@ export const DskSidebar: React.FC = () => {
       sx={{
         width: isProjectSidebarOpen ? 240 : 0,
         height: '100%',
-        bgcolor: BRAND.panel,
+        bgcolor: BRAND.bg,
         borderRight: isProjectSidebarOpen ? `1px solid ${BRAND.line}` : 'none',
         display: 'flex', flexDirection: 'column',
         py: isProjectSidebarOpen ? 2 : 0,
@@ -155,12 +155,6 @@ export const DskSidebar: React.FC = () => {
         transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s, border 0.2s',
       }}
     >
-      <Box sx={{ px: 2.5, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
-          知識ライブラリ / S.Library
-        </Typography>
-      </Box>
-
       {/* Kind navigation */}
       <Box>
         {KINDS.map(k => (

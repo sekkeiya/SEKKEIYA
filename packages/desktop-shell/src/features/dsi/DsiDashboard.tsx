@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Button, Tooltip, Breadcrumbs, Link,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip, Slider,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip, Slider, useMediaQuery,
 } from '@mui/material';
 import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -13,6 +13,7 @@ import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import FolderSpecialRoundedIcon from '@mui/icons-material/FolderSpecialRounded';
 import { DsiImageGrid } from './DsiImageGrid';
 import { DsiRightPanel } from './components/DsiRightPanel';
+import { DsiSidebar } from '../../shared/layout/dsi-sidebar/DsiSidebar';
 import { DsiUploadDialog } from './upload/DsiUploadDialog';
 import { dsiUploadService } from './upload/dsiUploadService';
 import { useDsiStore, DSI_CATEGORIES, type DsiCategoryFilter } from './store/useDsiStore';
@@ -529,10 +530,15 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [pickMode, textureSetMode, deleteTarget, dsiMultiDeleteConfirm, dsiMultiDeleteIds, selectedImageId, setSelectedImageId]);
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──────────────────────────
+  // デスクトップでは MainLayout のグローバル左サイドバーを抑止済みのため、
+  // ツールバーを全幅トップバンドにし、その下の 3 ゾーン行へ DsiSidebar を埋め込む。
+  // モバイルは従来どおり（左サイドバー埋め込みなし）。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default', position: 'relative' }}>
-      {/* Main column */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', bgcolor: 'background.default', position: 'relative' }}>
+      {/* ── 全幅トップバンド: ピッカーバー / セット化バー / ツールバー ── */}
         {/* 複数選択モード（チャットの3D生成ピッカー）バー */}
         {pickMode && (
           <Box sx={{
@@ -757,8 +763,12 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
           )}
         </Box>
 
+      {/* 全幅ヘッダー下の 3 ゾーン行: 左サイドバー | グリッド | 右情報パネル */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（デスクトップのみ）。ストア駆動で自身が開閉・幅を管理する。 */}
+        {!isMobile && <DsiSidebar />}
         {/* Grid */}
-        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {isProjectsMode ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2, p: 3, flex: 1, minHeight: 0, overflowY: 'auto', alignContent: 'start' }}>
               {(projects || []).map((p: any) => (
@@ -795,9 +805,8 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
             />
           )}
         </Box>
-      </Box>
 
-      {/* Right info panel */}
+        {/* Right info panel（行の右端＝ヘッダー下に収まる） */}
       {!isProjectsMode && (
         <Box sx={{ width: 280, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))', overflowY: 'auto' }}>
           <DsiRightPanel
@@ -815,6 +824,7 @@ export const DsiDashboard: React.FC<DsiDashboardProps> = ({ payload, images, set
           />
         </Box>
       )}
+      </Box>
 
       {/* Shift+クリック複数選択フローティングバー */}
       {dsiMultiDeleteIds.size > 0 && !pickMode && !textureSetMode && (

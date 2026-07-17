@@ -184,7 +184,6 @@ export const BlogScheduleView: React.FC = () => {
   }, [schedules]);
 
   const today = todayStr();
-  const upcoming = schedules.filter((s) => s.status === 'planned' && s.date >= today).length;
 
   const openNew = (date?: string) => setDialog({ date: date || today, time: '20:00', title: '', category: '', note: '' });
 
@@ -253,17 +252,12 @@ export const BlogScheduleView: React.FC = () => {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, px: { xs: 2, md: 4 }, py: 3 }}>
-      {/* ヘッダー */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexShrink: 0 }}>
-        <EventNoteRoundedIcon sx={{ color: ACCENT, fontSize: 26 }} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 19, lineHeight: 1.2 }}>スケジュール</Typography>
-          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 12 }}>
-            いつ・どんなテーマを出すか計画して投稿戦略を立てる{upcoming > 0 ? `（今後の予定 ${upcoming} 件）` : ''}
-          </Typography>
+      {/* アクション行（タイトルは全幅ヘッダーバンドへ移設。リスト表示時のみ操作を右寄せで残す） */}
+      {calMode === 'list' && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 2, flexShrink: 0 }}>
+          {headerActions}
         </Box>
-        {calMode === 'list' && headerActions}
-      </Box>
+      )}
 
       {/* 月カレンダー（既定） */}
       {calMode === 'month' ? (

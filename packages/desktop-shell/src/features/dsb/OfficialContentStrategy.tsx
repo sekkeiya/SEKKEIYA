@@ -288,26 +288,23 @@ export const OfficialContentStrategy: React.FC<OfficialContentStrategyProps> = (
   return (
     <Box {...OuterBox}>
       <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: embedded ? 0 : { xs: 2.5, md: 4 }, pb: embedded ? 2 : 8 }}>
-        {/* ヘッダー（埋め込み時はセクション見出しに） */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5, flexWrap: 'wrap', gap: 1.5 }}>
-          <Box>
-            <Typography variant={embedded ? 'subtitle1' : 'h5'} sx={{ fontWeight: 800, color: 'var(--brand-fg)', mb: 0.25 }}>
-              {embedded ? '運営ツール' : 'Content Strategy'}
-            </Typography>
+        {/* ヘッダー（埋め込み時はセクション見出し／非埋め込み時はアクションのみ） */}
+        {embedded ? (
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'var(--brand-fg)', mb: 0.25 }}>運営ツール</Typography>
             <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
-              {embedded ? 'AIモデル設定・開発アップデートから記事化。AI投稿計画・記事ネタはスケジュール画面で。' : 'トピックキュー・AI記者の管理'}
+              AIモデル設定・開発アップデートから記事化。AI投稿計画・記事ネタはスケジュール画面で。
             </Typography>
           </Box>
-          {!embedded && (
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        ) : (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end" sx={{ mb: 2.5 }}>
             <Button variant="outlined" size="small" startIcon={suggesting ? <CircularProgress size={14} sx={{ color: 'light-dark(#aa4e03, #fb923c)' }} /> : <AutoAwesomeRoundedIcon />}
               onClick={() => void suggestTopicsAI()} disabled={suggesting}
               sx={{ color: 'light-dark(#aa4e03, #fb923c)', borderColor: 'rgba(251,146,60,0.4)', textTransform: 'none', borderRadius: 2, fontWeight: 700, '&:hover': { borderColor: '#fb923c', bgcolor: 'rgba(251,146,60,0.05)' } }}>{suggesting ? '計画を作成中…' : 'AI投稿計画'}</Button>
             <Button variant="outlined" size="small" startIcon={<AddRoundedIcon />} onClick={openAdd}
               sx={{ color: ACCENT, borderColor: `${ACCENT}66`, textTransform: 'none', borderRadius: 2, fontWeight: 700, '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}0d` } }}>トピックを追加</Button>
           </Stack>
-          )}
-        </Box>
+        )}
 
         {aiLog && (
           <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.25)' }}>

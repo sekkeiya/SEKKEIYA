@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Typography, Button, TextField, List, ListItem, Divider, IconButton, Collapse } from "@mui/material";
+import { Box, Typography, Button, TextField, List, ListItem, Divider, IconButton, Collapse, Select, MenuItem } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -18,6 +18,69 @@ import { CSS } from '@dnd-kit/utilities';
 import { useLayoutTaskStore } from "../../../../../store/useLayoutTaskStore";
 import { useZoningStore } from "../../../../../store/useZoningStore";
 import { useEditorModeStore } from "../../../../../store/useEditorModeStore";
+import { useAutoLayoutStore } from "../../../../../store/useAutoLayoutStore";
+import { getRoomCategories } from "../../../../../constants/roomCategories";
+import { computeBuildingCenterXZ } from "../../../../../store/useElevationMarkerStore";
+
+// 用途（建物タイプ）。spaceProgram.buildingType に永続化され、部屋カテゴリ語彙・
+// 自動ゾーニング・自動レイアウトが同じ値を参照する。
+const BUILDING_TYPES = [
+  { key: "residential", label: "住宅" },
+  { key: "office", label: "オフィス" },
+  { key: "cafe", label: "カフェ" },
+  { key: "hotel", label: "ホテル" },
+];
+
+/** 名前の入力エディタ（自由入力＋カテゴリ候補チップ）。部屋名・ゾーン名の両方で使う。
+ *  候補チップをクリックすると即コミット（category メタ付き）。Enter で自由入力をコミット。 */
+const NameEditor = ({ initial = "", placeholder, candidates, onCommit, onCancel }) => {
+  const [value, setValue] = useState(initial);
+
+  const commitFree = () => {
+    const name = value.trim();
+    if (!name) { onCancel?.(); return; }
+    // 自由入力でも候補と同名ならカテゴリメタを付ける
+    const hit = candidates.find((c) => c.label === name);
+    onCommit(name, hit || null);
+  };
+
+  return (
+    <Box onClick={(e) => e.stopPropagation()}>
+      <TextField
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commitFree();
+          if (e.key === "Escape") onCancel?.();
+        }}
+        autoFocus size="small" variant="standard" placeholder={placeholder}
+        sx={{ input: { fontSize: 12.5, fontWeight: 700, color: "var(--brand-fg)", py: 0.25 }, width: "100%" }}
+      />
+      {/* 候補（用途の部屋カテゴリ語彙）。クリックで即決定 */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.4, mt: 0.6, mb: 0.4 }}>
+        {candidates.map((c) => (
+          <Box
+            key={c.key}
+            onClick={() => onCommit(c.label, c)}
+            sx={{
+              px: 0.7, py: 0.2, borderRadius: 999, cursor: "pointer", userSelect: "none",
+              fontSize: 10, fontWeight: 700,
+              color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)",
+              background: alpha("#fff", 0.06), border: `1px solid ${alpha("#fff", 0.12)}`,
+              "&:hover": { background: alpha("#38bdf8", 0.2), borderColor: alpha("#38bdf8", 0.5), color: "var(--brand-fg)" },
+            }}
+          >
+            {c.icon} {c.label}
+          </Box>
+        ))}
+      </Box>
+      <Box sx={{ display: "flex", gap: 0.5 }}>
+        <Button size="small" onClick={commitFree} sx={{ fontSize: 10.5, py: 0, px: 1, textTransform: "none" }}>決定</Button>
+        <Button size="small" onClick={() => onCancel?.()} sx={{ fontSize: 10.5, py: 0, px: 1, textTransform: "none", color: "color-mix(in srgb, var(--brand-fg) 50%, transparent)" }}>キャンセル</Button>
+      </Box>
+    </Box>
+  );
+};
 
 const ZoneColorPicker = React.memo(({ zoneId, initialColor }) => {
   const inputRef = React.useRef(null);
@@ -472,12 +535,163 @@ const PatternListItem = ({ p, activeCirculationPatternId, circulationPatterns, o
   );
 };
 
+/** 部屋（Room）1つぶんのグループ: 部屋名ヘッダ ＋ 所属ゾーンのネスト ＋ ＋ゾーン。
+ *  ゾーンの並べ替え（DnD）はグループ内のみ。
+ *  部屋名はダブルクリックで改名（自由入力＋カテゴリ候補。Room マスタに永続化。
+ *  マスタに無い部屋＝ゾーンの roomId だけの擬似グループは、改名時にマスタへ昇格させる）。 */
+const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candidates, allowAddZone = true }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isAddingZone, setIsAddingZone] = useState(false);
+
+  const commitRoomName = (name) => {
+    setIsEditing(false);
+    if (!name || name === group.name) return;
+    const exists = rooms.some((r) => r.id === group.id);
+    const newRooms = exists
+      ? rooms.map((r) => (r.id === group.id ? { ...r, name } : r))
+      : [...rooms, { id: group.id, name, createdAtMs: Date.now() }]; // 擬似グループをマスタへ昇格
+    window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms: newRooms } }));
+  };
+
+  // ゾーン作成（選択式 or 自由入力）。矩形は既存ゾーンの右隣（無ければ建物中心）に既定サイズで置き、
+  // あとはギズモ/ドラッグで調整してもらう。
+  const commitNewZone = (name, category) => {
+    setIsAddingZone(false);
+    if (!name) return;
+    const isMm = (useEditorModeStore.getState().sceneMaxY || 0) > 100;
+    const size = isMm ? 2700 : 2.7;
+    const gap = isMm ? 300 : 0.3;
+    let cx, cz;
+    const last = group.zones[group.zones.length - 1];
+    if (last?.rect) {
+      cx = last.rect.x + (last.rect.width || 0) / 2 + size / 2 + gap;
+      cz = last.rect.z;
+    } else {
+      const c = computeBuildingCenterXZ();
+      cx = c.x; cz = c.z;
+    }
+    window.dispatchEvent(new CustomEvent("LayoutShell:AddZone", {
+      detail: {
+        id: `zone-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+        roomId: group.id === "__unassigned__" ? null : group.id,
+        name,
+        targetSeats: 0,
+        category: category?.key ?? null,
+        color: category?.color || "rgb(var(--brand-fg-rgb) / 0.65)",
+        rect: { x: cx, z: cz, width: size, depth: size },
+        createdBy: "user",
+        createdAtMs: Date.now(),
+      },
+    }));
+  };
+
+  return (
+    <Box sx={{ mb: 1 }}>
+      {/* 部屋名ヘッダ */}
+      <Box sx={{ px: 0.5, py: 0.25 }}>
+        {isEditing ? (
+          <NameEditor
+            initial={group.name || ""}
+            placeholder="部屋名"
+            candidates={candidates}
+            onCommit={(name) => commitRoomName(name)}
+            onCancel={() => setIsEditing(false)}
+          />
+        ) : (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Typography
+              sx={{ fontSize: 12.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)", flex: 1 }}
+              onDoubleClick={() => { if (group.id !== "__unassigned__") setIsEditing(true); }}
+              title={group.id !== "__unassigned__" ? "ダブルクリックで部屋名を変更" : undefined}
+            >
+              {group.name || "（名称未設定）"}
+            </Typography>
+            <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>
+              {group.zones.length ? `${group.zones.length}ゾーン` : "ゾーン未割当"}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      {/* 所属ゾーン（ネスト・グループ内 DnD）＋ ＋ゾーン */}
+      <Box sx={{ pl: 1, borderLeft: `2px solid ${alpha("#fff", 0.1)}`, ml: 0.75 }}>
+        {group.zones.length > 0 && (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => onGroupDragEnd(group.zones, e)}>
+            <SortableContext items={group.zones.map((z) => z.id)} strategy={verticalListSortingStrategy}>
+              <List sx={{ p: 0 }}>
+                {group.zones.map((z) => (
+                  <ZoneListItem key={z.id} z={z} activeZoneId={activeZoneId} />
+                ))}
+              </List>
+            </SortableContext>
+          </DndContext>
+        )}
+
+        {allowAddZone && (
+          isAddingZone ? (
+            <Box sx={{ px: 0.5, py: 0.5 }}>
+              <NameEditor
+                placeholder="ゾーン名"
+                candidates={candidates}
+                onCommit={commitNewZone}
+                onCancel={() => setIsAddingZone(false)}
+              />
+            </Box>
+          ) : (
+            <Box
+              component="button" type="button"
+              onClick={() => setIsAddingZone(true)}
+              sx={{
+                display: "flex", alignItems: "center", gap: 0.4,
+                px: 0.7, height: 20, mt: 0.25, borderRadius: 1, cursor: "pointer",
+                fontSize: 10, fontWeight: 700, fontFamily: "inherit",
+                border: `1px dashed ${alpha("#fff", 0.18)}`, background: "transparent",
+                color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)",
+                "&:hover": { background: alpha("#fff", 0.07), color: "var(--brand-fg)" },
+              }}
+            >
+              <AddIcon sx={{ fontSize: 12 }} />
+              ゾーン
+            </Box>
+          )
+        )}
+      </Box>
+    </Box>
+  );
+};
+
 export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZone }) {
   const [newZoneName, setNewZoneName] = useState("");
   const [newPatternName, setNewPatternName] = useState("");
   const activeZoneId = useLayoutTaskStore((s) => s.activeZoneId);
   const zones = useLayoutTaskStore((s) => s.zones) || [];
+  const rooms = useLayoutTaskStore((s) => s.rooms) || [];
   const circulationPatterns = useLayoutTaskStore((s) => s.circulationPatterns) || [];
+  const buildingType = useAutoLayoutStore((s) => s.buildingType);
+
+  // 部屋（Room）→ ゾーンのグルーピング。
+  //   - Room マスタの部屋（ゾーン0件＝部屋のみ、も表示する）
+  //   - マスタに無い roomId を持つゾーン群も部屋として出す（データ欠落への保険）
+  //   - roomId 無しのゾーンは「未分類」へ
+  const { roomGroups, unassignedZones } = React.useMemo(() => {
+    const byRoom = new Map();
+    const unassigned = [];
+    zones.forEach((z) => {
+      if (z.roomId) {
+        if (!byRoom.has(z.roomId)) byRoom.set(z.roomId, []);
+        byRoom.get(z.roomId).push(z);
+      } else {
+        unassigned.push(z);
+      }
+    });
+    const groups = rooms.map((r) => ({ id: r.id, name: r.name, zones: byRoom.get(r.id) || [], inMaster: true }));
+    byRoom.forEach((zs, roomId) => {
+      if (!rooms.some((r) => r.id === roomId)) {
+        groups.push({ id: roomId, name: zs[0]?.name || "（部屋）", zones: zs, inMaster: false });
+      }
+    });
+    return { roomGroups: groups, unassignedZones: unassigned };
+  }, [zones, rooms]);
   
   // Store actions for creating zones and circulations
   const zoningSubMode = useZoningStore((s) => s.zoningSubMode);
@@ -495,6 +709,14 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // 部屋・ゾーン名の候補 = 用途に応じた部屋カテゴリ語彙（住宅なら LDK/寝室…）
+  // ⚠️ フックは必ず下の early return（Loading / No Option）より前に置くこと。
+  //   後ろに置くと「ロード中（少ないフック数）→ ロード完了（多いフック数）」の再レンダーで
+  //   "Rendered more hooks than during the previous render" でクラッシュする。
+  const nameCandidates = React.useMemo(() => getRoomCategories(buildingType), [buildingType]);
+  // ＋部屋: Room マスタへ追加（ゾーンはあとから ＋ゾーン or 平面で描画して割り当て）
+  const [isAddingRoom, setIsAddingRoom] = useState(false);
 
   if (optionDocLoading) return <Box p={2}><Typography fontSize={12}>Loading Option...</Typography></Box>;
   if (!optionDoc) return <Box p={2}><Typography fontSize={12}>No Option Selected</Typography></Box>;
@@ -550,55 +772,156 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
     window.dispatchEvent(new CustomEvent("LayoutShell:UpdateCirculations", { detail: { circulations: nextCircs } }));
   };
 
-  const handleDragEnd = (event) => {
+  // グループ（部屋 or 未分類）内での並べ替え。グループ外のゾーンの位置は保ったまま、
+  // グループ所属分だけを新しい順序で元の位置に埋め戻す。
+  const handleGroupDragEnd = (groupZones, event) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = zones.findIndex((z) => z.id === active.id);
-      const newIndex = zones.findIndex((z) => z.id === over.id);
-      const newZones = arrayMove(zones, oldIndex, newIndex);
-      window.dispatchEvent(new CustomEvent("LayoutShell:UpdateZonesArray", { detail: { zones: newZones } }));
-    }
+    if (!over || active.id === over.id) return;
+    const oldIndex = groupZones.findIndex((z) => z.id === active.id);
+    const newIndex = groupZones.findIndex((z) => z.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(groupZones, oldIndex, newIndex);
+    const groupIds = new Set(groupZones.map((z) => z.id));
+    let i = 0;
+    const newZones = zones.map((z) => (groupIds.has(z.id) ? reordered[i++] : z));
+    window.dispatchEvent(new CustomEvent("LayoutShell:UpdateZonesArray", { detail: { zones: newZones } }));
+  };
+
+  const handleBuildingTypeChange = (key) => {
+    if (key === buildingType) return;
+    window.dispatchEvent(new CustomEvent("LayoutShell:UpdateBuildingType", { detail: { buildingType: key } }));
+  };
+
+  const commitNewRoom = (name) => {
+    setIsAddingRoom(false);
+    if (!name) return;
+    const newRoom = {
+      id: `room-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      name,
+      createdAtMs: Date.now(),
+    };
+    window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms: [...rooms, newRoom] } }));
   };
 
   return (
-    <Box sx={{ p: 0, height: "100%", overflowY: "auto", color: "rgb(var(--brand-fg-rgb) / 0.9)" }}>
+    // スクロールは親（PropertiesPanel のコンテンツ領域）に任せる。
+    // 躯体編集中はこの下に BaseRoomPanel が縦に続くため、ここで高さを取らない。
+    <Box sx={{ p: 0, color: "rgb(var(--brand-fg-rgb) / 0.9)" }}>
+      {/* ── 用途（建物タイプ）。部屋カテゴリ語彙・自動ゾーニング/レイアウトの基準 ── */}
+      <Box sx={{ mb: 1.5 }}>
+        <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontWeight: 600, mb: 0.5 }}>
+          用途
+        </Typography>
+        <Select
+          size="small"
+          value={buildingType || "residential"}
+          onChange={(e) => handleBuildingTypeChange(e.target.value)}
+          sx={{
+            width: "100%",
+            height: 32,
+            color: "var(--brand-fg)",
+            fontSize: 13,
+            "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.2) },
+            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.4) },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.6) },
+          }}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                bgcolor: "var(--brand-surface2)",
+                border: `1px solid ${alpha("#fff", 0.1)}`,
+                "& .MuiMenuItem-root": { fontSize: 13, color: "var(--brand-fg)" },
+              },
+            },
+          }}
+        >
+          {BUILDING_TYPES.map((t) => (
+            <MenuItem key={t.key} value={t.key}>{t.label}</MenuItem>
+          ))}
+        </Select>
+      </Box>
+
+      <Divider sx={{ my: 1.5, borderColor: alpha("#fff", 0.1) }} />
+
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", fontWeight: 600 }}>
-          ゾーン
+          部屋・ゾーン
         </Typography>
-        <Button 
-          size="small" 
-          variant={(!isZoningActionSelect && zoningSubMode === "zone") ? "contained" : "outlined"}
-          color={(!isZoningActionSelect && zoningSubMode === "zone") ? "primary" : "inherit"}
-          onClick={() => {
-            if (!isZoningActionSelect && zoningSubMode === "zone") {
-              setIsZoningActionSelect(true); // Toggle off (back to select mode)
-            } else {
-              setZoningSubMode("zone");
-              setIsZoningActionSelect(false);
-            }
-          }}
-          startIcon={<AddIcon />}
-          sx={{ fontSize: 11, py: 0, px: 1, textTransform: 'none', borderColor: alpha("#fff", 0.2) }}
-        >
-          {(!isZoningActionSelect && zoningSubMode === "zone") ? "作成中..." : "作成"}
-        </Button>
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            onClick={() => setIsAddingRoom((v) => !v)}
+            startIcon={<AddIcon />}
+            sx={{ fontSize: 11, py: 0, px: 1, textTransform: 'none', borderColor: alpha("#fff", 0.2) }}
+          >
+            部屋
+          </Button>
+          <Button
+            size="small"
+            variant={(!isZoningActionSelect && zoningSubMode === "zone") ? "contained" : "outlined"}
+            color={(!isZoningActionSelect && zoningSubMode === "zone") ? "primary" : "inherit"}
+            onClick={() => {
+              if (!isZoningActionSelect && zoningSubMode === "zone") {
+                setIsZoningActionSelect(true); // Toggle off (back to select mode)
+              } else {
+                setZoningSubMode("zone");
+                setIsZoningActionSelect(false);
+              }
+            }}
+            startIcon={<AddIcon />}
+            sx={{ fontSize: 11, py: 0, px: 1, textTransform: 'none', borderColor: alpha("#fff", 0.2) }}
+          >
+            {(!isZoningActionSelect && zoningSubMode === "zone") ? "描画中..." : "ゾーン描画"}
+          </Button>
+        </Box>
       </Box>
+
+      {/* ＋部屋: 名前（自由入力＋カテゴリ候補）だけで Room を作成 */}
+      {isAddingRoom && (
+        <Box sx={{ px: 0.5, py: 0.5, mb: 0.5, borderRadius: 1, border: `1px dashed ${alpha("#fff", 0.15)}` }}>
+          <NameEditor
+            placeholder="部屋名（例: LDK）"
+            candidates={nameCandidates}
+            onCommit={(name) => commitNewRoom(name)}
+            onCancel={() => setIsAddingRoom(false)}
+          />
+        </Box>
+      )}
       
-      {zones.length === 0 ? (
+      {zones.length === 0 && roomGroups.length === 0 ? (
         <Typography variant="body2" sx={{ opacity: 0.5, mb: 2 }}>
-          No zones defined.
+          まだ部屋・ゾーンがありません。
         </Typography>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={zones.map(z => z.id)} strategy={verticalListSortingStrategy}>
-            <List sx={{ mb: 2, p: 0 }}>
-              {zones.map((z, idx) => (
-                <ZoneListItem key={z.id || idx} z={z} activeZoneId={activeZoneId} />
-              ))}
-            </List>
-          </SortableContext>
-        </DndContext>
+        <Box sx={{ mb: 2 }}>
+          {/* 部屋ごとのグループ（ゾーン0件＝部屋のみ、も表示） */}
+          {roomGroups.map((g) => (
+            <RoomGroup
+              key={g.id}
+              group={g}
+              activeZoneId={activeZoneId}
+              sensors={sensors}
+              onGroupDragEnd={handleGroupDragEnd}
+              rooms={rooms}
+              candidates={nameCandidates}
+            />
+          ))}
+
+          {/* 部屋に属さないゾーン */}
+          {unassignedZones.length > 0 && (
+            <RoomGroup
+              group={{ id: "__unassigned__", name: "未分類ゾーン", zones: unassignedZones, inMaster: false }}
+              activeZoneId={activeZoneId}
+              sensors={sensors}
+              onGroupDragEnd={handleGroupDragEnd}
+              rooms={rooms}
+              candidates={nameCandidates}
+              allowAddZone={false}
+            />
+          )}
+        </Box>
       )}
 
       <Divider sx={{ my: 3, borderColor: alpha("#fff", 0.1) }} />
@@ -626,6 +949,10 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
         </Button>
       </Box>
       
+      <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", mb: 0.75, lineHeight: 1.5 }}>
+        パターンの定義は Base 共通。どのパターンを使うかはプランごとに保存されます。
+      </Typography>
+
       {circulationPatterns.length === 0 ? (
         <Typography variant="body2" sx={{ opacity: 0.5, mb: 2 }}>
           No circulation patterns.

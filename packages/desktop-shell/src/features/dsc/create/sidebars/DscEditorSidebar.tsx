@@ -793,14 +793,11 @@ export const DscEditorSidebar: React.FC = () => {
   const furnitureName = useDscStore(s => s.furnitureName);
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel, overflow: 'hidden' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.bg, overflow: 'hidden' }}>
 
       {/* Header */}
       <Box sx={{ px: 2, py: 1.25, borderBottom: `1px solid ${BRAND.line}`, flexShrink: 0 }}>
-        <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
-          3D SHAPE CREATE
-        </Typography>
-        <Typography sx={{ fontSize: 12, color: ACCENT, fontWeight: 600, mt: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Typography sx={{ fontSize: 12, color: ACCENT, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {furnitureName}
         </Typography>
       </Box>

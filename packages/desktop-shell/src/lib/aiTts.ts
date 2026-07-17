@@ -127,6 +127,9 @@ export async function synthesizeAiTts(text: string, opts: { voice: string; style
 export interface AiPlayCallbacks {
   /** チャンク再生開始（配列インデックス） */
   onChunkStart?: (index: number) => void;
+  /** 次チャンクの合成が間に合わず無音待ちに入った/抜けた（動画プレイヤーの「くるくる」相当）。
+   *  UI はこの間シークバーを止めてバッファリング表示を出す。 */
+  onBuffering?: (buffering: boolean) => void;
   /** 全チャンク自然完了時のみ（stop では呼ばれない） */
   onEnd?: () => void;
   /** 合成/再生エラー。既定はそのチャンクをスキップして継続。
@@ -168,6 +171,7 @@ export async function prepareAiTts(
 export class AiTtsPlayer {
   private audio: HTMLAudioElement = new Audio();
   private stopped = false;
+  private paused = false;
 
   /** chunks を順に合成・再生する。次チャンクは再生中にプリフェッチ。 */
   async play(
@@ -176,19 +180,33 @@ export class AiTtsPlayer {
     cb: AiPlayCallbacks = {},
   ): Promise<void> {
     this.stopped = false;
-    const synth = (i: number) => synthesizeAiTts(chunks[i], opts);
-    let nextPromise: Promise<Blob> | null = chunks.length ? synth(0) : null;
+    // 合成 Promise に「完了済みか」を横付けする（次チャンクが未完成＝バッファ中の検知用）
+    const track = (p: Promise<Blob>) => {
+      const t = { p, settled: false };
+      p.then(() => { t.settled = true; }, () => { t.settled = true; });
+      return t;
+    };
+    const synth = (i: number) => track(synthesizeAiTts(chunks[i], opts));
+    let next = chunks.length ? synth(0) : null;
     for (let i = 0; i < chunks.length; i++) {
       if (this.stopped) return;
       let blob: Blob | null = null;
       try {
-        blob = await nextPromise!;
+        // 次チャンクの合成が間に合っていない → 無音の待ちに入る前にバッファリングを通知
+        // （動画の「くるくる」相当。UI はこの間シークバーを止める）
+        if (!next!.settled) cb.onBuffering?.(true);
+        blob = await next!.p;
       } catch (e: any) {
         cb.onError?.(String(e?.message || e), { index: i, code: e?.code });
       }
+      cb.onBuffering?.(false);
       if (this.stopped) return;
-      nextPromise = i + 1 < chunks.length ? synth(i + 1) : null;
+      next = i + 1 < chunks.length ? synth(i + 1) : null;
       if (!blob) continue; // 失敗チャンクはスキップして続行
+      // 一時停止中は次チャンクの再生開始を保留する（合成が先に終わってもここで待つ）。
+      // ＝プレイヤーの ⏸ が「チャンクの切れ目でまた喋り出す」ことを防ぐ。
+      while (this.paused && !this.stopped) await new Promise((r) => setTimeout(r, 120));
+      if (this.stopped) return;
       cb.onChunkStart?.(i);
       await this.playBlob(blob, opts.rate ?? 1);
     }
@@ -209,16 +227,19 @@ export class AiTtsPlayer {
 
   stop(): void {
     this.stopped = true;
+    this.paused = false;
     try { this.audio.pause(); this.audio.src = ''; } catch { /* noop */ }
   }
 
-  /** 現在チャンクの再生を一時停止する（合成待ち中は次の再生開始が保留されるだけ）。 */
+  /** 現在チャンクの再生を一時停止する（合成待ち中／チャンクの切れ目でも次の再生開始を保留する）。 */
   pause(): void {
+    this.paused = true;
     try { this.audio.pause(); } catch { /* noop */ }
   }
 
   /** 一時停止中のチャンクを続きから再開する（再生済みチャンクを巻き戻さない）。 */
   resume(): void {
+    this.paused = false;
     try {
       if (this.audio.paused && !this.audio.ended && this.audio.src) {
         void this.audio.play().catch(() => { /* noop */ });

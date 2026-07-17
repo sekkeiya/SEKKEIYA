@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Box, Typography, Snackbar, Alert, Button, TextField, Collapse, CircularProgress, Rating, Paper } from "@mui/material";
+import { Box, Typography, Snackbar, Alert, Button, TextField, Collapse, CircularProgress, Rating, Paper, useMediaQuery } from "@mui/material";
 
 // @ts-ignore
 import Header from "./header/Header";
@@ -19,6 +19,7 @@ import BottomDock from "./dock/BottomDock";
 // @ts-ignore
 import RightSidebar from "./sidebars/RightSidebar/RightSidebar";
 // @ts-ignore
+// @ts-ignore
 import SelectBaseModal from "./modals/SelectBaseModal";
 // @ts-ignore
 import SelectWorkFileAsBaseModal from "./modals/SelectWorkFileAsBaseModal";
@@ -27,8 +28,9 @@ import SelectWorkFileAsBaseModal from "./modals/SelectWorkFileAsBaseModal";
 // @ts-ignore
 import ViewportShortcutsOverlay from "./overlays/ViewportShortcutsOverlay";
 import VideoRenderIndicator from "./overlays/VideoRenderIndicator";
+import PlanCompassOverlay from "./overlays/PlanCompassOverlay";
 
-import { serverTimestamp, updateDoc, getDoc, doc, collectionGroup, query, where, limit, getDocs, collection, or, and, increment } from "firebase/firestore";
+import { serverTimestamp, updateDoc, getDoc, doc, collectionGroup, query, where, limit, getDocs, collection, or, and, increment, onSnapshot } from "firebase/firestore";
 import { db, storage } from "../../../../lib/firebase/client";
 import { useAuth } from "../hooks/useAuthProxy";
 import { useOptionDoc } from "../hooks/useOptionDoc";
@@ -55,7 +57,10 @@ import { useLightingStore } from "../store/useLightingStore";
 import { cancelLightingReveal } from "../services/autoLightingPipeline";
 import { useStructureLabelStore } from "../store/useStructureLabelStore";
 import { useShotStore } from "../store/useShotStore";
-import { useBuildingSpecStore } from "../store/useBuildingSpecStore";
+import { useBuildingSpecStore, getFloorBaseYmm } from "../store/useBuildingSpecStore";
+import { useWallStore, wallsToObstacles } from "../store/useWallStore";
+import { useSlabStore } from "../store/useSlabStore";
+import { useDrawnFinishStore } from "../store/useDrawnFinishStore";
 import { useSurfaceFinishStore } from "../store/useSurfaceFinishStore";
 import { useSurfacePatternStore } from "../store/useSurfacePatternStore";
 import { saveSurfaceData } from "../api/surfaceFinishApi";
@@ -74,6 +79,8 @@ import LayoutDashboard from "./dashboards/LayoutDashboard";
 // (LeftSidebar removed from LayoutShell to avoid double rendering with MainLayout)
 import { useUiSelectionStore } from "../store/uiSelectionStore";
 import { openLocalModelFiles } from "../services/layoutFileImportService";
+import { useUnderlayStore } from "../store/useUnderlayStore";
+import { importUnderlay, deleteUnderlayFile } from "../services/underlayImportService";
 import { layoutPersistenceService } from "../services/layoutPersistenceService";
 import { useAutosaveDraft } from "../../../../shared/hooks/useAutosaveDraft";
 // ✅ tools store（TopBar/Buttonsのpropsバケツリレー削減）
@@ -355,6 +362,9 @@ export default function LayoutShell({
 }: LayoutShellProps) {
   const { user } = useAuth();
   const uid = user?.uid ?? null;
+  // 全幅ヘッダー化: デスクトップでは左右サイドバーを LayoutShell 内へ埋め込む（外部は MainLayout/
+  // RightPanelHost 側で抑止済み）。モバイルは従来どおり外部ドロワー/ポータルを使う。
+  const isMobile = useMediaQuery('(max-width:768px)');
   const logSaveDataEvent = useAiProfileStore(s => s.logSaveDataEvent);
 
   const setGlobalLoading = useAppStore(s => s.setGlobalLoading);
@@ -517,8 +527,8 @@ export default function LayoutShell({
       setMaterialSelection(payload);
       setMaterialSelectionTick((t) => t + 1);
 
-      // ✅ Libraryを開く（LeftSidebarへ移動）
-      useAppStore.getState().setDslLeftPanel("library");
+      // ✅ Library を開く（左サイドバー廃止に伴い右サイドバーの Library パネルへ）
+      useUiRightSidebarStore.getState().setRightPanel("library", true);
 
       // Log MATERIAL_CHANGED
       logSaveDataEvent({
@@ -621,6 +631,15 @@ export default function LayoutShell({
   useEffect(() => {
     const activeId = effectiveLayoutId;
     if (activeId && activeId !== prevLayoutId.current) {
+      // ✅ 初回オープン時のみ、現在の「2D 配置 / 3D 演出」グループのカメラを反映する。
+      //    これをしないと、トグルは 2D 配置なのにビューは斜め俯瞰パースのまま、という
+      //    初期不整合が起きる（既定グループ=2d → 真上 Top で開く）。
+      //    オプション切替のたびには適用しない（3D 演出中の視点を保持するため）。
+      if (prevLayoutId.current === null) {
+        const vg = useEditorModeStore.getState().editorViewGroup;
+        useEditorModeStore.getState().setLayoutCameraTilt(vg === "2d" ? "top" : "default");
+      }
+
       setLeftPanels({ project: true, library: true, dashboard: false });
 
       // Plan 切り替え時に断面クリッピング高さを 1500mm にリセット。
@@ -632,6 +651,27 @@ export default function LayoutShell({
     }
     prevLayoutId.current = activeId;
   }, [effectiveLayoutId, setLeftPanels]);
+
+  // ✅ 編集中は panelSelections['layout'] を実際に開いているレイアウトへ同期する。
+  //    左の全体ツリーなど別経路で開くと同期されず、右列(RightPanelHost)が
+  //    Scene/Properties(portal) ではなく「Search & Filter」を出し続けてしまう。
+  //    セッションごとに1回だけ・未選択のときだけ張る（Exit の選択クリアと競合しない）。
+  const layoutSelSyncedRef = useRef(false);
+  useEffect(() => {
+    if (!effectiveLayoutId) { layoutSelSyncedRef.current = false; return; }
+    if (layoutSelSyncedRef.current) return;
+    const cur: any = useAppStore.getState().panelSelections?.["layout"];
+    const curId = cur?.selectedLayoutId || cur?.optionId || cur?.planId;
+    layoutSelSyncedRef.current = true;
+    if (curId) return; // 既に選択済みなら尊重（上書きしない）
+    setPanelSelection("layout", {
+      selectedLayoutId: effectiveLayoutId,
+      baseId: selectedBaseId || undefined,
+      planId: selectedPlanId || undefined,
+      optionId: selectedOptionId || undefined,
+      itemType: selectedOptionId ? "Option" : selectedPlanId ? "Plan" : "Base",
+    });
+  }, [effectiveLayoutId, selectedBaseId, selectedPlanId, selectedOptionId, setPanelSelection]);
 
   // Auto-trigger base setup when a new layout opens with a pendingBaseSetup flag.
   useEffect(() => {
@@ -1036,6 +1076,84 @@ export default function LayoutShell({
     }
   }, [baseDoc?.spaceProgram?.rooms, baseDocLoading, setRooms]);
 
+  // Sync walls from BaseDoc to Zustand（壁は躯体なので Base 保管＝全 Plan/Option 共通）
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useWallStore.getState().setWalls((baseDoc as any)?.spaceProgram?.walls || []);
+  }, [(baseDoc as any)?.spaceProgram?.walls, baseDocLoading]);
+
+  // Sync slabs（床）from BaseDoc to Zustand（壁と同じ扱い）
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useSlabStore.getState().setSlabs((baseDoc as any)?.spaceProgram?.slabs || []);
+  }, [(baseDoc as any)?.spaceProgram?.slabs, baseDocLoading]);
+
+  // 下絵（継承＋上書き）------------------------------------------------------
+  // Option 選択中は Plan ドキュメントが購読されない（optionDoc は Option 自身を指す）ため、
+  // 親 Plan の下絵だけを別途購読する。items まで持つ useOptionDoc は重いのでここでは使わない。
+  const [parentPlanUnderlay, setParentPlanUnderlay] = useState<any | null>(null);
+  useEffect(() => {
+    if (!projectId || !workspaceId || !selectedOptionId || !selectedPlanId) {
+      setParentPlanUnderlay(null);
+      return;
+    }
+    const ref = getPlanDocRef(projectId, workspaceId, selectedPlanId);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => setParentPlanUnderlay((snap.data() as any)?.spaceProgram?.underlay || null),
+      (err) => console.error("Failed to watch parent plan underlay", err)
+    );
+    return () => unsub();
+  }, [projectId, workspaceId, selectedOptionId, selectedPlanId]);
+
+  // 表示する下絵を解決する：Plan のもの → 無ければ Base のもの。
+  // Base のみ選択中は optionDoc === baseDoc なので Plan 段は無い。
+  const resolvedUnderlay = useMemo(() => {
+    const planLevel = selectedOptionId
+      ? parentPlanUnderlay
+      : selectedPlanId
+        ? (optionDoc as any)?.spaceProgram?.underlay || null
+        : null;
+    if (planLevel && selectedPlanId) {
+      return { doc: planLevel, owner: "plan" as const, nodeId: selectedPlanId };
+    }
+    const baseLevel = (baseDoc as any)?.spaceProgram?.underlay || null;
+    if (baseLevel && baseDocId) {
+      return { doc: baseLevel, owner: "base" as const, nodeId: baseDocId };
+    }
+    return { doc: null, owner: null, nodeId: null };
+  }, [
+    selectedOptionId,
+    selectedPlanId,
+    baseDocId,
+    parentPlanUnderlay,
+    (optionDoc as any)?.spaceProgram?.underlay,
+    (baseDoc as any)?.spaceProgram?.underlay,
+  ]);
+
+  // hydrate は保存イベントを出さないので、ここでの流し込みが書き戻しを誘発することはない。
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useUnderlayStore
+      .getState()
+      .hydrate(resolvedUnderlay.doc, resolvedUnderlay.owner, resolvedUnderlay.nodeId);
+  }, [resolvedUnderlay, baseDocLoading]);
+
+  // Base を離れたら作図ツール・選択を解除（別 Base に壁/床ツールが残らないように）
+  useEffect(() => {
+    useWallStore.getState().setDrawKind(null);
+    useWallStore.getState().setSelectedWallId(null);
+    useSlabStore.getState().setDrawActive(false);
+    useSlabStore.getState().setSelectedSlabId(null);
+  }, [baseDocId]);
+
+  // 下絵の作図中状態（基準線）はノードを移ったら捨てる。
+  // hydrate ではなくここで落とす：hydrate は自分の書き込みのエコーでも走るため、
+  // そちらでリセットすると基準線を引いている最中にキャンセルされてしまう。
+  useEffect(() => {
+    useUnderlayStore.getState().resetSession();
+  }, [effectiveLayoutId]);
+
   // Sync circulation patterns and handle migration from legacy flat circulations
   const setCirculationPatterns = useLayoutTaskStore((s) => s.setCirculationPatterns);
   const setActiveCirculationPatternId = useLayoutTaskStore((s) => s.setActiveCirculationPatternId);
@@ -1064,11 +1182,17 @@ export default function LayoutShell({
 
       setCirculationPatterns(patterns);
 
-      const activeId = sp.activeCirculationPatternId || patterns[0]?.id;
+      // 使用パターンの選択は Plan/Option ごと（定義は Base 共有）。
+      // Plan/Option ドキュメント側に選択があればそちらを優先し、無ければ Base の値へフォールバック。
+      const planLevelActiveId =
+        effectiveLayoutId && effectiveLayoutId !== baseDocId
+          ? (optionDoc as any)?.spaceProgram?.activeCirculationPatternId
+          : null;
+      const activeId = planLevelActiveId || sp.activeCirculationPatternId || patterns[0]?.id;
       const validActiveId = patterns.some((p: any) => p.id === activeId) ? activeId : patterns[0]?.id;
-      
+
       setActiveCirculationPatternId(validActiveId);
-      
+
       const activePattern = patterns.find((p: any) => p.id === validActiveId);
       setCirculations(activePattern ? activePattern.circulations : []);
     } else if (!optionDocLoading) {
@@ -1087,11 +1211,22 @@ export default function LayoutShell({
     baseDoc?.spaceProgram?.circulations,
     baseDoc?.spaceProgram?.circulationPatterns,
     baseDoc?.spaceProgram?.activeCirculationPatternId,
+    (optionDoc as any)?.spaceProgram?.activeCirculationPatternId,
+    effectiveLayoutId,
+    baseDocId,
     baseDocLoading,
     setCirculationPatterns,
     setCirculations,
     setActiveCirculationPatternId
   ]);
+
+  // 用途（建物タイプ）: spaceProgram.buildingType をロードして Auto Layout ストアへ反映。
+  // 部屋カテゴリ語彙・自動ゾーニング・自動レイアウトが全て同じ用途を参照する。
+  useEffect(() => {
+    if (baseDocLoading) return;
+    const bt = (baseDoc as any)?.spaceProgram?.buildingType;
+    if (bt) useAutoLayoutStore.getState().setBuildingType(bt);
+  }, [(baseDoc as any)?.spaceProgram?.buildingType, baseDocLoading]);
 
   // Phase 1.6 / 1.7: Listen for quick add zone
   useEffect(() => {
@@ -1199,11 +1334,18 @@ export default function LayoutShell({
       try {
         useLayoutTaskStore.getState().setCirculations(newCirculations);
         useLayoutTaskStore.getState().setCirculationPatterns(updatedPatterns);
-        
-        await updateDoc(baseRef, {
-          "spaceProgram.circulationPatterns": updatedPatterns,
-          "spaceProgram.activeCirculationPatternId": currentActiveId
-        });
+
+        // パターン定義は Base 共有。使用パターンの選択は Plan/Option 側に持つ
+        // （Base のみ選択時は optionRef===baseRef なので1回の書き込みに合流させる）。
+        if (optionRef && optionRef.path !== baseRef.path) {
+          await updateDoc(baseRef, { "spaceProgram.circulationPatterns": updatedPatterns });
+          await updateDoc(optionRef, { "spaceProgram.activeCirculationPatternId": currentActiveId });
+        } else {
+          await updateDoc(baseRef, {
+            "spaceProgram.circulationPatterns": updatedPatterns,
+            "spaceProgram.activeCirculationPatternId": currentActiveId
+          });
+        }
         console.log("[LayoutShell] Updated circulation patterns.");
       } catch (err) {
         console.error("Failed to update circulation patterns", err);
@@ -1226,13 +1368,46 @@ export default function LayoutShell({
         useLayoutTaskStore.getState().setCirculationPatterns(updatedPatterns);
         useLayoutTaskStore.getState().setActiveCirculationPatternId(activeId);
 
-        await updateDoc(baseRef, {
-          "spaceProgram.circulationPatterns": updatedPatterns,
-          "spaceProgram.activeCirculationPatternId": activeId
-        });
+        // パターン定義は Base 共有・使用パターンの選択は Plan/Option ごと。
+        if (optionRef && optionRef.path !== baseRef.path) {
+          await updateDoc(baseRef, { "spaceProgram.circulationPatterns": updatedPatterns });
+          await updateDoc(optionRef, { "spaceProgram.activeCirculationPatternId": activeId });
+        } else {
+          await updateDoc(baseRef, {
+            "spaceProgram.circulationPatterns": updatedPatterns,
+            "spaceProgram.activeCirculationPatternId": activeId
+          });
+        }
         console.log(`[LayoutShell] Switched active pattern to ${activeId}`);
       } catch (err) {
         console.error("Failed to switch pattern", err);
+      }
+    };
+
+    // 用途（建物タイプ）変更: spaceProgram.buildingType へ永続化（Base 共有）。
+    const updateBuildingTypeHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ buildingType: string }>;
+      if (!baseRef) return;
+      const bt = customEvent.detail?.buildingType;
+      if (!bt) return;
+      try {
+        useAutoLayoutStore.getState().setBuildingType(bt as any);
+        await updateDoc(baseRef, { "spaceProgram.buildingType": bt });
+        console.log(`[LayoutShell] Updated buildingType to ${bt}`);
+      } catch (err) {
+        console.error("Failed to update buildingType", err);
+      }
+    };
+
+    // 部屋（Room マスタ）更新: 改名など。ゾーンの roomId 参照はそのまま。
+    const updateRoomsHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ rooms: any[] }>;
+      if (!baseRef) return;
+      try {
+        useLayoutTaskStore.getState().setRooms(customEvent.detail.rooms);
+        await updateDoc(baseRef, { "spaceProgram.rooms": customEvent.detail.rooms });
+      } catch (err) {
+        console.error("Failed to update rooms", err);
       }
     };
 
@@ -1369,11 +1544,62 @@ export default function LayoutShell({
       }
     };
 
+    // 壁（内壁/外壁）: useWallStore の変更を Base の spaceProgram.walls へ保存（ゾーンと同じ扱い）。
+    const updateWallsHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ walls: any[] }>;
+      if (!baseRef) return;
+      try {
+        await updateDoc(baseRef, { "spaceProgram.walls": customEvent.detail.walls });
+      } catch (err) {
+        console.error("Failed to update walls", err);
+      }
+    };
+
+    // 床（スラブ）: useSlabStore の変更を Base の spaceProgram.slabs へ保存。
+    const updateSlabsHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ slabs: any[] }>;
+      if (!baseRef) return;
+      try {
+        await updateDoc(baseRef, { "spaceProgram.slabs": customEvent.detail.slabs });
+      } catch (err) {
+        console.error("Failed to update slabs", err);
+      }
+    };
+
+    // 下絵: useUnderlayStore の変更を、その下絵が載っている階層の spaceProgram.underlay へ保存。
+    //   target==="base" → Base（全 Plan 共通の下絵）
+    //   target==="plan" → その Plan（Base の下絵を上書きする Plan 専用の下絵）
+    // 画像は Storage 済みなので、ここに入るのは URL と数値だけ（dataURL は入れない）。
+    // 保存先はイベントに載ってくる nodeId で決める（「今の選択」から引かない）。
+    // 遅延保存が飛ぶ頃には選択が変わっている可能性があり、それだと別ノードへ書いてしまう。
+    // Base / Plan / Option はいずれも同じ layouts コレクションの doc なので参照の作り方は共通。
+    const updateUnderlayHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        underlay: any | null;
+        target: "base" | "plan";
+        nodeId: string;
+      }>;
+      const { underlay, nodeId } = customEvent.detail;
+      if (!projectId || !workspaceId || !nodeId) return;
+      try {
+        await updateDoc(getPlanDocRef(projectId, workspaceId, nodeId), {
+          "spaceProgram.underlay": underlay,
+        });
+      } catch (err) {
+        console.error("Failed to update underlay", err);
+      }
+    };
+
+    window.addEventListener("LayoutShell:UpdateWalls", updateWallsHandler);
+    window.addEventListener("LayoutShell:UpdateSlabs", updateSlabsHandler);
+    window.addEventListener("LayoutShell:UpdateUnderlay", updateUnderlayHandler);
     window.addEventListener("LayoutShell:AddZone", addHandler);
     window.addEventListener("LayoutShell:UpdateZone", updateHandler);
     window.addEventListener("LayoutShell:UpdateZonesArray", updateArrayHandler);
     window.addEventListener("LayoutShell:UpdateCirculations", updateCirculationsHandler);
     window.addEventListener("LayoutShell:UpdateActivePattern", updateActivePatternHandler);
+    window.addEventListener("LayoutShell:UpdateBuildingType", updateBuildingTypeHandler);
+    window.addEventListener("LayoutShell:UpdateRooms", updateRoomsHandler);
     window.addEventListener("LayoutShell:DeleteZone", deleteHandler);
     window.addEventListener("LayoutShell:SaveZoneVersion", saveZoneVersionHandler);
     window.addEventListener("LayoutShell:LoadZoneVersion", loadZoneVersionHandler);
@@ -1381,17 +1607,23 @@ export default function LayoutShell({
     window.addEventListener("LayoutShell:DeleteZoneVersion", deleteZoneVersionHandler);
     
     return () => {
+      window.removeEventListener("LayoutShell:UpdateWalls", updateWallsHandler);
+      window.removeEventListener("LayoutShell:UpdateSlabs", updateSlabsHandler);
+      window.removeEventListener("LayoutShell:UpdateUnderlay", updateUnderlayHandler);
       window.removeEventListener("LayoutShell:AddZone", addHandler);
       window.removeEventListener("LayoutShell:UpdateZone", updateHandler);
       window.removeEventListener("LayoutShell:UpdateZonesArray", updateArrayHandler);
       window.removeEventListener("LayoutShell:UpdateCirculations", updateCirculationsHandler);
+      window.removeEventListener("LayoutShell:UpdateActivePattern", updateActivePatternHandler);
+      window.removeEventListener("LayoutShell:UpdateBuildingType", updateBuildingTypeHandler);
+      window.removeEventListener("LayoutShell:UpdateRooms", updateRoomsHandler);
       window.removeEventListener("LayoutShell:DeleteZone", deleteHandler);
       window.removeEventListener("LayoutShell:SaveZoneVersion", saveZoneVersionHandler);
       window.removeEventListener("LayoutShell:LoadZoneVersion", loadZoneVersionHandler);
       window.removeEventListener("LayoutShell:OverwriteZoneVersion", overwriteZoneVersionHandler);
       window.removeEventListener("LayoutShell:DeleteZoneVersion", deleteZoneVersionHandler);
     };
-  }, [baseRef, baseDoc, applyLayoutDraft]);
+  }, [baseRef, optionRef, baseDoc, applyLayoutDraft, projectId, workspaceId]);
 
   const activeZone = useMemo(() => zones.find((z) => z.id === activeZoneId), [zones, activeZoneId]);
 
@@ -1562,11 +1794,15 @@ export default function LayoutShell({
           } else {
             zoneData = extractZoneData(zoneId, currentItems, currentZones);
           }
-          const gridHeightMm = useEditorModeStore.getState().gridHeightMm;
-          // 既存アイテム（今回配置する zoneId 以外）を障害物として渡す
-          const existingObstacles = currentItems.filter(
-            (item: any) => !pendingZoneIds.includes(item.zoneId)
-          );
+          // 自動レイアウトも手動配置と同様、アクティブ階の床レベル(FL)に載せる。
+          const bSpec = useBuildingSpecStore.getState();
+          const gridHeightMm = getFloorBaseYmm(bSpec, bSpec.activeFloorIndex);
+          // 既存アイテム（今回配置する zoneId 以外）＋ 作図した壁 を障害物として渡す。
+          // 壁は ~300mm のチャンク AABB に分割（斜め壁対応）。ドア開口は通行可として除外される。
+          const existingObstacles = [
+            ...currentItems.filter((item: any) => !pendingZoneIds.includes(item.zoneId)),
+            ...wallsToObstacles(useWallStore.getState().walls),
+          ];
           const { placements, sessionId, matchedSetId } = await runAutoLayout(zoneData, existingObstacles, availableAssets, gridHeightMm, {
             userId: uid ?? null, projectId: projectId ?? null, mode, setProgressMessage
           });
@@ -1735,10 +1971,15 @@ export default function LayoutShell({
       const baseKey = sel.baseId;
       console.log("[handleSave] persist extras", { pid, wid, finishKey, baseKey, sel });
       if (pid && wid && finishKey) {
+        const df = useDrawnFinishStore.getState();
         await saveSurfaceData(pid, wid, finishKey, {
           finishes: Object.values(useSurfaceFinishStore.getState().finishes || {}),
           patterns: useSurfacePatternStore.getState().patterns || {},
           activePatterns: useSurfacePatternStore.getState().activePatterns || {},
+          // 作図した壁/床の仕上げ（種別単位）。躯体の面キー方式とは別枠で相乗り保存。
+          drawnFinishes: (df.interiorWall || df.exteriorWall || df.floor)
+            ? { interiorWall: df.interiorWall, exteriorWall: df.exteriorWall, floor: df.floor, styleKey: df.styleKey }
+            : null,
         });
       }
       if (pid && wid && baseKey) {
@@ -1997,6 +2238,20 @@ export default function LayoutShell({
         // Only if we aren't typing in an input
         const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
         if (tag === "input" || tag === "textarea" || (e.target as HTMLElement)?.isContentEditable) return;
+        // 壁を選択中なら壁を削除（複数選択にも対応。家具の削除より優先）
+        const selWalls = useWallStore.getState().selectedWallIds;
+        if (selWalls.length) {
+          e.preventDefault();
+          useWallStore.getState().removeWalls(selWalls);
+          return;
+        }
+        // 床（スラブ）を選択中なら床を削除
+        const selSlab = useSlabStore.getState().selectedSlabId;
+        if (selSlab) {
+          e.preventDefault();
+          useSlabStore.getState().removeSlab(selSlab);
+          return;
+        }
         handleDeleteSelected();
       }
       
@@ -2068,8 +2323,11 @@ export default function LayoutShell({
       }
 
       console.log("[handleAddToLayout] ⏳ Making new item...");
-      const currentGridHeight = useEditorModeStore.getState().gridHeightMm || 0;
-      const item = makeNewItemFromPayload(payload, glbRaw, currentGridHeight);
+      // 新規家具は「配置する階の床レベル(FL)」に載せる。フロアセレクタ(1F/2F…)で選んだ
+      // アクティブ階の床高さ(mm)を Y に使う（1F=fl0Mm、上階は fl0Mm + 階×階高）。
+      const buildingSpec = useBuildingSpecStore.getState();
+      const floorBaseY = getFloorBaseYmm(buildingSpec, buildingSpec.activeFloorIndex);
+      const item = makeNewItemFromPayload(payload, glbRaw, floorBaseY);
       
       // ✅ 3DSS Asset 連携準備 (Phase 12: SSOT Sync)
       // ここでは同期せず、保存時のBatch処理のためのメタデータを item._assetDraft として付与
@@ -2761,6 +3019,49 @@ export default function LayoutShell({
     }
   }, [handleAddToLayout]);
 
+  // 下絵（PDF/画像）の取り込み。取り込んだ階層に紐づく：
+  //   Base 選択中 → Base の下絵（全 Plan 共通）
+  //   Plan 選択中 → その Plan 専用の下絵（Base の下絵を上書き）
+  //   Option 選択中 → 不可（親 Plan / Base のものを引き継ぐだけ）
+  const underlayTarget = useMemo<{ owner: "base" | "plan"; nodeId: string } | null>(() => {
+    if (selectedOptionId) return null;
+    if (selectedPlanId) return { owner: "plan", nodeId: selectedPlanId };
+    if (baseDocId) return { owner: "base", nodeId: baseDocId };
+    return null;
+  }, [selectedOptionId, selectedPlanId, baseDocId]);
+
+  const [underlayImporting, setUnderlayImporting] = useState(false);
+  const handleImportUnderlay = useCallback(async () => {
+    if (!projectId || !underlayTarget) return;
+    if (underlayImporting) return;
+    setUnderlayImporting(true);
+    // 差し替え時に古い画像を Storage から消すため、取り込み前の状態を控える。
+    const { storagePath: prevPath, owner: prevOwner } = useUnderlayStore.getState();
+    try {
+      const imported = await importUnderlay({ projectId, nodeId: underlayTarget.nodeId });
+      if (!imported) return; // キャンセル
+      useUnderlayStore.getState().setImported({
+        ...imported,
+        owner: underlayTarget.owner,
+        ownerNodeId: underlayTarget.nodeId,
+      });
+      // 取り込んだ直後に調整できるよう下絵パネルを開く。
+      useUiRightSidebarStore.getState().setRightPanel("underlay", true);
+      // 同じ階層の下絵を差し替えたときだけ古い画像を消す。
+      // Plan で Base の下絵を上書きする場合、Base の画像は他の Plan がまだ使うので消さない。
+      if (prevPath && prevOwner === underlayTarget.owner && prevPath !== imported.storagePath) {
+        await deleteUnderlayFile(prevPath);
+      }
+    } catch (e) {
+      console.error("[LayoutShell] Underlay import failed:", e);
+      window.alert(
+        e instanceof Error ? `下絵の取り込みに失敗しました: ${e.message}` : "下絵の取り込みに失敗しました"
+      );
+    } finally {
+      setUnderlayImporting(false);
+    }
+  }, [projectId, underlayTarget, underlayImporting]);
+
   // =========================
   // ✅ 共有：ウォークスルーの共有リンクを作成（公開範囲付き）
   // =========================
@@ -2894,10 +3195,61 @@ export default function LayoutShell({
     options,
   ]);
 
+  // 全幅ヘッダー化: ツールバー(Header)下の中央行構成（S.Model と同構成）。
+  // 非編集（Layout Dashboard）中は LayoutDashboard 自身が全幅ヘッダー＋3ゾーン行を持つ。
+  const isEditing = !!(effectiveLayoutId || selectedOptionId);
+  // 全幅ヘッダー化: エディタの左サイドバーは廃止。
+  //  - Library      → 右サイドバーのパネルへ移設（上部タブで切替）
+  //  - 階層(Project) → 右サイドバーのパネル＋ヘッダーの Base/Plan/Option メニュー
+  //  - デフォルトナビ → ダッシュボード（LayoutDashboard/DslDashboard）側のみ
+  // 右サイドバーはエディタ中つねに 320px 表示（上部の切替タブを常設するため）。
+  const embeddedLeftWidth = 0;
+  const embeddedRightWidth = !isMobile && isEditing ? 320 : 0;
+
+  const rightSidebarEl = (
+    <RightSidebar
+      items={layoutDraft?.items ?? optionDoc?.layout?.items ?? []}
+      onChangeLayoutDraft={(nextOrUpdater: any) => applyLayoutDraft(nextOrUpdater, { markDirty: true })}
+      optionDoc={optionDoc}
+      optionDocLoading={optionDocLoading}
+      baseDoc={baseDoc}
+      baseDocLoading={baseDocLoading}
+      meta={meta}
+      bases={bases}
+      plansOfSelectedBase={plansOfSelectedBase}
+      options={options}
+      selectedBaseId={selectedBaseId}
+      selectedPlanId={selectedPlanId}
+      selectedOptionId={effectiveLayoutId || selectedOptionId}
+      isBaseOnly={!!selectedBaseId && !selectedPlanId && !selectedOptionId}
+      canUnderlay={!!underlayTarget}
+      roomSpec={(baseDoc as any)?.roomSpec || null}
+      hasBaseGlb={!!baseGlbUrlResolved}
+      onUpdateRoomSpec={handleUpdateRoomSpec}
+      onCreateDefaultRoom={handleSetDefaultBase}
+      projectId={projectId}
+      workspaceId={workspaceId}
+      onSelectBase={onSelectBase}
+      onSelectPlan={onSelectPlan}
+      onSelectOption={setSelectedOptionId}
+      onDeleteBase={deleteBase}
+      onDeletePlan={deletePlan}
+      onDeleteOption={deleteOption}
+      onDuplicatePlan={duplicatePlan}
+      onDuplicateOption={duplicateOption}
+      materialSelection={materialSelection}
+      materialSelectionTick={materialSelectionTick}
+    />
+  );
+
   return (
     <Box
       sx={{
-        height: "100vh",
+        // ✅ 100vh だと「アプリ上部タブバー分」だけ親のスクロール領域より高くなり、
+        //    埋め込みチャットの入力欄オートフォーカス（scrollIntoView）で領域ごと
+        //    下方向にスクロールしてヘッダー1段目（Exit/共有/プレビュー）が隠れてしまう。
+        //    親（DslWorkspace: height:100%）にぴったり収める。
+        height: "100%",
         width: "100%",
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
@@ -2906,6 +3258,9 @@ export default function LayoutShell({
         overflow: "hidden",
       }}
     >
+      {/* 全幅ヘッダー化: 非編集（Layout Dashboard）中はダッシュボード自身の全幅ヘッダーを使うため、
+          エディタ用ヘッダー行は編集中のみ表示する（グローバル閲覧と見た目を揃える）。 */}
+      {isEditing ? (
       <Header
         onClickHome={handleClickHome}
         onClickFile={handleClickFile}
@@ -2913,6 +3268,8 @@ export default function LayoutShell({
         onClickHelp={handleClickHelp}
         onClickProductionPreview={() => setPresentationOpen(true)}
         onClickShare={() => setShareDialogOpen(true)}
+        onClickImportBase={openSelectWorkFile}
+        onClickImportUnderlay={handleImportUnderlay}
         onClickImportLocal={handleImportLocalModel}
         breadcrumb={headerBreadcrumb}
         loadingMeta={loadingMeta}
@@ -2934,6 +3291,10 @@ export default function LayoutShell({
         showTopBar={!!(effectiveLayoutId || selectedOptionId)}
         layoutItems={layoutDraft?.items ?? optionDoc?.layout?.items ?? []}
       />
+      ) : (
+        // grid の行構造(auto 1fr auto)を保つための高さ0プレースホルダ
+        <Box sx={{ height: 0, overflow: "hidden" }} />
+      )}
 
       <WalkthroughShareDialog
         open={shareDialogOpen}
@@ -2969,7 +3330,6 @@ export default function LayoutShell({
           flexDirection: "row",
         }}
       >
-
 
         {/* Main */}
         <Box
@@ -3023,6 +3383,9 @@ export default function LayoutShell({
           {/* アングル切替バー（上端中央・編集中のみ） */}
           {(effectiveLayoutId || selectedOptionId) && <EditorAngleBar />}
 
+          {/* 方位記号（平面 Top ビューの左下・編集中のみ。ボトムパネル分は押し上げ） */}
+          {(effectiveLayoutId || selectedOptionId) && <PlanCompassOverlay bottomInset={viewportBottomInset} />}
+
           {/* Overlays */}
           {!effectiveLayoutId && !selectedOptionId && (
             projectId ? (
@@ -3043,41 +3406,15 @@ export default function LayoutShell({
         {/* 展開図カラム（Material モード。開くと Main が縮む可変レイアウト。閉時は null で幅0） */}
         <ElevationEditor />
 
-        {/* Right - now rendered into the robust RightPanelHost portal if ready */}
-        {hasRightSidebar && portalTarget ? createPortal(
-          <RightSidebar
-            items={layoutDraft?.items ?? optionDoc?.layout?.items ?? []}
-            onChangeLayoutDraft={(nextOrUpdater) => applyLayoutDraft(nextOrUpdater, { markDirty: true })}
-            optionDoc={optionDoc}
-            optionDocLoading={optionDocLoading}
-            baseDoc={baseDoc}
-            baseDocLoading={baseDocLoading}
-            meta={meta}
-            bases={bases}
-            plansOfSelectedBase={plansOfSelectedBase}
-            options={options}
-            selectedBaseId={selectedBaseId}
-            selectedPlanId={selectedPlanId}
-            selectedOptionId={effectiveLayoutId || selectedOptionId}
-            isBaseOnly={!!selectedBaseId && !selectedPlanId && !selectedOptionId}
-            roomSpec={(baseDoc as any)?.roomSpec || null}
-            hasBaseGlb={!!baseGlbUrlResolved}
-            onUpdateRoomSpec={handleUpdateRoomSpec}
-            onCreateDefaultRoom={handleSetDefaultBase}
-            projectId={projectId}
-            workspaceId={workspaceId}
-            onSelectBase={onSelectBase}
-            onSelectPlan={onSelectPlan}
-            onSelectOption={setSelectedOptionId}
-            onDeleteBase={deleteBase}
-            onDeletePlan={deletePlan}
-            onDeleteOption={deleteOption}
-            onDuplicatePlan={duplicatePlan}
-            onDuplicateOption={duplicateOption}
-            materialSelection={materialSelection}
-            materialSelectionTick={materialSelectionTick}
-          />,
-          portalTarget
+        {/* Right — 全幅ヘッダー化: デスクトップはエディタ中つねに右サイドバー(320px)を表示。
+            上部の切替タブでパネルを1枚ずつ開閉する（旧・右ドックの代替）。
+            非編集（Layout Dashboard）中は LayoutDashboard 自身が右パネルを埋め込むためここでは出さない。 */}
+        {isEditing ? (
+          !isMobile ? (
+            <Box sx={{ width: 320, flexShrink: 0, height: "100%", borderLeft: "1px solid rgb(var(--brand-fg-rgb) / 0.08)", display: "flex", flexDirection: "column", overflow: "hidden", bgcolor: "var(--brand-panel)" }}>
+              {rightSidebarEl}
+            </Box>
+          ) : hasRightSidebar && portalTarget ? createPortal(rightSidebarEl, portalTarget) : null
         ) : null}
       </Box>
 
@@ -3105,8 +3442,8 @@ export default function LayoutShell({
           panelHeight={bottomPanelHeight}
           onChangePanelHeight={setBottomPanelHeight}
           layoutItems={layoutDraft?.items ?? optionDoc?.layout?.items ?? []}
-          leftSidebarWidth={0}
-          rightSidebarWidth={dockRightInset}
+          leftSidebarWidth={embeddedLeftWidth}
+          rightSidebarWidth={dockRightInset + embeddedRightWidth}
         />
       )}
 
@@ -3118,7 +3455,8 @@ export default function LayoutShell({
           panelOpen={bottomOpen}
           onTogglePanelOpen={toggleBottomOpen}
           globalPanelWidth={globalPanelWidth}
-          rightInset={dockRightInset}
+          leftInset={embeddedLeftWidth}
+          rightInset={dockRightInset + embeddedRightWidth}
         />
       )}
 

@@ -9,7 +9,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import {
   Box, Typography, Button, IconButton, InputBase, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from '@mui/material';
 import StickyNote2OutlinedIcon from '@mui/icons-material/StickyNote2Outlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -43,6 +43,7 @@ import {
   type ResearchPortSide,
 } from '../../features/projects/repositories/ResearchCanvasRepository';
 import { registerResearchBoardHost, RESEARCH_BOARD_CHANGED_EVENT } from '../../features/projects/chat/researchBoardBridge';
+import { openExternal, openBoardSource } from '../../features/projects/research/openSource';
 import { isTauri } from '../../lib/platform';
 import { KnowledgePickerDialog } from './KnowledgePickerDialog';
 import { DriveAssetSidebar, DRIVE_IMAGE_DND_TYPE } from './DriveAssetSidebar';
@@ -97,55 +98,6 @@ type BoardViewMode = 'free' | 'map';
 
 function newId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-}
-
-/** Tauri では window.open が効かないため plugin-opener を使う（Web はフォールバック） */
-function openExternal(url: string) {
-  import('@tauri-apps/plugin-opener')
-    .then(({ openUrl }) => { if (openUrl) openUrl(url); else window.open(url, '_blank'); })
-    .catch(() => window.open(url, '_blank'));
-}
-
-/**
- * 引用/ソースカードの出典を開く（トレーサビリティの担保）。
- * library → S.Library を前面に出して該当エントリを選択、article → S.Blog エディタで開く。
- * アプリ内で辿れないときは元URLへフォールバック。
- */
-async function openBoardSource(item: ResearchCanvasItem) {
-  try {
-    if (item.refType === 'library' && item.refId) {
-      const { useAppStore } = await import('../../store/useAppStore');
-      const s = useAppStore.getState() as any;
-      if (s.pinnedTabIds && !s.pinnedTabIds.includes('3dsk')) s.togglePinnedTab?.('3dsk');
-      s.setActiveWorkspaceId?.('library');
-      s.setLastActiveAppScope?.('3dsk');
-      s.setCurrentMainView?.('workspace');
-      const { useDskStore } = await import('../../features/dsk/store/useDskStore');
-      const dsk = useDskStore.getState();
-      if (dsk.entries.length === 0) await dsk.refresh();
-      dsk.setSelectedId(item.refId);
-      return;
-    }
-    if (item.refType === 'article' && item.refId) {
-      const { useAuthStore } = await import('../../store/useAuthStore');
-      const uid = (useAuthStore.getState().currentUser as any)?.uid as string | undefined;
-      if (!uid) return;
-      const { useAppStore } = await import('../../store/useAppStore');
-      const s = useAppStore.getState() as any;
-      s.setActiveWorkspaceId?.('blog');
-      s.setLastActiveAppScope?.('3dsb');
-      s.setCurrentMainView?.('workspace');
-      const { useDsbStore } = await import('../../features/dsb/store/useDsbStore');
-      const dsb = useDsbStore.getState();
-      await dsb.refresh(uid);
-      dsb.startEdit(item.refId);
-      return;
-    }
-    if (item.url) openExternal(item.url);
-  } catch (e) {
-    console.error('[research] 出典を開けませんでした:', e);
-    if (item.url) openExternal(item.url);
-  }
 }
 
 // ─── ノード → アイテム相互変換 ────────────────────────────────────────────────

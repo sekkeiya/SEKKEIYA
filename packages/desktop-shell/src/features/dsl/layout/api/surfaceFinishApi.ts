@@ -18,6 +18,14 @@ export interface SurfaceData {
   finishes: SurfaceFinish[];
   patterns: Record<string, SurfacePattern[]>;
   activePatterns?: Record<string, string | null>;
+  /** S.Layout で作図した壁/床の仕上げ（useDrawnFinishStore のスナップショット）。
+   *  躯体の面キー方式とは別に、種別（外壁/内壁/床）単位で素材を持つ。 */
+  drawnFinishes?: {
+    interiorWall?: any | null;
+    exteriorWall?: any | null;
+    floor?: any | null;
+    styleKey?: string | null;
+  } | null;
 }
 
 /** 現在の仕上げ＋パターンを保存（上書き）。 */
@@ -26,6 +34,7 @@ export async function saveSurfaceData(projectId: string, workspaceId: string, la
     finishes: data.finishes,
     patterns: data.patterns,
     activePatterns: data.activePatterns || {},
+    drawnFinishes: data.drawnFinishes ?? null,
     updatedAt: serverTimestamp(),
   });
 }
@@ -39,9 +48,14 @@ export async function loadSurfaceData(projectId: string, workspaceId: string, la
   try {
     const snap = await getDoc(doc(db, finishesPath(projectId, workspaceId, layoutKey)));
     const d = snap.exists() ? (snap.data() as any) : {};
-    return { finishes: d.finishes || [], patterns: d.patterns || {}, activePatterns: d.activePatterns || {} };
+    return {
+      finishes: d.finishes || [],
+      patterns: d.patterns || {},
+      activePatterns: d.activePatterns || {},
+      drawnFinishes: d.drawnFinishes || null,
+    };
   } catch (err) {
     console.error("[surfaceFinishApi] load error", err);
-    return { finishes: [], patterns: {}, activePatterns: {} };
+    return { finishes: [], patterns: {}, activePatterns: {}, drawnFinishes: null };
   }
 }

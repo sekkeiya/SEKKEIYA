@@ -21,7 +21,7 @@ const REGION_CURSOR = {
   edge_e: 'ew-resize', edge_w: 'ew-resize',
   corner_nw: 'nwse-resize', corner_se: 'nwse-resize',
   corner_ne: 'nesw-resize', corner_sw: 'nesw-resize',
-  center: 'grab',
+  center: 'move', // 手（grab）は使わない
 };
 
 /**
@@ -182,7 +182,8 @@ export default function ZoneActiveGizmo({
     }
 
     if (orbitRef && orbitRef.current) orbitRef.current.enabled = false;
-    gl.domElement.style.cursor = type === 'center' ? 'grabbing' : (REGION_CURSOR[type] ?? 'grabbing');
+    // ドラッグ中もホバー時と同じカーソルを保つ（手＝grabbing は使わない）
+    gl.domElement.style.cursor = REGION_CURSOR[type] ?? 'move';
 
     const p = getPointerPos(e);
     dragInfo.current = {
@@ -267,7 +268,7 @@ export default function ZoneActiveGizmo({
     e.stopPropagation();
 
     if (orbitRef && orbitRef.current) orbitRef.current.enabled = true;
-    gl.domElement.style.cursor = 'default';
+    gl.domElement.style.cursor = ''; // 指定を外す（'default' は他のホバーカーソルを塗り潰す）
 
     const finalRect = dr || zone.rect;
 
@@ -365,11 +366,11 @@ export default function ZoneActiveGizmo({
         onPointerOver={editable && !isActive ? () => {
           if (!canInteract()) return;
           setHovered(true);
-          gl.domElement.style.cursor = 'pointer';
+          gl.domElement.style.cursor = 'move'; // 掴んでそのまま動かせる（手＝pointer は使わない）
         } : undefined}
         onPointerOut={editable && !isActive ? () => {
           setHovered(false);
-          if (!dragInfo.current.type) gl.domElement.style.cursor = 'default';
+          if (!dragInfo.current.type) gl.domElement.style.cursor = ''; // 指定を外す（'default' は他のホバーカーソルを塗り潰す）
         } : undefined}
       >
         <boxGeometry args={[width, BOX_H, depth]} />
@@ -410,7 +411,7 @@ export default function ZoneActiveGizmo({
               handlePointerDown(e, reg);
             }}
             onPointerOut={() => {
-              if (!dragInfo.current.type) gl.domElement.style.cursor = 'default';
+              if (!dragInfo.current.type) gl.domElement.style.cursor = ''; // 指定を外す（'default' は他のホバーカーソルを塗り潰す）
             }}
           >
             <planeGeometry args={[width + tolWorld * 2, depth + tolWorld * 2]} />

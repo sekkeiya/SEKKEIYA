@@ -3,6 +3,7 @@ import {
   Box, Typography, Chip, IconButton, Tooltip,
   CircularProgress, Button, ButtonGroup,
   Menu, MenuItem, ListItemIcon,
+  useMediaQuery,
 } from '@mui/material';
 import WbSunnyRoundedIcon from '@mui/icons-material/WbSunnyRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
@@ -19,6 +20,8 @@ import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase/client';
 import { useAppStore } from '../../store/useAppStore';
+import { DsdSidebar } from '../../shared/layout/dsd-sidebar/DsdSidebar';
+import { DsdRightPanel } from './components/DsdRightPanel';
 
 // ─── Styles (mirrors 3DSS DssDashboard) ──────────────────────────────────────
 
@@ -517,6 +520,38 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
     return projectItems.filter(p => (p.name ?? p.title ?? '').toLowerCase().includes(q));
   }, [projectItems, searchQuery]);
 
+  // ── 全幅ヘッダー化レイアウト用の埋め込みパネル（デスクトップのみ） ──────────────
+  // デスクトップでは MainLayout の左サイドバー / RightPanelHost の右パネルを抑止し、
+  // 代わりにここ（ヘッダー下の 3 ゾーン行）へ埋め込む。これによりヘッダーが全幅になる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const isProjectSidebarOpen = useAppStore(s => s.isProjectSidebarOpen);
+  // DsdSidebar は root が width:100% のため、ラッパーで開閉幅（240/0）を制御する
+  const embeddedLeftSidebar = !isMobile ? (
+    <Box sx={{ width: isProjectSidebarOpen ? 240 : 0, flexShrink: 0, height: '100%', overflow: 'hidden', transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <DsdSidebar />
+    </Box>
+  ) : null;
+  // 右パネル（旧 RightPanelHost と同じ 320px ゾーン + タイトル行）
+  const embeddedRightPanel = !isMobile ? (
+    <Box
+      sx={{
+        width: 320, flexShrink: 0, height: '100%',
+        borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        bgcolor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))',
+        display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+      }}
+    >
+      <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
+          S.Diagram プロパティ
+        </Typography>
+      </Box>
+      <Box sx={{ flex: 1, overflow: 'hidden', overflowY: 'auto' }}>
+        <DsdRightPanel />
+      </Box>
+    </Box>
+  ) : null;
+
   // ── Project drill-down ────────────────────────────────────────
   if (isProjectsScope && selectedProject) {
     return (
@@ -539,12 +574,19 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
             </Box>
           </Box>
         </Box>
-        <ProjectDiagramsPanel
-          project={selectedProject}
-          cardSize={cardSize}
-          onBack={() => setSelectedProject(null)}
-          onSelect={onSelectDiagram}
-        />
+        {/* 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | ドリルダウン | 右プロパティ */}
+        <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {embeddedLeftSidebar}
+          <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <ProjectDiagramsPanel
+              project={selectedProject}
+              cardSize={cardSize}
+              onBack={() => setSelectedProject(null)}
+              onSelect={onSelectDiagram}
+            />
+          </Box>
+          {embeddedRightPanel}
+        </Box>
       </Box>
     );
   }
@@ -680,8 +722,12 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
         )}
       </Box>
 
-      {/* ── Scroll area ────────────────────────────────────────────── */}
-      <Box sx={S.scrollArea}>
+      {/* ── 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | グリッド | 右プロパティ ── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {embeddedLeftSidebar}
+
+        {/* ── Scroll area ────────────────────────────────────────────── */}
+        <Box sx={{ ...S.scrollArea, minWidth: 0 }}>
         {isInitializing ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
             <CircularProgress size={28} sx={{ color: 'light-dark(#5a822b, #aed581)' }} />
@@ -726,6 +772,9 @@ export const DsdGlobalDashboard: React.FC<DsdGlobalDashboardProps> = ({
             </Box>
           )
         )}
+        </Box>
+
+        {embeddedRightPanel}
       </Box>
     </Box>
   );

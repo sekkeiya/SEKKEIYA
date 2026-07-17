@@ -962,12 +962,6 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
       }}
     >
       <Box sx={{ px: 2, mb: 1 }}>
-        {!hideHeader && (
-          <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgb(var(--brand-fg-rgb) / 0.45)", textTransform: "uppercase", mb: 1.5 }}>
-            3D SHAPE LAYOUT
-          </Typography>
-        )}
-
         {/* Search Input */}
         <Box sx={{
           display: 'flex', alignItems: 'center',

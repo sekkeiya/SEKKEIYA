@@ -321,7 +321,7 @@ export const DspEditorSidebar: React.FC = () => {
   const canvasH = presentation?.canvasSize?.height || 1122;
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.panel, overflow: 'hidden' }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', bgcolor: BRAND.bg, overflow: 'hidden' }}>
       {/* ── ヘッダー ──────────────────────────────────────────────────── */}
       <Box sx={{ height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', px: 2, borderBottom: `1px solid ${BRAND.line}` }}>
         <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase' }}>

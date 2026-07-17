@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useMaterialViewStore } from "../store/useMaterialViewStore";
+import { useElevationMarkerStore } from "../store/useElevationMarkerStore";
 
 // 断面の切断位置を示す矩形フレーム（塗り＋外枠ライン）。
 // どの軸でどこを切っているか一目で分かるように、軸色で可視化する。
@@ -23,7 +24,12 @@ function CutPlaneFrame({ w, h, color }) {
   );
 }
 
-export default function SectionClipManager({ isTopView = false }) {
+// passive: クリップ面の「書き込み」を行わず、他のビューポートが設定した面をそのまま使う。
+//   2画面表示ではマテリアル実体が左右のシーンで共有される（gltf.scene.clone() はマテリアルを
+//   複製しない）ため、両ペインが別々の面を書くと毎フレーム奪い合い、needsUpdate による
+//   シェーダ再コンパイルが多発する。そこで書き込み役は図面ペイン（右）に一本化し、
+//   平面ペイン（左）は passive にする。
+export default function SectionClipManager({ isTopView = false, passive = false }) {
   const { gl, scene, invalidate } = useThree();
 
   const sectionClipEnabledRaw = useEditorModeStore((s) => s.isSectionClipEnabled);
@@ -39,6 +45,7 @@ export default function SectionClipManager({ isTopView = false }) {
   const sectionClipX         = useEditorModeStore((s) => s.sectionClipX);
   const sectionClipZEnabled  = useEditorModeStore((s) => s.sectionClipZEnabled);
   const sectionClipZ         = useEditorModeStore((s) => s.sectionClipZ);
+  const sectionViewFlip      = useEditorModeStore((s) => s.sectionViewFlip);
   const sceneMaxY            = useEditorModeStore((s) => s.sceneMaxY);
   const sceneExtentXZ        = useEditorModeStore((s) => s.sceneExtentXZ);
 
@@ -57,11 +64,42 @@ export default function SectionClipManager({ isTopView = false }) {
   // Z plane (front-back): show z ≤ sectionClipZ   → normal=(0,0,-1),  const=sectionClipZ
   const clipPlaneZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, -1), sectionClipZ), []);
 
+  // 展開図ビュー: 表示範囲を「部屋の内側ボックス」に制限する（断面図との違い）。
+  //   視線軸の手前=マーカー位置 / 奥・左右=ゾーン境界＋壁厚 / 上下=床〜天井。
+  const elevViewActive = useElevationMarkerStore((s) => s.viewActive);
+  const elevRoomBox = useElevationMarkerStore((s) => s.roomBox);
+  const elevationPlanes = useMemo(() => {
+    if (!elevViewActive || !elevRoomBox) return null;
+    const b = elevRoomBox;
+    const axis = sectionClipXEnabled ? "x" : "z";
+    const s = sectionViewFlip ? 1 : -1; // 視線方向の符号（−Z/−X が既定）
+    const m = axis === "x" ? sectionClipX : sectionClipZ; // マーカー（視点）位置
+    const ax = axis === "x" ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    const planes = [];
+    // near: 視点の背面側を消す → keep s*(p−m) ≥ 0
+    planes.push(new THREE.Plane(ax.clone().multiplyScalar(s), -s * m));
+    // far: 対象壁の外側で切る → keep s*p ≤ s*edge
+    const farEdge = axis === "x" ? (s > 0 ? b.maxX : b.minX) : (s > 0 ? b.maxZ : b.minZ);
+    planes.push(new THREE.Plane(ax.clone().multiplyScalar(-s), s * farEdge));
+    // 横方向: 部屋の左右端で切る（隣室を消す）
+    const o = axis === "x" ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+    const oMin = axis === "x" ? b.minZ : b.minX;
+    const oMax = axis === "x" ? b.maxZ : b.maxX;
+    planes.push(new THREE.Plane(o.clone(), -oMin));                  // keep o ≥ min
+    planes.push(new THREE.Plane(o.clone().multiplyScalar(-1), oMax)); // keep o ≤ max
+    // 上下: 床〜天井
+    planes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), -b.yMin)); // keep y ≥ 床
+    planes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), b.yMax)); // keep y ≤ 天井
+    return planes;
+  }, [elevViewActive, elevRoomBox, sectionClipXEnabled, sectionViewFlip, sectionClipX, sectionClipZ]);
+
   // Active plane array — rebuilt whenever enabled flags change.
   // Top（平面）ビューでは縦の断面（X=左右 / Z=前後）は無意味なので無視し、
   // 高さ断面（clipPlaneY）だけを適用する。これにより天井が抜けて採光され、真っ黒にならない。
   const activePlanes = useMemo(() => {
     if (!isSectionClipEnabled) return [];
+    // 展開図（部屋ボックスあり）は専用の6面クリップで部屋の内側だけを表示
+    if (!isTopView && elevationPlanes) return elevationPlanes;
     const result = [];
     if (sectionClipYEnabled) result.push(clipPlaneY);
     if (!isTopView) {
@@ -70,7 +108,7 @@ export default function SectionClipManager({ isTopView = false }) {
     }
     return result;
   }, [isSectionClipEnabled, isTopView, sectionClipYEnabled, sectionClipXEnabled, sectionClipZEnabled,
-      clipPlaneY, clipPlaneX, clipPlaneZ]);
+      clipPlaneY, clipPlaneX, clipPlaneZ, elevationPlanes]);
 
   // Sync plane constants whenever cut positions change.
   // frameloop="demand" の viewport では値変更だけでは再描画されないため、invalidate() で再描画を要求する
@@ -80,15 +118,19 @@ export default function SectionClipManager({ isTopView = false }) {
     invalidate();
   }, [sectionClipHeight, clipPlaneY, invalidate]);
 
+  // 向き反転（sectionViewFlip）: 通常は「pos 以下側を残す」（normal −1, const=pos）、
+  // 反転時は「pos 以上側を残す」（normal +1, const=−pos）。A-A' の矢印向きと連動する。
   useEffect(() => {
-    clipPlaneX.constant = sectionClipX;
+    clipPlaneX.normal.set(sectionViewFlip ? 1 : -1, 0, 0);
+    clipPlaneX.constant = sectionViewFlip ? -sectionClipX : sectionClipX;
     invalidate();
-  }, [sectionClipX, clipPlaneX, invalidate]);
+  }, [sectionClipX, sectionViewFlip, clipPlaneX, invalidate]);
 
   useEffect(() => {
-    clipPlaneZ.constant = sectionClipZ;
+    clipPlaneZ.normal.set(0, 0, sectionViewFlip ? 1 : -1);
+    clipPlaneZ.constant = sectionViewFlip ? -sectionClipZ : sectionClipZ;
     invalidate();
-  }, [sectionClipZ, clipPlaneZ, invalidate]);
+  }, [sectionClipZ, sectionViewFlip, clipPlaneZ, invalidate]);
 
   // 軸の ON/OFF や有効化・ビュー種別変化でも即再描画。
   // さらに lastUpdateRef をリセットして、useFrame のスロットル(0.25s)を待たずに
@@ -101,11 +143,12 @@ export default function SectionClipManager({ isTopView = false }) {
   ]);
 
   // Enable/disable local clipping on the renderer
+  // （localClippingEnabled は renderer 単位なので passive でも自分の canvas に設定する）
   useEffect(() => {
     gl.localClippingEnabled = isSectionClipEnabled;
 
     // When disabled: immediately scrub all planes from materials
-    if (!isSectionClipEnabled) {
+    if (!isSectionClipEnabled && !passive) {
       scene.traverse((child) => {
         if (child.isMesh && child.material) {
           const clearPlanes = (mat) => {
@@ -122,38 +165,50 @@ export default function SectionClipManager({ isTopView = false }) {
         }
       });
     }
-  }, [gl, scene, isSectionClipEnabled]);
+  }, [gl, scene, isSectionClipEnabled, passive]);
 
   // Robustly apply active planes to all (new) meshes ~4×/sec
+  //
+  // ignoreClipping が付いたオブジェクトは「その配下ごと」対象外にする（traverse ではなく
+  // 自前の再帰で枝ごと刈る）。断面で切るのは躯体の話で、編集ハンドルのような UI ギズモは
+  // 切ってはいけない: 壁・床の頂点ハンドルは掴みやすさのために壁の立体より上（＝平面図の
+  // カット高さより上）へ浮かせてあるため、クリップを掛けると丸ごと消えてしまう。
+  // マウントした瞬間のマテリアルにはまだ面が付いていないので、「選択した直後だけ見えて
+  // 0.25秒後に消える」という挙動になっていた。
+  const applyClipToSubtree = useCallback((obj) => {
+    if (obj.userData?.ignoreClipping) return; // この枝は UI ギズモ等（断面の対象外）
+    if (obj.isMesh && obj.material) {
+      const applyPlanes = (mat) => {
+        const current = mat.clippingPlanes;
+        // Re-apply if length changed or planes differ
+        if (!current || current.length !== activePlanes.length ||
+            activePlanes.some((p, i) => current[i] !== p)) {
+          mat.clippingPlanes = activePlanes.length > 0 ? activePlanes : [];
+          // clipShadows は付けない。true にすると three.js がシャドウパス用に
+          // 「クリップ版デプスマテリアル」を別途初コンパイルし、ビュー初切替時に数秒の
+          // フリーズを招く（断面の立面ビューでシャドウのクリップは不要）。
+          mat.clipShadows = false;
+          mat.needsUpdate = true;
+        }
+      };
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(applyPlanes);
+      } else {
+        applyPlanes(obj.material);
+      }
+    }
+    const kids = obj.children;
+    for (let i = 0; i < kids.length; i++) applyClipToSubtree(kids[i]);
+  }, [activePlanes]);
+
   useFrame((state) => {
-    if (!isSectionClipEnabled) return;
+    if (!isSectionClipEnabled || passive) return;
 
     const now = state.clock.elapsedTime;
     if (now - lastUpdateRef.current < 0.25) return;
     lastUpdateRef.current = now;
 
-    scene.traverse((child) => {
-      if (child.isMesh && child.material && !child.userData.ignoreClipping) {
-        const applyPlanes = (mat) => {
-          const current = mat.clippingPlanes;
-          // Re-apply if length changed or planes differ
-          if (!current || current.length !== activePlanes.length ||
-              activePlanes.some((p, i) => current[i] !== p)) {
-            mat.clippingPlanes = activePlanes.length > 0 ? activePlanes : [];
-            // clipShadows は付けない。true にすると three.js がシャドウパス用に
-            // 「クリップ版デプスマテリアル」を別途初コンパイルし、ビュー初切替時に数秒の
-            // フリーズを招く（断面の立面ビューでシャドウのクリップは不要）。
-            mat.clipShadows = false;
-            mat.needsUpdate = true;
-          }
-        };
-        if (Array.isArray(child.material)) {
-          child.material.forEach(applyPlanes);
-        } else {
-          applyPlanes(child.material);
-        }
-      }
-    });
+    applyClipToSubtree(scene);
   });
 
   if (!isSectionClipEnabled) return null;

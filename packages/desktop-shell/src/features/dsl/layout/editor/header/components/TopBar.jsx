@@ -6,6 +6,9 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
+import FileOpenRoundedIcon from "@mui/icons-material/FileOpenRounded";
+import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 
 import VerticalAlignBottomRoundedIcon from "@mui/icons-material/VerticalAlignBottomRounded";
 import VerticalAlignTopRoundedIcon from "@mui/icons-material/VerticalAlignTopRounded";
@@ -16,7 +19,7 @@ import AlignHorizontalCenterRoundedIcon from "@mui/icons-material/AlignHorizonta
 import AlignVerticalCenterRoundedIcon from "@mui/icons-material/AlignVerticalCenterRounded";
 import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
 import { useAppStore } from "../../../../../../store/useAppStore";
-import { useWorkspaceLayouts } from "../../../hooks/useWorkspaces";
+import { useWorkspaceStructureStore } from "../../../store/useWorkspaceStructureStore";
 import { useViewportUiStore } from "../../../store/viewportUiStore";
 import { useEditorModeStore } from "../../../store/useEditorModeStore";
 import { useZoningStore } from "../../../store/useZoningStore";
@@ -41,6 +44,8 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import CommandBar from "../../../canvas/toolbar/CommandBar.jsx";
 import ModeToolbar from "./toolbars/ModeToolbar.jsx";
 import SelectionScopeButtons from "./toolbars/SelectionScopeButtons.jsx";
+import SymbolVisibilityToggle from "./toolbars/SymbolVisibilityToggle.jsx";
+import ViewGroupToggle from "./toolbars/ViewGroupToggle.jsx";
 import StructureBreadcrumb from "./StructureBreadcrumb.jsx";
 
 import ConfirmDialog from "./ConfirmDialog";
@@ -90,6 +95,8 @@ export default function TopBar({
   layoutItems = [],
   onClickProductionPreview,
   onClickShare,
+  onClickImportBase,
+  onClickImportUnderlay,
 }) {
   const theme = useTheme();
 
@@ -104,13 +111,7 @@ export default function TopBar({
 
   const setPanelSelection = useAppStore((s) => s.setPanelSelection);
 
-  const { layouts, loading: layoutsLoading } = useWorkspaceLayouts();
-  
-  const layoutPillLabel = React.useMemo(() => {
-    if (!selectedLayoutId) return "No Layout";
-    const current = layouts?.find((l) => l.id === selectedLayoutId);
-    return current?.name || "Untitled Layout";
-  }, [layouts, selectedLayoutId]);
+  // レイアウト名ピルは廃止（左のパンくずが Base › Plan › Option を表示するため冗長）。
 
   const mode = useEditorModeStore((s) => s.editorMode);
   const setMode = useEditorModeStore((s) => s.setEditorMode);
@@ -158,6 +159,13 @@ export default function TopBar({
   const hasPlacedItems = useMemo(() => layoutItems.length > 0, [layoutItems]);
 
   const setRightPanel = useUiRightSidebarStore((s) => s.setRightPanel);
+
+  // インポートメニュー。下絵（PDF/画像）は Base か Plan に紐づけて取り込む。
+  // Option は親 Plan / Base の下絵を引き継ぐだけなので取り込み不可。
+  const [importMenuAnchor, setImportMenuAnchor] = useState(null);
+  const canImportUnderlay = useWorkspaceStructureStore(
+    (s) => !!s.selectedBaseId && !s.selectedOptionId
+  );
 
   // Removed mode-based right panel switching to allow consistent dock layout across all modes
 
@@ -305,53 +313,6 @@ export default function TopBar({
     openPreviewByCurrentUrl();
   }, [onClickProductionPreview, openPreviewByCurrentUrl]);
 
-  const previewBtnSx = {
-    position: "relative",
-    overflow: "hidden",
-    height: 28,
-    borderRadius: 999,
-    px: 1.1,
-    gap: 0.6,
-    textTransform: "none",
-    fontWeight: 950,
-    letterSpacing: 0.2,
-    color: alpha(theme.palette.common.white, 0.92),
-    background: `linear-gradient(180deg, ${alpha("#ffffff", 0.11)} 0%, ${alpha("#ffffff", 0.06)} 55%, ${alpha("#000000", 0.08)} 100%)`,
-    border: `1px solid ${alpha("#fff", 0.16)}`,
-    boxShadow: `0 10px 20px ${alpha("#000", 0.28)}, inset 0 1px 0 ${alpha("#fff", 0.14)}`,
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      inset: -2,
-      borderRadius: 999,
-      background: `radial-gradient(120px 42px at 30% 20%, ${alpha(theme.palette.primary.main, 0.35)} 0%, transparent 60%)`,
-      opacity: 0.9,
-      pointerEvents: "none",
-    },
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      left: 10,
-      right: 10,
-      top: 4,
-      height: 1,
-      borderRadius: 999,
-      background: alpha("#fff", 0.14),
-      pointerEvents: "none",
-    },
-    "& .MuiButton-startIcon, & .MuiButton-endIcon": { margin: 0 },
-    "&:hover": {
-      transform: "translateY(-0.5px)",
-      borderColor: alpha("#fff", 0.22),
-      background: `linear-gradient(180deg, ${alpha("#ffffff", 0.14)} 0%, ${alpha("#ffffff", 0.07)} 55%, ${alpha("#000000", 0.10)} 100%)`,
-      boxShadow: `0 14px 26px ${alpha("#000", 0.34)}, 0 0 0 1px ${alpha(theme.palette.primary.main, 0.18)}, inset 0 1px 0 ${alpha("#fff", 0.16)}`,
-    },
-    "&:active": {
-      transform: "translateY(0px)",
-      boxShadow: `0 8px 16px ${alpha("#000", 0.30)}, inset 0 1px 0 ${alpha("#fff", 0.10)}`,
-    },
-  };
-
   return (
     <Box sx={{ 
       display: "flex", 
@@ -376,7 +337,14 @@ export default function TopBar({
           <Button
             size="small"
             startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-            onClick={() => setPanelSelection("layout", null)}
+            onClick={() => {
+              // Exit＝エディタを抜けて Layout Dashboard へ戻る。
+              // panelSelection だけでなく Base/Plan/Option の構造選択も解除する必要があるため、
+              // LayoutShell が bindExternal で登録する onGoToDashboard（両方クリア）を呼ぶ。
+              useWorkspaceStructureStore.getState().goToDashboard();
+              // 外部ハンドラ未登録時のフォールバック（従来挙動）
+              setPanelSelection("layout", null);
+            }}
             sx={{
               color: "rgb(var(--brand-fg-rgb) / 0.5)",
               minWidth: "auto",
@@ -403,67 +371,129 @@ export default function TopBar({
         {/* Row 1 RIGHT: Context Controls (Base/Plan/Option, Save, Preview) */}
         <Box sx={{ marginLeft: "auto", flexShrink: 0, display: "flex", alignItems: "center", gap: 0.8, flexWrap: "nowrap" }}>
           
+          {/* 保存状態（現在のレイアウト）— 共有/プレビューと高さ・角丸を揃える。
+              レイアウト名は左のパンくず（Base › Plan › Option）が表示するのでピルは廃止。 */}
           {selectedLayoutId ? (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0, flexWrap: "nowrap" }}>
-              <Button
-                size="small"
-                sx={{
-                  borderRadius: 1.5,
-                  textTransform: "none",
-                  fontWeight: 700,
-                  color: "color-mix(in srgb, var(--brand-fg) 82%, transparent)",
-                  bgcolor: alpha("#fff", 0.05),
-                  border: `1px solid ${alpha("#fff", 0.12)}`,
-                  px: 1.2,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  minWidth: 100,
-                  maxWidth: 200,
-                }}
-              >
-                {layoutsLoading ? "Loading..." : layoutPillLabel}
-              </Button>
-
-              <Chip 
-                sx={{
-                  height: 24, fontSize: 12, fontWeight: 700,
-                  bgcolor: saving ? alpha("#fff", 0.12) : dirty ? alpha("#ff9800", 0.2) : alpha("#4caf50", 0.15),
-                  color: saving ? "var(--brand-fg)" : dirty ? "#ff9800" : "#4caf50",
-                  border: `1px solid ${saving ? alpha("#fff", 0.2) : dirty ? alpha("#ff9800", 0.4) : alpha("#4caf50", 0.3)}`,
-                }} 
-                label={saving ? "Saving..." : dirty ? "Unsaved" : "Saved"} 
-              />
-            </Box>
+            <Chip
+              size="small"
+              sx={{
+                height: 28,
+                borderRadius: 999,
+                fontWeight: 800,
+                "& .MuiChip-label": { px: 1.3, fontSize: 12 },
+                bgcolor: saving ? alpha("#fff", 0.10) : dirty ? alpha("#ff9800", 0.16) : alpha("#22c55e", 0.14),
+                color: saving ? alpha(theme.palette.common.white, 0.9) : dirty ? "#ffb454" : "#4ade80",
+                border: `1px solid ${saving ? alpha("#fff", 0.2) : dirty ? alpha("#ff9800", 0.4) : alpha("#22c55e", 0.32)}`,
+              }}
+              label={saving ? "保存中…" : dirty ? "未保存" : "保存済み"}
+            />
           ) : null}
 
           {/* RIGHT ACTIONS INJECTED FROM PARENT (if any) */}
           {rightActions && selectedLayoutId ? (
-            <Box sx={{ ml: 0.5, display: "flex", alignItems: "center" }}>{rightActions}</Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>{rightActions}</Box>
           ) : null}
 
-          <Box sx={{ width: "1px", height: 18, bgcolor: alpha(theme.palette.common.white, 0.08), mx: 0.5 }} />
+          {/* Import Button — 躯体（GLB）と下絵（PDF/画像）をメニューで選ぶ */}
+          {(typeof onClickImportBase === "function" ||
+            typeof onClickImportUnderlay === "function") && (
+            <>
+              <Tooltip title="インポート：躯体モデル / 下絵（PDF・画像）を読み込む">
+                <Button
+                  onClick={(e) => setImportMenuAnchor(e.currentTarget)}
+                  startIcon={<FileOpenRoundedIcon sx={{ fontSize: 16, opacity: 0.9 }} />}
+                  endIcon={<ArrowDropDownRoundedIcon sx={{ fontSize: 18, opacity: 0.9 }} />}
+                  sx={{
+                    height: 28,
+                    borderRadius: 999,
+                    px: 1.5,
+                    textTransform: "none",
+                    fontWeight: 800,
+                    fontSize: 12.5,
+                    letterSpacing: 0.2,
+                    boxShadow: "none",
+                    color: alpha(theme.palette.common.white, 0.92),
+                    bgcolor: alpha("#fff", 0.05),
+                    border: `1px solid ${alpha("#fff", 0.18)}`,
+                    "& .MuiButton-startIcon": { mr: 0.5, ml: 0 },
+                    "& .MuiButton-endIcon": { ml: 0.25, mr: -0.5 },
+                    "&:hover": { bgcolor: alpha("#fff", 0.1), borderColor: alpha("#fff", 0.28) },
+                  }}
+                >
+                  インポート
+                </Button>
+              </Tooltip>
+              <Menu
+                anchorEl={importMenuAnchor}
+                open={Boolean(importMenuAnchor)}
+                onClose={() => setImportMenuAnchor(null)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+              >
+                {typeof onClickImportBase === "function" && (
+                  <MenuItem
+                    onClick={() => {
+                      setImportMenuAnchor(null);
+                      onClickImportBase();
+                    }}
+                    sx={{ gap: 1, fontSize: 13 }}
+                  >
+                    <ViewInArRoundedIcon sx={{ fontSize: 18, opacity: 0.8 }} />
+                    躯体モデル（CAD Files）
+                  </MenuItem>
+                )}
+                {typeof onClickImportUnderlay === "function" && (
+                  /* Tooltip は disabled な MenuItem のイベントを拾えないので span で包む。 */
+                  <Tooltip
+                    title={
+                      canImportUnderlay
+                        ? "PDF / 画像を床下に敷いてトレースする"
+                        : "下絵は Base か Plan に紐づきます。Option では取り込めません（親 Plan / Base の下絵が表示されます）"
+                    }
+                    placement="left"
+                  >
+                    <span>
+                      <MenuItem
+                        disabled={!canImportUnderlay}
+                        onClick={() => {
+                          setImportMenuAnchor(null);
+                          onClickImportUnderlay();
+                        }}
+                        sx={{ gap: 1, fontSize: 13 }}
+                      >
+                        <ImageRoundedIcon sx={{ fontSize: 18, opacity: 0.8 }} />
+                        下絵（PDF・画像）
+                      </MenuItem>
+                    </span>
+                  </Tooltip>
+                )}
+              </Menu>
+            </>
+          )}
 
           {/* Share Button — ウォークスルーの共有リンクを作成 */}
           {typeof onClickShare === "function" && (
             <Tooltip title="共有：ウォークスルーのリンクを作成">
               <Button
                 onClick={onClickShare}
-                startIcon={<IosShareRoundedIcon fontSize="small" sx={{ opacity: 0.9 }} />}
+                startIcon={<IosShareRoundedIcon sx={{ fontSize: 16, opacity: 0.9 }} />}
                 sx={{
                   height: 28,
                   borderRadius: 999,
-                  px: 1.1,
+                  px: 1.5,
                   textTransform: "none",
                   fontWeight: 800,
-                  color: alpha(theme.palette.common.white, 0.9),
-                  bgcolor: alpha("#4f8cff", 0.14),
-                  border: `1px solid ${alpha("#4f8cff", 0.4)}`,
-                  "& .MuiButton-startIcon": { mr: 0.4 },
-                  "&:hover": { bgcolor: alpha("#4f8cff", 0.24), borderColor: alpha("#4f8cff", 0.6) },
+                  fontSize: 12.5,
+                  letterSpacing: 0.2,
+                  boxShadow: "none",
+                  color: alpha(theme.palette.common.white, 0.92),
+                  bgcolor: alpha("#fff", 0.05),
+                  border: `1px solid ${alpha("#fff", 0.18)}`,
+                  "& .MuiButton-startIcon": { mr: 0.5, ml: 0 },
+                  "&:hover": { bgcolor: alpha("#fff", 0.1), borderColor: alpha("#fff", 0.28) },
                 }}
               >
-                <Typography component="span" sx={{ fontSize: 12.5, lineHeight: 1, mt: "1px" }}>共有</Typography>
+                共有
               </Button>
             </Tooltip>
           )}
@@ -472,21 +502,27 @@ export default function TopBar({
           <Tooltip title="プレビュー：客先向けビューワを開く（内観でウォークスルー）">
             <Button
               onClick={handleProductionPreview}
-              startIcon={<VisibilityRoundedIcon fontSize="small" sx={{ opacity: 0.9 }} />}
+              startIcon={<VisibilityRoundedIcon sx={{ fontSize: 16, opacity: 0.95 }} />}
               sx={{
-                ...previewBtnSx,
-                background: `linear-gradient(180deg, ${alpha("#34d399", 0.5)} 0%, ${alpha("#059669", 0.4)} 100%)`,
-                border: `1px solid ${alpha("#34d399", 0.5)}`,
+                height: 28,
+                borderRadius: 999,
+                px: 1.6,
+                textTransform: "none",
+                fontWeight: 850,
+                fontSize: 12.5,
+                letterSpacing: 0.2,
+                color: "#eafff5",
+                background: `linear-gradient(180deg, ${alpha("#34d399", 0.95)} 0%, ${alpha("#059669", 0.9)} 100%)`,
+                border: `1px solid ${alpha("#34d399", 0.55)}`,
+                boxShadow: `0 4px 14px ${alpha("#059669", 0.35)}`,
+                "& .MuiButton-startIcon": { mr: 0.5, ml: 0 },
                 "&:hover": {
-                  transform: "translateY(-0.5px)",
+                  background: `linear-gradient(180deg, ${alpha("#34d399", 1)} 0%, ${alpha("#059669", 0.98)} 100%)`,
                   borderColor: alpha("#34d399", 0.7),
-                  background: `linear-gradient(180deg, ${alpha("#34d399", 0.62)} 0%, ${alpha("#059669", 0.5)} 100%)`,
                 },
               }}
             >
-              <Typography component="span" sx={{ fontSize: 12.5, lineHeight: 1, mt: "1px" }}>
-                プレビュー
-              </Typography>
+              プレビュー
             </Button>
           </Tooltip>
 
@@ -507,9 +543,11 @@ export default function TopBar({
         borderRadius: 1,
         border: `1px solid ${alpha(theme.palette.common.white, 0.08)}`
       }}>
-        {/* Row 2 LEFT: 選択スコープ（ALL / Item / Lighting / Zone / Material）＋ Command Input */}
+        {/* Row 2 LEFT: 2D/3Dグループ ＋ 選択スコープ（グループで絞込）＋ 記号表示 ＋ Command Input */}
         <Box sx={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 0.75 }}>
+          <ViewGroupToggle />
           <SelectionScopeButtons />
+          <SymbolVisibilityToggle />
           <CommandBar />
         </Box>
 

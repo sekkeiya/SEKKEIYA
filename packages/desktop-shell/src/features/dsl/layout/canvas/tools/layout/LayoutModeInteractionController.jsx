@@ -126,7 +126,7 @@ export default function LayoutModeInteractionController({
       // CRITICAL FIX: If Gizmo is actively being dragged, abort LayoutMode drag to prevent grid-snapping override.
       if (useViewportUiStore.getState().isGizmoActive()) {
         dragState.current.isDragging = false;
-        dom.style.cursor = "default";
+        dom.style.cursor = ""; // 指定を外す（"default" だとハンドルのホバーカーソルを塗り潰す）
         return;
       }
 
@@ -139,7 +139,7 @@ export default function LayoutModeInteractionController({
       raycaster.ray.intersectPlane(dragState.current.yPlane, hit);
 
       if (hit) {
-        dom.style.cursor = "grabbing";
+        dom.style.cursor = "move"; // 手（grabbing）は使わない
         
         const updates = [];
         Array.from(dragState.current.startXzMap.entries()).forEach(([id, offset]) => {
@@ -169,7 +169,7 @@ export default function LayoutModeInteractionController({
     const onPointerUp = (e) => {
       if (!dragState.current.isDragging) return;
       dragState.current.isDragging = false;
-      dom.style.cursor = "default";
+      dom.style.cursor = ""; // 指定を外す（"default" だとハンドルのホバーカーソルを塗り潰す）
       
       if (typeof onCommitTransforms === "function" && dragState.current.lastUpdates.length > 0) {
          onCommitTransforms(dragState.current.lastUpdates);
@@ -330,8 +330,11 @@ export default function LayoutModeInteractionController({
           }
 
           // Handle UI state updates and Vertical Tilt Transitions (Top/Ceiling)
-          if (key === "arrowright") store.setLayoutCameraRotationIndex(store.layoutCameraRotationIndex - 1);
-          else if (key === "arrowleft") store.setLayoutCameraRotationIndex(store.layoutCameraRotationIndex + 1);
+          // setLayoutCameraRotationIndex は「増分」を受け取る（内部で現在値に加算）。
+          //   右=−1 / 左=+1 で 0↔1↔2↔3 を巡回。以前は現在値そのものを渡していたため
+          //   index が {0,1,3} しか取れず（2=南が不達）、方位針が N/E だけになっていた。
+          if (key === "arrowright") store.setLayoutCameraRotationIndex(-1);
+          else if (key === "arrowleft") store.setLayoutCameraRotationIndex(1);
           else if (key === "arrowup" || key === "arrowdown") {
             const currentTilt = store.layoutCameraTilt;
             const nextTilt = key === "arrowup" 
@@ -522,7 +525,7 @@ export default function LayoutModeInteractionController({
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onWindowBlur);
       pressedKeysRef.current.clear();
-      dom.style.cursor = "default";
+      dom.style.cursor = ""; // 指定を外す（"default" だとハンドルのホバーカーソルを塗り潰す）
     };
   }, [active, editorMode, selectedItemIds, getObject, camera, gl, raycaster, onChangeTransforms, onCommitTransforms, gridCellSizeMm, isGridVisible]);
 

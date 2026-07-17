@@ -1,5 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Box, Typography, Button, ButtonGroup } from '@mui/material';
+import { Box, Typography, Button, ButtonGroup, useMediaQuery } from '@mui/material';
+// 全幅ヘッダー化: グローバル閲覧(DslDashboard)と同じく、ヘッダー下の3ゾーン行に
+// 左=デフォルトのプロジェクトナビ(DslSidebar) / 右=選択レイアウト情報パネルを埋め込む。
+import { DslSidebar } from '../../../../../shared/layout/dsl-sidebar/DslSidebar';
+import { DslDashboardRightPanel } from '../../../../../shared/layout/workspace/RightPanelHost';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import { useAutoLayoutStore } from '../../store/useAutoLayoutStore';
@@ -59,6 +63,11 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const handleOpenCreateDialog = useCallback(() => setShowCreateDialog(true), []);
+
+  // 全幅ヘッダー化: 埋め込みサイドバー用（モバイルは従来どおり外部ドロワー）
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const isProjectSidebarOpen = useAppStore((s) => s.isProjectSidebarOpen);
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
 
   // 削除確認（Base/Plan/Option 共通、カスケード件数つき）
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; kind: 'base' | 'plan' | 'option'; planCount: number; optionCount: number } | null>(null);
@@ -507,10 +516,18 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
         </Box>
       </Box>
 
+      {/* ── 全幅ヘッダー下の3ゾーン行: 左ナビ | コンテンツ | 右パネル（グローバル閲覧と同構成） ── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {!isMobile && (
+          <Box sx={{ width: isProjectSidebarOpen ? 240 : 0, flexShrink: 0, height: '100%', overflow: 'hidden', transition: 'width 0.2s cubic-bezier(0.4,0,0.2,1)' }}>
+            <DslSidebar />
+          </Box>
+        )}
+
       {/* ── Content (Layouts only) ────────────────────────────────── */}
       <Box
         component="main"
-        sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        sx={{ flex: 1, minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onPointerDownCapture={handleClearSelection}
       >
         {error ? (
@@ -606,6 +623,26 @@ export default function LayoutDashboard({ projectId }: LayoutDashboardProps) {
             </Box>
           )}
           </>
+        )}
+      </Box>
+
+        {!isMobile && (
+          <Box
+            data-right-sidebar="true"
+            sx={{
+              width: 320, flexShrink: 0, height: '100%',
+              borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+              background: 'light-dark(rgba(255,255,255,0.85), rgba(10,15,25,0.6))',
+              display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+            }}
+          >
+            <DslDashboardRightPanel
+              selectedItem={selectedItem}
+              updatingVisibility={updatingVisibility}
+              setUpdatingVisibility={setUpdatingVisibility}
+              setPanelSelection={setPanelSelection}
+            />
+          </Box>
         )}
       </Box>
     </Box>

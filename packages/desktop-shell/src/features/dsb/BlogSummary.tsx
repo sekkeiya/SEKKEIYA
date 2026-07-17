@@ -101,17 +101,10 @@ export const BlogSummary: React.FC<BlogSummaryProps> = ({ source }) => {
 
   const openEditorNew = () => { if (uid) startNew(uid, displayName); };
 
-  const scopeLabel = source.kind === 'account' ? 'アカウントサイト' : `プロジェクト: ${source.projectName ?? ''}`;
-
   return (
     <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: { xs: 2, md: 4 }, py: 3 }}>
-      {/* ヘッダー */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <ArticleRoundedIcon sx={{ color: ACCENT, fontSize: 28 }} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 20, lineHeight: 1.2 }}>ブログ</Typography>
-          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 12 }}>{scopeLabel} の記事の状況</Typography>
-        </Box>
+      {/* アクション行（タイトルは全幅ヘッダーバンドへ移設。新規記事のみ右寄せで残す） */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
         <Button
           onClick={openEditorNew}
           variant="contained" startIcon={<AddRoundedIcon />}

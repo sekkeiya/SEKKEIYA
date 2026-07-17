@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, Chip, CircularProgress, CardActionArea } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, CardActionArea, useMediaQuery } from '@mui/material';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import PlayCircleOutlineRoundedIcon from '@mui/icons-material/PlayCircleOutlineRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import ExtensionRoundedIcon from '@mui/icons-material/ExtensionRounded';
 import FolderSpecialRoundedIcon from '@mui/icons-material/FolderSpecialRounded';
 import { useDsqStore, DSQ_CATEGORIES, type DsqCategoryFilter } from './store/useDsqStore';
+import { DsqSidebar } from '../../shared/layout/dsq-sidebar/DsqSidebar';
 
 const ACCENT = '#5c6bc0';
 
@@ -92,11 +93,15 @@ export const DsqDashboard: React.FC<DsqDashboardProps> = ({ courses, projects = 
     return courses.filter(c => c.category === categoryFilter);
   }, [courses, categoryFilter]);
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──────────────────────────────
+  // デスクトップでは MainLayout 側の左サイドバー複製を抑止し、代わりにここ
+  // （ヘッダー下の 2 ゾーン行）へ埋め込む。これによりツールバーが全幅ヘッダーになる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default' }}>
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', bgcolor: 'background.default' }}>
+      {/* 全幅ヘッダー（Toolbar） */}
+      <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
             S.Quest — Learning
           </Typography>
@@ -126,10 +131,15 @@ export const DsqDashboard: React.FC<DsqDashboardProps> = ({ courses, projects = 
               })}
             </Box>
           )}
-        </Box>
+      </Box>
+
+      {/* 全幅ヘッダー下の行: 左プロジェクトサイドバー | コンテンツ（S.Quest は右パネルなし） */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（ストア駆動で自己サイズ調整。デスクトップのみ埋め込み） */}
+        {!isMobile && <DsqSidebar />}
 
         {/* Content */}
-        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflowY: 'auto' }}>
           {isInitializing ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               <CircularProgress sx={{ color: ACCENT }} />

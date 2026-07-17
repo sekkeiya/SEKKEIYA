@@ -6,6 +6,6 @@
 export {
   isTtsAvailable, speak, speakSentences, splitSentences,
   stopSpeaking, isSpeaking, pauseSpeaking, resumeSpeaking, isSpeechPaused,
-  getTtsSettings, setTtsSettings, listJaVoices,
+  getTtsSettings, setTtsSettings, listJaVoices, toPlaybackRate,
 } from '../../../lib/tts';
 export type { TtsSettings, TtsEngine, AiTtsStyle } from '../../../lib/tts';

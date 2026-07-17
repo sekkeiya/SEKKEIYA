@@ -4,7 +4,11 @@ import {
   Box, Typography, Chip, IconButton, Menu, MenuItem, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select,
   Button, ButtonGroup, ToggleButton, ToggleButtonGroup, Tooltip, Divider,
+  useMediaQuery,
 } from '@mui/material';
+// 全幅ヘッダー化: デスクトップではヘッダー下の行に左サイドバーと右詳細パネルを埋め込む
+import { DspSidebar } from '../../shared/layout/dsp-sidebar/DspSidebar';
+import { useDspStore } from './store/useDspStore';
 import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
@@ -243,10 +247,13 @@ const TemplateRightPanel: React.FC<{
   onDuplicate: () => void;
   onToggleVisibility: () => void;
   onDelete: () => void;
-}> = ({ tpl, canApply, onApply, onEdit, onDuplicate, onToggleVisibility, onDelete }) => {
+  /** true なら portal せずその場に描画（デスクトップのビュー内埋め込み用） */
+  inline?: boolean;
+}> = ({ tpl, canApply, onApply, onEdit, onDuplicate, onToggleVisibility, onDelete, inline = false }) => {
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
+    if (inline) return; // 埋め込み描画では portal 先を探さない
     let unmounted = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const find = () => {
@@ -256,9 +263,9 @@ const TemplateRightPanel: React.FC<{
     };
     find();
     return () => { unmounted = true; if (timer) clearTimeout(timer); };
-  }, []);
+  }, [inline]);
 
-  if (!portalNode) return null;
+  if (!inline && !portalNode) return null;
 
   const firstPage = tpl?.content?.pages?.[0];
   const hasElements = (firstPage?.elements?.length ?? 0) > 0;
@@ -363,7 +370,7 @@ const TemplateRightPanel: React.FC<{
     </Box>
   );
 
-  return createPortal(content, portalNode);
+  return inline ? content : createPortal(content, portalNode as HTMLElement);
 };
 
 // ─── Main View ─────────────────────────────────────────────────────────────────
@@ -372,6 +379,10 @@ export const DspTemplatesView: React.FC = () => {
   const currentUser = useAuthStore(s => s.currentUser);
   const activeProjectId = useAppStore(s => s.activeProjectId);
   const projects = useAppStore(s => s.projects);
+  // 全幅ヘッダー化: デスクトップはヘッダー下の行に左サイドバー＋右詳細パネルを埋め込む。
+  // モバイルは従来どおり（左は MainLayout のドロワー、右詳細は RightPanelHost への portal）。
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const showRightSidebar = useDspStore(s => s.showRightSidebar);
 
   const [templates, setTemplates] = useState<PresentationTemplate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -544,6 +555,17 @@ export const DspTemplatesView: React.FC = () => {
     }
   };
 
+  // 右詳細パネルのプロップ（デスクトップ埋め込み/モバイル portal の両インスタンスで共有）
+  const rightPanelProps = {
+    tpl: selectedTemplate,
+    canApply: !!activeProjectId,
+    onApply: () => { if (selectedTemplate) handleApply(selectedTemplate); },
+    onEdit: () => { if (selectedTemplate) setEditTarget(selectedTemplate); },
+    onDuplicate: () => { if (selectedTemplate) handleDuplicate(selectedTemplate); },
+    onToggleVisibility: () => { if (selectedTemplate) handleToggleVisibility(selectedTemplate); },
+    onDelete: () => { if (selectedTemplate) handleDelete(selectedTemplate); },
+  };
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', color: 'text.primary', overflow: 'hidden' }}>
       {/* Header */}
@@ -616,8 +638,10 @@ export const DspTemplatesView: React.FC = () => {
         </ButtonGroup>
       </Box>
 
-      {/* Body */}
-      <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }} onClick={() => setSelectedId(null)}>
+      {/* Body 行: 左サイドバー | 一覧 | 右詳細（全幅ヘッダー＋種別トグルの下） */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {!isMobile && <DspSidebar />}
+        <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 3 }} onClick={() => setSelectedId(null)}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <CircularProgress sx={{ color: ACCENT }} />
@@ -658,20 +682,20 @@ export const DspTemplatesView: React.FC = () => {
             ))}
           </Box>
         )}
+        </Box>
+
+        {/* 右詳細パネル（デスクトップはビュー内埋め込み・表示トグル連動） */}
+        {!isMobile && showRightSidebar && (
+          <Box sx={{ width: 320, flexShrink: 0, height: '100%', borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', bgcolor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <TemplateRightPanel inline {...rightPanelProps} />
+          </Box>
+        )}
       </Box>
 
       <EditMetaDialog tpl={editTarget} onClose={() => setEditTarget(null)} onSave={handleEditSave} />
 
-      {/* 選択テンプレートの詳細（右サイドバー portal） */}
-      <TemplateRightPanel
-        tpl={selectedTemplate}
-        canApply={!!activeProjectId}
-        onApply={() => selectedTemplate && handleApply(selectedTemplate)}
-        onEdit={() => selectedTemplate && setEditTarget(selectedTemplate)}
-        onDuplicate={() => selectedTemplate && handleDuplicate(selectedTemplate)}
-        onToggleVisibility={() => selectedTemplate && handleToggleVisibility(selectedTemplate)}
-        onDelete={() => selectedTemplate && handleDelete(selectedTemplate)}
-      />
+      {/* 選択テンプレートの詳細（モバイルは従来どおり RightPanelHost への portal） */}
+      {isMobile && <TemplateRightPanel {...rightPanelProps} />}
 
       {/* ── Create template dialog ─────────────────────────────────────────── */}
       <Dialog

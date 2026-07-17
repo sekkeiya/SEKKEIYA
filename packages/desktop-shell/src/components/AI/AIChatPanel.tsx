@@ -210,9 +210,13 @@ interface AIChatPanelProps {
   /** ヘッダー左のクラスタ（サイドバー・トグル＋「SEKKEIYA Chat」＋プロジェクトchip）を隠す。
    *  ポップアウト窓のように、上位のトップバーがこれらを担う場合に使う（アクション群は残す）。 */
   hideHeaderTitle?: boolean;
+  /** 子アプリ埋め込み用: このセッションに固定表示する（グローバルの activeSessionId と独立）。
+   *  指定時はプロジェクト切替によるセッション自動切替・先回り提案を行わず、
+   *  右ドックのグローバルチャットと同時にマウントしても互いのセッションを奪わない。 */
+  fixedSessionId?: string;
 }
 
-const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDetached, onDragHandleMouseDown, pinned = false, onTogglePinned, hideWindowControls = false, hideHeader = false, onPopOut, hideHeaderTitle = false }) => {
+const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDetached, onDragHandleMouseDown, pinned = false, onTogglePinned, hideWindowControls = false, hideHeader = false, onPopOut, hideHeaderTitle = false, fixedSessionId }) => {
   const [chatText, setChatText] = useState("");
   const [showDebugPrompt, setShowDebugPrompt] = useState(false);
   const [debugPromptContent, setDebugPromptContent] = useState<string>("");
@@ -363,6 +367,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   const { isProcessing, currentToolLabel, toolProgress, sendMessageToOrchestrator, stopProcessing } = useCoreOrchestrator();
   const { activeSessionId, createSession, sessions, getSessionsForProject, setActiveSession, createScopedSession, getSessionsForScope, deleteSession, rewindToMessage } = useAIChatStore();
   const allSessions = useAIChatStore(s => s.sessions);
+  // 表示・送信対象のセッション。fixedSessionId 指定時（子アプリ埋め込み）はそれを優先し、
+  // グローバルの activeSessionId には一切追従しない。
+  const effectiveSessionId = fixedSessionId ?? activeSessionId;
 
   // ストア全体ではなく必要な値だけを購読する（ホバー等の無関係な更新で
   // 重い AIChatPanel が丸ごと再描画されるのを防ぐ）。
@@ -396,15 +403,15 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
 
   const allMessages = useAIChatStore(s => s.messages);
   const messages = React.useMemo(() => {
-    if (!activeSessionId) return [];
+    if (!effectiveSessionId) return [];
     // アクティブセッションのメッセージをそのまま表示。
     // ユーザーがチャット履歴サイドバーで別プロジェクトのセッションを選択した場合もそのまま表示する。
     // プロジェクト切り替え時のちらつきは useEffect によるセッション切り替えに委ねる。
-    return allMessages.filter(m => m.sessionId === activeSessionId);
-  }, [allMessages, activeSessionId]);
+    return allMessages.filter(m => m.sessionId === effectiveSessionId);
+  }, [allMessages, effectiveSessionId]);
 
   // 開いているチャットのスコープに応じたチャット候補（サジェスト）。
-  const activeSession = useAIChatStore(s => s.sessions.find(ss => ss.id === s.activeSessionId));
+  const activeSession = useAIChatStore(s => s.sessions.find(ss => ss.id === (fixedSessionId ?? s.activeSessionId)));
   const dsdTemplate = useDsdStore(s => s.currentTemplate);
   const suggestions = React.useMemo(() => getChatSuggestions({
     scope: activeSession?.scope,
@@ -568,7 +575,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
     if (!voiceMode) stopSpeakingUi(); // OFFにしたら読み上げ中も止める
   }, [voiceMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { stopSpeaking(); aiPlayerRef.current?.stop(); }, []); // アンマウント時に停止
-  useEffect(() => { stopSpeakingUi(); }, [activeSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { stopSpeakingUi(); }, [effectiveSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 音声モード: 新しく届いたAI応答を自動読み上げ。
   // timestamp の鮮度で「到着直後」を判定し、履歴の再表示・セッション切替では読まない
@@ -592,6 +599,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   useEffect(() => {
     setProactive(null);
     proactiveSetIdRef.current = null;
+    // 埋め込み（セッション固定）時は先回り提案を出さない。ノード切替のたびに
+    // 生成が走るのを防ぎ、タスク文脈に合わない汎用挨拶も避ける。
+    if (fixedSessionId) return;
     if (!isEmptyChat || !activeProject?.id || !activeSessionId) return;
     let alive = true;
     getProactiveSuggestions(activeProject.id, activeProject.name, activeSessionId).then((r) => {
@@ -626,6 +636,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   // どのタブにいても site snapshot が正しいプロジェクトを指すようにする。
   const prevProjectIdRef = React.useRef<string | null | undefined>(undefined);
   useEffect(() => {
+    // 埋め込み（セッション固定）時はセッションの自動切替もサイト先行ロードも行わない
+    // （グローバルセッションを作る副作用が右ドック側の表示を変えてしまうため）。
+    if (fixedSessionId) return;
     // プロジェクトが「実際に変わった」かを判定（初回マウント＝再オープン時は変更扱いしない）。
     const projChanged = prevProjectIdRef.current !== undefined && prevProjectIdRef.current !== (activeProject?.id ?? null);
     prevProjectIdRef.current = activeProject?.id ?? null;
@@ -716,7 +729,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
     setChatText("");
     setAttachments([]);
     // Phase B: ループ・ツール実行・保存はすべてオーケストレーター内で完結する。
-    await sendMessageToOrchestrator(text, { source: 'sidebar_chat', sessionId: activeSessionId || undefined, images, docs });
+    await sendMessageToOrchestrator(text, { source: 'sidebar_chat', sessionId: effectiveSessionId || undefined, images, docs });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1283,7 +1296,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
                     <Tooltip title="ここまで巻き戻す" placement="top" arrow>
                       <IconButton
                         size="small"
-                        onClick={() => { if (activeSessionId) rewindToMessage(activeSessionId, msg.id); }}
+                        onClick={() => { if (effectiveSessionId) rewindToMessage(effectiveSessionId, msg.id); }}
                         sx={{ p: 0.4, color: 'rgb(var(--brand-fg-rgb) / 0.4)', '&:hover': { color: 'light-dark(#a50808, #f87171)', bgcolor: 'rgba(248,113,113,0.1)' } }}
                       >
                         <ReplayRoundedIcon sx={{ fontSize: '0.75rem' }} />

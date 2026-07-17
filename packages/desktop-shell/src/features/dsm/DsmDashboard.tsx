@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Box, Typography, IconButton, Tooltip, Button, Slider, InputBase, Stack,
   CircularProgress, LinearProgress, Divider,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -54,6 +54,7 @@ import { totalSequenceDuration, effectiveClipDuration } from './services/movieCo
 import type { MovieTransitionType } from './types';
 import { MaterialPickerDialog } from './components/MaterialPickerDialog';
 import { useMultiSelect } from '../../hooks/useMultiSelect';
+import { DsmSidebar } from '../../shared/layout/dsm-sidebar/DsmSidebar';
 
 // デザイントークン（docs/14 §4 — S.Movie アクセント）
 const ACCENT = '#C98A4B';        // 木材アンバー = アクション
@@ -965,11 +966,14 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
   };
   const isCloudScope = !['local_movies', 'project_movies', 'team_project_movies'].includes(dsmScope);
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──
+  // MainLayout のグローバル左サイドバーはデスクトップのダッシュボード表示時に抑止済みのため、
+  // ヘッダーを全幅トップバンドにし、その下の 3 ゾーン行へ DsmSidebar を埋め込む。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', bgcolor: BRAND.bg, position: 'relative' }}>
-      {/* ══ 左カラム: ヘッダー + グリッド ══ */}
-      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* ヘッダー */}
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', bgcolor: BRAND.bg, position: 'relative' }}>
+      {/* ══ 全幅ヘッダー（48px・左右サイドバーの上に渡る）══ */}
       <Box sx={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2.5, borderBottom: `1px solid ${BRAND.line}`, flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <MovieFilterRoundedIcon sx={{ color: ACCENT, fontSize: 20 }} />
@@ -987,6 +991,10 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
         </Box>
       </Box>
 
+      {/* 全幅ヘッダー下の 3 ゾーン行: 左サイドバー | グリッド | 右プロパティパネル */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（デスクトップのみ）。ストア駆動で自身が開閉・幅を管理する。 */}
+        {!isMobile && <DsmSidebar />}
         {/* グリッド */}
         <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: 3 }} onClick={() => clearSelection()}>
           {loading ? (
@@ -1044,11 +1052,9 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
             </Box>
           )}
         </Box>
-      </Box>
-      {/* ── 左カラム終わり ── */}
 
-      {/* ══ 右情報パネル（3DSM プロパティ位置・赤枠全高）══ */}
-      <Box sx={{ width: 320, flexShrink: 0, borderLeft: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        {/* ══ 右情報パネル（行の右端＝ヘッダー下に収まる）══ */}
+        <Box sx={{ width: 320, flexShrink: 0, borderLeft: `1px solid ${BRAND.line}`, bgcolor: BRAND.panel, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${BRAND.line}` }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)' }}>プロパティ</Typography>
           </Box>
@@ -1100,6 +1106,7 @@ const MovieGallery: React.FC<{ onOpenEditor: () => void }> = ({ onOpenEditor }) 
             </Box>
           )}
         </Box>
+      </Box>
 
       {/* 複数選択フローティングバー */}
       {selectedIds.size > 0 && (

@@ -14,6 +14,7 @@ import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
 import KeyboardVoiceRoundedIcon from '@mui/icons-material/KeyboardVoiceRounded';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import { TtsSettingsForm } from '../../../components/tts/TtsSettingsForm';
+import { TtsUsageMeter } from '../../../components/tts/TtsUsageMeter';
 import { isAltDictationEnabled, setAltDictationEnabled } from '../../../lib/altDictation';
 import { isTextPolishEnabled, setTextPolishEnabled } from '../../../lib/textPolish';
 import { isTauri } from '../../../lib/platform';
@@ -39,58 +40,8 @@ const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Box>
 );
 
-/** AI音声の利用枠メーター（Claude式・時間窓リセット）。新規合成分だけが減り、キャッシュ再生は無制限。 */
-const TtsUsageMeter: React.FC = () => {
-  const [usage, setUsage] = useState<{ used5hSec: number; limit5hSec: number; used7dSec: number; limit7dSec: number } | null>(null);
-  const [failed, setFailed] = useState(false);
-  React.useEffect(() => {
-    let alive = true;
-    void import('../../../lib/firebase/client')
-      .then(async ({ functions }) => {
-        const { httpsCallable } = await import('firebase/functions');
-        const r: any = await httpsCallable(functions, 'getTtsUsage')({});
-        if (alive && r.data?.success) setUsage(r.data);
-        else if (alive) setFailed(true);
-      })
-      .catch(() => { if (alive) setFailed(true); });
-    return () => { alive = false; };
-  }, []);
-  if (failed) return null; // 未デプロイ/未ログイン時は静かに非表示
-  const rows = usage ? [
-    { label: '直近5時間', used: usage.used5hSec, limit: usage.limit5hSec },
-    { label: '直近7日間', used: usage.used7dSec, limit: usage.limit7dSec },
-  ] : [];
-  return (
-    <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
-      <Typography sx={{ fontSize: 12, fontWeight: 800, color: 'rgb(var(--brand-fg-rgb) / 0.7)', mb: 1 }}>
-        AI音声の利用枠（時間経過で自動回復）
-      </Typography>
-      {!usage ? (
-        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>読み込み中…</Typography>
-      ) : rows.map((r) => {
-        const pct = Math.min(100, Math.round((r.used / Math.max(1, r.limit)) * 100));
-        return (
-          <Box key={r.label} sx={{ mb: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>{r.label}</Typography>
-              <Typography sx={{ fontSize: 11, color: pct >= 100 ? 'light-dark(#961818, #ef9a9a)' : 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
-                {Math.round(r.used / 60)} / {Math.round(r.limit / 60)} 分
-              </Typography>
-            </Box>
-            <Box sx={{ height: 6, borderRadius: 3, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
-              <Box sx={{ width: `${pct}%`, height: '100%', borderRadius: 3,
-                bgcolor: pct >= 100 ? '#ef9a9a' : pct >= 80 ? '#ffb74d' : ACCENT, transition: 'width .3s' }} />
-            </Box>
-          </Box>
-        );
-      })}
-      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)', lineHeight: 1.6 }}>
-        カウントされるのは新しく合成した分だけです。一度聴いた記事の再生や保存済みの音声は無制限。
-        枠を使い切っても標準音声（無料）に自動で切り替わり、時間が経つと回復します。
-      </Typography>
-    </Box>
-  );
-};
+// AI音声の利用枠メーターは components/tts/TtsUsageMeter へ共通化した
+//（ここ / 読み上げ設定ダイアログ（Reader ⚙）/ AI使用量モニターで共用）。
 
 export const VoiceSettingsPanel: React.FC = () => {
   const [dictationOn, setDictationOn] = useState(isAltDictationEnabled());

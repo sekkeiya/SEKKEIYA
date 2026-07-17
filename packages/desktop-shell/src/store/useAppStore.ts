@@ -213,6 +213,8 @@ interface AppState {
   setDsmShellMode: (mode: 'dashboard' | 'editor') => void;
   dsiShellMode: 'dashboard' | 'editor';
   setDsiShellMode: (mode: 'dashboard' | 'editor') => void;
+  dssShellMode: 'dashboard' | 'editor';
+  setDssShellMode: (mode: 'dashboard' | 'editor') => void;
   dspGlobalFilter: 'following' | 'all';
   setDspGlobalFilter: (filter: 'following' | 'all') => void;
   /** S.Slide の種別フィルタ（すべて/スライド/無限ボード）。ビュー横断で共有し、テンプレ⇄プレゼン切替時も保持する。 */
@@ -456,6 +458,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setDsmShellMode: (mode) => set({ dsmShellMode: mode }),
   dsiShellMode: 'dashboard',
   setDsiShellMode: (mode) => set({ dsiShellMode: mode }),
+  dssShellMode: 'dashboard',
+  setDssShellMode: (mode) => set({ dssShellMode: mode }),
   dspGlobalFilter: 'following',
   setDspGlobalFilter: (filter) => set({ dspGlobalFilter: filter }),
   dspTypeFilter: 'all',

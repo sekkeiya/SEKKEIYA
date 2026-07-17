@@ -14,7 +14,9 @@ export default function GridPickController({ baseCollidersRef }) {
 
   useEffect(() => {
     if (editorMode !== "layout" || !isGridPickingMode) {
-      gl.domElement.style.cursor = "default";
+      // 指定を外すだけ。"default" を焼き付けると、canvas の cursor が常に効いてしまい
+      // 壁/床のハンドルなど他のホバーカーソルが一切反映されなくなる。
+      gl.domElement.style.cursor = "";
       return;
     }
 
@@ -105,7 +107,7 @@ export default function GridPickController({ baseCollidersRef }) {
     dom.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      dom.style.cursor = "default";
+      dom.style.cursor = ""; // 指定を外す（"default" だと他のホバーカーソルを塗り潰す）
       dom.removeEventListener("pointerdown", handlePointerDown);
       dom.removeEventListener("pointermove", handlePointerMove);
       dom.removeEventListener("pointerup", handlePointerUp);

@@ -1,11 +1,29 @@
 // src/features/layout/components/RightSidebar/RightSidebar.jsx
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useMemo } from "react";
-import { Box, Divider, Typography } from "@mui/material";
+import { Box, Divider, Typography, Tooltip, IconButton } from "@mui/material";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+// 右サイドバー上部の切替タブ用アイコン（旧・右ドックの各ボタン）
+import DashboardCustomizeRoundedIcon from "@mui/icons-material/DashboardCustomizeRounded";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
+import PhotoLibraryRoundedIcon from "@mui/icons-material/PhotoLibraryRounded";
+import MapRoundedIcon from "@mui/icons-material/MapRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
+import { toggleMapMode } from "../../../utils/mapMode";
 
 import PropertiesPanel from "./components/PropertiesPanel";
 import SceneOutlinerPanel from "./components/SceneOutlinerPanel";
 import { useSceneOutlinerTree } from "./hooks/useSceneOutlinerTree";
 import ModelLibraryPanel from "../LeftSidebar/components/ModelLibraryPanel";
+// 全幅ヘッダー化: 左サイドバー廃止に伴い、Project 階層（Base/Plan/Option ツリー）も右サイドバーへ移設
+import EditorBasePlanOptionTree from "../LeftSidebar/components/EditorBasePlanOptionTree";
+// 全幅ヘッダー化: 左サイドバー廃止に伴い、Library は右サイドバーのパネルとして表示する
+import LibraryPanelShell from "../LeftSidebar/components/Library/LibraryPanelShell";
+import { useAIChatStore } from "../../../../../../store/useAIChatStore";
+import { useCoreOrchestrator } from "../../../../../../store/useCoreOrchestrator";
 
 import { useUiRightSidebarStore } from "../../../store/uiRightSidebarStore";
 import { useUiPropertiesSelectionStore } from "../../../store/uiPropertiesSelectionStore";
@@ -27,9 +45,26 @@ import { useMediaSettingsStore } from "../../../store/useMediaSettingsStore";
 import { useAutoActionStore } from "../../../store/useAutoActionStore";
 import HistoryPanel from "./components/HistoryPanel";
 import MapPanel from "./components/MapPanel";
+import UnderlayPanel from "./components/UnderlayPanel";
 import ViewportSettingsPanel from "./components/ViewportSettingsPanel";
 import AutoLayoutSidePanel from "./components/AutoLayoutSidePanel";
 import WalkthroughCharacterPanel from "./components/WalkthroughCharacterPanel";
+// S.Layout 埋め込み AI チャット（選択中の Base/Plan/Option にスコープ固定）
+import LayoutChatPanel from "./components/LayoutChatPanel";
+// 断面図表示中の Properties 専用パネル（断面位置＋階/レベル設定）
+import SectionPropertiesPanel from "./components/SectionPropertiesPanel.jsx";
+// 展開図表示中の Properties 専用パネル（部屋・向き・天井高）
+import ElevationPropertiesPanel from "./components/ElevationPropertiesPanel.jsx";
+// 壁（内壁/外壁）を選択中の Properties
+import WallPropertiesPanel from "./components/WallPropertiesPanel.jsx";
+import { useWallStore } from "../../../store/useWallStore";
+// 床（スラブ）を選択中の Properties
+import SlabPropertiesPanel from "./components/SlabPropertiesPanel.jsx";
+import { useSlabStore } from "../../../store/useSlabStore";
+import { useSectionLinesStore } from "../../../store/useSectionLinesStore";
+import { useViewportUiStore } from "../../../store/viewportUiStore";
+import { useElevationMarkerStore } from "../../../store/useElevationMarkerStore";
+import { useRoomElevationsStore } from "../../../store/useRoomElevationsStore";
 import StructureFacePanel from "./components/StructureFacePanel";
 import { useStructureLabelStore } from "../../../store/useStructureLabelStore";
 import { useAutoLayoutStore } from "../../../store/useAutoLayoutStore";
@@ -129,6 +164,8 @@ const RightSidebar = ({
 
   // Base（パラメトリックルーム）編集
   isBaseOnly = false,
+  /** 下絵を取り込み・調整できるノードか（Base か Plan。Option は継承表示のみ）。 */
+  canUnderlay = false,
   roomSpec = null,
   hasBaseGlb = false,
   onUpdateRoomSpec,
@@ -141,18 +178,93 @@ const RightSidebar = ({
   const setRightPanel = useUiRightSidebarStore((s) => s.setRightPanel);
   const mode = useEditorModeStore((s) => s.editorMode);
 
+  // 断面図表示中か（正射側面ビュー＋縦の断面クリップON）。Properties を断面専用内容に切替える。
+  // 展開図（マーカー位置から壁面を見る姿図）も同じクリップ機構を使うが、断面図ではないので除外。
+  const rsActiveViewportId = useViewportUiStore((s) => s.activeViewportId);
+  const rsSectionClipOn = useEditorModeStore((s) => s.isSectionClipEnabled);
+  const rsSectionClipY = useEditorModeStore((s) => s.sectionClipYEnabled);
+  const rsElevationView = useElevationMarkerStore((s) => s.viewActive);
+  const isSectionView =
+    (rsActiveViewportId === "vp_front" || rsActiveViewportId === "vp_right") &&
+    rsSectionClipOn && !rsSectionClipY && !rsElevationView;
+  // 平面図（Top）で断面線を選択中 → Properties に断面線の設定（同じ専用パネル）を出す。
+  const rsActiveSectionLineId = useSectionLinesStore((s) => s.activeLineId);
+  const isSectionLineSelected = !!rsActiveSectionLineId && rsActiveViewportId === "vp_top";
+  const showSectionProps = isSectionView || isSectionLineSelected;
+  // 平面図（Top）で展開記号を選択中 → Properties にその部屋の展開一覧を出す。
+  // 展開図を表示中（rsElevationView）も同じパネル（そちらは天井高も出る）。
+  const rsElevRoomId = useRoomElevationsStore((s) => s.selectedRoomId);
+  const isElevMarkerSelected = !!rsElevRoomId && rsActiveViewportId === "vp_top";
+  const showElevationProps = rsElevationView || isElevMarkerSelected;
+  // 壁を選択中 → Properties に壁の設定を出す（断面/展開の専用表示より優先）。
+  const rsSelectedWallId = useWallStore((s) => s.selectedWallId);
+  const showWallProps = !!rsSelectedWallId;
+  // 床（スラブ）を選択中 → Properties に床の設定を出す。
+  const rsSelectedSlabId = useSlabStore((s) => s.selectedSlabId);
+  const showSlabProps = !showWallProps && !!rsSelectedSlabId;
+
+  // ── 右サイドバー上部の切替タブ（旧・右ドックのボタン群を移設。1枚ずつ排他切替） ──
+  const rightPanels = useUiRightSidebarStore((s) => s.rightPanels);
+  const toggleExclusive = useUiRightSidebarStore((s) => s.toggleRightPanelExclusive);
+  const editorViewGroup = useEditorModeStore((s) => s.editorViewGroup);
+  const isViewGroup2D = editorViewGroup === "2d";
+  const switcherTabs = useMemo(() => {
+    const tabs = [
+      { key: "projectHierarchy", label: "Project 階層（Base/Plan/Option）", Icon: DashboardCustomizeRoundedIcon },
+      { key: "scene", label: "Scene（アウトライナー）", Icon: AccountTreeRoundedIcon },
+      { key: "properties", label: "Properties", Icon: TuneRoundedIcon },
+      { key: "library", label: "ライブラリ", Icon: FolderOpenRoundedIcon },
+      { key: "chat", label: "AI チャット（選択中の Base/Plan/Option と議論）", Icon: ForumRoundedIcon },
+    ];
+    // History は 3D 演出グループのみ / Map は 2D 配置グループのみ
+    if (!isViewGroup2D) tabs.push({ key: "history", label: "History（生成履歴）", Icon: PhotoLibraryRoundedIcon });
+    if (isViewGroup2D) tabs.push({ key: "map", label: "マップ（敷地に航空写真）", Icon: MapRoundedIcon, isMode: true });
+    // 下絵は Base か Plan に紐づく（Option は継承して表示するだけなので調整させない）。
+    if (canUnderlay) tabs.push({ key: "underlay", label: "下絵（PDF/画像をトレース）", Icon: ImageRoundedIcon });
+    tabs.push({ key: "viewportSettings", label: "ビューポート設定", Icon: SettingsRoundedIcon });
+    return tabs;
+  }, [isViewGroup2D, canUnderlay]);
+
+  // 下絵を扱えないノード（Option）へ移ったらパネルを閉じる
+  // （タブが消えて閉じられなくなるのを防ぐ）。
+  useEffect(() => {
+    if (!canUnderlay) setRightPanel("underlay", false);
+  }, [canUnderlay, setRightPanel]);
+
   // Material モードは Scene ツリーを隠し、Properties（面マテリアル設定）のみ表示する
   // Map モードは Map パネルのみを表示する
   // ただし「ビューポート設定」は常設なので、これらの専用モードでも開いていれば末尾に出す
   // （どのモード/画面からでも断面・グリッド等を操作できるように）。
   const visibleSections = useMemo(() => {
+    // Material モードでは Library（マテリアル/家具の選択元）も開いていれば表示する
     const base =
-      mode === "material" ? ["properties"] : mode === "map" ? ["map"] : rawVisibleSections;
+      mode === "material"
+        ? ["properties", ...(rawVisibleSections.includes("library") ? ["library"] : [])]
+        : mode === "map" ? ["map"] : rawVisibleSections;
     if ((mode === "material" || mode === "map") && rawVisibleSections.includes("viewportSettings") && !base.includes("viewportSettings")) {
       return [...base, "viewportSettings"];
     }
     return base;
   }, [mode, rawVisibleSections]);
+
+  // AI 家具選定（旧・左サイドバー Library ヘッダーの機能を移設）:
+  // SEKKEIYA Chat を開き、選択中の Plan のための家具選定メッセージを送信する。
+  const handleSelectFurniture = useCallback(() => {
+    const aiChat = useAIChatStore.getState();
+    let sessionId = aiChat.activeSessionId;
+    const activeProjectId = useAppStore.getState().activeProjectId;
+    if (!sessionId) sessionId = aiChat.createSession(activeProjectId || "default");
+    useAppStore.getState().setAIChatOpen(true);
+
+    const st = useWorkspaceStructureStore.getState();
+    const baseName = (st.bases || []).find((b) => b?.id === st.selectedBaseId)?.name || "";
+    const planName = (st.plansOfSelectedBase || []).find((p) => p?.id === st.selectedPlanId)?.name || "";
+    const target = [baseName, planName].filter(Boolean).join(" / ");
+    const msg = planName
+      ? `現在開いているプラン「${target}」のための家具を選定し、このプロジェクトに追加してください。部屋の用途・スタイルに合った最適な家具を提案してください。`
+      : `現在開いている躯体${baseName ? `「${baseName}」` : ""}のプランのための家具を選定し、このプロジェクトに追加してください。まずプランを選択するか、最適な家具を提案してください。`;
+    useCoreOrchestrator.getState().sendMessageToOrchestrator(msg, { source: "sidebar_chat", sessionId });
+  }, []);
 
   // 躯体の面ラベル選択（床/壁/天井）。選択中は Properties に面ラベル設定を表示する。
   const faceSelectionCount = useStructureLabelStore((s) => Object.keys(s.selection).length);
@@ -335,7 +447,24 @@ const RightSidebar = ({
     if (activeZoneForPanel) {
       return <ZonePropertiesPanel zone={activeZoneForPanel} />;
     }
-    // Base（躯体）選択中 → 部屋寸法の編集パネル（roomSpec が無ければ作成 CTA）
+    // レイアウトを開いていれば（Base のみでも）「用途 / 部屋・ゾーン / 導線」ツリーを既定表示。
+    // 躯体編集（Base のみ表示）中は、その下に面ラベル表示・部屋寸法の Base パネルを続けて出す。
+    if (optionDoc || optionDocLoading) {
+      return (
+        <>
+          <OptionDetailPanel optionDoc={optionDoc} optionDocLoading={optionDocLoading} onAddZone={handleAddZone} />
+          {isBaseOnly && (
+            <BaseRoomPanel
+              roomSpec={roomSpec}
+              hasBaseGlb={hasBaseGlb}
+              onUpdateRoomSpec={onUpdateRoomSpec}
+              onCreateDefaultRoom={onCreateDefaultRoom}
+            />
+          )}
+        </>
+      );
+    }
+    // レイアウト未オープンで躯体編集だけしている場合（通常は起きない）
     if (isBaseOnly) {
       return (
         <BaseRoomPanel
@@ -346,15 +475,12 @@ const RightSidebar = ({
         />
       );
     }
-    if (selectedOptionId) {
-      return <OptionDetailPanel optionDoc={optionDoc} optionDocLoading={optionDocLoading} onAddZone={handleAddZone} />;
-    }
     return (
       <Box sx={{ p: 2 }}>
         <Typography fontSize={12} sx={{ opacity: 0.7 }}>No Layout selected.</Typography>
       </Box>
     );
-  }, [activeZoneForPanel, isBaseOnly, roomSpec, hasBaseGlb, onUpdateRoomSpec, onCreateDefaultRoom, selectedOptionId, optionDoc, optionDocLoading, handleAddZone]);
+  }, [activeZoneForPanel, isBaseOnly, roomSpec, hasBaseGlb, onUpdateRoomSpec, onCreateDefaultRoom, optionDoc, optionDocLoading, handleAddZone]);
 
   const noItemSelected =
     !selectedItemId &&
@@ -396,10 +522,63 @@ const RightSidebar = ({
         overflow: "hidden",
       }}
     >
+      {/* ── 上部の切替タブ（旧・右ドック）。クリックで1枚ずつ排他切替 ── */}
+      <Box
+        sx={{
+          display: "flex", alignItems: "center", gap: 0.25,
+          px: 0.75, py: 0.5, flexShrink: 0,
+          borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.08)",
+        }}
+      >
+        {switcherTabs.map(({ key, label, Icon, isMode }) => {
+          const active = isMode ? mode === "map" : !!rightPanels?.[key];
+          return (
+            <Tooltip key={key} title={label} placement="bottom" arrow>
+              <IconButton
+                size="small"
+                onClick={() => (isMode ? toggleMapMode() : toggleExclusive(key))}
+                sx={{
+                  width: 30, height: 30, borderRadius: 1.5,
+                  color: active ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.55)",
+                  bgcolor: active ? "rgba(56,189,248,0.22)" : "transparent",
+                  border: active ? "1px solid rgba(56,189,248,0.5)" : "1px solid transparent",
+                  "&:hover": { bgcolor: active ? "rgba(56,189,248,0.3)" : "rgb(var(--brand-fg-rgb) / 0.08)" },
+                }}
+              >
+                <Icon sx={{ fontSize: 17 }} />
+              </IconButton>
+            </Tooltip>
+          );
+        })}
+      </Box>
+
+      {visibleSections.length === 0 && (
+        <Box sx={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", px: 2, textAlign: "center" }}>
+          <Typography sx={{ fontSize: 12, color: "rgb(var(--brand-fg-rgb) / 0.4)" }}>
+            上のタブからパネルを開いてください
+          </Typography>
+        </Box>
+      )}
+
       {visibleSections.map((key, i) => {
         const isLast = i === visibleSections.length - 1;
         const isOnly = visibleSections.length === 1;
         const passExplicitHeight = !isOnly && i === 0; // The first panel gets the explicit height when split
+
+        if (key === "projectHierarchy") {
+          return (
+            <React.Fragment key={key}>
+              <Section
+                title="Project"
+                minHeight={150}
+                explicitHeight={passExplicitHeight ? topSectionHeight : null}
+              >
+                <EditorBasePlanOptionTree />
+              </Section>
+              {!isLast && <Resizer onResize={handleResize} />}
+            </React.Fragment>
+          );
+        }
 
         if (key === "scene") {
           return (
@@ -434,11 +613,19 @@ const RightSidebar = ({
           return (
             <React.Fragment key={key}>
               <Section
-                title={hasFaceSelection ? "面ラベル / コリジョン" : showZoneSettings ? "ゾーン" : (selectedItemId || selection?.kind === "light" || selection?.kind === "landscape" || activeZoneForPanel || showMediaSettings || showAutoLayoutSettings || showSelectionSettings || showAiSettings || showAutoSide) ? "Properties" : null}
+                title={showWallProps ? "壁" : showSlabProps ? "床" : rsElevationView ? "展開図" : showSectionProps ? (isSectionView ? "断面図" : "断面線") : hasFaceSelection ? "面ラベル / コリジョン" : showZoneSettings ? "ゾーン" : (selectedItemId || selection?.kind === "light" || selection?.kind === "landscape" || activeZoneForPanel || showMediaSettings || showAutoLayoutSettings || showSelectionSettings || showAiSettings || showAutoSide) ? "Properties" : null}
                 minHeight={150}
                 explicitHeight={passExplicitHeight ? topSectionHeight : null}
               >
-                {hasFaceSelection ? (
+                {showWallProps ? (
+                  <WallPropertiesPanel />
+                ) : showSlabProps ? (
+                  <SlabPropertiesPanel />
+                ) : showElevationProps ? (
+                  <ElevationPropertiesPanel />
+                ) : showSectionProps ? (
+                  <SectionPropertiesPanel />
+                ) : hasFaceSelection ? (
                   <StructureFacePanel />
                 ) : showZoneSettings ? (
                   <ZoneListPanel />
@@ -473,8 +660,44 @@ const RightSidebar = ({
           );
         }
 
-
-
+        if (key === "library") {
+          return (
+            <React.Fragment key={key}>
+              <Section
+                title="Library"
+                minHeight={200}
+                explicitHeight={passExplicitHeight ? topSectionHeight : null}
+              >
+                <Box sx={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+                  {/* AI 家具選定（旧・左サイドバー Library ヘッダーの機能を移設） */}
+                  <Box sx={{ px: 1.25, py: 0.5, display: "flex", justifyContent: "flex-end", borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)", flexShrink: 0 }}>
+                    <Tooltip title="AI で家具を選定（選択中のプランに追加）" placement="top">
+                      <IconButton
+                        size="small"
+                        onClick={handleSelectFurniture}
+                        sx={{
+                          color: "light-dark(#2705a9, #c4b5fd)", padding: "2px", borderRadius: 1,
+                          bgcolor: "rgba(124,58,237,0.18)", border: "1px solid rgba(124,58,237,0.4)",
+                          "&:hover": { bgcolor: "rgba(124,58,237,0.3)" },
+                        }}
+                      >
+                        <AutoAwesomeRoundedIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                    <LibraryPanelShell
+                      projectId={projectId}
+                      workspaceId={workspaceId}
+                      planId={selectedPlanId}
+                    />
+                  </Box>
+                </Box>
+              </Section>
+              {!isLast && <Resizer onResize={handleResize} />}
+            </React.Fragment>
+          );
+        }
 
 
         if (key === "history") {
@@ -507,6 +730,21 @@ const RightSidebar = ({
           );
         }
 
+        if (key === "underlay") {
+          return (
+            <React.Fragment key={key}>
+              <Section
+                title="下絵（PDF/画像をトレース）"
+                minHeight={200}
+                explicitHeight={passExplicitHeight ? topSectionHeight : null}
+              >
+                <UnderlayPanel />
+              </Section>
+              {!isLast && <Resizer onResize={handleResize} />}
+            </React.Fragment>
+          );
+        }
+
         if (key === "autoLayout") {
           return (
             <React.Fragment key={key}>
@@ -531,6 +769,21 @@ const RightSidebar = ({
                 explicitHeight={passExplicitHeight ? topSectionHeight : null}
               >
                 <WalkthroughCharacterPanel />
+              </Section>
+              {!isLast && <Resizer onResize={handleResize} />}
+            </React.Fragment>
+          );
+        }
+
+        if (key === "chat") {
+          return (
+            <React.Fragment key={key}>
+              <Section
+                title="AI チャット"
+                minHeight={260}
+                explicitHeight={passExplicitHeight ? topSectionHeight : null}
+              >
+                <LayoutChatPanel projectId={projectId} />
               </Section>
               {!isLast && <Resizer onResize={handleResize} />}
             </React.Fragment>

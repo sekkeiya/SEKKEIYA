@@ -24,6 +24,14 @@ export interface BuildingSpec {
   floors: FloorLevel[];
 }
 
+/** 建物スペックから、指定した階（既定=アクティブ階）の床レベルをワールド mm で返す。
+ *  新規家具はこの高さ（FL）に載せて配置する。1F=fl0Mm、2F 以降は fl0Mm + i×階高。 */
+export function getFloorBaseYmm(spec: BuildingSpec, floorIndex: number): number {
+  const floors = Array.isArray(spec.floors) && spec.floors.length ? spec.floors : BUILDING_SPEC_DEFAULTS.floors;
+  const i = Math.max(0, Math.min(floorIndex || 0, floors.length - 1));
+  return (spec.fl0Mm || 0) + (floors[i]?.flMm || 0);
+}
+
 export const BUILDING_SPEC_DEFAULTS: BuildingSpec = {
   floorHeightMm: 3000,
   ceilingHeightMm: 2400,
@@ -37,6 +45,10 @@ const deriveFloors = (floors: FloorLevel[], floorHeightMm: number): FloorLevel[]
   floors.map((f, i) => ({ ...f, flMm: i === 0 ? 0 : i * floorHeightMm }));
 
 interface BuildingSpecStore extends BuildingSpec {
+  /** 配置対象のアクティブ階（0=1F）。フロアセレクタ（EditorAngleBar の 1F/2F…）で切替。
+   *  新規家具はこの階の床レベル（FL）に載せて配置する。 */
+  activeFloorIndex: number;
+  setActiveFloorIndex: (index: number) => void;
   setFloorHeightMm: (v: number) => void;
   setCeilingHeightMm: (v: number) => void;
   setGlMm: (v: number) => void;
@@ -53,6 +65,13 @@ const clampMm = (v: number, lo: number, hi: number) =>
 
 export const useBuildingSpecStore = create<BuildingSpecStore>((set, get) => ({
   ...BUILDING_SPEC_DEFAULTS,
+
+  activeFloorIndex: 0,
+  setActiveFloorIndex: (index) =>
+    set((s) => {
+      const clamped = Math.max(0, Math.min(Math.round(Number(index) || 0), s.floors.length - 1));
+      return clamped === s.activeFloorIndex ? {} : { activeFloorIndex: clamped };
+    }),
 
   // 階高を変更すると全 FL を等間隔に再配置する（FL(i)=i×階高）。
   setFloorHeightMm: (v) =>
@@ -80,7 +99,12 @@ export const useBuildingSpecStore = create<BuildingSpecStore>((set, get) => ({
       return { floors: deriveFloors([...s.floors, { name: `${n}FL`, flMm: 0 }], s.floorHeightMm || 3000) };
     }),
   removeFloor: (index) =>
-    set((s) => (s.floors.length <= 1 ? {} : { floors: deriveFloors(s.floors.filter((_, i) => i !== index), s.floorHeightMm) })),
+    set((s) => {
+      if (s.floors.length <= 1) return {};
+      const nextFloors = deriveFloors(s.floors.filter((_, i) => i !== index), s.floorHeightMm);
+      const activeFloorIndex = Math.max(0, Math.min(s.activeFloorIndex, nextFloors.length - 1));
+      return { floors: nextFloors, activeFloorIndex };
+    }),
 
   replaceAll: (s) => {
     const fh = s?.floorHeightMm ?? BUILDING_SPEC_DEFAULTS.floorHeightMm;
@@ -91,6 +115,7 @@ export const useBuildingSpecStore = create<BuildingSpecStore>((set, get) => ({
       glMm: s?.glMm ?? BUILDING_SPEC_DEFAULTS.glMm,
       fl0Mm: s?.fl0Mm ?? BUILDING_SPEC_DEFAULTS.fl0Mm,
       floors: deriveFloors(floors, fh),
+      activeFloorIndex: 0, // 新しい Base をロードしたら 1F に戻す
     });
   },
 }));

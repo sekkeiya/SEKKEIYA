@@ -200,7 +200,7 @@ function useGizmoHandlers(lightId) {
   }, []);
   const onPointerOut = useCallback((e) => {
     e.stopPropagation();
-    document.body.style.cursor = "default";
+    document.body.style.cursor = ""; // 指定を外す（"default" を焼くと他のカーソルと噛み合わない）
   }, []);
 
   return { isSelected, onClick, onPointerOver, onPointerOut };
@@ -1114,7 +1114,7 @@ function NeonLightGizmo({ lightId, name, position, rotationX = -90, rotationY = 
 
 // ─── Root Component ───────────────────────────────────────────────────────────
 
-export default function Lights({ hasBase = true }) {
+export default function Lights({ hasBase = true, hideGizmo = false }) {
   const lights = useLightingStore((s) => s.lights);
   const updateLight = useLightingStore((s) => s.updateLight);
   const hiddenNodeIds = useUiVisibilityStore((s) => s.hiddenNodeIds);
@@ -1123,8 +1123,8 @@ export default function Lights({ hasBase = true }) {
   // スコープに応じてライトのギズモ（視覚）の表示を切り替える。
   // 物理ライトオブジェクト（hemisphereLight 等）は全スコープで維持する。
   const scope = useSelectionScopeStore((s) => s.scope);
-  // ベースモデル未設定（empty guide 画面）ではギズモ（太陽アイコン等）を出さない。
-  const showGizmos = GIZMO_VISIBLE_SCOPES.has(scope) && hasBase;
+  // ベースモデル未設定（empty guide 画面）／立面図・断面図（側面正射の図面表示）ではギズモ（太陽アイコン等）を出さない。
+  const showGizmos = GIZMO_VISIBLE_SCOPES.has(scope) && hasBase && !hideGizmo;
   // ウォークスルー（没入ビュー）中は床の照射円/矩形などの作図ヘルパを出さない（実空間の見え方を優先）。
   const isWalkthrough = useEditorModeStore((s) => s.editorMode === "walkthrough");
   // Map モード（scope==="map"）では照射円/矩形ヘルパも隠して敷地合わせに集中させる。

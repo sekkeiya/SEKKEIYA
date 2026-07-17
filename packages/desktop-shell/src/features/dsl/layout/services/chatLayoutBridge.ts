@@ -45,6 +45,8 @@ export interface ChatAutoLayoutOptions {
 export interface ChatAutoLayoutResult {
   placedCount: number;
   sessionId: string;
+  /** 配置に使った家具候補の総数（0=モデルが1件も見つからなかった。診断用）。 */
+  candidateCount: number;
 }
 
 /** プランの詳細（チャットからの layout_get 用）。 */
@@ -156,6 +158,14 @@ async function buildAvailableFurniture(projectId: string, userId: string): Promi
     _source: source,
   });
 
+  // 3D モデルらしいもの（type が model 系、または glb/modelUrl を持つ）だけ採用する。
+  // 画像・PDF 等が候補に混ざると、配置0点の原因になるうえプレースホルダー代替も発動しない。
+  const isModelish = (x: any): boolean => {
+    const t = String(x?.type || x?.itemType || '').toLowerCase();
+    if (t === '3d-model' || t === 'model') return true;
+    return !!(x?.glbUrl || x?.modelUrl || x?.metadata?.glbUrl || x?.metadata?.sizeGlb || x?.metadata?.files);
+  };
+
   // ① プロジェクト登録アセット（最優先）。
   //    getAssets は where('status','!=','archived') を使うが、status フィールドの無い doc は
   //    Firestore の != で除外されてしまう（取りこぼし）。ここでは直接コレクションを読み、
@@ -168,6 +178,7 @@ async function buildAvailableFurniture(projectId: string, userId: string): Promi
       snap.docs.forEach(d => {
         const a = d.data() as any;
         if (a.status === 'archived' || a.isArchived) return;
+        if (!isModelish(a)) return; // 画像・PDF 等の非モデルは家具候補にしない
         push({
           id: d.id,
           entityId: a.entityId || d.id,
@@ -185,14 +196,30 @@ async function buildAvailableFurniture(projectId: string, userId: string): Promi
   }
 
   // ② ユーザーの private モデル ＋ ③ 公開モデル（global assets コレクション）。
-  // フィールド不整合（type が '3d-model'/'model'、visibility/isPublic 混在）に強くするため
-  // 広めに取得し、3D モデルらしいもの（type が model 系、または glb/modelUrl を持つ）だけ採用する。
-  const isModelish = (x: any): boolean => {
-    const t = String(x?.type || x?.itemType || '').toLowerCase();
-    if (t === '3d-model' || t === 'model') return true;
-    return !!(x?.glbUrl || x?.modelUrl || x?.metadata?.glbUrl || x?.metadata?.sizeGlb || x?.metadata?.files);
-  };
+  // 本命は type=='3d-model' に絞ったクエリ（S.Model の公開フィード useGalleryFeed と同じ形・
+  // 等価条件のみで複合インデックス不要）。type を絞らない旧クエリは、公開画像等が
+  // 大量にある環境だと fsLimit(CAP) の先頭がモデル以外で埋まり1件も拾えないため、
+  // 旧データ（type フィールド無し）救済のフォールバックとして残す。
+  // 所有判定は S.Model 本体（DssDashboard）と同じ ownerId / authorId / createdBy の3通り。
   try {
+    if (userId) {
+      for (const ownerField of ['ownerId', 'authorId', 'createdBy']) {
+        try {
+          const s = await getDocs(query(
+            collection(db, 'assets'),
+            where('type', '==', '3d-model'), where(ownerField, '==', userId), fsLimit(CAP),
+          ));
+          s.docs.forEach(d => push(mapGlobal(d.id, d.data() as any, 'private')));
+        } catch { /* フィールド無し環境・インデックス未整備は無視 */ }
+      }
+    }
+    const pubT = await getDocs(query(
+      collection(db, 'assets'),
+      where('type', '==', '3d-model'), where('visibility', '==', 'public'), fsLimit(CAP),
+    ));
+    pubT.docs.forEach(d => push(mapGlobal(d.id, d.data() as any, 'public')));
+
+    // ── フォールバック（type フィールドの無い旧データ用・広め取得 + isModelish 篩）──
     if (userId) {
       const ps = await getDocs(query(collection(db, 'assets'), where('ownerId', '==', userId), fsLimit(CAP)));
       ps.docs.forEach(d => { const x = d.data() as any; if (isModelish(x)) push(mapGlobal(d.id, x, 'private')); });
@@ -207,7 +234,10 @@ async function buildAvailableFurniture(projectId: string, userId: string): Promi
     console.warn('[autoLayout] global models 取得失敗:', e);
   }
 
-  console.log(`[autoLayout] 家具候補: ${out.length} 件（project/private/public 合算）`);
+  const bySource = out.reduce((m: Record<string, number>, a: any) => {
+    m[a._source] = (m[a._source] || 0) + 1; return m;
+  }, {});
+  console.log(`[autoLayout] 家具候補: ${out.length} 件`, bySource);
   return out;
 }
 
@@ -314,7 +344,7 @@ export async function runAutoLayoutFromChat(
     updatedAt: serverTimestamp(),
   });
 
-  return { placedCount: newItems.length, sessionId };
+  return { placedCount: newItems.length, sessionId, candidateCount: availableAssets.length };
 }
 
 // ── レンダー対象の解決（Base → Plan → Option の曖昧性解消）─────────────────────

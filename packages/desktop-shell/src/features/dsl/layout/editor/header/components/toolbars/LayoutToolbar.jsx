@@ -19,6 +19,8 @@ import SquareFootRoundedIcon from "@mui/icons-material/SquareFootRounded";
 
 import { useEditorModeStore } from "../../../../store/useEditorModeStore";
 import { useToolsStore } from "../../../../store/toolsStore/useToolsStore";
+import { useWallStore } from "../../../../store/useWallStore";
+import { useSlabStore } from "../../../../store/useSlabStore";
 import { useAutoLayoutStore } from "../../../../store/useAutoLayoutStore";
 import { useViewportUiStore } from "../../../../store/viewportUiStore";
 import { useAppStore } from "../../../../../../../store/useAppStore";
@@ -52,6 +54,27 @@ export default function LayoutToolbar({ layoutItems = [] }) {
 
   const setDscShellMode      = useAppStore((s) => s.setDscShellMode);
   const setActiveWorkspaceId = useAppStore((s) => s.setActiveWorkspaceId);
+
+  // ── 壁の作図（内壁／外壁）・床の作図。平面図(Top)でのみ使う。互いに排他 ──
+  const wallDrawKind   = useWallStore((s) => s.drawKind);
+  const toggleDrawKind = useWallStore((s) => s.toggleDrawKind);
+  const slabDrawActive = useSlabStore((s) => s.drawActive);
+  const editorViewGroup = useEditorModeStore((s) => s.editorViewGroup);
+  const isPlanView = editorViewGroup === "2d";
+
+  // 躯体編集（Base のみ表示中＝Plan/Option 未選択）。家具が存在しないため、
+  // 家具向けツール（入替/寸法表示/スナップ/回転/整列）は非表示にする。
+  const isBaseOnly = useEditorModeStore((s) => s.structureTagging);
+
+  const handleWallTool = useCallback((kind) => {
+    useSlabStore.getState().setDrawActive(false); // 床ツールと排他
+    toggleDrawKind(kind);
+  }, [toggleDrawKind]);
+
+  const handleSlabTool = useCallback(() => {
+    useWallStore.getState().setDrawKind(null); // 壁ツールと排他
+    useSlabStore.getState().toggleDraw();
+  }, []);
 
   const handleOpenDsc = useCallback(() => {
     const serializedItems = (layoutItems || [])
@@ -167,6 +190,60 @@ export default function LayoutToolbar({ layoutItems = [] }) {
           }}
         />
       </Tooltip>
+
+      {/* === 壁を描く（内壁／外壁）: 平面図(2D配置)のみ。押して左ドラッグで作図 === */}
+      {isPlanView && (
+        <>
+          {[
+            { kind: "exterior", label: "外壁", color: "#0ea5e9", tip: "外壁を描く（左クリックで連続作図）／既定 t=200mm・高さ=階高" },
+            { kind: "interior", label: "内壁", color: "#22c55e", tip: "内壁を描く（左クリックで連続作図）／既定 t=100mm・高さ=CL" },
+          ].map(({ kind, label, color, tip }) => {
+            const on = wallDrawKind === kind;
+            return (
+              <Tooltip key={kind} title={`${tip}／クリックで始点→クリックごとに壁を確定して続行・右クリック（またはEsc）で終了・50mmスナップ・直交スナップ（Altで自由角度）`} arrow>
+                <Chip
+                  size="small"
+                  clickable
+                  onClick={() => handleWallTool(kind)}
+                  icon={<ViewColumnRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+                  label={label}
+                  sx={{
+                    height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+                    background: alpha(color, on ? 0.42 : 0.15),
+                    border: `1px solid ${alpha(color, on ? 0.9 : 0.4)}`,
+                    color: on ? "#fff" : `light-dark(${alpha(color, 0.95)}, ${alpha(color, 0.95)})`,
+                    "&:hover": { background: alpha(color, on ? 0.5 : 0.28) },
+                    transition: "all 0.15s ease",
+                  }}
+                />
+              </Tooltip>
+            );
+          })}
+          {/* 床（スラブ）: クリックで頂点を置き、右クリック（または始点クリック/Enter）で確定 */}
+          <Tooltip title="床を描く（クリックで頂点→右クリックで確定）／既定 t=150mm・上面=床レベル／50mmスナップ・直交スナップ（Altで自由角度）・Escで取消／作成後はクリックで選択・頂点ドラッグで編集" arrow>
+            <Chip
+              size="small"
+              clickable
+              onClick={handleSlabTool}
+              icon={<SquareFootRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+              label="床"
+              sx={{
+                height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+                background: alpha("#14b8a6", slabDrawActive ? 0.42 : 0.15),
+                border: `1px solid ${alpha("#14b8a6", slabDrawActive ? 0.9 : 0.4)}`,
+                color: slabDrawActive ? "#fff" : `light-dark(${alpha("#14b8a6", 0.95)}, ${alpha("#14b8a6", 0.95)})`,
+                "&:hover": { background: alpha("#14b8a6", slabDrawActive ? 0.5 : 0.28) },
+                transition: "all 0.15s ease",
+              }}
+            />
+          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.8, borderColor: alpha("#fff", 0.15) }} />
+        </>
+      )}
+
+      {/* 家具向けツール一式（入替 / 寸法表示 / スナップ / 回転 / 整列）。
+          躯体編集（Base のみ）では対象の家具が無いため丸ごと非表示。 */}
+      {!isBaseOnly && (<>
 
       {/* === Furniture Swap Button === */}
       <Tooltip
@@ -356,6 +433,8 @@ export default function LayoutToolbar({ layoutItems = [] }) {
           <AlignVerticalCenterRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
+
+      </>)}
     </Box>
   );
 }

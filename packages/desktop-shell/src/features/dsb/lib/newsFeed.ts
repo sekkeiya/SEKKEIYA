@@ -28,13 +28,19 @@ export async function fetchBlogNewsPlaylist(uid: string): Promise<NewsFeedItem[]
   if (subscribed.length === 0) return [];
 
   const fn = httpsCallable(functions, 'blogDialogue');
-  const r: any = await fn({
-    mode: 'feed',
-    sites: subscribed.map((s) => ({ name: s.name, feed: s.feed })),
-    perSite: 8,
-  });
-  if (!r.data?.success || !Array.isArray(r.data.feeds)) return [];
-  const all: NewsFeedItem[] = r.data.feeds.flatMap((f: any) => (Array.isArray(f.items) ? f.items : []));
+  // サーバー側は1回の呼び出しで12媒体まで → 12件ずつに分割して並列取得し結合（BlogNewsFeed と同じ）。
+  const chunks: typeof subscribed[] = [];
+  for (let i = 0; i < subscribed.length; i += 12) chunks.push(subscribed.slice(i, i + 12));
+  const rs = await Promise.all(chunks.map((chunk) =>
+    fn({
+      mode: 'feed',
+      sites: chunk.map((s) => ({ name: s.name, feed: s.feed })),
+      perSite: 8,
+    }).catch(() => null)));
+  const all: NewsFeedItem[] = rs
+    .filter((r: any) => r?.data?.success && Array.isArray(r.data.feeds))
+    .flatMap((r: any) => r.data.feeds)
+    .flatMap((f: any) => (Array.isArray(f.items) ? f.items : []));
   all.sort((a, b) => {
     const ta = a.date ? new Date(a.date).getTime() : 0;
     const tb = b.date ? new Date(b.date).getTime() : 0;

@@ -21,12 +21,17 @@ import SceneGrid from "../scene/SceneGrid.jsx";
 import MapGroundPlane from "../scene/MapGroundPlane.jsx";
 import MapDrawController from "../scene/MapDrawController.jsx";
 import MapZoomController from "../scene/MapZoomController.jsx";
+import UnderlayPlane from "../scene/UnderlayPlane.jsx";
+import UnderlayDrawController from "../scene/UnderlayDrawController.jsx";
 import BaseGlb from "../scene/BaseGlb.jsx";
 import ParametricRoom from "../scene/ParametricRoom.jsx";
 import { scanFloors } from "../tools/walkthrough/floorScan";
 import StructureTagController from "../tools/structure/StructureTagController.jsx";
 import StructureTagOverlay from "../tools/structure/StructureTagOverlay.jsx";
 import LevelLinesOverlay from "../scene/LevelLinesOverlay.jsx";
+import SectionLinesPlanOverlay from "../scene/SectionLinesPlanOverlay.jsx";
+import ElevationMarkerPlanOverlay from "../scene/ElevationMarkerPlanOverlay.jsx";
+import { useElevationMarkerStore } from "../../store/useElevationMarkerStore";
 import { buildLabelColliders } from "../tools/structure/structureColliders";
 import { useStructureLabelStore } from "../../store/useStructureLabelStore";
 import { useBaseUnionStore } from "../../store/useBaseUnionStore";
@@ -37,6 +42,12 @@ import FurnitureGapOverlay from "../scene/FurnitureGapOverlay.jsx";
 import ItemDimensionOverlay from "../scene/ItemDimensionOverlay.jsx";
 import AiPlaceholderItem from "../scene/AiPlaceholderItem.jsx";
 import ZoneDrawController, { roomInnerBounds } from "../scene/ZoneDrawController.jsx";
+import WallsRenderer from "../scene/WallsRenderer.jsx";
+import WallDrawController from "../scene/WallDrawController.jsx";
+import WallEditController from "../scene/WallEditController.jsx";
+import FloorSlabsRenderer from "../scene/FloorSlabsRenderer.jsx";
+import FloorSlabDrawController from "../scene/FloorSlabDrawController.jsx";
+import SlabEditController from "../scene/SlabEditController.jsx";
 import ZoneCirculationController from "../scene/ZoneCirculationController.jsx";
 
 import TransformGizmo from "../tools/gizmo/TransformGizmo.jsx";
@@ -93,10 +104,15 @@ import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStor
 
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
 import { useZoningStore } from "../../store/useZoningStore";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import { useSelectionScopeStore, canSelectItem } from "../../store/useSelectionScopeStore";
 
 // ✁Eviewport ui storeEElign / Command / layout etcEE
 import { useViewportUiStore } from "../../store/viewportUiStore";
+import { useSectionLinesStore } from "../../store/useSectionLinesStore";
+import { useWallStore } from "../../store/useWallStore";
+import { useSlabStore } from "../../store/useSlabStore";
+import { pickStructureInRect } from "../../utils/marqueeStructurePick";
 
 // ✁ESnap Engine
 import SnapGuide from "../tools/align/SnapGuide.jsx";
@@ -125,6 +141,8 @@ import { useViewportEnvStore, threeToneMapping, focalLengthToFov } from "../../s
 import { useThree } from "@react-three/fiber";
 import LayoutCameraRig from "../tools/layout/LayoutCameraRig.jsx";
 import SectionClipManager from "../SectionClipManager.jsx";
+import PaneClipPlanes from "../PaneClipPlanes.jsx";
+import PaneSectionCap from "../PaneSectionCap.jsx";
 import SectionCapFill from "../scene/SectionCapFill.jsx";
 import SectionWarmup from "../scene/SectionWarmup.jsx";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
@@ -429,13 +447,26 @@ export default function SingleViewportCanvas({
   onBeginHistoryBatch,
   onEndHistoryBatch,
   onCancelHistoryBatch,
+
+  // 図面グリッド（分割図面ビュー）のペイン設定。非 null のときこのペインは
+  // { flip, clipPlanes, frameBox } をグローバル状態より優先する（viewportUiStore.DrawingGridPane 参照）。
+  paneDrawing = null,
 }) {
   const theme = useTheme();
   const editorMode = useEditorModeStore(state => state.editorMode);
+  // ✅ 2D 配置 / 3D 演出 グループ（通常/Lighting プレビュー切替は 3D のみ表示）
+  const editorViewGroup = useEditorModeStore(state => state.editorViewGroup);
+  const is3DGroup = editorViewGroup === "3d";
   const structureTagging = useEditorModeStore(state => state.structureTagging);
   // 高さ断面（天井カット）が有効なときは、抜けた天井から採光する（Top が真っ暗になるのを防ぐ）。
   const sectionClipEnabledForLight = useEditorModeStore(state => state.isSectionClipEnabled);
   const sectionClipYEnabledForLight = useEditorModeStore(state => state.sectionClipYEnabled);
+  // 断面ビューの向き反転（A-A' 矢印＋側）。FRONT/RIGHT 正射のカメラ側を −Z/−X に切り替える。
+  // 図面グリッドのペインはペイン固有の flip を優先（北と南を同時に出すため）。
+  const sectionViewFlipGlobal = useEditorModeStore(state => state.sectionViewFlip);
+  const sectionViewFlip = paneDrawing ? !!paneDrawing.flip : sectionViewFlipGlobal;
+  // 2画面表示か（クリップ書き込み役を図面ペインに一本化するため）
+  const isSplitLayout = useViewportUiStore(state => state.layoutMode === "split");
   const globalLayoutSubMode = useEditorModeStore(state => state.layoutSubMode);
   const layoutCameraTilt = useEditorModeStore(state => state.layoutCameraTilt);
   // Ambience > Camera タブから focal length (mm) を購読し、垂直 FOV (度) に変換
@@ -462,8 +493,16 @@ export default function SingleViewportCanvas({
     effectiveSubMode === "furniture_top" ||
     effectiveSubMode === "ceiling_top";
   const effectiveType = isZone2D ? VIEW_TYPES.TOP : type;
+  // 側面正射ビュー（＝立面図/断面図）。図面表示なので Sun・ゾーン・スタートピン等の
+  // 平面/3D向けラベルは隠す。
+  const isSideOrtho = effectiveType === VIEW_TYPES.FRONT || effectiveType === VIEW_TYPES.RIGHT;
   // ゾーン編集（描画/ギズモ）はビュー種別ではなく「ゾーンモードか」で判定（俯瞰パースでも編集可）。
   const isZoning = editorMode === "zoning";
+
+  // 図面記号（断面線 / ゾーン / 展開記号）の一括表示トグル（TopBar の「記号」ボタン）。
+  // ゾーン編集中は、描いている当人が見えないと作業にならないので記号 OFF でも出す。
+  const showSymbols = useViewportDisplayStore((s) => s.showSymbols);
+  const showZoneSymbols = showSymbols || isZoning;
 
   // ウォークスルーはパース viewport のみ。OrbitControls/Gizmo を無効化する。
   const isWalkthrough = editorMode === "walkthrough" && effectiveType === VIEW_TYPES.PERSPECTIVE;
@@ -830,9 +869,16 @@ export default function SingleViewportCanvas({
     baseBoundsRef.current = null;
   }, [displayBaseUrl, effectiveType]);
 
+  // 図面グリッドのペインは指定の範囲（部屋ボックス等）にフレーミングする。
+  const paneFrameBox = useMemo(() => {
+    const fb = paneDrawing?.frameBox;
+    if (!fb || !Array.isArray(fb.center) || !(fb.maxDim > 0)) return null;
+    return { center: new THREE.Vector3(...fb.center), maxDim: fb.maxDim };
+  }, [paneDrawing?.frameBox]);
+
   const frameCameraToBase = useCallback(
     ({ force = false } = {}) => {
-      const b = baseBoundsRef.current;
+      const b = paneFrameBox || baseBoundsRef.current;
       const controls = orbitRef.current;
       if (!b || !controls) return;
       if (!force && didInitCameraRef.current) return;
@@ -865,10 +911,12 @@ export default function SingleViewportCanvas({
         cam.position.set(center.x, center.y + orthoDist, center.z);
         cam.up.set(0, 0, -1);
       } else if (effectiveType === VIEW_TYPES.FRONT) {
-        cam.position.set(center.x, center.y, center.z + orthoDist);
+        // 向き反転時は背面（−Z）側から見る（断面 A-A' の矢印向きに追従）
+        cam.position.set(center.x, center.y, center.z + (sectionViewFlip ? -orthoDist : orthoDist));
         cam.up.set(0, 1, 0);
       } else if (effectiveType === VIEW_TYPES.RIGHT) {
-        cam.position.set(center.x + orthoDist, center.y, center.z);
+        // 向き反転時は左（−X）側から見る
+        cam.position.set(center.x + (sectionViewFlip ? -orthoDist : orthoDist), center.y, center.z);
         cam.up.set(0, 1, 0);
       }
 
@@ -888,18 +936,20 @@ export default function SingleViewportCanvas({
       controls.update();
       didInitCameraRef.current = true;
     },
-    [effectiveType]
+    [effectiveType, sectionViewFlip, paneFrameBox]
   );
 
   const previousEffectiveTypeRef = useRef(effectiveType);
+  const previousSectionFlipRef = useRef(sectionViewFlip);
   useEffect(() => {
-    if (previousEffectiveTypeRef.current !== effectiveType) {
+    if (previousEffectiveTypeRef.current !== effectiveType || previousSectionFlipRef.current !== sectionViewFlip) {
       previousEffectiveTypeRef.current = effectiveType;
-      // Reset initialization when switching camera types so it forces framing
+      previousSectionFlipRef.current = sectionViewFlip;
+      // Reset initialization when switching camera types (or section flip) so it forces framing
       didInitCameraRef.current = false;
       requestAnimationFrame(() => frameCameraToBase({ force: true }));
     }
-  }, [effectiveType, frameCameraToBase]);
+  }, [effectiveType, sectionViewFlip, frameCameraToBase]);
 
   // Map / Label モードに入ったら Base を画面中央へフレーミングする。
   // Map: 以降パン/回転をロックして中央固定。Label: 回転の基点を中心(=注視点)に合わせる。
@@ -1577,6 +1627,9 @@ export default function SingleViewportCanvas({
 
   const isOrtho = effectiveType !== VIEW_TYPES.PERSPECTIVE;
   const selectionScope = useSelectionScopeStore((s) => s.scope);
+  // 壁/床の作図中は左ドラッグを作図に譲る（範囲選択と競合させない）
+  const wallDrawKind = useWallStore((s) => s.drawKind);
+  const slabDrawActive = useSlabStore((s) => s.drawActive);
   const marqueeEnabled =
     active &&
     !alignMode &&
@@ -1585,7 +1638,31 @@ export default function SingleViewportCanvas({
     !materialPicking &&
     !isWalkthrough &&   // ウォークスルー（Preview）中は範囲選択しない（HUDスライダー誤作動防止）
     !isMaterialMode &&  // Material モード中も同様（面選択が主で、アイテム範囲選択は不要）
+    !wallDrawKind &&
+    !slabDrawActive &&
     canSelectItem(selectionScope);
+
+  // 範囲選択の結果を作図壁・スラブにも適用する（ALL スコープのみ。
+  // Item スコープは「家具のみ選択」の約束なので対象外）。
+  // Shift+ドラッグは既存選択への追加、それ以外は置換（家具側の流儀に合わせる）。
+  const applyStructureMarquee = useCallback((ctx, e) => {
+    if (!ctx) return;
+    if (useSelectionScopeStore.getState().scope !== "all") return;
+    const { wallIds, slabIds } = pickStructureInRect(ctx);
+    const additive = !!e?.shiftKey;
+    const wallSt = useWallStore.getState();
+    const slabSt = useSlabStore.getState();
+    wallSt.setSelectedWallIds(
+      additive ? [...new Set([...wallSt.selectedWallIds, ...wallIds])] : wallIds
+    );
+    slabSt.setSelectedSlabIds(
+      additive ? [...new Set([...slabSt.selectedSlabIds, ...slabIds])] : slabIds
+    );
+    // クリック選択と同様、掛かったらプロパティパネルを開く
+    if (wallIds.length || slabIds.length) {
+      useUiRightSidebarStore.getState().setRightPanel("properties", true);
+    }
+  }, []);
 
   const { handlers, marqueeRect, isMarqueeActive, cancel: cancelMarquee } = useMarqueeSelection({
     enabled: marqueeEnabled,
@@ -1604,13 +1681,15 @@ export default function SingleViewportCanvas({
       );
     },
 
-    onPickIds: (ids, e) => {
+    onPickIds: (ids, e, ctx) => {
       if (!active) return;
       applySelectionIds(ids, e, "marquee");
+      applyStructureMarquee(ctx, e);
     },
-    onPickId: (id, e) => {
+    onPickId: (id, e, ctx) => {
       if (!active) return;
       applySelectionIds(id ? [id] : [], e, "marquee");
+      applyStructureMarquee(ctx, e);
     },
   });
 
@@ -1618,7 +1697,7 @@ export default function SingleViewportCanvas({
     if (isGizmoDragging || isGizmoUiActiveRef.current || materialPicking) cancelMarquee?.();
   }, [isGizmoDragging, materialPicking, cancelMarquee]);
 
-  const ortho = useMemo(() => (isOrtho ? getOrthoPreset(effectiveType) : null), [isOrtho, effectiveType]);
+  const ortho = useMemo(() => (isOrtho ? getOrthoPreset(effectiveType, sectionViewFlip) : null), [isOrtho, effectiveType, sectionViewFlip]);
 
   const label =
     type === VIEW_TYPES.TOP
@@ -1952,6 +2031,10 @@ export default function SingleViewportCanvas({
 
   const handleNumericOpenFromGizmo = useCallback(
     ({ axis, mode, space }) => {
+      // ギズモの軸クリックで開く数値入力ボックス（"TRANSLATE XYZ / world（例: 300）"）は
+      // 不要との要望により無効化。ギズモのドラッグ移動はそのまま使える。
+      return;
+      // eslint-disable-next-line no-unreachable
       isGizmoUiActiveRef.current = !!axis;
 
       onRequestNumericOpen?.({
@@ -2102,10 +2185,53 @@ export default function SingleViewportCanvas({
   // ✁EAlign用E最後Eマウス位置EEDCEE
   const lastAlignNdcRef = useRef({ x: 0, y: 0, t: 0 });
 
+  // 展開図ビューのラベル（「展開A ・ LDK」= どの部屋のどの面か）
+  const elevChipOn = useElevationMarkerStore((s) => s.viewActive);
+  const elevChipDir = useElevationMarkerStore((s) => s.activeDir);
+  const elevChipRoom = useElevationMarkerStore((s) => s.roomName);
+  // 断面図ビューのラベル用: 表示中の断面ライン名（"A-A'" など）とその軸。
+  // 軸も見るのは、別経路（保存ビュー等）で断面を開いたときに古い選択が残っていても
+  // 食い違った名前を出さないため（不一致なら総称の「断面」にフォールバックする）。
+  // どちらもプリミティブを返すセレクタにして getSnapshot 警告を避ける。
+  const activeSectionName = useSectionLinesStore(
+    (s) => s.lines.find((l) => l.id === s.activeLineId)?.name || null
+  );
+  const activeSectionAxis = useSectionLinesStore(
+    (s) => s.lines.find((l) => l.id === s.activeLineId)?.axis || null
+  );
+
   const chipLabel = useMemo(() => {
     let label = String(type).charAt(0).toUpperCase() + String(type).slice(1);
     // ウォークスルー専用画面ではビュー名を "Walkthrough" と表示する
     if (isWalkthrough) return "Walkthrough";
+    // 図面グリッドのペインは、そのペインが何の図面かを名乗る（例「2D / 断面 A-A'」）。
+    // グリッドのペインは furniture_iso 扱いなので、これが無いと下の分岐で
+    // 「Layout / Perspective」になってしまう。
+    if (paneDrawing?.label) return `2D / ${paneDrawing.label}`;
+    // 展開図: 何の部屋のどの面かを明示（部屋名はマーカーが入っているゾーン名）
+    if (elevChipOn && (type === VIEW_TYPES.FRONT || type === VIEW_TYPES.RIGHT)) {
+      return `2D / 展開 ${elevChipDir || ""}${elevChipRoom ? ` ・ ${elevChipRoom}` : ""}`;
+    }
+    // 2D 図面の単体ビュー（正射の側面＝立面図/断面図）は、図面グリッドのペインと同じ
+    // 「2D / ◯◯」形式で何の図面かを名乗る。これが無いと下の分岐で
+    // 「Layout / Perspective」になってしまう。
+    //   断面 = クリップON（高さ断面ではない）/ 立面 = クリップOFF（建物の外形）
+    if (effectiveType === VIEW_TYPES.FRONT || effectiveType === VIEW_TYPES.RIGHT) {
+      const viewAxis = effectiveType === VIEW_TYPES.FRONT ? "z" : "x";
+      const isSectionView = sectionClipEnabledForLight && !sectionClipYEnabledForLight;
+      if (isSectionView) {
+        // 断面ラインから開いていて軸も一致していれば名前を出す（それ以外は総称）。
+        return activeSectionName && activeSectionAxis === viewAxis
+          ? `2D / 断面 ${activeSectionName}`
+          : "2D / 断面";
+      }
+      // 立面: 平面(TOP)の上=−Z=北 の約束に合わせる
+      //   FRONT(z軸): flip=北(−Z) / 通常=南(+Z)　RIGHT(x軸): 通常=東(+X) / flip=西(−X)
+      const dir = effectiveType === VIEW_TYPES.FRONT
+        ? (sectionViewFlip ? "北" : "南")
+        : (sectionViewFlip ? "西" : "東");
+      return `2D / 立面 ${dir}`;
+    }
     if (editorMode === "layout" || editorMode === "zoning") {
       if (effectiveSubMode === "furniture_top") label = "Layout / Top";
       else if (effectiveSubMode === "furniture_iso") label = "Layout / Perspective";
@@ -2128,7 +2254,8 @@ export default function SingleViewportCanvas({
     }
 
     return label;
-  }, [materialPicking, type, isAlignOwner, alignMode, getSnapActive, editorMode, overrideSubMode, globalLayoutSubMode, overrideRotOffset, isWalkthrough]);
+  }, [materialPicking, type, isAlignOwner, alignMode, getSnapActive, editorMode, overrideSubMode, globalLayoutSubMode, overrideRotOffset, isWalkthrough, elevChipOn, elevChipDir, elevChipRoom, paneDrawing?.label,
+      effectiveType, sectionClipEnabledForLight, sectionClipYEnabledForLight, sectionViewFlip, activeSectionName, activeSectionAxis]);
 
   // ✁EAlign中に Snap ON/OFF がEり替わったら candidates をE構篁E
   useEffect(() => {
@@ -3034,8 +3161,9 @@ return (
       <PlayArrowIcon sx={{ fontSize: "1rem" }} />
     </IconButton>
 
-    {/* レンダリングモード: 通常 / Lighting プレビュー切り替え（上部行＝Layout/Perspective の右に並べる） */}
-    {currentDisplayMode === "rendered" && (
+    {/* レンダリングモード: 通常 / Lighting プレビュー切り替え（上部行＝Layout/Perspective の右に並べる）
+        ✅ 3D 演出グループのみ表示（2D 配置では見え方の演出は行わないためノイズを消す） */}
+    {currentDisplayMode === "rendered" && is3DGroup && (
       <Box
         onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}
@@ -3258,6 +3386,10 @@ return (
         if (isGizmoDragging) return;
         clearSelection();
         useLayoutTaskStore.getState().setActiveZoneId(null);
+        // 余白クリックで断面線の選択も解除する（ギズモを閉じる）。
+        useSectionLinesStore.getState().setActiveLine(null);
+        useWallStore.getState().setSelectedWallId(null);
+        useSlabStore.getState().setSelectedSlabId(null);
         
         if (useEditorModeStore.getState().editorMode === "zoning" && useZoningStore.getState().zoningSubMode === "circulation" && useZoningStore.getState().isZoningActionSelect) {
           useZoningStore.getState().setSelectedCirculationId(null);
@@ -3268,7 +3400,16 @@ return (
       <ViewportOverrideContext.Provider value={{ layoutSubMode: overrideSubMode, layoutCameraRotationIndexOffset: overrideRotOffset }}>
       <ContextDisposer />
       <ViewportDisplayController mode={isLabelMode ? "rendered" : currentDisplayMode} ghostOpacity={ghostOpacity} renderSubMode={renderSubMode} />
-      <SectionClipManager isTopView={effectiveType === VIEW_TYPES.TOP} />
+      {/* 2画面表示ではマテリアルが左右のシーンで共有されるため、クリップ面の書き込み役は
+          図面ペイン（右）に一本化する。平面ペイン（左＝Top）は passive で受け取るだけ。
+          図面グリッドのペインはレンダラー単位クリップ（PaneClipPlanes）を使うので常に passive。 */}
+      <SectionClipManager
+        isTopView={effectiveType === VIEW_TYPES.TOP}
+        passive={(isSplitLayout && effectiveType === VIEW_TYPES.TOP) || !!paneDrawing}
+      />
+      {paneDrawing && <PaneClipPlanes planes={paneDrawing.clipPlanes || null} />}
+      {/* 断面ペインは切り口の黒塗り（ポシェ）＋切断面フレームを単体ビューと同様に出す */}
+      {paneDrawing?.cap && <PaneSectionCap axis={paneDrawing.cap.axis} pos={paneDrawing.cap.pos} />}
       <SectionCapFill />
       <SectionWarmup />
 
@@ -3324,9 +3465,34 @@ return (
       {(structureFacePicking || isLabelMode) && <StructureTagOverlay />}
       {/* GL/FL レベル線。高さ設定モード中はドラッグ編集可、それ以外は俯瞰トグルON時に表示専用で重ねる。
           ウォークスルー/マテリアル/マップ/Top など俯瞰でないビューでは表示専用を抑制する。 */}
-      <LevelLinesOverlay
-        overviewSuppressed={isWalkthrough || isMaterialMode || isMapMode || effectiveType !== VIEW_TYPES.PERSPECTIVE}
-      />
+      {/* 断面図(=正射側面ビュー＋水平以外の断面クリップON)では GL/各階FL を表示＆編集可。
+          立面図(=正射側面ビュー＋クリップOFF)では FL/GL は不要なので抑制する。 */}
+      {(() => {
+        const isSideOrtho = effectiveType === VIEW_TYPES.FRONT || effectiveType === VIEW_TYPES.RIGHT;
+        // 図面グリッドの断面ペイン（paneDrawing.cap あり）は、グローバルの断面状態に
+        // 依らず断面図として扱う（FL/GL レベル線を単体断面ビューと同様に出す）。
+        const isSectionView = isSideOrtho &&
+          (paneDrawing ? !!paneDrawing.cap : (sectionClipEnabledForLight && !sectionClipYEnabledForLight));
+        return (
+          <LevelLinesOverlay
+            overviewSuppressed={isWalkthrough || isMaterialMode || isMapMode || effectiveType === VIEW_TYPES.TOP || (isSideOrtho && !isSectionView)}
+            sectionEditable={isSectionView}
+            sectionAxis={isSectionView ? (effectiveType === VIEW_TYPES.FRONT ? "z" : "x") : null}
+            sectionFlip={isSectionView ? sectionViewFlip : false}
+            elevationMode={isSectionView && elevChipOn}
+          />
+        );
+      })()}
+      {/* 断面線（A-A' / B-B'…）: 平面図(Top)に切断線＋矢印＋ラベルで表示。
+          線ドラッグで位置移動、ラベルクリックで選択。 */}
+      {showSymbols && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
+        <SectionLinesPlanOverlay />
+      )}
+      {/* 展開記号: どこから見た展開図かを図示（中心=目 / 四方=展開A〜D）。
+          矢印クリックでその向きの展開図（Material 一人称）を開く。中心ドラッグで移動。 */}
+      {showSymbols && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
+        <ElevationMarkerPlanOverlay />
+      )}
       {/* 躯体面に貼った仕上げ（オーバーレイ板）。マテリアルはどのモードでも常に反映（統一）。 */}
       <SurfaceFinishOverlays />
       {/* 自動付与時の青いスキャンライン演出 */}
@@ -3360,7 +3526,9 @@ return (
         />
       )}
 
-      <Lights hasBase={!!displayBaseUrl || !!roomSpec} />
+      {/* 太陽（SUN）ギズモは 3D 向けの内容。Perspective のみ表示し、平面図（Top＝2D配置/1F 等）
+          や立面図・断面図（側面正射）などの図面表示では出さない。 */}
+      <Lights hasBase={!!displayBaseUrl || !!roomSpec} hideGizmo={effectiveType !== VIEW_TYPES.PERSPECTIVE} />
       {/* 天井カット時の採光：抜けた天井から太陽光が差し込むイメージの補助光。
           室内が真っ暗になるのを防ぐ。オクルージョンの無い hemisphere で確実に床まで届かせる。 */}
       {sectionClipEnabledForLight && sectionClipYEnabledForLight && editorMode !== "walkthrough" && (
@@ -3373,6 +3541,10 @@ return (
       <MapGroundPlane />
       {isMapMode && <MapDrawController />}
       {isMapMode && active && <MapZoomController orbitRef={orbitRef} />}
+
+      {/* 下絵（PDF/画像）。自身で imageUrl/visible を見て出し分けるので常時マウント。 */}
+      <UnderlayPlane />
+      <UnderlayDrawController />
       <Suspense fallback={null}>
         <LandscapeBackdrop renderSubMode={renderSubMode} />
       </Suspense>
@@ -3387,6 +3559,11 @@ return (
           enablePan={!isMapMode}
           // Map モードのズームは MapZoomController が担う（OrbitControls 側は無効化して二重処理を防ぐ）。
           enableZoom={!isMapMode}
+          // ホイールズームはカーソル位置を基準にする（CAD 系の挙動）。
+          // 既定の false だと controls.target＝画面中央が基準になり、見たい所へ寄るのにパンが要る。
+          zoomToCursor
+          // 1 ノッチあたりの拡大縮小量。既定(1)だと寄り引きに何度も回す必要があるため強めにする。
+          zoomSpeed={2.0}
           panSpeed={isZone2D ? 100.0 : 1.0}
           mouseButtons={{
             // Map モードは中ボタンパン・右回転とも無効（右ドラッグ=地図移動 / Ctrl+右=ズームは別処理）。
@@ -3410,7 +3587,8 @@ return (
           verticalSpeed={speedPreset.vertical}
           onSpeedChange={onSpeedMulChange}
           forcePanOnRmb={isZone2D}
-          panMultiplier={isZone2D ? 3.0 : 1.0}
+          // パン量はフックが px→ワールドを厳密に計算する（＝カーソル完全追従）ので等倍。
+          panMultiplier={1.0}
           rmbOrbit={false}
         />
 
@@ -3439,7 +3617,11 @@ return (
           if (isMarqueeActive || isGizmoDragging || alignMode) return;
           clearSelection();
           useLayoutTaskStore.getState().setActiveZoneId(null);
-          
+          // 余白（床/背景）クリックで断面線の選択も解除する。
+          useSectionLinesStore.getState().setActiveLine(null);
+          useWallStore.getState().setSelectedWallId(null);
+          useSlabStore.getState().setSelectedSlabId(null);
+
           if (useEditorModeStore.getState().editorMode === "zoning" && useZoningStore.getState().zoningSubMode === "circulation" && useZoningStore.getState().isZoningActionSelect) {
             useZoningStore.getState().setSelectedCirculationId(null);
             useZoningStore.getState().setSelectedCirculationNodeIndex(null);
@@ -3455,11 +3637,15 @@ return (
         onClick={(e) => {
           if (!active) return;
           if (isMarqueeActive || isGizmoDragging || alignMode) return;
-          
+
           // Clear selection when clicking the BaseGlb (floor/walls)
           clearSelection();
           useLayoutTaskStore.getState().setActiveZoneId(null);
-          
+          // 余白（床/壁）クリックで断面線の選択も解除する。
+          useSectionLinesStore.getState().setActiveLine(null);
+          useWallStore.getState().setSelectedWallId(null);
+          useSlabStore.getState().setSelectedSlabId(null);
+
           if (useEditorModeStore.getState().editorMode === "zoning" && useZoningStore.getState().zoningSubMode === "circulation" && useZoningStore.getState().isZoningActionSelect) {
             useZoningStore.getState().setSelectedCirculationId(null);
             useZoningStore.getState().setSelectedCirculationNodeIndex(null);
@@ -3504,20 +3690,40 @@ return (
             />
           )
         )}
-        {/* Map モードでは合わせ込みに不要なオーバーレイ（寸法/ゾーン）を隠す。 */}
-        {!isMapMode && (
+        {/* Map モード・側面正射（立面/断面）では合わせ込み/図面に不要なオーバーレイ（寸法/ゾーン）を隠す。 */}
+        {!isMapMode && !isSideOrtho && (
           <>
             <FurnitureDimensionOverlay />
             <FurnitureGapOverlay />
             <ItemDimensionOverlay />
-            <ZoneVisualizer
-              items={normalizedItems}
-              orbitRef={orbitRef}
-              editable={isZoning}
-              roomBounds={zoneRoomBounds}
-            />
+            {showZoneSymbols && (
+              <ZoneVisualizer
+                items={normalizedItems}
+                orbitRef={orbitRef}
+                editable={isZoning}
+                roomBounds={zoneRoomBounds}
+              />
+            )}
             <ZoneDrawController enabled={isZoning} roomSpec={roomSpec} />
             <ZoneCirculationController />
+          </>
+        )}
+
+        {/* 作図した壁（内壁/外壁）・床（スラブ）。躯体なのでパース/平面/断面/立面すべてで表示する。 */}
+        <FloorSlabsRenderer isTopView={effectiveType === VIEW_TYPES.TOP} />
+        <WallsRenderer isTopView={effectiveType === VIEW_TYPES.TOP} />
+
+        {/* 壁・床の作図/編集は平面(Top)とパースで有効（床平面へのレイキャストなのでどちらでも動く）。
+            立面/断面（側面正射）・マップ・ウォークスルー・マテリアルでは出さない。 */}
+        {(effectiveType === VIEW_TYPES.TOP || effectiveType === VIEW_TYPES.PERSPECTIVE) &&
+          !isMapMode && !isWalkthrough && !isMaterialMode && (
+          <>
+            <WallDrawController enabled />
+            {/* 選択中の壁の編集ハンドル（端点/中点。クリックで選択＝移動ギズモ、ドラッグで直接移動） */}
+            <WallEditController enabled orbitRef={orbitRef} />
+            <FloorSlabDrawController enabled />
+            {/* 選択中の床の編集ハンドル（頂点／辺に頂点挿入／全体移動。頂点クリックで移動ギズモ） */}
+            <SlabEditController enabled orbitRef={orbitRef} />
           </>
         )}
 
@@ -3584,8 +3790,9 @@ return (
           orbitRef={orbitRef}
           items={normalizedItems}
         />
-        {/* スタートピン: Top / Perspective 両ビューで表示（ウォークスルー中・Material・Zoning中は非表示） */}
-        {!isWalkthrough && !isMaterialMode && !isMapMode && !isLabelMode && editorMode !== "zoning" && (effectiveType === VIEW_TYPES.PERSPECTIVE || effectiveType === VIEW_TYPES.TOP) && (
+        {/* スタートピン: Perspective ビューのみ表示。平面図（Top＝2D配置/1F 等）は
+            図面表示なのでスタートピンは出さない（ウォークスルー中・Material・Zoning中も非表示）。 */}
+        {!isWalkthrough && !isMaterialMode && !isMapMode && !isLabelMode && editorMode !== "zoning" && effectiveType === VIEW_TYPES.PERSPECTIVE && (
           <WalkthroughStartPin />
         )}
         {/* 展開図ピン（複数）: Material モードの俯瞰時のみ配置・移動・削除できる */}

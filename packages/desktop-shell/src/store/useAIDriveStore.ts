@@ -46,6 +46,8 @@ export interface AIDriveAsset {
   childCount?: number;
   /** セットが束ねる個々のファイル（インスペクタ表示用）。 */
   setMembers?: { name: string; url?: string; slot?: string | null }[];
+  /** publish 時の付帯情報。kind は publishToDrive が確定した正確なアウトプット種別。 */
+  metadata?: { kind?: OutputKind } & Record<string, unknown>;
 }
 
 export function resolveAssetPreviewUrl(asset: any): string | null {

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography, Stack } from '@mui/material';
-import CollectionsRoundedIcon from '@mui/icons-material/CollectionsRounded';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import PresentToAllRoundedIcon from '@mui/icons-material/PresentToAllRounded';
@@ -39,14 +38,6 @@ export const GallerySidebar: React.FC = () => {
       borderRight: `1px solid ${BRAND.line}`,
       display: 'flex', flexDirection: 'column', overflowY: 'auto',
     }}>
-      {/* ヘッダー */}
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, pt: 2.5, pb: 2 }}>
-        <CollectionsRoundedIcon sx={{ fontSize: 16, color: 'light-dark(#1a6393, #5dade2)' }} />
-        <Typography sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.8rem', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-          Gallery
-        </Typography>
-      </Stack>
-
       {/* 種別ナビ */}
       <Typography sx={{ px: 2, color: BRAND.sub2, fontSize: '0.65rem', fontWeight: 700, letterSpacing: 1.5, mb: 0.5 }}>
         種別

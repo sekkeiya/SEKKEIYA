@@ -18,9 +18,12 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 
 import { useWorkspaceStructureStore } from "../../../../store/useWorkspaceStructureStore";
 import { useAppStore } from "../../../../../../../store/useAppStore";
+import { useAIChatStore } from "../../../../../../../store/useAIChatStore";
+import { useUiRightSidebarStore } from "../../../../store/uiRightSidebarStore";
 
 export default function EditorBasePlanOptionTree() {
   const theme = useTheme();
@@ -125,6 +128,56 @@ export default function EditorBasePlanOptionTree() {
     setExpandedPlanIds((prev) => ({ ...prev, [planId]: !prev[planId] }));
   }, []);
 
+  // ── 議論履歴インジケーター（Phase 3）──
+  // このプロジェクト × S.Layout のチャットセッション（メッセージ有り）を持つノード id 集合。
+  // 該当ノードに 💬 を出し、クリックでノード選択＋右サイドバーのチャットパネルを開く。
+  const chatSessions = useAIChatStore((s) => s.sessions);
+  const chatMessages = useAIChatStore((s) => s.messages);
+  const discussedNodeIds = useMemo(() => {
+    const set = new Set<string>();
+    if (!activeProjectId) return set;
+    const sessionsWithMsgs = new Set(chatMessages.map((m) => m.sessionId));
+    chatSessions.forEach((s) => {
+      if (s.projectId === activeProjectId && s.appScope === "3dsl" && s.taskId && sessionsWithMsgs.has(s.id)) {
+        set.add(s.taskId);
+      }
+    });
+    return set;
+  }, [chatSessions, chatMessages, activeProjectId]);
+
+  const openNodeChat = useCallback(
+    (kind: "base" | "plan" | "option", id: string) => {
+      // ノードを選択（チャットパネルは選択中ノードにバインドされるため、先に選択を合わせる）。
+      // plan は「同じ id なら何もしない」ガードを通さず必ず選択し直す（Option 選択中でも
+      // Plan のチャットへジャンプできるように、外部ハンドラ側の子クリアに任せる）。
+      if (kind === "base") selectBase(id);
+      else if (kind === "plan") selectPlan(id);
+      else selectOption(id);
+      // 右サイドバーをチャットパネルのみ表示に切り替え（排他）。
+      const rs = useUiRightSidebarStore.getState();
+      rs.closeAll();
+      rs.setRightPanel("chat", true);
+    },
+    [selectBase, selectPlan, selectOption]
+  );
+
+  // ノード行の 💬 インジケーター（議論履歴があるノードだけ表示・常時可視）。
+  const renderChatJump = useCallback(
+    (kind: "base" | "plan" | "option", id: string) =>
+      discussedNodeIds.has(id) ? (
+        <Tooltip title="このノードの議論チャットを開く" placement="top">
+          <IconButton
+            size="small"
+            onClick={(e) => { e.stopPropagation(); openNodeChat(kind, id); }}
+            sx={{ p: 0.25, color: "light-dark(#0a45a4, #8ab4f8)", "&:hover": { bgcolor: "rgba(138,180,248,0.12)" } }}
+          >
+            <ForumRoundedIcon sx={{ fontSize: 13 }} />
+          </IconButton>
+        </Tooltip>
+      ) : null,
+    [discussedNodeIds, openNodeChat]
+  );
+
   return (
     <Box sx={{ px: 1.5, py: 1, height: "100%", overflowY: "auto", overflowX: "hidden" }}>
       <Stack spacing={0.5}>
@@ -174,6 +227,7 @@ export default function EditorBasePlanOptionTree() {
                         primaryTypographyProps={{ fontSize: 12.5, fontWeight: openBase ? 700 : 500, lineHeight: 1.2 }}
                       />
                     </ListItemButton>
+                    {renderChatJump("base", b.id)}
                     {/* Action icons appear on hover ideally, but always visible is safer for MVP */}
                     <Box sx={{ display: "flex", gap: 0.25, opacity: openBase ? 1 : 0.3 }}>
                       <IconButton size="small" onClick={() => duplicateBase?.(b.id)} sx={{ p: 0.25 }}>
@@ -230,6 +284,7 @@ export default function EditorBasePlanOptionTree() {
                                   primaryTypographyProps={{ fontSize: 12.5, fontWeight: openPlan ? 700 : 500, lineHeight: 1.2 }}
                                 />
                               </ListItemButton>
+                              {renderChatJump("plan", p.id)}
                               <Box sx={{ display: "flex", gap: 0.25, opacity: openPlan ? 1 : 0.3 }}>
                                 <IconButton size="small" onClick={() => duplicatePlan?.(p.id)} sx={{ p: 0.25 }}>
                                   <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
@@ -273,6 +328,7 @@ export default function EditorBasePlanOptionTree() {
                                             sx={{ opacity: 0.95 }}
                                           />
                                         </ListItemButton>
+                                        {renderChatJump("option", o.id)}
                                         <Box sx={{ display: "flex", gap: 0.25, opacity: isSel ? 1 : 0.3 }}>
                                           <IconButton size="small" onClick={() => duplicateOption?.(o.id)} sx={{ p: 0.25 }}>
                                             <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />

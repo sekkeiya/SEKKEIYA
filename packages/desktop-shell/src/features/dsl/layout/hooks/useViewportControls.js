@@ -383,6 +383,13 @@ export function useViewportControls({
             // ✅ GizmoがアクティブならRMB開始もしない（安全）
             if (isGizmoActive()) return;
 
+            // 中ボタン＝パン（移動自体は OrbitControls が担当）。カーソルだけ手にする。
+            if (e.button === 1) {
+                stateRef.current.middlePan = true;
+                el.style.cursor = "grabbing";
+                return;
+            }
+
             if (e.button === 2) {
                 const s = stateRef.current;
 
@@ -462,7 +469,8 @@ export function useViewportControls({
 
                 if (s.isZoomDrag) {
                     el.style.cursor = zoomCursorUrl;
-                } else if (isOrtho || forcePanOnRmb) {
+                } else if (s.shift || isOrtho || forcePanOnRmb) {
+                    // パン中は手（掴んでいる）カーソル。Shift+右＝パンもここに含める。
                     el.style.cursor = "grabbing";
                 }
 
@@ -481,10 +489,18 @@ export function useViewportControls({
             }
         };
 
+        const endMiddlePan = () => {
+            const s = stateRef.current;
+            if (!s.middlePan) return;
+            s.middlePan = false;
+            el.style.cursor = "";
+        };
+
         const onPointerUp = (e) => {
+            if (e.button === 1) endMiddlePan();
             if (e.button === 2) endRmb("pointerup");
         };
-        const onPointerCancel = () => endRmb("pointercancel");
+        const onPointerCancel = () => { endMiddlePan(); endRmb("pointercancel"); };
 
         const onPointerMove = (e) => {
             const s = stateRef.current;
@@ -542,10 +558,17 @@ export function useViewportControls({
             }
 
             if (s.shift || isOrtho || forcePanOnRmb) {
+                // ドラッグ途中で Shift を押してパンに切り替わった場合もここで手カーソルにする。
+                if (el.style.cursor !== "grabbing") el.style.cursor = "grabbing";
+
                 let effectivePanSpeed = panSpeed;
                 if (isOrtho) {
+                    // 1px ドラッグ = 画面上で 1px 分ワールドが動く（カーソルに完全追従）。
+                    // 画面に映るワールド高さ = (top - bottom) / zoom なので、それを画素数で割る。
                     const safeZoom = Math.max(0.01, camera.zoom);
-                    effectivePanSpeed = panSpeed * (100 / safeZoom);
+                    const clientHeight = el.clientHeight || window.innerHeight || 1000;
+                    const frustumHeight = (camera.top - camera.bottom) || clientHeight;
+                    effectivePanSpeed = frustumHeight / safeZoom / clientHeight;
                 } else if (orbitRef?.current) {
                     const targetDist = camera.position.distanceTo(orbitRef.current.target);
                     const fovRad = (camera.fov || 50) * Math.PI / 180;
@@ -661,12 +684,14 @@ export function useViewportControls({
         el.addEventListener("wheel", onWheel, { passive: false });
 
         const onWindowMouseUp = (ev) => {
+            if (ev.button === 1) endMiddlePan();
             if (ev.button === 2) endRmb("window-mouseup");
         };
         const onWindowPointerUp = (ev) => {
+            if (ev.button === 1) endMiddlePan();
             if (ev.button === 2) endRmb("window-pointerup");
         };
-        const onWindowBlur = () => endRmb("window-blur");
+        const onWindowBlur = () => { endMiddlePan(); endRmb("window-blur"); };
 
         window.addEventListener("mouseup", onWindowMouseUp, { passive: true });
         window.addEventListener("pointerup", onWindowPointerUp, { passive: true });

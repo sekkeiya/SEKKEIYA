@@ -49,6 +49,7 @@ import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import TableChartRoundedIcon from '@mui/icons-material/TableChartRounded';
 import PptxPreview from './PptxPreview';
 import PreviewGalleryStrip from './PreviewGalleryStrip';
+import LocalModelThumb from './LocalModelThumb';
 import HtmlPreview from './HtmlPreview';
 import LinkPreview from './LinkPreview';
 import ArticlePreview from './ArticlePreview';
@@ -1017,6 +1018,11 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
               {visibleAssets.map(asset => {
                   const isSelected = selectedAssetIds.includes(asset.id);
                   const isAnalyzing = analyzingAssetId === asset.id;
+                  // 3Dモデル（GLB 実体つき）: サムネ遅延生成＆ S.Layout への HTML5 DnD 配置の対象。
+                  const isGlbModel = (asset.type === 'model' || asset.type === '3d-model')
+                    && !!asset.storageUrl && /\.(glb|gltf)($|\?)/i.test(asset.storageUrl);
+                  const localGlbPath = asset.sourceCollection === 'local' && asset.id.startsWith('local:model:')
+                    ? asset.id.slice('local:model:'.length) : undefined;
 
                   return (
                     <Paper
@@ -1032,11 +1038,40 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                       onPointerDown={(e) => {
                         // Prevent starting internal drag if clicking the HTML5 drag handle
                         if ((e.target as HTMLElement).closest('.html5-drag-handle')) return;
-                        
+                        // GLB モデルはネイティブ HTML5 ドラッグ（S.Layout 配置）を優先するため、
+                        // 内部ドラッグ（preventDefault）を起動しない。フォルダ移動はインスペクタから可能。
+                        if (isGlbModel) return;
+
                         e.preventDefault();
                         const dragIds = selectedAssetIds.includes(asset.id) ? selectedAssetIds : [asset.id];
                         const dragAssets = dragIds.map(id => baseAssets.find(a => a.id === id)).filter(Boolean) as any[];
                         startDrag(asset, dragAssets, e.clientX, e.clientY, e.altKey || e.metaKey);
+                      }}
+                      draggable={isGlbModel}
+                      onDragStart={(e: React.DragEvent) => {
+                        if (!isGlbModel || !e.dataTransfer) return;
+                        // S.Layout の ViewportPanel.handleDrop（application/json → onDropAsset）互換ペイロード。
+                        // LibraryAssetGrid.buildDragPayload と同じ形（kind:'model' + glbUrl が必須）。
+                        const payload = {
+                          kind: 'model',
+                          dragId: `drag_${asset.id}_${Date.now()}`,
+                          modelId: asset.id,
+                          label: asset.name,
+                          name: asset.name,
+                          source: 'drive',
+                          type: 'furniture',
+                          subType: '',
+                          group: '',
+                          thumbUrl: asset.thumbnailUrl || null,
+                          glbUrl: asset.storageUrl || null,
+                          dimensionsMm: null,
+                        };
+                        try {
+                          e.dataTransfer.setData('application/json', JSON.stringify(payload));
+                          e.dataTransfer.setData('application/sekkeiya-asset', JSON.stringify(asset));
+                          e.dataTransfer.setData('text/plain', JSON.stringify(payload));
+                          e.dataTransfer.effectAllowed = 'copy';
+                        } catch { /* noop */ }
                       }}
                       sx={{ 
                         bgcolor: isSelected ? 'var(--brand-surface2)' : 'var(--brand-surface2)',
@@ -1087,7 +1122,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                           const displayImgUrl = imageDisplayUrl(asset);
 
                           const is3DModel = asset.type === 'model' || asset.type === '3d-model';
-                          
+
                           return displayImgUrl ? (
                             <img src={displayImgUrl} alt={asset.name} loading="lazy" decoding="async" style={{
                               position: 'absolute',
@@ -1099,6 +1134,9 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
                               transform: is3DModel ? 'scale(1.5)' : 'none',
                               transformOrigin: 'center center'
                             }} />
+                          ) : isGlbModel ? (
+                            // サムネ画像の無い 3D モデル（ローカル/クラウド）は GLB から遅延レンダして表示。
+                            <LocalModelThumb id={asset.id} glbUrl={asset.storageUrl} localPath={localGlbPath} fallback={getFileIcon(asset.type)} />
                           ) : (
                             getFileIcon(asset.type)
                           );

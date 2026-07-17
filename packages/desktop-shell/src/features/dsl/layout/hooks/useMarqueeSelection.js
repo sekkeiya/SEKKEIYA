@@ -120,8 +120,11 @@ export function useMarqueeSelection({
                 }
             });
 
-            if (typeof onPickIds === "function") onPickIds(hits, e);
-            else if (typeof onPickId === "function") onPickId(hits[0] ?? null, e);
+            // 第3引数: 確定した矩形とカメラ等のコンテキスト。
+            // 消費側で追加のヒットテスト（壁・床など中心点判定に向かない対象）に使う。
+            const ctx = { rect: r, camera: cam, width: rect.width, height: rect.height };
+            if (typeof onPickIds === "function") onPickIds(hits, e, ctx);
+            else if (typeof onPickId === "function") onPickId(hits[0] ?? null, e, ctx);
         },
         [rootRef, orbitRef, objectsRef, toRect, minRect, onPickIds, onPickId]
     );

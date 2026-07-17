@@ -54,11 +54,45 @@ const safeCall = (fn: any, ...args: any[]) => {
     }
 };
 
+/** 図面グリッド（立面4面/断面/展開の分割ビュー）の1ペイン。
+ *  clipPlanes はレンダラー単位クリップ（gl.clippingPlanes）として適用する。
+ *  material.clippingPlanes だとマテリアルがペイン間で共有され「ペインごとに別の断面」を
+ *  持てないため（PaneClipPlanes.jsx 参照）。 */
+export interface DrawingGridPane {
+    label: string;
+    /** 見る向き: front=Z軸（北南） / right=X軸（東西） */
+    viewType: "front" | "right";
+    /** 反転（北⇄南 / 東⇄西）。ペイン単位で持つ（グローバル sectionViewFlip は使わない） */
+    flip: boolean;
+    /** レンダラー単位クリップ面（無し=立面のような外形ビュー） */
+    clipPlanes?: Array<{ normal: [number, number, number]; constant: number }> | null;
+    /** カメラのフレーミング対象（無し=建物全体） */
+    frameBox?: { center: [number, number, number]; maxDim: number } | null;
+    /** 断面ペインの切断情報。指定すると切り口の黒塗り（ポシェ）＋切断面フレーム＋
+     *  FL/GL レベル線が単体断面ビューと同じように出る（立面/展開ペインは無し）。 */
+    cap?: { axis: "x" | "z"; pos: number } | null;
+}
+
+export interface DrawingGrid {
+    kind: "elevation" | "section" | "developed";
+    /** どのグループから開いたか（EditorAngleBar のハイライト用。例 "elevation" / "room:xxx"） */
+    key: string;
+    panes: DrawingGridPane[];
+}
+
 export interface ViewportUiState {
     layoutMode: string;
     activeViewportId: string;
     setLayoutMode: (mode: string) => void;
     setActiveViewportId: (id: string) => void;
+    /** 図面グリッド。非 null の間は SINGLE/SPLIT の代わりに N ペインの図面分割を表示する。 */
+    drawingGrid: DrawingGrid | null;
+    setDrawingGrid: (g: DrawingGrid | null) => void;
+    /** 2画面（SPLIT）の右ペインに出すビュー。左ペインは常に Top（平面）。
+     *  2画面に入るときは「その時に表示していたビュー」が入り、以後ドックの
+     *  立面/断面/展開/パースの切替でここが差し替わる（＝2画面のまま切り替わる）。 */
+    splitRightViewId: string;
+    setSplitRightViewId: (id: string) => void;
 
     focusTick: number;
     frameAllTick: number;
@@ -151,7 +185,23 @@ export const useViewportUiStore = create<ViewportUiState>((set, get) => ({
     // ============================================================
     layoutMode: VIEWPORT_LAYOUT.SINGLE,
     activeViewportId: VIEWPORT_IDS.PERSP,
-    setLayoutMode: (mode) => set({ layoutMode: mode }),
+    splitRightViewId: VIEWPORT_IDS.PERSP,
+    drawingGrid: null,
+    setDrawingGrid: (g) => set({ drawingGrid: g }),
+    // 2画面へ入るときは「その時に表示していたビュー」を右ペインへ引き継ぐ。
+    // 直前が Top（＝左ペインと同じ）だった場合だけ Perspective にフォールバックする。
+    // ※ SINGLE/SPLIT への切替は図面グリッドからの離脱でもあるので drawingGrid を必ず畳む。
+    setLayoutMode: (mode) => {
+        if (mode === VIEWPORT_LAYOUT.SPLIT && get().layoutMode !== VIEWPORT_LAYOUT.SPLIT) {
+            const cur = get().activeViewportId;
+            const right = cur && cur !== VIEWPORT_IDS.TOP ? cur : VIEWPORT_IDS.PERSP;
+            set({ layoutMode: mode, splitRightViewId: right, activeViewportId: right, drawingGrid: null });
+            return;
+        }
+        set({ layoutMode: mode, drawingGrid: null });
+    },
+    // SPLIT 維持のままビュー差し替え（ドックの立面/断面等）も図面グリッドからの離脱。
+    setSplitRightViewId: (id) => set({ splitRightViewId: id, drawingGrid: null }),
     setActiveViewportId: (id) => set({ activeViewportId: id }),
 
     // ============================================================
@@ -481,6 +531,8 @@ export const useViewportUiStore = create<ViewportUiState>((set, get) => ({
     reset: () => set({
         layoutMode: VIEWPORT_LAYOUT.SINGLE,
         activeViewportId: VIEWPORT_IDS.PERSP,
+        splitRightViewId: VIEWPORT_IDS.PERSP,
+        drawingGrid: null,
         focusTick: 0,
         frameAllTick: 0,
         lockToGround: true,

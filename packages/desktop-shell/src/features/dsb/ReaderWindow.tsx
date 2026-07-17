@@ -14,7 +14,7 @@
  * 読了後は「AIと議論して書く」でメインウィンドウの議論ファーストへシームレスに遷移する。
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Chip } from '@mui/material';
 import SkipNextRoundedIcon from '@mui/icons-material/SkipNextRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
@@ -45,7 +45,19 @@ export const ReaderWindow: React.FC = () => {
       autoRead: params.get('autoRead') === '1' }; // 投稿スケジュール実行など「開いたら読み上げ」用
   }, []);
 
-  const playlist = useMemo(loadPlaylist, []);
+  const playlistAll = useMemo(loadPlaylist, []);
+  // 📰⇄🎬 プレイリストの種別切替（ホームのトグルと対）。←/→・ギャラリー・連続読み上げは
+  // 選択中の種別内だけを移動する。初期値は開いた記事の種別に合わせる。
+  const isVideoUrl = (u: string) => /(youtube\.com|youtu\.be)\//.test(u);
+  const [kind, setKind] = useState<'article' | 'video'>(() =>
+    isVideoUrl(initial.url || playlistAll[0]?.url || '') ? 'video' : 'article');
+  const playlist = useMemo(
+    () => playlistAll.filter((p) => isVideoUrl(p.url) === (kind === 'video')),
+    [playlistAll, kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  const kindCounts = useMemo(() => ({
+    article: playlistAll.filter((p) => !isVideoUrl(p.url)).length,
+    video: playlistAll.filter((p) => isVideoUrl(p.url)).length,
+  }), [playlistAll]); // eslint-disable-line react-hooks/exhaustive-deps
   // URL 指定なしで開いたとき（SEKKEIYA OS からの「リーダーを開く」等）は、読書リストの先頭を表示。
   const firstArticle = initial.url ? initial : (playlist[0] ?? null);
   const [tabs, setTabs] = useState<BlogSourceRef[]>(firstArticle ? [firstArticle] : []);
@@ -57,6 +69,24 @@ export const ReaderWindow: React.FC = () => {
 
   const idx = playlist.findIndex((p) => p.url === current.url);
   const next = idx >= 0 && idx + 1 < playlist.length ? playlist[idx + 1] : null;
+
+  // 📰⇄🎬 種別を切り替え、現在の記事が新種別に合わなければその種別の先頭へ差し替える
+  const switchKind = useCallback((k: 'article' | 'video') => {
+    setKind((cur) => {
+      if (cur === k) return cur;
+      if (isVideoUrl(current.url) !== (k === 'video')) {
+        const target = playlistAll.find((p) => isVideoUrl(p.url) === (k === 'video'));
+        if (target) {
+          setNextUp(null);
+          setAutoRead(false);
+          setTabs((prev) => (prev.some((t) => t.url === target.url) ? prev : prev.map((t) => (t.url === activeUrl ? target : t))));
+          setActiveUrl(target.url);
+        }
+      }
+      return k;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.url, activeUrl, playlistAll]);
 
   // 記事をタブとして開く（既にあればアクティブ化するだけ）。窓は1枚のまま。
   const openArticle = useCallback((a: BlogSourceRef, opts?: { autoRead?: boolean }) => {
@@ -199,6 +229,27 @@ export const ReaderWindow: React.FC = () => {
     };
   }, [goNav]);
 
+  // 🔥 次の動画の先読み解析: プレイリストの次が動画なら、視聴中に CF videoRead を
+  // 裏で走らせて全ユーザー共有キャッシュに載せる（次を開いた瞬間に字幕・記事が揃う）。
+  // 4秒ディレイ＝←/→で流し見しているときに無駄撃ちしないため。
+  useEffect(() => {
+    const url = next?.url;
+    if (!url || !isVideoUrl(url)) return;
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          const [{ httpsCallable }, { functions }] = await Promise.all([
+            import('firebase/functions'),
+            import('../../lib/firebase/client'),
+          ]);
+          await httpsCallable(functions, 'blogDialogue')({ mode: 'videoRead', url });
+        } catch { /* 先読みは任意 */ }
+      })();
+    }, 4000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [next?.url]);
+
   // 読み上げ完了 → 次の記事のカウントダウンを開始
   const handleReadEnd = () => {
     if (next) setNextUp({ item: next, sec: COUNTDOWN_SEC });
@@ -320,6 +371,22 @@ export const ReaderWindow: React.FC = () => {
           </Box>
         )}
       </Box>
+
+      {/* 📰⇄🎬 プレイリストの種別トグル（両方あるときだけ表示）。ナビ・ギャラリー・連続読み上げが絞られる */}
+      {kindCounts.article > 0 && kindCounts.video > 0 && (
+        <Box sx={{ flexShrink: 0, display: 'flex', justifyContent: 'center', gap: 0.75, py: 0.75,
+          bgcolor: 'var(--brand-bg)', borderTop: '1px solid rgb(var(--brand-fg-rgb) / 0.06)' }}>
+          {([['article', `📰 記事 ${kindCounts.article}`], ['video', `🎬 動画 ${kindCounts.video}`]] as const).map(([key, label]) => (
+            <Chip key={key} label={label} size="small"
+              onClick={() => switchKind(key)}
+              sx={{ cursor: 'pointer', fontWeight: 800, fontSize: 11.5, height: 24,
+                bgcolor: kind === key ? '#e57373' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                color: kind === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                border: `1px solid ${kind === key ? '#e57373' : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+                '&:hover': { bgcolor: kind === key ? '#e57373' : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
+          ))}
+        </Box>
+      )}
 
       {/* 🎞 表紙ギャラリー（CD選曲風）: ドラッグで流し見・クリックで表示・←/→とも連動 */}
       {playlist.length > 1 && (

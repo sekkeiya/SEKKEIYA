@@ -6,7 +6,6 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import CategoryRoundedIcon from '@mui/icons-material/CategoryRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import SubdirectoryArrowRightRoundedIcon from '@mui/icons-material/SubdirectoryArrowRightRounded';
 import {
@@ -115,22 +114,13 @@ export const OfficialCategories: React.FC = () => {
   return (
     <Box sx={{ flex: 1, height: '100%', overflowY: 'auto', bgcolor: 'background.default' }}>
       <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: { xs: 2.5, md: 4 } }}>
-        {/* ヘッダー */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CategoryRoundedIcon sx={{ color: ACCENT }} />
-            </Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>カテゴリ管理</Typography>
-          </Box>
+        {/* アクション */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 2.5 }}>
           <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => openAdd()}
             sx={{ bgcolor: ACCENT, color: '#001018', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#0ea5e9' } }}>
             カテゴリを追加
           </Button>
         </Box>
-        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.82rem', mb: 2.5, mt: 1 }}>
-          記事のカテゴリを管理。トピック追加・AIネタ提案・公開一覧のフィルタに反映されます。
-        </Typography>
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: ACCENT }} /></Box>

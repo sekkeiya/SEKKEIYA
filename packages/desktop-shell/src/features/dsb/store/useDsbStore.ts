@@ -16,7 +16,8 @@ export interface SaveDraftResult {
 
 type EditorMode = 'list' | 'edit';
 // schedule = プロジェクトの Schedules & Tasks 画面 / plan = 投稿計画カレンダー(BlogScheduleView)
-type DsbView = 'feed' | 'overview' | 'schedule' | 'plan' | 'list' | 'categories';
+// sources = ホームに表示するメディア（RSSソース）の選択画面（サイドバー「ソース記事」から）
+type DsbView = 'feed' | 'overview' | 'schedule' | 'plan' | 'list' | 'categories' | 'sources';
 type StatusFilter = 'all' | BlogStatus;
 
 interface DsbState {
@@ -28,6 +29,10 @@ interface DsbState {
   view: DsbView;
   draft: BlogArticle | null;
   search: string;
+  // ホーム(feed)の全幅ヘッダー検索。フィード記事をタイトル/媒体名で絞り込む（記事一覧の search とは別）。
+  feedSearch: string;
+  // ヘッダーの「更新」ボタン→BlogNewsFeed 側がこの nonce の変化を購読してフィード再取得する。
+  feedRefreshNonce: number;
   statusFilter: StatusFilter;
   categoryFilter: string | null;   // null = 全カテゴリ（ホーム）
   categories: string[];            // ユーザーが作成したカテゴリ（永続化分）
@@ -55,6 +60,8 @@ interface DsbState {
   setBlogScope: (s: 'account' | 'official') => void;
   setView: (v: DsbView) => void;
   setSearch: (s: string) => void;
+  setFeedSearch: (s: string) => void;
+  bumpFeedRefresh: () => void;
   setStatusFilter: (s: StatusFilter) => void;
   setCategoryFilter: (c: string | null) => void;
   setSiteActiveBlogCat: (c: string | null) => void;
@@ -103,6 +110,8 @@ export const useDsbStore = create<DsbState>((set, get) => ({
   view: 'feed', // 初期表示はホーム（おすすめメディアの記事フィード）
   draft: null,
   search: '',
+  feedSearch: '',
+  feedRefreshNonce: 0,
   statusFilter: 'all',
   categoryFilter: null,
   categories: [],
@@ -124,6 +133,8 @@ export const useDsbStore = create<DsbState>((set, get) => ({
   setBlogScope: (blogScope) => set({ blogScope }),
   setView: (view) => set({ view }),
   setSearch: (s) => set({ search: s }),
+  setFeedSearch: (s) => set({ feedSearch: s }),
+  bumpFeedRefresh: () => set((st) => ({ feedRefreshNonce: st.feedRefreshNonce + 1 })),
   // ステータス絞り込みを選んだら一覧ビューへ切り替える。
   setStatusFilter: (statusFilter) => set({ statusFilter, view: 'list' }),
   // カテゴリを選んだら一覧ビューへ（ステータス絞り込みは維持）。

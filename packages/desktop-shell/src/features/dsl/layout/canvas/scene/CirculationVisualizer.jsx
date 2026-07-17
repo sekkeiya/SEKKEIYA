@@ -92,7 +92,7 @@ export default function CirculationVisualizer({ circulations, isActive = false, 
                 }
               }}
               onPointerOut={(e) => {
-                document.body.style.cursor = "auto";
+                document.body.style.cursor = ""; // 指定を外す
               }}
               onPointerDown={(e) => {
                 if (!isSelected || !isActive || editMode !== 'move') return;
@@ -132,7 +132,7 @@ export default function CirculationVisualizer({ circulations, isActive = false, 
                     }
                   }}
                   onPointerOut={(e) => {
-                    document.body.style.cursor = "auto";
+                    document.body.style.cursor = ""; // 指定を外す
                   }}
                   onPointerDown={(e) => {
                     if (!isSelected || !isActive) return;
@@ -196,7 +196,7 @@ export default function CirculationVisualizer({ circulations, isActive = false, 
                     }
                   }}
                   onPointerOut={(e) => {
-                    document.body.style.cursor = "auto";
+                    document.body.style.cursor = ""; // 指定を外す
                   }}
                   onPointerDown={(e) => {
                     if (editMode !== 'add') return;

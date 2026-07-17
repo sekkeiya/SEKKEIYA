@@ -125,7 +125,7 @@ export default function MapDrawController() {
       try {
         e.target.setPointerCapture(e.pointerId);
       } catch {}
-      setCursor("grabbing");
+      setCursor("move");
     },
     onPointerMove: (e) => {
       if (dragRef.current == null) return;
@@ -140,10 +140,10 @@ export default function MapDrawController() {
       try {
         e.target.releasePointerCapture(e.pointerId);
       } catch {}
-      setCursor("grab");
+      setCursor("move");
     },
     onPointerOver: () => {
-      if (dragRef.current == null) setCursor("grab");
+      if (dragRef.current == null) setCursor("move");
     },
     onPointerOut: () => {
       if (dragRef.current == null) setCursor(drawing ? "crosshair" : "auto");

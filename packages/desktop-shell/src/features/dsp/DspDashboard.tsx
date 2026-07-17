@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Box, Button, ButtonGroup, Card, Chip, CircularProgress, Divider, IconButton,
   Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Tab, Tabs,
+  useMediaQuery,
 } from '@mui/material';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { FixedSizeGrid as Grid } from 'react-window';
@@ -34,6 +35,8 @@ import { dspRepository } from './api/dspRepository';
 import { useAuthStore } from '../../store/useAuthStore';
 import { buildInitialContent, type TemplateId } from './templates/initialContentBuilders';
 import { MiniSlidePreview } from './components/MiniSlidePreview';
+import { useDspStore } from './store/useDspStore';
+import { DspSidebar } from '../../shared/layout/dsp-sidebar/DspSidebar';
 
 // ─── Template Definitions ──────────────────────────────────────────────────────
 
@@ -540,9 +543,12 @@ const DspRightPanel: React.FC<{
   setTagFilter: (v: string | null) => void;
   allTags: string[];
   onReset: () => void;
+  /** 全幅ヘッダー化: true のときポータルを使わず、その場（ダッシュボード内の右ゾーン）に描画する（デスクトップ用） */
+  inline?: boolean;
 }> = ({
   selectedItem, onOpen, onDelete, onToggleVisibility, onUpdateTags,
   typeFilter, setTypeFilter, sortKey, setSortKey, tagFilter, setTagFilter, allTags, onReset,
+  inline = false,
 }) => {
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
   const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
@@ -557,6 +563,9 @@ const DspRightPanel: React.FC<{
   }, [selectedItem?.id]);
 
   useEffect(() => {
+    // インライン描画時（デスクトップの埋め込み右ゾーン）はポータル先を探さない。
+    // ポータル先 #dsp-right-sidebar-portal は RightPanelHost がモバイル時のみ描画する。
+    if (inline) return;
     let unmounted = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const findNode = () => {
@@ -566,9 +575,9 @@ const DspRightPanel: React.FC<{
     };
     findNode();
     return () => { unmounted = true; if (timer) clearTimeout(timer); };
-  }, []);
+  }, [inline]);
 
-  if (!portalNode) return null;
+  if (!inline && !portalNode) return null;
 
   // ── Helpers for item panel ──
   const isCanvas = selectedItem?.type === 'canvas';
@@ -978,7 +987,8 @@ const DspRightPanel: React.FC<{
     </Box>
   );
 
-  return createPortal(panelContent, portalNode);
+  // inline: その場に直接描画（デスクトップ埋め込み） / それ以外: 従来どおりポータル描画（モバイル）
+  return inline ? panelContent : createPortal(panelContent, portalNode as HTMLElement);
 };
 
 // ─── New Presentation Dialog ───────────────────────────────────────────────────
@@ -1319,6 +1329,27 @@ export const DspDashboard: React.FC<{
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ja'));
   }, [items]);
 
+  // ── 全幅ヘッダー化レイアウト用の埋め込みパネル（デスクトップのみ） ──────────────
+  // デスクトップでは MainLayout の左サイドバー / RightPanelHost の右パネルを抑止し、
+  // 代わりにここ（ヘッダー下の 3 ゾーン行）へ埋め込む。これによりヘッダーが全幅になる。
+  // モバイルは従来どおり: 左は MainLayout、右は RightPanelHost のポータル先へ描画。
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const showRightSidebar = useDspStore(s => s.showRightSidebar);
+
+  // モバイル（ポータル描画）とデスクトップ（インライン描画）で共有する右パネルの props
+  const rightPanelProps = {
+    selectedItem,
+    onOpen: () => handleOpenEditor(),
+    onDelete: handleDelete,
+    onToggleVisibility: handleToggleVisibility,
+    onUpdateTags: handleUpdateTags,
+    typeFilter, setTypeFilter,
+    sortKey, setSortKey,
+    tagFilter, setTagFilter,
+    allTags,
+    onReset: handleReset,
+  };
+
   return (
     <Box sx={styles.root}>
       {/* ── Sticky Header ───────────────────────────────────── */}
@@ -1453,26 +1484,47 @@ export const DspDashboard: React.FC<{
         </Box>
       </Box>
 
-      {/* ── Main Content ─────────────────────────────────────── */}
-      <Box component="main" sx={styles.content} onPointerDownCapture={handleBgPointerDown}>
-        <Box sx={styles.pageBodyInner}>
-          {isInitializing ? (
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>読み込み中...</Typography>
-            </Box>
-          ) : filteredItems.length === 0 ? (
-            <EmptyState onNew={() => setShowNewDialog(true)} canCreate={canCreate} />
-          ) : (
-            <PresentationGrid
-              items={filteredItems}
-              cardSize={cardSize}
-              selectedItemId={selectedItem?.id}
-              onSelectItem={handleSelectItem}
-              onOpenEditor={handleOpenEditor}
-              onDelete={handleDelete}
-            />
-          )}
+      {/* ── 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | グリッド | 右 Search & Filter ── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（デスクトップのみ埋め込み。開閉は isProjectSidebarOpen で自己サイズ制御） */}
+        {!isMobile && <DspSidebar />}
+
+        {/* ── Main Content ─────────────────────────────────────── */}
+        <Box component="main" sx={styles.content} onPointerDownCapture={handleBgPointerDown}>
+          <Box sx={styles.pageBodyInner}>
+            {isInitializing ? (
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>読み込み中...</Typography>
+              </Box>
+            ) : filteredItems.length === 0 ? (
+              <EmptyState onNew={() => setShowNewDialog(true)} canCreate={canCreate} />
+            ) : (
+              <PresentationGrid
+                items={filteredItems}
+                cardSize={cardSize}
+                selectedItemId={selectedItem?.id}
+                onSelectItem={handleSelectItem}
+                onOpenEditor={handleOpenEditor}
+                onDelete={handleDelete}
+              />
+            )}
+          </Box>
         </Box>
+
+        {/* 右パネル（デスクトップのみ埋め込み。旧 RightPanelHost と同じ 320px ゾーン） */}
+        {!isMobile && showRightSidebar && (
+          <Box
+            data-right-sidebar="true"
+            sx={{
+              width: 320, flexShrink: 0, height: '100%',
+              borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+              bgcolor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))',
+              display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+            }}
+          >
+            <DspRightPanel inline {...rightPanelProps} />
+          </Box>
+        )}
       </Box>
 
       {/* ── Dialogs ──────────────────────────────────────────── */}
@@ -1485,22 +1537,8 @@ export const DspDashboard: React.FC<{
         />
       )}
 
-      {/* ── Right Panel (fills #dsp-right-sidebar-portal) ── */}
-      <DspRightPanel
-        selectedItem={selectedItem}
-        onOpen={() => handleOpenEditor()}
-        onDelete={handleDelete}
-        onToggleVisibility={handleToggleVisibility}
-        onUpdateTags={handleUpdateTags}
-        typeFilter={typeFilter}
-        setTypeFilter={setTypeFilter}
-        sortKey={sortKey}
-        setSortKey={setSortKey}
-        tagFilter={tagFilter}
-        setTagFilter={setTagFilter}
-        allTags={allTags}
-        onReset={handleReset}
-      />
+      {/* ── Right Panel（モバイルのみ #dsp-right-sidebar-portal へポータル描画） ── */}
+      {isMobile && <DspRightPanel {...rightPanelProps} />}
     </Box>
   );
 };

@@ -513,7 +513,7 @@ export const DspSidebar: React.FC = () => {
       sx={{
         width: isProjectSidebarOpen ? 240 : 0,
         height: "100%",
-        bgcolor: BRAND.panel,
+        bgcolor: BRAND.bg,
         borderRight: isProjectSidebarOpen ? `1px solid ${BRAND.line}` : 'none',
         display: "flex",
         flexDirection: "column",
@@ -525,10 +525,6 @@ export const DspSidebar: React.FC = () => {
       }}
     >
       <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgb(var(--brand-fg-rgb) / 0.45)", textTransform: "uppercase", mb: 1.5 }}>
-          3D Presents
-        </Typography>
-
         {/* Search Input */}
         <Box sx={{
           display: 'flex', alignItems: 'center',

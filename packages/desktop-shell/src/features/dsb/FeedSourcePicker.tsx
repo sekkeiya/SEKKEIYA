@@ -15,12 +15,13 @@ import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { DEFAULT_SOURCE_SITES, recommendSourcesForCategories, type BlogSourceSite } from './types';
 import { discoverFeedSource } from './lib/feedDiscovery';
 
 const ACCENT = '#e57373';
 const AI_PURPLE = '#ce93d8';
-const BASE_GROUPS: BlogSourceSite['group'][] = ['国内・建築/デザイン', '国内・住まい/インテリア', '海外・トレンド'];
+const BASE_GROUPS: BlogSourceSite['group'][] = ['国内・建築/デザイン', '国内・住まい/インテリア', '海外・トレンド', 'テック・AI', '動画（YouTube）'];
 
 interface FeedSourcePickerProps {
   /** ユーザーのブログカテゴリ（おすすめ照合に使用） */
@@ -37,16 +38,35 @@ interface FeedSourcePickerProps {
   onRemoveCustom: (name: string) => void;
   /** ダイアログ利用時のキャンセル（onboarding では省略） */
   onCancel?: () => void;
+  /** 右サイドバーのカテゴリ絞り込み等でメディア一覧を絞る（未指定なら従来どおり全件表示） */
+  siteFilter?: (site: BlogSourceSite) => boolean;
+  /** 見出し右のスロットを差し替える（指定時は既定の「AIにおまかせで紐づける」ボタンを出さない）。
+   *  例: ソース記事ビューでは「グラフ」トグルを置き、おまかせ紐づけは右サイドバーへ移設。 */
+  headerAction?: React.ReactNode;
+  /** メディアの内容傾向を確認（指定時、各カードに情報アイコンを出し、押すと親がダイアログ表示）。 */
+  onAnalyze?: (site: BlogSourceSite) => void;
+  /** カードに表示する内容タグ（AI分析のトーン＋キーワード。未取得は undefined → 既定キーワードで代替）。 */
+  metaOf?: (site: BlogSourceSite) => { keywords: string[]; tone?: string } | undefined;
 }
 
 export const FeedSourcePicker: React.FC<FeedSourcePickerProps> = ({
-  categories, current, customSources, saving, onSave, onAddCustom, onRemoveCustom, onCancel,
+  categories, current, customSources, saving, onSave, onAddCustom, onRemoveCustom, onCancel, siteFilter, headerAction, onAnalyze, metaOf,
 }) => {
   const allSites = useMemo(() => [...DEFAULT_SOURCE_SITES, ...customSources], [customSources]);
   const recommended = useMemo(() => recommendSourcesForCategories(categories, allSites), [categories, allSites]);
   const groups = useMemo(
     () => (customSources.length > 0 ? [...BASE_GROUPS, 'カスタム' as const] : BASE_GROUPS),
     [customSources.length],
+  );
+  // 右サイドバーの絞り込み（siteFilter）適用後の一覧。未指定なら全件。
+  const visibleSites = useMemo(
+    () => (siteFilter ? allSites.filter(siteFilter) : allSites),
+    [allSites, siteFilter],
+  );
+  // 空になったグループは非表示にするため、表示対象のあるグループだけ残す。
+  const visibleGroups = useMemo(
+    () => groups.filter((g) => visibleSites.some((s) => s.group === g)),
+    [groups, visibleSites],
   );
 
   const [checked, setChecked] = useState<Set<string>>(() => {
@@ -108,17 +128,19 @@ export const FeedSourcePicker: React.FC<FeedSourcePickerProps> = ({
           表示するメディアを選んで紐づける
         </Typography>
         <Box sx={{ flex: 1 }} />
-        <Tooltip title={recommended.size > 0
-          ? `あなたのカテゴリ（${categories.join('・')}）に合うメディアを自動で選んで紐づけます`
-          : 'おすすめメディアをすべて紐づけます（カテゴリを作成すると、より合わせた選択になります）'}>
-          <Button size="small" variant="contained" disabled={saving}
-            startIcon={<AutoAwesomeRoundedIcon sx={{ fontSize: '14px !important' }} />}
-            onClick={handleAuto}
-            sx={{ bgcolor: AI_PURPLE, color: '#2a1233', fontWeight: 800, textTransform: 'none', px: 1.5, borderRadius: 1.5,
-              '&:hover': { bgcolor: '#ba68c8' } }}>
-            AIにおまかせで紐づける
-          </Button>
-        </Tooltip>
+        {headerAction ?? (
+          <Tooltip title={recommended.size > 0
+            ? `あなたのカテゴリ（${categories.join('・')}）に合うメディアを自動で選んで紐づけます`
+            : 'おすすめメディアをすべて紐づけます（カテゴリを作成すると、より合わせた選択になります）'}>
+            <Button size="small" variant="contained" disabled={saving}
+              startIcon={<AutoAwesomeRoundedIcon sx={{ fontSize: '14px !important' }} />}
+              onClick={handleAuto}
+              sx={{ bgcolor: AI_PURPLE, color: '#2a1233', fontWeight: 800, textTransform: 'none', px: 1.5, borderRadius: 1.5,
+                '&:hover': { bgcolor: '#ba68c8' } }}>
+              AIにおまかせで紐づける
+            </Button>
+          </Tooltip>
+        )}
       </Box>
       <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 0.5, lineHeight: 1.7 }}>
         SEKKEIYA からは建築・インテリアの良質メディアをおすすめとしてご紹介します。
@@ -130,26 +152,43 @@ export const FeedSourcePicker: React.FC<FeedSourcePickerProps> = ({
         </Typography>
       )}
 
-      {groups.map((g) => (
+      {/* 絞り込みで一致0件のときの空状態（siteFilter 適用時のみ発生し得る） */}
+      {visibleSites.length === 0 && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 5, mb: 1,
+          color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
+          <RssFeedRoundedIcon sx={{ fontSize: 32, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }} />
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
+            条件に合うメディアがありません
+          </Typography>
+          <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textAlign: 'center', lineHeight: 1.7 }}>
+            絞り込みを変えるか、AIおまかせ検索（今後追加）で見つけられます
+          </Typography>
+        </Box>
+      )}
+
+      {visibleGroups.map((g) => (
         <Box key={g} sx={{ mb: 1.75 }}>
           <Typography sx={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 0.75 }}>
             {g}
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 0.75 }}>
-            {allSites.filter((s) => s.group === g).map((s) => {
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 0.75 }}>
+            {visibleSites.filter((s) => s.group === g).map((s) => {
               const on = checked.has(s.name);
               const rec = recommended.get(s.name);
               const isCustom = s.group === 'カスタム';
+              const meta = metaOf?.(s);
+              // 表示タグ: AI分析のキーワードがあれば優先、無ければ媒体定義の keywords で代替。
+              const tags = (meta?.keywords && meta.keywords.length ? meta.keywords : (s.keywords || [])).slice(0, 6);
               return (
                 <Box key={s.name} onClick={() => toggle(s.name)}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75, borderRadius: 2, cursor: 'pointer',
+                  sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5, px: 1, py: 0.85, borderRadius: 2, cursor: 'pointer',
                     bgcolor: on ? 'rgba(229,115,115,0.10)' : 'rgb(var(--brand-fg-rgb) / 0.03)',
                     border: `1px solid ${on ? `${ACCENT}66` : 'rgb(var(--brand-fg-rgb) / 0.09)'}`,
                     transition: 'border-color .12s, background-color .12s',
                     '&:hover': { borderColor: on ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.25)' },
                     '&:hover .fsp-remove': { opacity: 1 } }}>
                   <Checkbox checked={on} size="small" disableRipple
-                    sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.35)', '&.Mui-checked': { color: ACCENT } }} />
+                    sx={{ p: 0.25, mt: '-1px', color: 'rgb(var(--brand-fg-rgb) / 0.35)', '&.Mui-checked': { color: ACCENT } }} />
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)' }}>{s.name}</Typography>
@@ -164,19 +203,52 @@ export const FeedSourcePicker: React.FC<FeedSourcePickerProps> = ({
                               '& .MuiChip-icon': { color: AI_PURPLE } }} />
                         </Tooltip>
                       )}
+                      <Box sx={{ flex: 1 }} />
+                      {onAnalyze && (
+                        <Tooltip title="このメディアの内容傾向をAIで確認">
+                          <IconButton className="fsp-remove" size="small"
+                            onClick={(e) => { e.stopPropagation(); onAnalyze(s); }}
+                            sx={{ p: 0.25, opacity: 0, transition: 'opacity .12s', color: 'rgb(var(--brand-fg-rgb) / 0.45)',
+                              '&:hover': { color: ACCENT, bgcolor: 'rgba(229,115,115,0.12)' } }}>
+                            <InfoOutlinedIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {isCustom && (
+                        <Tooltip title="このメディアを一覧から削除">
+                          <IconButton className="fsp-remove" size="small"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveCustom(s.name); }}
+                            sx={{ p: 0.25, opacity: 0, transition: 'opacity .12s', color: 'rgb(var(--brand-fg-rgb) / 0.45)',
+                              '&:hover': { color: 'light-dark(#961818, #ef9a9a)', bgcolor: 'rgba(229,57,53,0.12)' } }}>
+                            <CloseRoundedIcon sx={{ fontSize: 14 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </Box>
-                    <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>{s.note}</Typography>
+                    <Typography noWrap sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mb: (meta?.tone || tags.length) ? 0.6 : 0 }}>{s.note}</Typography>
+                    {/* 内容タグ: 詳細ダイアログと同じトーン＋キーワード（どのサイトかの判断材料） */}
+                    {(meta?.tone || tags.length > 0) && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4, alignItems: 'center' }}>
+                        {meta?.tone && (
+                          <Chip label={meta.tone} size="small"
+                            sx={{ height: 18, fontSize: 9, fontWeight: 700, maxWidth: '100%',
+                              bgcolor: 'rgba(206,147,216,0.14)', color: AI_PURPLE, border: '1px solid rgba(206,147,216,0.4)',
+                              '& .MuiChip-label': { px: 0.75 } }} />
+                        )}
+                        {tags.map((k) => (
+                          <Chip key={k} label={k} size="small"
+                            sx={{ height: 18, fontSize: 9.5, fontWeight: 700,
+                              bgcolor: 'rgba(229,115,115,0.10)', color: ACCENT, border: `1px solid ${ACCENT}33`,
+                              '& .MuiChip-label': { px: 0.6 } }} />
+                        ))}
+                        {!meta && (
+                          <Tooltip title="AI分析待ち（自動で内容タグに切り替わります）">
+                            <CircularProgress size={9} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.25)', ml: 0.25 }} />
+                          </Tooltip>
+                        )}
+                      </Box>
+                    )}
                   </Box>
-                  {isCustom && (
-                    <Tooltip title="このメディアを一覧から削除">
-                      <IconButton className="fsp-remove" size="small"
-                        onClick={(e) => { e.stopPropagation(); handleRemoveCustom(s.name); }}
-                        sx={{ opacity: 0, transition: 'opacity .12s', color: 'rgb(var(--brand-fg-rgb) / 0.45)',
-                          '&:hover': { color: 'light-dark(#961818, #ef9a9a)', bgcolor: 'rgba(229,57,53,0.12)' } }}>
-                        <CloseRoundedIcon sx={{ fontSize: 14 }} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
                 </Box>
               );
             })}

@@ -24,6 +24,7 @@ import { SPEED_MODES } from "../../../../canvas/menu/MoveSpeedDock.jsx";
 import { useViewportUiStore } from "../../../../store/viewportUiStore";
 import { useEditorModeStore } from "../../../../store/useEditorModeStore";
 import { useLevelLinesStore } from "../../../../store/useLevelLinesStore";
+import FloorLevelsSettings from "./FloorLevelsSettings.jsx";
 import { useViewportDisplayStore } from "../../../../store/useViewportDisplayStore";
 
 const SPEED_ICONS = [
@@ -177,6 +178,11 @@ export default function ViewportSettingsPanel() {
           俯瞰ビューに GL・各階の床レベル線を表示専用で重ねます（編集は「自動ラベル → 断面で高さを設定」）。
         </Typography>
       </Box>
+
+      <Divider sx={{ borderColor: alpha("#fff", 0.08) }} />
+
+      {/* 階（フロア）: 2FL 以降の追加・削除・階高。断面/立面ビューのレベル線と連動する。 */}
+      <FloorLevelsSettings />
 
       <Divider sx={{ borderColor: alpha("#fff", 0.08) }} />
 

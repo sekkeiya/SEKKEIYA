@@ -124,10 +124,14 @@ const GalleryCard: React.FC<{ item: GalleryItem; onPreview3D?: (url: string) => 
         <Box sx={{ bgcolor: 'var(--brand-bg)', position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden' }}>
           <img src={item.thumbnailUrl} alt={item.title}
             style={{
-              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-              // モデルのサムネは余白が多いので中央をズームしてモデルを大きく見せる
-              transform: item.kind === 'model' ? 'scale(1.7)' : 'none',
-              transformOrigin: 'center',
+              // モデルのサムネは余白が多いので中央を拡大して大きく見せる。
+              // transform: scale だと描画済みラスタを再拡大して画質が落ちるため、
+              // 画像要素自体を拡大サイズにして元画像から直接サンプリングする（translate は中央寄せのみ）。
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: item.kind === 'model' ? '170%' : '100%',
+              height: item.kind === 'model' ? '170%' : '100%',
+              objectFit: 'cover', display: 'block',
             }} />
           {item.kind === 'model' && item.modelUrl && onPreview3D && (
             <Box

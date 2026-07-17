@@ -30,6 +30,14 @@ export default function TransformGizmo({
   onRequestNumericClose,
 
   numericCloseTick = 0,
+
+  // 表示する軸/操作の絞り込み（壁・床の頂点ギズモ用）。
+  //   axes: [x,y,z] の表示指定（null = 全軸）。頂点は平面上の点なので [true,false,true] で使う。
+  //   disableRotations / disableScaling: 回転リング・スケールを隠す（頂点には意味がないため）。
+  // Item 用途（未指定）は従来どおり全部出る。
+  axes = null,
+  disableRotations = false,
+  disableScaling = false,
 }) {
   const { scene, camera, gl } = useThree();
 
@@ -40,7 +48,8 @@ export default function TransformGizmo({
 
   const isTopView = isTopViewProp !== null ? isTopViewProp : (editorMode === "layout" && layoutCameraTilt === "top");
   // Always enable all axes. In Top View, Y translation is a dot, but Y rotation is crucial for planar rotation.
-  const activeAxes = [true, true, true];
+  // （axes 指定があればそれを優先＝頂点ギズモの XZ 限定など）
+  const activeAxes = axes || [true, true, true];
   
   // Force world space in Top View to ensure arrows always point consistently (X=Right, Z=Up/Down)
   const effectiveSpace = isTopView ? "world" : space;
@@ -794,7 +803,9 @@ export default function TransformGizmo({
         onDragEnd={onDragEnd}
         scale={100}             // Visual scale of the gizmo (pixel equivalent when fixed=true)
         lineWidth={3.0}         // Line thickness for arcs and vectors
-        activeAxes={activeAxes} 
+        activeAxes={activeAxes}
+        disableRotations={disableRotations}
+        disableScaling={disableScaling}
         depthTest={false}       // Draw on top of everything
         fixed={true}            // Essential: Keep gizmo constant size on screen like TransformControls!
         translationSnap={null}

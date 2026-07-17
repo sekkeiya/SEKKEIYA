@@ -11,6 +11,7 @@ import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSetting
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../../lib/firebase/client';
+import { TtsUsageMeter } from '../../../components/tts/TtsUsageMeter';
 
 // 使用中の各 AI プロバイダのコンソール（使用量・課金・APIキー管理）。
 // 概算はアプリ内モニター、正確な請求額・レート上限は各コンソールで確認する。
@@ -245,6 +246,16 @@ export const AdminSettingsPanel = () => {
               ? `誰がどれだけ使ったか（コスト降順）。※件数上限に達したため一部のみ集計しています。`
               : `誰がどれだけ使ったか（コスト降順）。生ログ(usageLogs)から集計。`}
           />
+
+          {/* AI音声（TTS）: 合成コストは上の機能別 tts-read 行に計上。ここは自分のアカウントの利用枠 */}
+          <Paper elevation={0} sx={sectionSx}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>AI音声（TTS）</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+              合成コストは「機能別」の tts-read 行・「モデル別」の gemini-*-tts 行に計上されます。
+              以下はこのアカウントの利用枠（5時間/7日のローリング窓）。
+            </Typography>
+            <TtsUsageMeter dense />
+          </Paper>
         </>
       ) : (
         !loading && !error && (

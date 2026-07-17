@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Box, Button, ButtonGroup, Typography } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, useMediaQuery } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import PhotoLibraryRoundedIcon from '@mui/icons-material/PhotoLibraryRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
@@ -13,6 +13,10 @@ import { useDslFilterStore } from './store/useDslFilterStore';
 import type { DslContentTab } from './store/useDslFilterStore';
 import { useResolveBaseDocs } from './hooks/useResolveBaseDocs';
 import type { BaseRef } from './hooks/useResolveBaseDocs';
+// 全幅ヘッダー化: S.Model(DssDashboard) と同じく、左サイドバー(DslSidebar)と右パネル
+// (DslDashboardRightPanel) をダッシュボード内（ヘッダー下の3ゾーン行）へ埋め込む。
+import { DslSidebar } from '../../shared/layout/dsl-sidebar/DslSidebar';
+import { DslDashboardRightPanel } from '../../shared/layout/workspace/RightPanelHost';
 
 const DENSITY_PRESETS = [
   { key: 'compact', label: 'Compact', value: 168 },
@@ -50,6 +54,11 @@ export const DslDashboard: React.FC<{
 
   const [cardSize, setCardSize] = useState(210);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // 全幅ヘッダー化: 埋め込み用の左サイドバー / 右パネル（デスクトップのみ。モバイルは従来どおり外部）
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const isProjectSidebarOpen = useAppStore((s) => s.isProjectSidebarOpen);
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
 
   const isGlobalLayoutScope = ['global_layouts', 'global_following_layouts'].includes(dslScope);
   const isProjectsScope = dslScope === 'global_projects';
@@ -281,6 +290,31 @@ export const DslDashboard: React.FC<{
     [setPanelSelection, setSelectedRender],
   );
 
+  // 全幅ヘッダー化: ヘッダー下の3ゾーン行に置く埋め込みサイドバー/右パネル
+  const embeddedLeftSidebar = !isMobile ? (
+    <Box sx={{ width: isProjectSidebarOpen ? 240 : 0, flexShrink: 0, height: '100%', overflow: 'hidden', transition: 'width 0.2s cubic-bezier(0.4,0,0.2,1)' }}>
+      <DslSidebar />
+    </Box>
+  ) : null;
+  const embeddedRightPanel = !isMobile ? (
+    <Box
+      data-right-sidebar="true"
+      sx={{
+        width: 320, flexShrink: 0, height: '100%',
+        borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        background: 'light-dark(rgba(255,255,255,0.85), rgba(10,15,25,0.6))',
+        display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+      }}
+    >
+      <DslDashboardRightPanel
+        selectedItem={selectedLayout}
+        updatingVisibility={updatingVisibility}
+        setUpdatingVisibility={setUpdatingVisibility}
+        setPanelSelection={setPanelSelection}
+      />
+    </Box>
+  ) : null;
+
   return (
     <Box sx={styles.root}>
       {/* ── Sticky Header ─────────────────────────────────────────── */}
@@ -418,8 +452,11 @@ export const DslDashboard: React.FC<{
         )}
       </Box>
 
-      {/* ── Main Content ──────────────────────────────────────────── */}
-      <Box component="main" sx={styles.content} onPointerDownCapture={handleClearSelection}>
+      {/* ── 全幅ヘッダー下の3ゾーン行: 左サイドバー | 中央 | 右パネル ── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {embeddedLeftSidebar}
+        {/* ── Main Content ──────────────────────────────────────────── */}
+        <Box component="main" sx={styles.content} onPointerDownCapture={handleClearSelection}>
         <Box sx={styles.pageBodyInner} data-center-page="true">
           {isProjectsScope ? (
             <Box sx={{ flex: 1, minHeight: 0, height: '100%', opacity: isInitializing ? 0.45 : 1, transition: 'opacity 0.22s ease' }}>
@@ -444,6 +481,8 @@ export const DslDashboard: React.FC<{
             </Box>
           )}
         </Box>
+        </Box>
+        {embeddedRightPanel}
       </Box>
 
       {/* レイアウトルール設定ダイアログ（セット家具管理） */}

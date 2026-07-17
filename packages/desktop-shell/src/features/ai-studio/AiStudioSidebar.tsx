@@ -160,29 +160,33 @@ export const AiStudioSidebar: React.FC<AiStudioSidebarProps> = ({ currentView, o
                   {section.heading}
                 </Typography>
               )}
-              {section.items.map((item) => {
-                const active = currentView === item.id;
-                return (
-                  <ButtonBase
-                    key={item.id}
-                    onClick={() => onViewChange(item.id)}
-                    sx={{
-                      width: '100%', justifyContent: 'flex-start',
-                      borderRadius: 2, px: 1.5, py: 1, mb: 0.5, gap: 1.25, textAlign: 'left',
-                      bgcolor: active ? 'rgba(168,85,247,0.14)' : 'transparent',
-                      border: `1px solid ${active ? 'rgba(168,85,247,0.45)' : 'transparent'}`,
-                      transition: 'background-color .15s',
-                      '&:hover': { bgcolor: active ? 'rgba(168,85,247,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
-                    }}
-                  >
-                    <Box sx={{ color: active ? 'light-dark(#470ea0, #c4a3f7)' : 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'flex', mt: '1px' }}>{item.icon}</Box>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.78)', lineHeight: 1.2 }}>{item.label}</Typography>
-                      <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.2, mt: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.desc}</Typography>
-                    </Box>
-                  </ButtonBase>
-                );
-              })}
+              {/* 見出しのある節は項目を左ボーダー＋インデントでネスト表示（Global Settings と統一）。
+                  見出しのない先頭（ダッシュボード）はそのまま全幅。 */}
+              <Box sx={section.heading ? { ml: 1, pl: 1, borderLeft: `1px solid ${BRAND.line}` } : {}}>
+                {section.items.map((item) => {
+                  const active = currentView === item.id;
+                  return (
+                    <ButtonBase
+                      key={item.id}
+                      onClick={() => onViewChange(item.id)}
+                      sx={{
+                        width: '100%', justifyContent: 'flex-start',
+                        borderRadius: 2, px: 1.5, py: 1, mb: 0.5, gap: 1.25, textAlign: 'left',
+                        bgcolor: active ? 'rgba(168,85,247,0.14)' : 'transparent',
+                        border: `1px solid ${active ? 'rgba(168,85,247,0.45)' : 'transparent'}`,
+                        transition: 'background-color .15s',
+                        '&:hover': { bgcolor: active ? 'rgba(168,85,247,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.05)' },
+                      }}
+                    >
+                      <Box sx={{ color: active ? 'light-dark(#470ea0, #c4a3f7)' : 'rgb(var(--brand-fg-rgb) / 0.5)', display: 'flex', mt: '1px' }}>{item.icon}</Box>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography sx={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.78)', lineHeight: 1.2 }}>{item.label}</Typography>
+                        <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.2, mt: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.desc}</Typography>
+                      </Box>
+                    </ButtonBase>
+                  );
+                })}
+              </Box>
             </Box>
           ))}
         </Box>

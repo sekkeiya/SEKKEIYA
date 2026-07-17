@@ -11,7 +11,6 @@ import PropertiesLandscapePanel from "./PropertiesPanel/PropertiesLandscapePanel
 import FaceMaterialPanel from "./ContextPanels/FaceMaterialPanel";
 import { useEditorModeStore } from "../../../../store/useEditorModeStore";
 
-import { Select, MenuItem, Button, CircularProgress } from "@mui/material";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import { useAutoLayoutStore } from "../../../../store/useAutoLayoutStore";
 import { useLayoutTaskStore } from "../../../../store/useLayoutTaskStore";
@@ -136,9 +135,6 @@ export default function PropertiesPanel({
   // === Auto Layout Logic ===
   const isGenerating = useAutoLayoutStore((s) => s.isGenerating);
 
-  // Usage state
-  const [usage, setUsage] = React.useState("residential");
-
   // Material モード：躯体面のマテリアル設定パネルを最優先で表示する。
   const editorMode = useEditorModeStore((s) => s.editorMode);
   if (editorMode === "material") {
@@ -155,44 +151,8 @@ export default function PropertiesPanel({
   if (isEmpty) {
     return (
       <Box sx={{ ...panelSx, display: "flex", flexDirection: "column" }}>
-        {/* Top: Global Settings */}
-        <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontSize: 12, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", mb: 0.5 }}>用途 (Usage)</Typography>
-          <Select
-            size="small"
-            value={usage}
-            onChange={(e) => setUsage(e.target.value)}
-            sx={{
-              width: "100%",
-              height: 32,
-              color: "var(--brand-fg)",
-              fontSize: 13,
-              "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.2) },
-              "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.4) },
-              "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.6) },
-              mb: 2,
-            }}
-            MenuProps={{
-              PaperProps: {
-                sx: {
-                  bgcolor: "var(--brand-surface2)",
-                  border: `1px solid ${alpha("#fff", 0.1)}`,
-                  "& .MuiMenuItem-root": { fontSize: 13, color: "var(--brand-fg)" }
-                }
-              }
-            }}
-          >
-            <MenuItem value="residential">住宅 (Residential)</MenuItem>
-            <MenuItem value="restaurant">レストラン (Restaurant)</MenuItem>
-            <MenuItem value="office">オフィス (Office)</MenuItem>
-            <MenuItem value="retail">店舗 (Retail)</MenuItem>
-          </Select>
-
-
-        </Box>
-
-        <Divider sx={{ mb: 2, borderColor: alpha("#fff", 0.1) }} />
-
+        {/* 用途セレクタは contextPanel（OptionDetailPanel）側に統合済み。
+            旧ドロップダウンはローカル state のみで保存されない死にUIだったため撤去した。 */}
         {/* Middle: Selection Details */}
         <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", display: 'flex', flexDirection: 'column' }}>
           {contextPanel || (

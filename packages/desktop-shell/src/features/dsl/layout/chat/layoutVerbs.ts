@@ -290,6 +290,7 @@ export const layoutVerbs: VerbDef[] = [
         return JSON.stringify({
           ok: true,
           placedCount: result.placedCount,
+          candidateCount: result.candidateCount,
           sessionId: result.sessionId,
           projectId,
           planId,

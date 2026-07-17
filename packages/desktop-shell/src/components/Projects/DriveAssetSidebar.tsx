@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, IconButton, InputBase, CircularProgress } from '@mui/material';
+import { Box, Typography, IconButton, InputBase, CircularProgress, Chip } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import { useDriveAssets, PICKER_LAYERS } from '../../features/drive/driveAccess';
-import type { AIDriveAsset } from '../../store/useAIDriveStore';
+import {
+  assetOutputKind, OUTPUT_KINDS, OUTPUT_KIND_LABEL,
+  type AIDriveAsset, type OutputKind,
+} from '../../store/useAIDriveStore';
 
 /** ボードへのドラッグで運ぶ Drive 画像の URL を載せる dataTransfer の型（同一ドキュメント内 DnD）。 */
 export const DRIVE_IMAGE_DND_TYPE = 'application/x-sekkeiya-drive-image';
@@ -21,13 +24,57 @@ interface Props {
  * リサーチボード右の SEKKEIYA Drive パネル。Drive の画像アセットを一覧し、
  * サムネをボードへドラッグ&ドロップ（or クリック）で画像カードとして置ける（URL 参照・再アップロード不要）。
  */
+/** カテゴリ絞り込みの値。OutputKind ＋ すべて / 種別を確定できないものは「画像・その他」。 */
+type KindFilter = 'all' | OutputKind | 'other';
+
+/**
+ * このパネル用の種別判定。assetOutputKind は type が 'image' なら一律「静止画パース」に
+ * 落とすため、テクスチャや家具写真などパースでない画像が混ざってしまう。ここでは
+ *  1) タグの明示（テクスチャ）を最優先（assetOutputKind と同じ約束）
+ *  2) 「とりあえず放り込む」で入った汎用画像（appScope '3dsi'＋タグ '画像'）は
+ *     出どころ不明の画像であってパースではない → 「画像・その他」へ
+ *  3) publish 時に確定した metadata.kind（正確な種別）
+ *  4) 最後に assetOutputKind のフォールバック
+ * の順で解決する。
+ */
+function imageKindOf(a: AIDriveAsset): Exclude<KindFilter, 'all'> {
+  const tagKind = assetOutputKind(a);
+  if (tagKind === 'texture') return 'texture';
+  if ((a.appScope || '').toLowerCase() === '3dsi' && (a.tags || []).includes('画像')) return 'other';
+  return a.metadata?.kind ?? tagKind ?? 'other';
+}
+
 export const DriveAssetSidebar: React.FC<Props> = ({ open, onClose, onPick }) => {
   const { assets, loading } = useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
   const [search, setSearch] = useState('');
+  const [kind, setKind] = useState<KindFilter>('all');
   const q = search.trim().toLowerCase();
+
+  // 実際に手元にある画像資産の種別だけをチップに出す（空のカテゴリを並べない）。
+  const kindChips = useMemo<Array<{ key: KindFilter; label: string; count: number }>>(() => {
+    const counts = new Map<KindFilter, number>();
+    assets.forEach(a => {
+      const k = imageKindOf(a);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    });
+    const chips: Array<{ key: KindFilter; label: string; count: number }> = [
+      { key: 'all', label: 'すべて', count: assets.length },
+    ];
+    for (const { key } of OUTPUT_KINDS) {
+      const c = counts.get(key);
+      if (c) chips.push({ key, label: OUTPUT_KIND_LABEL[key], count: c });
+    }
+    const other = counts.get('other');
+    if (other) chips.push({ key: 'other', label: '画像・その他', count: other });
+    return chips;
+  }, [assets]);
+
   const rows = useMemo(
-    () => assets.filter(a => !q || (a.name || '').toLowerCase().includes(q)),
-    [assets, q],
+    () => assets.filter(a => {
+      if (kind !== 'all' && imageKindOf(a) !== kind) return false;
+      return !q || (a.name || '').toLowerCase().includes(q);
+    }),
+    [assets, q, kind],
   );
 
   if (!open) return null;
@@ -57,6 +104,22 @@ export const DriveAssetSidebar: React.FC<Props> = ({ open, onClose, onPick }) =>
         <InputBase fullWidth value={search} onChange={e => setSearch(e.target.value)}
           placeholder="画像名で検索..." sx={{ fontSize: 12, color: 'var(--brand-fg)' }} />
       </Box>
+
+      {/* カテゴリ絞り込み（手元にある種別だけ表示） */}
+      {kindChips.length > 2 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+          {kindChips.map(c => (
+            <Chip key={c.key} label={`${c.label} ${c.count}`} size="small" onClick={() => setKind(c.key)}
+              sx={{
+                height: 20, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                bgcolor: kind === c.key ? 'rgba(0,191,255,0.15)' : 'rgb(var(--brand-fg-rgb) / 0.06)',
+                color: kind === c.key ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                border: '1px solid', borderColor: kind === c.key ? 'rgba(0,191,255,0.4)' : 'transparent',
+                '& .MuiChip-label': { px: 0.9 },
+              }} />
+          ))}
+        </Box>
+      )}
 
       <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {loading ? (

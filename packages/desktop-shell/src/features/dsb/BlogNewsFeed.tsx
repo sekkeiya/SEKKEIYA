@@ -12,7 +12,6 @@ import PersonSearchRoundedIcon from '@mui/icons-material/PersonSearchRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
-import NewspaperRoundedIcon from '@mui/icons-material/NewspaperRounded';
 import BookmarkAddedRoundedIcon from '@mui/icons-material/BookmarkAddedRounded';
 import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
@@ -25,7 +24,9 @@ import { openReader } from './lib/openReader';
 import { LIBRARY_ADDED_EVENT } from './lib/articleToLibrary';
 import { isTauri } from '../../lib/platform';
 import { getLocalKnowledge } from '../dsk/api/knowledgeApi';
-import { loadBlogFeedSources, saveBlogFeedSources, loadCustomFeedSources, saveCustomFeedSources, loadBlogNameFilters, saveBlogNameFilters } from './api/blogApi';
+import { loadBlogFeedSources, saveBlogFeedSources, loadCustomFeedSources, saveCustomFeedSources, loadBlogNameFilters, saveBlogNameFilters, loadBlogInterestKeywords } from './api/blogApi';
+import { getLocalRatings, syncRatingsFromCloud, buildRatingProfile, type ArticleRating } from './lib/articleRatings';
+import { getYouTubeId } from './lib/youtube';
 import { FeedSourcePicker } from './FeedSourcePicker';
 import { BRAND } from '../../styles/theme';
 
@@ -60,7 +61,11 @@ const fmtDate = (v?: string) => {
   } catch { return ''; }
 };
 
-const GROUPS = ['すべて', '国内・建築/デザイン', '国内・住まい/インテリア', '海外・トレンド'] as const;
+const GROUPS = ['すべて', '国内・建築/デザイン', '国内・住まい/インテリア', '海外・トレンド', 'テック・AI'] as const;
+
+// 📰⇄🎬 種別判定（情報源ビューと同じ基準。カスタム追加のYouTubeチャンネルも拾う）
+const isVideoSite = (s: BlogSourceSite): boolean => s.group === '動画（YouTube）' || s.feed.includes('youtube.com/feeds');
+const isVideoUrl = (u: string): boolean => /(youtube\.com|youtu\.be)\//.test(u);
 
 // 一覧表示の直後に、上位記事をバックエンドで先回り処理（抽出＋英語記事の日本語翻訳）。
 // 結果は全ユーザー共有の readerCache に載るため、記事を開いた瞬間に翻訳済みで表示される。
@@ -94,6 +99,11 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
   const [error, setError] = useState('');
   const [group, setGroup] = useState<string>('すべて');
   const [siteFilter, setSiteFilter] = useState<string>(''); // 媒体名（空=グループ内すべて）
+  // 📰⇄🎬 記事メディアと YouTube（動画）の表示切替（情報源ビューと対）
+  const [feedKind, setFeedKind] = useState<'article' | 'video'>('article');
+  // 🌐 動画の言語絞り込み: 「日本語で聴ける」= 日本語チャンネル or 日本語音声トラック（吹替）あり
+  const [videoLang, setVideoLang] = useState<'all' | 'ja' | 'original'>('all');
+  const [jaAudioMap, setJaAudioMap] = useState<Record<string, boolean>>({}); // videoId → 日本語トラック有無
 
   // 👤 人物・会社フィルタ: 著名辞書(NOTABLE_NAMES)の自動検出チップ＋ユーザー追加のウォッチ名
   const [nameFilter, setNameFilter] = useState<string>('');       // 選択中のラベル（空=絞り込みなし）
@@ -106,14 +116,53 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
   const [sources, setSources] = useState<string[] | null | undefined>(undefined);
   const [customSources, setCustomSources] = useState<BlogSourceSite[]>([]);
   const [sourcesSaving, setSourcesSaving] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
   const categories = useDsbStore((s) => s.categories);
+  // 全幅ヘッダーの検索・更新と連携（媒体選択は左サイドバー「ソース記事」へ移設済み）。
+  const feedSearch = useDsbStore((s) => s.feedSearch);
+  const feedRefreshNonce = useDsbStore((s) => s.feedRefreshNonce);
+  // 関心ワードランキング（ソース記事の右サイドバーで設定）とおすすめ順の切替
+  const [interestKeywords, setInterestKeywords] = useState<string[]>([]);
+  const [sortMode, setSortMode] = useState<'new' | 'reco'>('new');
+  const setView = useDsbStore((s) => s.setView);
+
+  // ⭐ 記事への関心度評価（Reader で付けた★）。おすすめ順の学習材料。
+  // Reader は独立ウィンドウなので、フォーカス復帰・storage イベントで再読込して即時反映する。
+  const [ratedMap, setRatedMap] = useState<Map<string, ArticleRating>>(new Map());
+  useEffect(() => {
+    const refresh = () => setRatedMap(new Map(getLocalRatings().map((r) => [r.url, r])));
+    refresh();
+    window.addEventListener('focus', refresh);
+    window.addEventListener('storage', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    void syncRatingsFromCloud(uid).then((list) => {
+      if (!alive) return;
+      setRatedMap(new Map(list.map((r) => [r.url, r])));
+      if (list.length > 0) setSortMode('reco'); // 評価があれば初期表示はおすすめ順
+    });
+    return () => { alive = false; };
+  }, [uid]);
+  const ratingProfile = useMemo(
+    () => buildRatingProfile([...ratedMap.values()].sort((a, b) => b.at - a.at)),
+    [ratedMap],
+  );
 
   useEffect(() => {
     if (!uid) return;
     let alive = true;
-    void Promise.all([loadBlogFeedSources(uid), loadCustomFeedSources(uid), loadBlogNameFilters(uid)])
-      .then(([s, customs, names]) => { if (alive) { setCustomSources(customs); setSources(s); setCustomNames(names); } })
+    void Promise.all([loadBlogFeedSources(uid), loadCustomFeedSources(uid), loadBlogNameFilters(uid), loadBlogInterestKeywords(uid)])
+      .then(([s, customs, names, kws]) => {
+        if (!alive) return;
+        setCustomSources(customs); setSources(s); setCustomNames(names); setInterestKeywords(kws);
+        // 関心ワードが設定済みなら初期表示は「おすすめ順」（設定はソース記事の右サイドバー）。
+        if (kws.length > 0) setSortMode('reco');
+      })
       .catch(() => { if (alive) setSources(null); });
     return () => { alive = false; };
   }, [uid]);
@@ -161,13 +210,21 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
     setError('');
     try {
       const fn = httpsCallable(functions, 'blogDialogue');
-      const r: any = await fn({
-        mode: 'feed',
-        sites: sites.map((s) => ({ name: s.name, feed: s.feed })),
-        perSite: 8,
-      });
-      if (r.data?.success && Array.isArray(r.data.feeds)) {
-        const all: FeedItem[] = r.data.feeds.flatMap((f: any) => (Array.isArray(f.items) ? f.items : []));
+      // サーバー側は1回の呼び出しで12媒体まで（超過分は切り捨てられる）
+      // → 12件ずつに分割して並列取得し、結果を結合する。
+      const chunks: BlogSourceSite[][] = [];
+      for (let i = 0; i < sites.length; i += 12) chunks.push(sites.slice(i, i + 12));
+      const rs = await Promise.all(chunks.map((chunk) =>
+        fn({
+          mode: 'feed',
+          sites: chunk.map((s) => ({ name: s.name, feed: s.feed })),
+          perSite: 8,
+        }).catch(() => null)));
+      const okRes: any[] = rs.filter((r: any) => r?.data?.success && Array.isArray(r.data.feeds));
+      if (okRes.length > 0) {
+        const all: FeedItem[] = okRes
+          .flatMap((r: any) => r.data.feeds)
+          .flatMap((f: any) => (Array.isArray(f.items) ? f.items : []));
         // 日付降順（日付なしは末尾）
         all.sort((a, b) => {
           const ta = a.date ? new Date(a.date).getTime() : 0;
@@ -180,7 +237,8 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
         setItems(all);
         prewarmArticles(all, sites);
       } else {
-        setError(r.data?.reason || 'フィードを取得できませんでした');
+        const reason = rs.map((r: any) => r?.data?.reason).find(Boolean);
+        setError(reason || 'フィードを取得できませんでした');
       }
     } catch (e: any) {
       setError(`フィードの取得に失敗しました: ${e.message}`);
@@ -194,6 +252,11 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
     if (sources && sources.length > 0) void load();
     if (sources && sources.length === 0) setItems([]);
   }, [sources]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 全幅ヘッダーの「フィード更新」ボタン（feedRefreshNonce の変化）で強制再取得。
+  useEffect(() => {
+    if (feedRefreshNonce > 0) void load(true);
+  }, [feedRefreshNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ソース選択の保存（初回オンボーディング / 管理ダイアログ共通）
   const handleSaveSources = async (names: string[]) => {
@@ -215,15 +278,6 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
   const loadSchedules = useDsbStore((s) => s.loadSchedules);
   useEffect(() => { if (uid) void loadSchedules(uid); }, [uid, loadSchedules]);
 
-  const dueThisWeek = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const limit = new Date(); limit.setDate(limit.getDate() + 7);
-    const week = limit.toISOString().slice(0, 10);
-    return schedules
-      .filter((s) => s.status === 'planned' && s.date <= week)
-      .map((s) => ({ ...s, overdue: s.date < today }))
-      .slice(0, 3);
-  }, [schedules]);
 
   // 今日が期日の予定をデスクトップ通知（1日1回・best-effort。Global Settings > S.Blog でOFFにできる）
   useEffect(() => {
@@ -244,23 +298,6 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
       });
     }).catch(() => { /* 非対応環境は無視 */ });
   }, [schedules, uid]);
-
-  // 予定を「実行」: カテゴリに合う記事があればリーダーで開いて読み上げ開始（→議論へ）、なければそのカテゴリで新規記事
-  const startScheduleItem = (s: { title: string; category?: string | null }) => {
-    const rec = recommendSourcesForCategories([s.category || ''], allSites);
-    const match = items.find((it) => rec.has(it.source));
-    if (match) {
-      try {
-        localStorage.setItem('sblog-reader-playlist', JSON.stringify({
-          at: Date.now(),
-          items: items.filter((f) => rec.has(f.source)).map((f) => ({ title: f.title, url: f.url, source: f.source, image: f.image || '' })),
-        }));
-      } catch { /* noop */ }
-      void openReader(match.url, match.title, match.source, { autoRead: true });
-    } else if (uid) {
-      startNew(uid, displayName, s.category || undefined);
-    }
-  };
 
   // カテゴリに合うのにまだ紐づけていないソース（ワンクリック追加の提案チップ）
   const suggestions = useMemo(() => {
@@ -298,15 +335,21 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
     return m;
   }, [allSites]);
 
-  // グループタブ（カスタムメディアを購読していれば「カスタム」タブも出す）
+  // 表示種別（記事⇄動画）に合う購読ソースだけを対象にする
+  const kindSites = useMemo(
+    () => subscribedSites.filter((s) => isVideoSite(s) === (feedKind === 'video')),
+    [subscribedSites, feedKind],
+  );
+
+  // グループタブ（カスタムメディアを購読していれば「カスタム」タブも出す）。動画表示では使わない
   const groupTabs = useMemo(
-    () => (subscribedSites.some((s) => s.group === 'カスタム') ? [...GROUPS, 'カスタム'] : [...GROUPS]),
-    [subscribedSites],
+    () => (kindSites.some((s) => s.group === 'カスタム') ? [...GROUPS, 'カスタム'] : [...GROUPS]),
+    [kindSites],
   );
 
   const groupSites = useMemo(
-    () => subscribedSites.filter((s) => group === 'すべて' || s.group === group),
-    [group, subscribedSites],
+    () => kindSites.filter((s) => feedKind === 'video' || group === 'すべて' || s.group === group),
+    [group, kindSites, feedKind],
   );
 
   // 👤 人物・会社チップ: カスタム（常に表示）＋著名辞書のうち現在のフィードに記事がある人物・会社
@@ -340,16 +383,80 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
     catch (e) { console.error('[BlogNewsFeed] save name filters failed', e); }
   };
 
-  const filtered = useMemo(() => items.filter((it) => {
-    const meta = siteMeta.get(it.source);
-    if (group !== 'すべて' && meta?.group !== group) return false;
-    if (siteFilter && it.source !== siteFilter) return false;
-    if (nameFilter) {
-      const aliases = nameChips.find((c) => c.label === nameFilter)?.aliases ?? [nameFilter];
-      if (!aliases.some((a) => titleMatchesAlias(it.title, a))) return false;
-    }
-    return true;
-  }), [items, group, siteFilter, siteMeta, nameFilter, nameChips]);
+  // 🌐 表示中の動画の「日本語音声トラック（吹替）」有無を CF でバッチ判定（Firestore永続キャッシュ）。
+  // pending が返る間は繰り返し呼んで全件を埋める（1回8件ずつの新規判定）。
+  useEffect(() => {
+    if (feedKind !== 'video') return;
+    const urls = items.filter((it) => isVideoUrl(it.url)).slice(0, 40).map((it) => it.url);
+    if (!urls.length) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const fn = httpsCallable(functions, 'blogDialogue');
+        for (let i = 0; i < 5; i++) {
+          const r: any = await fn({ mode: 'videoLangs', urls });
+          if (!alive || !r.data?.success) return;
+          setJaAudioMap((prev) => ({
+            ...prev,
+            ...Object.fromEntries(Object.entries(r.data.map || {}).map(([id, v]: [string, any]) => [id, !!v?.jaAudio])),
+          }));
+          if (!r.data.pending) break;
+        }
+      } catch { /* 判定できなくても一覧表示は可能 */ }
+    })();
+    return () => { alive = false; };
+  }, [feedKind, items]);
+
+  // 「日本語で聴ける」判定: 日本語チャンネル or 日本語音声トラックあり（トラック機能への柔軟対応）
+  const jaWatchable = (it: FeedItem): boolean =>
+    siteMeta.get(it.source)?.lang === 'ja' || !!jaAudioMap[getYouTubeId(it.url)];
+
+  const filtered = useMemo(() => {
+    const q = feedSearch.trim().toLowerCase();
+    return items.filter((it) => {
+      const meta = siteMeta.get(it.source);
+      // 種別トグル: 動画（YouTube URL）⇄ 記事。グループタブは記事表示のみ有効
+      if (isVideoUrl(it.url) !== (feedKind === 'video')) return false;
+      if (feedKind === 'article' && group !== 'すべて' && meta?.group !== group) return false;
+      // 🌐 動画の言語絞り込み（日本語で聴ける ⇄ 原語のみ）
+      if (feedKind === 'video' && videoLang !== 'all') {
+        const ja = jaWatchable(it);
+        if (videoLang === 'ja' ? !ja : ja) return false;
+      }
+      if (siteFilter && it.source !== siteFilter) return false;
+      if (nameFilter) {
+        const aliases = nameChips.find((c) => c.label === nameFilter)?.aliases ?? [nameFilter];
+        if (!aliases.some((a) => titleMatchesAlias(it.title, a))) return false;
+      }
+      // 全幅ヘッダーの検索: タイトル or 媒体名にマッチ。
+      if (q && !(it.title?.toLowerCase().includes(q) || it.source?.toLowerCase().includes(q))) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, group, siteFilter, siteMeta, nameFilter, nameChips, feedSearch, feedKind, videoLang, jaAudioMap]);
+
+  // おすすめ順のスコア = 関心ワードランキング（手動設定）＋ ⭐関心度評価（Readerで付けた★からの学習）。
+  // 関心ワードは 1位が最重・タイトル一致を最重視、媒体キーワード一致は弱め。
+  // ★評価は「高評価に似たタイトルを押し上げ・低評価に似たタイトルを押し下げ」（articleRatings.ts）。
+  const displayed = useMemo(() => {
+    if (sortMode !== 'reco' || (interestKeywords.length === 0 && ratingProfile.count === 0)) return filtered;
+    const n = interestKeywords.length;
+    const scoreOf = (it: FeedItem): number => {
+      const title = (it.title || '').toLowerCase();
+      const siteKw = (siteMeta.get(it.source)?.keywords || []).join(' ').toLowerCase();
+      let s = 0;
+      interestKeywords.forEach((w, i) => {
+        const lw = w.toLowerCase();
+        const weight = n - i; // 1位 = n, 最下位 = 1
+        if (title.includes(lw)) s += weight * 2;
+        else if (siteKw.includes(lw)) s += weight * 0.5;
+      });
+      s += ratingProfile.scoreOf(it.title || '', it.source || '');
+      return s;
+    };
+    const dateOf = (it: FeedItem) => (it.date ? new Date(it.date).getTime() : 0);
+    return [...filtered].sort((a, b) => scoreOf(b) - scoreOf(a) || dateOf(b) - dateOf(a));
+  }, [filtered, sortMode, interestKeywords, siteMeta, ratingProfile]);
 
   // 記事を SEKKEIYA Reader で開く。開く前に表示中の並びをプレイリストとして保存し、
   // Reader 側の連続読み上げ（読了→次の記事へ自動遷移）に使う。
@@ -357,7 +464,7 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
     try {
       localStorage.setItem('sblog-reader-playlist', JSON.stringify({
         at: Date.now(),
-        items: filtered.map((f) => ({ title: f.title, url: f.url, source: f.source, image: f.image || '' })),
+        items: displayed.map((f) => ({ title: f.title, url: f.url, source: f.source, image: f.image || '' })),
       }));
     } catch { /* 保存できなくても単記事表示は可能 */ }
     void openReader(it.url, it.title, it.source);
@@ -378,34 +485,7 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
 
   return (
     <Box sx={{ p: 3, height: '100%', overflowY: 'auto' }}>
-      {/* ヘッダー */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-        <Box sx={{ width: 34, height: 34, borderRadius: 2, bgcolor: `${ACCENT}22`, border: `1px solid ${ACCENT}55`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <NewspaperRoundedIcon sx={{ fontSize: 19, color: ACCENT }} />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1.2 }}>ホーム</Typography>
-          <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
-            建築・インテリアの気になる記事から、AIと議論してあなたの記事を書けます
-          </Typography>
-        </Box>
-        <Tooltip title="表示するメディアを選ぶ（紐づけの追加・解除）">
-          <span>
-            <IconButton onClick={() => setManageOpen(true)} disabled={!uid || sources === undefined}
-              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: ACCENT } }}>
-              <RssFeedRoundedIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="フィードを更新">
-          <span>
-            <IconButton onClick={() => void load(true)} disabled={loading} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', '&:hover': { color: ACCENT } }}>
-              <RefreshRoundedIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Box>
+      {/* メディア選択は左サイドバー「ソース記事」へ、フィード更新は全幅ヘッダーへ移設した。 */}
 
       {sources === undefined ? (
         // 購読設定の読込中
@@ -421,32 +501,7 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
         </Box>
       ) : (
       <>
-      {/* 今週書くもの（投稿スケジュール連携。実行で 記事表示→読み上げ→AI議論 が始まる） */}
-      {!official && dueThisWeek.length > 0 && (
-        <Box sx={{ mt: 1.5, px: 1.5, py: 1.25, borderRadius: 2, bgcolor: 'rgba(229,115,115,0.06)', border: `1px solid ${ACCENT}44` }}>
-          <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: ACCENT, mb: 0.75 }}>
-            ✍ 今週書くもの
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            {dueThisWeek.map((s) => (
-              <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: 10.5, color: s.overdue ? 'light-dark(#961818, #ef9a9a)' : 'rgb(var(--brand-fg-rgb) / 0.45)', width: 96, flexShrink: 0 }}>
-                  {s.overdue ? '期限超過' : `${s.date.slice(5).replace('-', '/')}${s.time ? ` ${s.time}` : ''}`}
-                </Typography>
-                <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, color: 'var(--brand-fg)', flex: 1, minWidth: 0 }}>{s.title}</Typography>
-                {s.category && (
-                  <Chip label={s.category} size="small" sx={{ height: 18, fontSize: 10, bgcolor: `${ACCENT}22`, color: 'var(--brand-fg)', flexShrink: 0 }} />
-                )}
-                <Button size="small" variant="outlined" onClick={() => startScheduleItem(s)}
-                  sx={{ color: ACCENT, borderColor: `${ACCENT}55`, textTransform: 'none', fontSize: 11, px: 1.25, py: 0, flexShrink: 0,
-                    '&:hover': { borderColor: ACCENT, bgcolor: `${ACCENT}14` } }}>
-                  実行
-                </Button>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      )}
+      {/* 「今週書くもの」パネルは撤去。締切の予定はサイドバー「スケジュール」の通知バッジで示す。 */}
 
       {/* カテゴリ連動のおすすめ（未紐づけ分をワンクリック追加） */}
       {suggestions.length > 0 && (
@@ -468,8 +523,29 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
       )}
 
       {/* グループタブ */}
-      <Box sx={{ display: 'flex', gap: 0.75, mt: 2, mb: 1, flexWrap: 'wrap' }}>
-        {groupTabs.map((g) => (
+      <Box sx={{ display: 'flex', gap: 0.75, mt: 2, mb: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* 📰⇄🎬 種別トグル（情報源ビューと対）: 記事メディア / YouTube（動画） */}
+        {([['article', '📰 記事'], ['video', '🎬 動画']] as const).map(([key, label]) => (
+          <Chip key={key} label={label} size="small"
+            onClick={() => { setFeedKind(key); setGroup('すべて'); setSiteFilter(''); }}
+            sx={{ cursor: 'pointer', fontWeight: 800, fontSize: 12, height: 26,
+              bgcolor: feedKind === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
+              color: feedKind === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+              border: `1px solid ${feedKind === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+              '&:hover': { bgcolor: feedKind === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
+        ))}
+        <Box sx={{ width: 6 }} />
+        {/* 🌐 動画の言語絞り込み。「日本語」は日本語チャンネル＋日本語音声トラック（吹替）ありを含む */}
+        {feedKind === 'video' && ([['all', 'すべて'], ['ja', '🇯🇵 日本語で聴ける'], ['original', '原語のみ']] as const).map(([key, label]) => (
+          <Chip key={key} label={label} size="small"
+            onClick={() => setVideoLang(key)}
+            sx={{ cursor: 'pointer', fontWeight: 700, fontSize: 11.5,
+              bgcolor: videoLang === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+              color: videoLang === key ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.65)',
+              border: `1px solid ${videoLang === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+              '&:hover': { bgcolor: videoLang === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
+        ))}
+        {feedKind === 'article' && groupTabs.map((g) => (
           <Chip key={g} label={g} size="small"
             onClick={() => { setGroup(g); setSiteFilter(''); }}
             sx={{ cursor: 'pointer', fontWeight: 700, fontSize: 11.5,
@@ -478,6 +554,27 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
               border: `1px solid ${group === g ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
               '&:hover': { bgcolor: group === g ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
         ))}
+        <Box sx={{ flex: 1, minWidth: 8 }} />
+        {/* 並び順: 関心ワードランキング or ⭐関心度評価があれば「おすすめ順」を選べる。どちらも無ければ導線を出す */}
+        {(interestKeywords.length > 0 || ratingProfile.count > 0) ? (
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {([['reco', '★ おすすめ順'], ['new', '新着順']] as const).map(([key, label]) => (
+              <Chip key={key} label={label} size="small"
+                onClick={() => setSortMode(key)}
+                sx={{ cursor: 'pointer', fontWeight: 700, fontSize: 11,
+                  bgcolor: sortMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                  color: sortMode === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                  border: `1px solid ${sortMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+                  '&:hover': { bgcolor: sortMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
+            ))}
+          </Box>
+        ) : (
+          <Chip label="★ 関心ワード設定 or 記事に★評価でおすすめ順に" size="small"
+            onClick={() => setView('sources')}
+            sx={{ cursor: 'pointer', fontWeight: 700, fontSize: 10.5,
+              bgcolor: 'transparent', color: `${ACCENT}`, border: `1px dashed ${ACCENT}66`,
+              '&:hover': { bgcolor: 'rgba(229,115,115,0.1)' } }} />
+        )}
       </Box>
 
       {/* 媒体フィルタ */}
@@ -568,7 +665,7 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
         </Box>
       ) : (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 1.5 }}>
-          {filtered.map((it, i) => {
+          {displayed.map((it, i) => {
             const meta = siteMeta.get(it.source);
             return (
               <Box key={`${it.url}-${i}`}
@@ -594,6 +691,30 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
                       border: `1px solid hsl(${hueOf(it.source)},60%,55%,0.4)` }} />
                   {meta?.lang === 'en' && (
                     <Typography sx={{ fontSize: 9, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', px: 0.5, borderRadius: 0.75 }}>EN</Typography>
+                  )}
+                  {/(youtube\.com|youtu\.be)\//.test(it.url) && (
+                    <Tooltip title="YouTube動画。Readerで再生しながら日本語字幕で観られます（記事表示・読み上げ・AI議論も可）">
+                      <Chip label="🎬 動画" size="small"
+                        sx={{ height: 18, fontSize: 10, fontWeight: 800,
+                          bgcolor: 'rgba(229,115,115,0.12)', color: 'light-dark(#921b1b, #ef9a9a)',
+                          border: '1px solid rgba(229,115,115,0.4)' }} />
+                    </Tooltip>
+                  )}
+                  {feedKind === 'video' && meta?.lang !== 'ja' && jaAudioMap[getYouTubeId(it.url)] && (
+                    <Tooltip title="日本語音声トラック（吹替）あり。プレイヤーが自動で日本語音声を選びます">
+                      <Chip label="🇯🇵 日本語音声" size="small"
+                        sx={{ height: 18, fontSize: 10, fontWeight: 800,
+                          bgcolor: 'rgba(129,199,132,0.14)', color: 'light-dark(#2e7d32, #a5d6a7)',
+                          border: '1px solid rgba(129,199,132,0.4)' }} />
+                    </Tooltip>
+                  )}
+                  {ratedMap.has(it.url) && (
+                    <Tooltip title={`あなたの関心度評価 ★${ratedMap.get(it.url)!.rating}（Readerで変更できます）。おすすめ順に反映されます`}>
+                      <Chip label={`★${ratedMap.get(it.url)!.rating}`} size="small"
+                        sx={{ height: 18, fontSize: 10, fontWeight: 800,
+                          bgcolor: 'rgba(255,215,64,0.12)', color: 'light-dark(#ad8900, #ffd740)',
+                          border: '1px solid rgba(255,215,64,0.4)' }} />
+                    </Tooltip>
                   )}
                   {savedUrls.has(it.url) && (
                     <Tooltip title="S.Library に知識として追加済みの記事です">
@@ -634,7 +755,7 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
               </Box>
             );
           })}
-          {filtered.length === 0 && (
+          {displayed.length === 0 && (
             <Typography sx={{ gridColumn: '1/-1', textAlign: 'center', py: 6, fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
               この条件の記事はありません。
             </Typography>
@@ -650,15 +771,7 @@ export const BlogNewsFeed: React.FC<BlogNewsFeedProps> = ({ official = false }) 
       </>
       )}
 
-      {/* ソース管理ダイアログ（紐づけの追加・解除） */}
-      <Dialog open={manageOpen} onClose={() => !sourcesSaving && setManageOpen(false)} maxWidth="md" fullWidth
-        PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3 } }}>
-        <DialogContent sx={{ p: 3 }}>
-          <FeedSourcePicker categories={categories} current={sources ?? []} customSources={customSources} saving={sourcesSaving}
-            onSave={(n) => void handleSaveSources(n)} onCancel={() => setManageOpen(false)}
-            onAddCustom={handleAddCustom} onRemoveCustom={(n) => void handleRemoveCustom(n)} />
-        </DialogContent>
-      </Dialog>
+      {/* ソース管理は左サイドバー「ソース記事」ビュー（BlogSourcesView）へ移設したためダイアログは廃止。 */}
     </Box>
   );
 };

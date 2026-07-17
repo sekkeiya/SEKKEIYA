@@ -4,19 +4,17 @@ import { Box, IconButton, Tooltip } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
-import ViewSidebarRoundedIcon from "@mui/icons-material/ViewSidebarRounded";
 import MapRoundedIcon from "@mui/icons-material/MapRounded";
 
 // ✅ Twinmotion式 Right Panels
+import DashboardCustomizeRoundedIcon from "@mui/icons-material/DashboardCustomizeRounded"; // Project Hierarchy
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded"; // Scene
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded"; // Properties
-import DashboardCustomizeRoundedIcon from "@mui/icons-material/DashboardCustomizeRounded"; // Board
 import PhotoLibraryRoundedIcon from "@mui/icons-material/PhotoLibraryRounded"; // History
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded"; // Viewport Settings
 
 // ✅ NEW: Zustand
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
-import { useUiLeftSidebarStore } from "../../store/uiLeftSidebarStore";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { toggleMapMode } from "../../utils/mapMode";
 
@@ -35,34 +33,38 @@ export default function BottomDock({
   // ルートの right をこの分内側に寄せると、中央ツールバー(left:50%)も右レール(right:16)も
   // 自動的にビューポート側へ収まる。
   rightInset = 0,
+  // 全幅ヘッダー化: 左サイドバーが LayoutShell 内へ埋め込まれたため、
+  // 左レール(left:16)がサイドバーに重ならないよう左オフセットも受ける。
+  leftInset = 0,
 }) {
   const theme = useTheme();
 
   // ✅ RightSidebar表示状態（Zustandから直読み）
   const rightPanels = useUiRightSidebarStore((s) => s.rightPanels);
-  const toggleRightPanel = useUiRightSidebarStore((s) => s.toggleRightPanel);
+  // 右ドックは「一度に1枚だけ開く」排他トグル（将来 2 枚同時に開きたくなったら toggleRightPanel に戻す）。
+  const toggleRightPanel = useUiRightSidebarStore((s) => s.toggleRightPanelExclusive);
 
   // Map ボタン：Map モードへ入退（トップツールバーの Map タブと同じ挙動）。
   const handleToggleMap = useCallback(() => toggleMapMode(), []);
 
-  // ✅ LeftSidebar表示状態
-  const leftPanels = useUiLeftSidebarStore((s) => s.leftPanels);
-  const toggleLeftPanel = useUiLeftSidebarStore((s) => s.toggleLeftPanel);
-
   const editorMode = useEditorModeStore((s) => s.editorMode);
+
+  // ✅ 2D/3D グループでレールのボタンを絞る（Map=2Dのみ / History(生成履歴)=3Dのみ）
+  const viewGroup = useEditorModeStore((s) => s.editorViewGroup);
+  const isViewGroup2D = viewGroup === "2d";
 
   const rootSx = useMemo(
     () => ({
       position: "absolute",
-      left: 0,
+      left: leftInset,
       right: rightInset,
       top: 0,
       bottom: 0,
       zIndex: 60,
       pointerEvents: "none", // root is click-through
-      transition: "right 0.22s cubic-bezier(0.4,0,0.2,1)",
+      transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), right 0.22s cubic-bezier(0.4,0,0.2,1)",
     }),
-    [rightInset]
+    [leftInset, rightInset]
   );
 
   // Vertical layout for left/right islands
@@ -108,15 +110,16 @@ export default function BottomDock({
     [theme.palette.primary.main]
   );
 
+  const isProjectHierarchyOn = !!rightPanels?.projectHierarchy;
   const isSceneOn = !!rightPanels?.scene;
   const isPropsOn = !!rightPanels?.properties;
+  const isLibraryOn = !!rightPanels?.library;
   const isHistoryOn = !!rightPanels?.history;
   const isMapOn = !!rightPanels?.map;
   const isViewportSettingsOn = !!rightPanels?.viewportSettings;
 
   // 選択中（オン）のボタンを持つドックは未ホバーでも薄くしすぎない（状態が一目で分かるように）。
-  const leftActive = !!(leftPanels?.dashboard || leftPanels?.project || leftPanels?.library);
-  const rightActive = isSceneOn || isPropsOn || isHistoryOn || isViewportSettingsOn;
+  const rightActive = isProjectHierarchyOn || isSceneOn || isPropsOn || isLibraryOn || isHistoryOn || isViewportSettingsOn;
   const activeDockOpacity = 0.9;
 
   // ウォークスルー中は編集用ドック（左右の浮動ツールバー・モード切替）を隠して
@@ -126,30 +129,8 @@ export default function BottomDock({
 
   return (
     <Box sx={rootSx}>
-      {/* Left Vertical Dock: Project, Structure, Library */}
-      {/* top: 右ドックと上端を揃える（160）。選択中ボタンがあれば薄くしすぎない。 */}
-      <Box sx={{ ...glassBoxVerticalSx, left: 16, top: 160, ...(leftActive ? { opacity: activeDockOpacity } : {}) }}>
-            <Tooltip title="デフォルト左サイドバー (Default Sidebar)" placement="right">
-              <IconButton onClick={() => toggleLeftPanel('dashboard')} sx={pillBtn(!!leftPanels?.dashboard)}>
-                <ViewSidebarRoundedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-            {/* Layout Tasks is deprecated in Phase 2 (Retroactive Space Programming) */}
-            {/* <Tooltip title="レイアウトタスク (Layout Tasks)" placement="right"> ... </Tooltip> */}
-
-            <Tooltip title="Project Hierarchy" placement="right">
-              <IconButton onClick={() => toggleLeftPanel('project')} sx={pillBtn(!!leftPanels?.project)}>
-                <DashboardCustomizeRoundedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-
-        <Tooltip title="ライブラリ (Models Library)" placement="right">
-          <IconButton onClick={() => toggleLeftPanel('library')} sx={pillBtn(!!leftPanels?.library)}>
-            <FolderOpenRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {/* 全幅ヘッダー化: エディタの左サイドバー（デフォルト/Project Hierarchy/Library）は廃止。
+          Library は右サイドバーのパネルとして開く（右レールにトグルを追加）。 */}
 
       {/* 左ドック下部の★メニュー（自動アクションのランチャー）。
           ピッカー等でボトムパネルが開いている間は下部ギャラリーと干渉しないよう★も隠す。 */}
@@ -158,40 +139,7 @@ export default function BottomDock({
       {/* 自動レイアウト/マテリアル等のスタイル選択ギャラリー（←→＋Enter/Space） */}
       {!panelOpen && <AutoActionGalleryBar />}
 
-      {/* Right Vertical Dock: Scene, Properties, Auto Layout, History, QuickMenu */}
-      <Box sx={{ ...glassBoxVerticalSx, right: 16, top: 160, ...(rightActive ? { opacity: activeDockOpacity } : {}) }}>
-        <Tooltip title="Scene（アウトライナー）" placement="left">
-          <IconButton onClick={() => toggleRightPanel("scene")} sx={pillBtn(isSceneOn)}>
-            <AccountTreeRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Properties（Ambience等）" placement="left">
-          <IconButton onClick={() => toggleRightPanel("properties")} sx={pillBtn(isPropsOn)}>
-            <TuneRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="History（生成履歴）" placement="left">
-          <IconButton onClick={() => toggleRightPanel("history")} sx={pillBtn(isHistoryOn)}>
-            <PhotoLibraryRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="マップ（敷地に航空写真）" placement="left">
-          <IconButton onClick={handleToggleMap} sx={pillBtn(isMapOn)}>
-            <MapRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        {/* ビューポート設定（断面 Clipping / 俯瞰レベル線 / グリッド / 背景 / 移動速度）。
-            旧 ViewportQuickMenu の目アイコン浮動メニューを、右サイドバーの常設パネルに集約。 */}
-        <Tooltip title="ビューポート設定（断面 / レベル線 / グリッド / 背景 / 速度）" placement="left">
-          <IconButton onClick={() => toggleRightPanel("viewportSettings")} sx={pillBtn(isViewportSettingsOn)}>
-            <SettingsRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {/* 右の縦ドックは廃止。パネル切替は右サイドバー上部の切替タブへ移設した。 */}
     </Box>
   );
 }

@@ -14,6 +14,18 @@ function safeStr(v, fb = "") {
     return typeof v === "string" && v.trim() ? v : fb;
 }
 
+// assets コレクションには 3Dモデル以外（画像/レンダー/ブログカバー等）も混在するため、
+// 家具ライブラリには 3Dモデルのみを通す。type=='3d-model' を基本とし、
+// type が無い旧データは GLB/GLTF を指す URL の有無でフォールバック判定する。
+function isThreeDModel(a) {
+    if (!a) return false;
+    const t = String(a.type || "").toLowerCase();
+    if (t === "3d-model" || t === "model" || t.includes("3d")) return true;
+    if (t) return false; // 画像/動画/ブログ等の明示 type は除外
+    const g = a.glbUrl || a.downloadUrl || a.url || a.files?.glb?.url || a.files?.glb?.downloadUrl;
+    return !!g && /\.(glb|gltf)(\?|#|$)/i.test(String(g));
+}
+
 /**
  * usePublicModels
  * - 公開モデル一覧を購読（MVP）
@@ -55,11 +67,14 @@ export function usePublicModels({ enabled = true, limit = 60 } = {}) {
                         name: safeStr(data.name, d.id),
                         brand: safeStr(data.brand, ""),
                         ownerHandle: safeStr(data.ownerHandle, ""),
-                        thumbUrl: safeStr(data.thumbUrl || data.thumbnailUrl || data.coverUrl, ""),
+                        // 家具サムネはモデル固有の thumbUrl / thumbnailUrl のみ。
+                        // coverUrl はブログ/記事カバー用フィールドで、混入すると
+                        // 無関係な画像（例: 赤い内観レンダー）がタイルに出るため使わない。
+                        thumbUrl: safeStr(data.thumbUrl || data.thumbnailUrl, ""),
                         updatedAt: data.updatedAt || data.createdAt || null,
                         raw: data,
                     };
-                });
+                }).filter(isThreeDModel);
                 setModels(list);
                 setLoading(false);
             },

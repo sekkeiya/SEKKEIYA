@@ -126,10 +126,12 @@ interface AIChatStoreState {
   ensureOwner: (uid: string | null) => void;
 
   createSession: (projectId: string, initialTitle?: string) => string;
-  /** スコープ付きセッションを作成（全体/プロジェクト/子アプリ/タスク）。 */
+  /** スコープ付きセッションを作成（全体/プロジェクト/子アプリ/タスク）。
+   *  activate: false でグローバルのアクティブセッションを変えずに作成する
+   *  （子アプリ埋め込みチャットが右ドックの表示中セッションを奪わないため）。 */
   createScopedSession: (
     scope: ChatScope,
-    opts: { projectId?: string; appScope?: string; taskId?: string; taskTitle?: string; title?: string }
+    opts: { projectId?: string; appScope?: string; taskId?: string; taskTitle?: string; title?: string; activate?: boolean }
   ) => string;
   setActiveSession: (sessionId: string | null) => void;
   deleteSession: (sessionId: string) => void;
@@ -141,8 +143,9 @@ interface AIChatStoreState {
   getSessionsForProject: (projectId: string) => ChatSession[];
   /** スコープ条件に一致するセッションを新しい順で返す。 */
   getSessionsForScope: (q: ChatScopeQuery) => ChatSession[];
-  /** タスク（= diagram）の Chat を取得、無ければ作成（Editor 起点で使用）。 */
-  getOrCreateTaskSession: (projectId: string, appScope: string, taskId: string, taskTitle?: string) => string;
+  /** タスク（= diagram）の Chat を取得、無ければ作成（Editor 起点で使用）。
+   *  opts.activate: false でグローバルのアクティブセッションを変更しない。 */
+  getOrCreateTaskSession: (projectId: string, appScope: string, taskId: string, taskTitle?: string, opts?: { activate?: boolean }) => string;
   /** 指定メッセージ以降（そのメッセージ含む）をセッションから削除する。 */
   rewindToMessage: (sessionId: string, messageId: string) => void;
 }
@@ -206,7 +209,7 @@ export const useAIChatStore = create<AIChatStoreState>()(
               taskTitle: opts.taskTitle,
             },
           ],
-          activeSessionId: newSessionId,
+          activeSessionId: opts.activate === false ? state.activeSessionId : newSessionId,
         }));
         return newSessionId;
       },
@@ -279,7 +282,7 @@ export const useAIChatStore = create<AIChatStoreState>()(
           .sort((a, b) => b.updatedAt - a.updatedAt);
       },
 
-      getOrCreateTaskSession: (projectId, appScope, taskId, taskTitle) => {
+      getOrCreateTaskSession: (projectId, appScope, taskId, taskTitle, opts) => {
         const existing = get().sessions.find(
           (s) => s.projectId === projectId && s.appScope === appScope && s.taskId === taskId
         );
@@ -292,10 +295,10 @@ export const useAIChatStore = create<AIChatStoreState>()(
               ),
             }));
           }
-          set({ activeSessionId: existing.id });
+          if (opts?.activate !== false) set({ activeSessionId: existing.id });
           return existing.id;
         }
-        return get().createScopedSession('task', { projectId, appScope, taskId, taskTitle });
+        return get().createScopedSession('task', { projectId, appScope, taskId, taskTitle, activate: opts?.activate });
       },
 
       rewindToMessage: (sessionId, messageId) => {

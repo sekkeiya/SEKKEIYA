@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Button, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Typography, Button, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery } from '@mui/material';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import FolderSpecialRoundedIcon from '@mui/icons-material/FolderSpecialRounded';
 import { DsfPortfolioGrid } from './DsfPortfolioGrid';
@@ -9,6 +9,7 @@ import { DsfUploadDialog } from './upload/DsfUploadDialog';
 import { dsfUploadService } from './upload/dsfUploadService';
 import { useDsfStore, DSF_CATEGORIES, type DsfCategoryFilter } from './store/useDsfStore';
 import { useAppStore } from '../../store/useAppStore';
+import { DsfSidebar } from '../../shared/layout/dsf-sidebar/DsfSidebar';
 
 const ACCENT = '#7e57c2';
 
@@ -77,12 +78,15 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
     }
   };
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──────────────────────────────
+  // デスクトップでは MainLayout 側の左サイドバー複製を抑止し、代わりにここ
+  // （ヘッダー下の 3 ゾーン行）へ埋め込む。これによりツールバーが全幅ヘッダーになる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default' }}>
-      {/* Main column */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {/* Toolbar */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', bgcolor: 'background.default' }}>
+      {/* 全幅ヘッダー（Toolbar） */}
+      <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
               <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'rgb(var(--brand-fg-rgb) / 0.4)', textTransform: 'uppercase' }}>
@@ -132,10 +136,15 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
               })}
             </Box>
           )}
-        </Box>
+      </Box>
+
+      {/* 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | コンテンツ | 右情報パネル */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（ストア駆動で自己サイズ調整。デスクトップのみ埋め込み） */}
+        {!isMobile && <DsfSidebar />}
 
         {/* Grid */}
-        <Box sx={{ flex: 1, minHeight: 0 }}>
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
           {isProjectsMode ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2, p: 3, overflowY: 'auto', alignContent: 'start' }}>
               {(projects || []).map((p: any) => (
@@ -167,18 +176,18 @@ export const DsfDashboard: React.FC<DsfDashboardProps> = ({ payload, portfolios,
             />
           )}
         </Box>
-      </Box>
 
-      {/* Right info panel */}
-      {!isProjectsMode && (
-        <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
-          <DsfRightPanel
-            item={selectedItem}
-            onOpen={(item) => setViewerPortfolioId(item.id)}
-            onSetVisibility={(canWrite || isGlobal) ? handleSetVisibility : undefined}
-          />
-        </Box>
-      )}
+        {/* Right info panel（3 ゾーン行の右端・ヘッダー下）。表示条件は従来どおり */}
+        {!isProjectsMode && (
+          <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
+            <DsfRightPanel
+              item={selectedItem}
+              onOpen={(item) => setViewerPortfolioId(item.id)}
+              onSetVisibility={(canWrite || isGlobal) ? handleSetVisibility : undefined}
+            />
+          </Box>
+        )}
+      </Box>
 
       {/* Upload dialog */}
       {canWrite && (

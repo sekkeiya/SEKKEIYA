@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Box, Typography, Button, ButtonGroup, CircularProgress,
+  Box, Typography, Button, ButtonGroup, CircularProgress, useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { DssModelsGrid } from '../dss/DssModelsGrid';
@@ -11,6 +11,8 @@ import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDscStore } from './store/useDscStore';
 import { WorkFileRepository } from '../projects/workFileRepository';
+import { DscSidebar } from '../../shared/layout/dsc-sidebar/DscSidebar';
+import { DscRightPanel } from './components/DscRightPanel';
 
 // ─── DscDashboard ──────────────────────────────────────────────────────────────
 
@@ -150,6 +152,11 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
     || dscViewScope === 'my_public_furniture'
     || dscViewScope === 'my_private_furniture';
 
+  // ── 全幅ヘッダー化レイアウト用（デスクトップのみ） ──────────────────────────────
+  // デスクトップでは MainLayout の左サイドバー / RightPanelHost の右パネルを抑止し、
+  // 代わりにここ（ヘッダー下の 3 ゾーン行）へ埋め込む。これによりヘッダーが全幅になる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', color: 'text.primary' }}>
 
@@ -248,8 +255,13 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
         </Box>
       </Box>
 
-      {/* ── Content ── */}
-      <Box sx={{ flex: 1, p: 3, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* ── 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | グリッド | 右プロパティ ── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（デスクトップのみ埋め込み。開閉は isProjectSidebarOpen で自己サイズ制御） */}
+        {!isMobile && <DscSidebar />}
+
+        {/* ── Content ── */}
+        <Box sx={{ flex: 1, p: 3, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {loading && furnitureItems.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40%' }}>
             <CircularProgress sx={{ color: 'light-dark(#ad6700, #ffa726)' }} />
@@ -299,6 +311,29 @@ export const DscDashboard: React.FC<DscDashboardProps> = ({ payload, items: adap
               isInitializing={loading && furnitureItems.length === 0}
               cardContext={dscViewScope === 'global_projects' ? 'publicProjects' : 'privateModels'}
             />
+          </Box>
+        )}
+        </Box>
+
+        {/* 右パネル（デスクトップのみ埋め込み。旧 RightPanelHost と同じ 320px ゾーン） */}
+        {!isMobile && (
+          <Box
+            sx={{
+              width: 320, flexShrink: 0, height: '100%',
+              borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+              bgcolor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))',
+              display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+            }}
+          >
+            {/* パネルヘッダー（旧 RightPanelHost のタイトル行相当） */}
+            <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
+                S.Create プロパティ
+              </Typography>
+            </Box>
+            <Box sx={{ flex: 1, overflow: 'hidden', overflowY: 'auto' }}>
+              <DscRightPanel />
+            </Box>
           </Box>
         )}
       </Box>

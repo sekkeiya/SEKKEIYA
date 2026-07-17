@@ -1,13 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Box, IconButton, Tooltip, Menu, MenuItem, CircularProgress,
+  Box, IconButton, Tooltip, Menu, MenuItem, CircularProgress, Typography,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button,
 } from '@mui/material';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
+import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
+import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import { ResearchCanvas } from './ResearchCanvas';
+import { MindMapCanvas } from './MindMapCanvas';
 import {
   ResearchCanvasRepository,
   makeBoardKey,
@@ -22,19 +27,45 @@ interface Props {
   /** 右サイドバーに出す内容（プロジェクト=活動フィード / 個人=横断メモ）。null で非表示。 */
   sidebar?: React.ReactNode;
   sidebarWidth?: number;
+  /** 左のボード一覧サイドバーの幅。 */
+  boardListWidth?: number;
 }
 
 /**
  * Research & Memo ワークスペース（複数ボード対応）。
- * 上部にボード切替バー（一覧・新規作成・リネーム・削除）、メインに ResearchCanvas、
+ * 左にボード一覧サイドバー（一覧・新規作成・リネーム・削除）、メインに ResearchCanvas、
  * 右にサイドバー。ボードは scope（プロジェクト/個人）ごとに複数持てる。
- * アクティブボードは localStorage に scope 単位で記憶する。
+ * アクティブボードと左サイドバーの開閉は localStorage に scope 単位で記憶する。
  */
-export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sidebarWidth = 400 }) => {
+export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sidebarWidth = 400, boardListWidth = 220 }) => {
   const [boards, setBoards] = useState<ResearchBoardMeta[]>([]);
   const [activeDocId, setActiveDocId] = useState<string>(DEFAULT_BOARD_DOC_ID);
   const [loadingBoards, setLoadingBoards] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [boardListOpen, setBoardListOpen] = useState(() => {
+    try { return localStorage.getItem('research-board-list-open') !== '0'; } catch { return true; }
+  });
+  // ボード表示: mindmap=マインドマップ（既定。直感的に書き始められる）/ canvas=ノード画面（論証グラフ）。
+  // 一度でも切り替えたらその選択をボード単位で覚え、次に開いたときも同じ画面で始める。
+  const [boardView, setBoardView] = useState<'canvas' | 'mindmap'>('mindmap');
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(`research-board-view:${scope}|${activeDocId}`);
+      setBoardView(v === 'canvas' ? 'canvas' : 'mindmap');
+    } catch { setBoardView('mindmap'); }
+  }, [scope, activeDocId]);
+  const switchBoardView = useCallback((v: 'canvas' | 'mindmap') => {
+    setBoardView(v);
+    try { localStorage.setItem(`research-board-view:${scope}|${activeDocId}`, v); } catch { /* ignore */ }
+  }, [scope, activeDocId]);
+
+  const toggleBoardList = useCallback(() => {
+    setBoardListOpen(open => {
+      const next = !open;
+      try { localStorage.setItem('research-board-list-open', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   // ボード操作メニュー / ダイアログ
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -130,54 +161,128 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
     }
   }, [dialog, scope, refreshBoards, switchTo]);
 
-  const chipSx = (active: boolean) => ({
-    display: 'flex', alignItems: 'center', gap: 0.5, height: 28, px: 1.25, borderRadius: 2,
-    cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0,
-    bgcolor: active ? 'rgba(0,191,255,0.14)' : 'rgb(var(--brand-fg-rgb) / 0.05)',
+  const itemSx = (active: boolean) => ({
+    display: 'flex', alignItems: 'center', gap: 0.5, minHeight: 30, px: 1.25, py: 0.5, borderRadius: 2,
+    cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0,
+    bgcolor: active ? 'rgba(0,191,255,0.14)' : 'transparent',
     color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.6)',
     border: `1px solid ${active ? 'rgba(0,191,255,0.4)' : 'transparent'}`,
-    '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.1)' },
+    '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)' },
   } as const);
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+    <Box sx={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0 }}>
 
-      {/* ── ボード切替バー ── */}
+      {/* ── 左: ボード一覧サイドバー ── */}
       <Box sx={{
-        display: 'flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.75,
-        borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
-        overflowX: 'auto', flexShrink: 0,
-        '&::-webkit-scrollbar': { height: 0 },
+        width: boardListOpen ? boardListWidth : 40, flexShrink: 0,
+        display: 'flex', flexDirection: 'column', minHeight: 0,
+        borderRight: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        bgcolor: 'light-dark(rgba(255,255,255,0.5), rgba(10, 15, 25, 0.35))',
+        transition: 'width 0.2s', overflow: 'hidden',
       }}>
-        {loadingBoards ? (
-          <CircularProgress size={14} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', mx: 1 }} />
-        ) : boards.map(b => {
-          const active = b.id === activeDocId;
-          return (
-            <Box key={b.id} sx={chipSx(active)} onClick={() => switchTo(b.id)}>
-              {b.title}
-              {active && (
-                <IconButton size="small" onClick={e => { e.stopPropagation(); setMenuAnchor(e.currentTarget); setMenuTarget(b); }}
-                  sx={{ p: 0.1, ml: 0.25, color: 'inherit' }}>
-                  <MoreHorizRoundedIcon sx={{ fontSize: 15 }} />
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: boardListOpen ? 'space-between' : 'center',
+          gap: 0.5, px: boardListOpen ? 1.25 : 0, py: 0.75, flexShrink: 0,
+          borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        }}>
+          {boardListOpen && (
+            <Typography sx={{
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap',
+              color: 'rgb(var(--brand-fg-rgb) / 0.45)',
+            }}>
+              ボード
+            </Typography>
+          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+            {boardListOpen && (
+              <Tooltip title="新しいボード">
+                <IconButton size="small" onClick={handleCreate}
+                  sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.55)', '&:hover': { color: '#00BFFF' } }}>
+                  <AddRoundedIcon sx={{ fontSize: 17 }} />
                 </IconButton>
-              )}
-            </Box>
-          );
-        })}
-        <Tooltip title="新しいボード">
-          <IconButton size="small" onClick={handleCreate}
-            sx={{ flexShrink: 0, color: 'rgb(var(--brand-fg-rgb) / 0.55)', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)', borderRadius: 2, width: 28, height: 28,
-              '&:hover': { color: '#00BFFF', borderColor: '#00BFFF' } }}>
-            <AddRoundedIcon sx={{ fontSize: 17 }} />
-          </IconButton>
-        </Tooltip>
+              </Tooltip>
+            )}
+            <Tooltip title={boardListOpen ? 'ボード一覧を閉じる' : 'ボード一覧を開く'} placement="right">
+              <IconButton size="small" onClick={toggleBoardList}
+                sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#00BFFF' } }}>
+                {boardListOpen
+                  ? <ChevronLeftRoundedIcon sx={{ fontSize: 18 }} />
+                  : <DashboardRoundedIcon sx={{ fontSize: 16 }} />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {boardListOpen && (
+          <Box sx={{
+            flex: 1, minHeight: 0, overflowY: 'auto',
+            display: 'flex', flexDirection: 'column', gap: 0.25, p: 0.75,
+          }}>
+            {loadingBoards ? (
+              <CircularProgress size={14} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', m: 1.5, alignSelf: 'center' }} />
+            ) : boards.map(b => {
+              const active = b.id === activeDocId;
+              return (
+                <Box key={b.id} sx={itemSx(active)} onClick={() => switchTo(b.id)}>
+                  <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {b.title}
+                  </Box>
+                  {active && (
+                    <IconButton size="small" onClick={e => { e.stopPropagation(); setMenuAnchor(e.currentTarget); setMenuTarget(b); }}
+                      sx={{ p: 0.1, ml: 0.25, color: 'inherit', flexShrink: 0 }}>
+                      <MoreHorizRoundedIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  )}
+                </Box>
+              );
+            })}
+          </Box>
+        )}
       </Box>
 
       {/* ── ボード本体（キャンバス＋サイドバー）── */}
       <Box sx={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0, position: 'relative' }}>
-        <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>
-          {!loadingBoards && <ResearchCanvas boardKey={makeBoardKey(scope, activeDocId)} />}
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          {/*
+            ノード ⇄ マインドマップ 切替。キャンバスに浮かせるとツールバーが増えるたびに
+            ぶつかるので、ワークスペース自身の行として持つ（＝キャンバスの外）。
+          */}
+          <Box sx={{
+            display: 'flex', alignItems: 'center', flexShrink: 0,
+            px: 1.5, py: 0.75,
+            borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+          }}>
+            <Box sx={{
+              display: 'flex', borderRadius: 2.5, overflow: 'hidden',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
+            }}>
+              {([
+                { v: 'mindmap' as const, label: 'マインドマップ', icon: <AccountTreeRoundedIcon sx={{ fontSize: 15 }} /> },
+                { v: 'canvas' as const, label: 'ノード', icon: <BubbleChartRoundedIcon sx={{ fontSize: 15 }} /> },
+              ]).map(({ v, label, icon }) => {
+                const active = boardView === v;
+                return (
+                  <Box key={v} onClick={() => switchBoardView(v)}
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.6,
+                      cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                      bgcolor: active ? '#00BFFF' : 'transparent',
+                      color: active ? '#000' : 'rgb(var(--brand-fg-rgb) / 0.65)',
+                      '&:hover': active ? {} : { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)' },
+                    }}>
+                    {icon}{label}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
+
+          <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            {!loadingBoards && (boardView === 'mindmap'
+              ? <MindMapCanvas boardKey={makeBoardKey(scope, activeDocId)} />
+              : <ResearchCanvas boardKey={makeBoardKey(scope, activeDocId)} />)}
+          </Box>
         </Box>
 
         {sidebar && (

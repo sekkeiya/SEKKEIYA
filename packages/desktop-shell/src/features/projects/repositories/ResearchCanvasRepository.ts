@@ -105,6 +105,118 @@ export interface ResearchCanvasEdge {
   updatedAt: string;
 }
 
+// ─── マインドマップ（GitMind風・ボードごとに独立した木構造データ）──────────────
+
+/**
+ * マインドマップの1ノード。parentId で木を作る（null はルート＝中心トピック）。
+ * キャンバスの items/edges とは独立したデータで、同じボード doc に共存する。
+ */
+export interface MindMapNode {
+  id: string;
+  /** 親ノード ID。null は中心トピック（1ボードに1つ）。 */
+  parentId: string | null;
+  /** 兄弟内の並び順（小さい順）。間に挿すときは中間値を使う。 */
+  rank: number;
+  text: string;
+  /** true なら配下の枝を折りたたんで表示しない。 */
+  collapsed?: boolean;
+  /** 枝色の上書き（HEX）。未設定は第1階層の並び順から自動パレット、子は親を継承。 */
+  color?: string;
+  /** ノードに付けたアイコンのキー（mindmap/presets の MIND_ICON_GROUPS）。テキストの前に並ぶ。 */
+  icons?: string[];
+  /** トピックに貼った画像の URL。テキストの上に出る。 */
+  image?: string;
+  /**
+   * 画像の元サイズ。トピックの寸法は描画前に確定させる必要があるので、
+   * 貼るときに読み込んで控えておき、表示幅から高さを比率で出す。
+   */
+  imageW?: number;
+  imageH?: number;
+  /** トピックに貼ったリンク（外部URL）。バッジをクリックで開く。 */
+  link?: string;
+  /** トピックに付けた長めの補足メモ。バッジをクリックで開く。 */
+  note?: string;
+  /** 出典種別（知識から取り込んだトピック）。 */
+  refType?: 'library' | 'article';
+  /** 出典の ID（library: LibraryEntry.localId / article: BlogArticle.id）。 */
+  refId?: string;
+  /** 出典タイトルのキャッシュ（表示・トレーサビリティ用）。 */
+  refTitle?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * マインドマップの展開方向。
+ * right / left / both は マインドマップ（枝が伸びる形）、
+ * logic-right / logic-left / org-down / org-up は ロジック図（深さで列・行を揃える形）。
+ */
+export type MindLayoutKey =
+  | 'right' | 'left' | 'both'
+  | 'logic-right' | 'logic-left'
+  | 'org-down' | 'org-up';
+
+/** マインドマップ全体のスタイル設定（GitMind の右パネル相当）。 */
+export interface MindMapStyle {
+  /** ノードの形: 角丸四角 / 四角 / ピル */
+  shape?: 'rounded' | 'rect' | 'pill';
+  /** 角の半径(px)。shape='rounded' のときだけ効く。 */
+  radius?: number;
+  /** 枝線: 曲線 / 直線 / エルボー（直角） */
+  lineStyle?: 'curve' | 'straight' | 'elbow';
+  /** 枝線の太さ(px) */
+  lineWidth?: number;
+  /** 展開方向 */
+  layout?: MindLayoutKey;
+  /** ノード間の水平間隔(px) */
+  hGap?: number;
+  /** ノード間の垂直間隔(px) */
+  vGap?: number;
+  /** テーマキー（mindmap/presets の MIND_THEMES）。中心色・枝パレットを決める。 */
+  theme?: string;
+  /** 背景キー（mindmap/presets の MIND_BACKGROUNDS）。 */
+  background?: string;
+}
+
+/**
+ * まとめ（サマリー）。同じ親を持つ兄弟トピックの範囲を波括弧でくくり、
+ * その外側に「つまり何なのか」を一言で置く。木構造そのものは変えない注釈。
+ */
+export interface MindMapSummary {
+  id: string;
+  /** くくる対象のトピック（同じ親を持つ兄弟）。括弧は対象の部分木の外周に付く。 */
+  nodeIds: string[];
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 関係線。木の親子関係とは無関係に、任意の2トピックを結ぶ注釈用の矢印。
+ * 「この枝とあの枝は関係している」を、木を組み替えずに書き込むためのもの。
+ */
+export interface MindMapRelation {
+  id: string;
+  source: string;
+  target: string;
+  /** 線の上に出る一言（省略可）。 */
+  text?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function compactMindNode(node: MindMapNode): MindMapNode {
+  return Object.fromEntries(
+    Object.entries(node).filter(([, v]) => v !== undefined),
+  ) as MindMapNode;
+}
+
+export function compactMindRelation(rel: MindMapRelation): MindMapRelation {
+  return Object.fromEntries(
+    Object.entries(rel).filter(([, v]) => v !== undefined),
+  ) as MindMapRelation;
+}
+
 /** Firestore は undefined を保存できないため、書き込み前に undefined キーを落とす。 */
 export function compactCanvasItem(item: ResearchCanvasItem): ResearchCanvasItem {
   return Object.fromEntries(
@@ -121,6 +233,12 @@ export function compactCanvasEdge(edge: ResearchCanvasEdge): ResearchCanvasEdge 
 export interface ResearchCanvasDoc {
   items: ResearchCanvasItem[];
   edges: ResearchCanvasEdge[];
+  /** マインドマップの木（ノード画面とは独立。空配列=未作成）。 */
+  mindmap: MindMapNode[];
+  mindmapStyle: MindMapStyle;
+  /** マインドマップ上の注釈（木構造は変えない）。 */
+  mindmapSummaries: MindMapSummary[];
+  mindmapRelations: MindMapRelation[];
 }
 
 export class ResearchCanvasRepository {
@@ -146,23 +264,41 @@ export class ResearchCanvasRepository {
   }
 
   static async load(boardKey: string): Promise<ResearchCanvasDoc> {
+    const empty: ResearchCanvasDoc = {
+      items: [], edges: [], mindmap: [], mindmapStyle: {}, mindmapSummaries: [], mindmapRelations: [],
+    };
     const snap = await getDoc(this.canvasRef(boardKey));
-    if (!snap.exists()) return { items: [], edges: [] };
+    if (!snap.exists()) return empty;
     const data = snap.data() as Partial<ResearchCanvasDoc>;
     return {
       items: Array.isArray(data.items) ? data.items : [],
       edges: Array.isArray(data.edges) ? data.edges : [],
+      mindmap: Array.isArray(data.mindmap) ? data.mindmap : [],
+      mindmapStyle: data.mindmapStyle && typeof data.mindmapStyle === 'object' ? data.mindmapStyle : {},
+      mindmapSummaries: Array.isArray(data.mindmapSummaries) ? data.mindmapSummaries : [],
+      mindmapRelations: Array.isArray(data.mindmapRelations) ? data.mindmapRelations : [],
     };
   }
 
   /**
-   * items / edges のうち渡されたものだけを書き込む（省略したフィールドは温存）。
+   * 渡されたフィールドだけを書き込む（省略したフィールドは温存）。
    * 片方だけ更新するヘッドレス操作で、もう片方を空配列で潰さないための設計。
    */
-  static async save(boardKey: string, data: { items?: ResearchCanvasItem[]; edges?: ResearchCanvasEdge[] }): Promise<void> {
+  static async save(boardKey: string, data: {
+    items?: ResearchCanvasItem[];
+    edges?: ResearchCanvasEdge[];
+    mindmap?: MindMapNode[];
+    mindmapStyle?: MindMapStyle;
+    mindmapSummaries?: MindMapSummary[];
+    mindmapRelations?: MindMapRelation[];
+  }): Promise<void> {
     const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
     if (data.items) payload.items = data.items.map(compactCanvasItem);
     if (data.edges) payload.edges = data.edges.map(compactCanvasEdge);
+    if (data.mindmap) payload.mindmap = data.mindmap.map(compactMindNode);
+    if (data.mindmapStyle) payload.mindmapStyle = data.mindmapStyle;
+    if (data.mindmapSummaries) payload.mindmapSummaries = data.mindmapSummaries;
+    if (data.mindmapRelations) payload.mindmapRelations = data.mindmapRelations.map(compactMindRelation);
     await setDoc(this.canvasRef(boardKey), payload, { merge: true });
   }
 

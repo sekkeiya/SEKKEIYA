@@ -24,6 +24,9 @@ import { materialToSnapshot } from "../../../shared/material/useMaterialBinding"
 import { buildThreeMaterial } from "../../../shared/material/applyMaterial";
 import { useMaterialSweepStore } from "./materialSweep";
 import { useStructureLabelStore, type StructureSemantic } from "../store/useStructureLabelStore";
+import { useWallStore } from "../store/useWallStore";
+import { useSlabStore } from "../store/useSlabStore";
+import { useDrawnFinishStore } from "../store/useDrawnFinishStore";
 
 export type AutoMaterialStyleKey = "natural" | "modern" | "japandi";
 
@@ -259,7 +262,6 @@ export async function autoApplyMaterials(
   const style = AUTO_MATERIAL_STYLES[styleKey];
   const root = layoutSceneRef.baseRoot as THREE.Object3D | null;
   const empty = { counts, planes: 0, texturedTypes: [], solidTypes: [] };
-  if (!root) return { ok: false, reason: "躯体モデルが読み込まれていません", ...empty };
   if (!style) return { ok: false, reason: `未知のスタイル: ${styleKey}`, ...empty };
 
   // 面種別ごとに実素材を一度だけ解決（テクスチャ優先 → 無ければ単色）。
@@ -270,6 +272,42 @@ export async function autoApplyMaterials(
     outerWall: resolveRule(style.outerWall, materials, styleKey, "wall"),
     outerFloor: resolveRule(style.outerFloor, materials, styleKey, "floor"),
   };
+
+  // ── S.Layout で作図した壁/床（useWallStore / useSlabStore）へ仕上げを適用 ──
+  // これらは種別（外壁/内壁/床）が最初から分かっているので、躯体のような面検出＋
+  // 面キーのオーバーレイを介さず、素材スナップショットを直接持たせる（確実で安価）。
+  // 躯体（baseRoot）の有無に関わらず先に処理する＝Base 無しで壁だけ描いた場合も効く。
+  const drawnWallCount = useWallStore.getState().walls.length;
+  const drawnSlabCount = useSlabStore.getState().slabs.length;
+  const hasDrawn = drawnWallCount > 0 || drawnSlabCount > 0;
+  if (hasDrawn) {
+    await prefetchTextures([resolved.wall.material, resolved.outerWall.material, resolved.floor.material]);
+    useDrawnFinishStore.getState().setFinishes({
+      interiorWall: resolved.wall.material,
+      exteriorWall: resolved.outerWall.material,
+      floor: resolved.floor.material,
+      styleKey,
+    });
+    if (drawnWallCount) counts.wall += drawnWallCount;
+    if (drawnSlabCount) counts.floor += drawnSlabCount;
+  }
+
+  /** 躯体の面が取れなくても、作図した壁/床に貼れていれば成功として返す。 */
+  const drawnOnlyResult = (): AutoMaterialResult => {
+    const used = (Object.keys(counts) as SurfaceType[]).filter((t) => counts[t] > 0);
+    return {
+      ok: true,
+      styleLabel: style.label,
+      counts,
+      planes: 0,
+      texturedTypes: used.filter((t) => resolved[t].textured).map((t) => SURFACE_JP[t]),
+      solidTypes: used.filter((t) => !resolved[t].textured).map((t) => SURFACE_JP[t]),
+    };
+  };
+
+  if (!root) {
+    return hasDrawn ? drawnOnlyResult() : { ok: false, reason: "躯体モデルが読み込まれていません", ...empty };
+  }
 
   // 手動の面ラベル（床/外床/内壁/外壁/天井）。あれば法線分類より優先する。
   const faceLabels = useStructureLabelStore.getState().labels;
@@ -293,7 +331,7 @@ export async function autoApplyMaterials(
     if (o.userData?.isSectionFill || o.userData?.isSurfaceFinish) return;
     meshes.push(o);
   });
-  if (!meshes.length) return { ok: false, reason: "躯体メッシュが見つかりません", ...empty };
+  if (!meshes.length) return hasDrawn ? drawnOnlyResult() : { ok: false, reason: "躯体メッシュが見つかりません", ...empty };
 
   // units-per-meter（mm スケール=1000 / m スケール=1）。面キーの位置量子化グリッドに使う。
   const rootUpm = new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()).y > 100 ? 1000 : 1;
@@ -403,7 +441,7 @@ export async function autoApplyMaterials(
     planes++;
   }
 
-  if (!planes) return { ok: false, reason: "面の矩形を抽出できませんでした", ...empty };
+  if (!planes) return hasDrawn ? drawnOnlyResult() : { ok: false, reason: "面の矩形を抽出できませんでした", ...empty };
 
   // ── テクスチャを先読みしてから一括適用＋スイープ開始 ──
   // 先読みしないと、ラインが走り終わる頃に新素材が読み込まれ「最後に一斉切替」に見える。

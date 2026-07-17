@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Accordion, AccordionSummary, AccordionDetails, Divider, TextField, Chip, Select, MenuItem, FormControl, InputLabel, FormControlLabel, Switch } from '@mui/material';
+import { Box, Typography, Button, Accordion, AccordionSummary, AccordionDetails, Divider, TextField, Chip, Select, MenuItem, FormControl, InputLabel, FormControlLabel, Switch, useMediaQuery } from '@mui/material';
 import PlayCircleOutlineRoundedIcon from '@mui/icons-material/PlayCircleOutlineRounded';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../../store/useAppStore';
@@ -24,6 +24,9 @@ export const RightPanelHost: React.FC = () => {
   const activeProjectId = useAppStore((s: any) => s.activeProjectId);
   const activeWorkspaceId = useAppStore((s: any) => s.activeWorkspaceId);
   const lastActiveAppScope = useAppStore((s: any) => s.lastActiveAppScope);
+  // 全幅ヘッダー化: デスクトップの S.Model(3dss) は右の Search & Filter / Model Info を
+  // DssDashboard 内へ埋め込むため、外部の右パネルは出さない（モバイルは従来どおり）。
+  const isMobileRightPanel = useMediaQuery('(max-width:768px)');
   const selectedItem = useAppStore((s: any) => activeWorkspaceId ? s.panelSelections[activeWorkspaceId] : null);
   const setPanelSelection = useAppStore((s: any) => s.setPanelSelection);
   const panelSelections = useAppStore((s: any) => s.panelSelections);
@@ -128,15 +131,21 @@ export const RightPanelHost: React.FC = () => {
   const dscShellMode = useAppStore((s: any) => s.dscShellMode);
   // NOTE: these hooks MUST be called before any early return to avoid React hooks count mismatch.
   const dsdShellMode = useAppStore((s: any) => s.dsdShellMode);
-
+  const dssShellMode = useAppStore((s: any) => s.dssShellMode);
   const isDslDashboard = scope === '3dsl' && !selectedLayoutId;
   const is3dslWorkspace = scope === '3dsl' && !isDslDashboard;
 
   const isVisible = scope !== 'sekkeiya'
     && (!is3dslWorkspace || hasDslPanels)
     && (scope !== '3dsp' || showDspRightSidebar)
+    && (scope !== '3dsp' || isMobileRightPanel) // デスクトップの S.Slide は右パネルを DspDashboard 内へ埋め込むため外部は非表示
     && (scope !== '3dsc' || dscShellMode === 'dashboard')
+    && (scope !== '3dsc' || isMobileRightPanel) // デスクトップの S.Create は右パネルを DscDashboard 内へ埋め込むため外部は非表示
     && (scope !== '3dsd' || dsdShellMode === 'dashboard') // エディタ中は非表示
+    && (scope !== '3dsd' || isMobileRightPanel) // デスクトップの S.Diagram は右パネルを DsdDashboard 内へ埋め込むため外部は非表示
+    && (scope !== '3dss' || dssShellMode === 'dashboard') // S.Model エディタ中は Search & Filter を非表示
+    && (scope !== '3dss' || isMobileRightPanel) // デスクトップの S.Model は右パネルを DssDashboard 内へ埋め込むため外部は非表示
+    && (scope !== '3dsl' || isMobileRightPanel) // デスクトップの S.Layout は右パネルを中央(DslDashboard/LayoutShell)内へ埋め込むため外部は非表示
     && scope !== '3dsi' // S.Image は自前の詳細パネルを持つため汎用プロパティは非表示
     && scope !== '3dsf' // S.Portfolio も自前の詳細パネル（ポートフォリオ情報）を持つため非表示
     && scope !== '3dsr' // S.Drawing も自前の図面情報パネルを持つため汎用プロパティは不要
@@ -661,7 +670,7 @@ export const RightPanelHost: React.FC = () => {
 };
 
 // ── 3DSL ダッシュボード右パネル ──────────────────────────────────────
-function DslDashboardRightPanel({
+export function DslDashboardRightPanel({
   selectedItem,
   updatingVisibility,
   setUpdatingVisibility,

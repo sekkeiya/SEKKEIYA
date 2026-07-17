@@ -86,7 +86,7 @@ export function optimizeTopPlacement({
  * - FRONT: +Z から原点を見る（正面）
  * - RIGHT: +X から原点を見る（右側面）
  */
-export function getOrthoPreset(type) {
+export function getOrthoPreset(type, flip = false) {
     const dist = 90;
     const zoom = 50;
 
@@ -96,13 +96,13 @@ export function getOrthoPreset(type) {
     }
 
     if (type === VIEW_TYPES.FRONT) {
-        // 正面：+Z から見る（上は +Y）
-        return { position: [0, 0, dist], up: [0, 1, 0], target: [0, 0, 0], zoom: 50 };
+        // 正面：+Z から見る（上は +Y）。flip=true は背面（−Z）から見る（断面の向き反転用）。
+        return { position: [0, 0, flip ? -dist : dist], up: [0, 1, 0], target: [0, 0, 0], zoom: 50 };
     }
 
     if (type === VIEW_TYPES.RIGHT) {
-        // 右：+X から見る（上は +Y）
-        return { position: [dist, 0, 0], up: [0, 1, 0], target: [0, 0, 0], zoom: 50 };
+        // 右：+X から見る（上は +Y）。flip=true は左（−X）から見る（断面の向き反転用）。
+        return { position: [flip ? -dist : dist, 0, 0], up: [0, 1, 0], target: [0, 0, 0], zoom: 50 };
     }
 
     // Perspective初期

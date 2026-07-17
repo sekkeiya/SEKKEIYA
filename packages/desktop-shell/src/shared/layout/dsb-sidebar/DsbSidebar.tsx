@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 import NewspaperRoundedIcon from '@mui/icons-material/NewspaperRounded';
+import RssFeedRoundedIcon from '@mui/icons-material/RssFeedRounded';
 import CategoryRoundedIcon from '@mui/icons-material/CategoryRounded';
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
@@ -46,12 +47,14 @@ interface ScopeItemProps {
   icon: React.ReactNode;
   label: string;
   count?: number;
+  /** 通知バッジ（締切間近など・0/未指定で非表示。count と違い注意色で表示）。 */
+  badgeCount?: number;
   active: boolean;
   onClick: () => void;
   color?: string;
 }
 
-function ScopeItem({ icon, label, count, active, onClick, color }: ScopeItemProps) {
+function ScopeItem({ icon, label, count, badgeCount, active, onClick, color }: ScopeItemProps) {
   return (
     <Box sx={{ position: 'relative', mx: 1.5, my: 0.5 }}>
       <CardActionArea
@@ -78,6 +81,11 @@ function ScopeItem({ icon, label, count, active, onClick, color }: ScopeItemProp
         </Typography>
         {typeof count === 'number' && (
           <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>{count}</Typography>
+        )}
+        {!!badgeCount && badgeCount > 0 && (
+          <Box sx={{ ml: 0.75, minWidth: 18, height: 18, px: 0.5, borderRadius: 999, bgcolor: '#e57373', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{badgeCount > 99 ? '99+' : badgeCount}</Typography>
+          </Box>
         )}
       </CardActionArea>
     </Box>
@@ -213,10 +221,19 @@ export const DsbSidebar: React.FC = () => {
     articles, view, mode, draft, setView, categoryFilter, categories,
     setCategoryFilter, goHome, addCategory, removeCategory, renameCategory, reorderCategories,
     startEdit, cancelEdit, saveWorkingDraft, blogScope, setBlogScope,
+    schedules, loadSchedules,
   } = useDsbStore();
 
   // 非管理者が万一 official のまま残らないよう、権限が無ければ account に戻す。
   useEffect(() => { if (!admin && blogScope !== 'account') setBlogScope('account'); }, [admin, blogScope, setBlogScope]);
+
+  // 締切間近（予定 planned・7日以内）の件数 → スケジュールの通知バッジ（旧「今週書くもの」の代替）。
+  useEffect(() => { if (uid) void loadSchedules(uid); }, [uid, loadSchedules]);
+  const dueCount = useMemo(() => {
+    const limit = new Date(); limit.setDate(limit.getDate() + 7);
+    const week = limit.toISOString().slice(0, 10);
+    return schedules.filter((s) => s.status === 'planned' && s.date <= week).length;
+  }, [schedules]);
 
   // 公式モード用（ナビのハイライト・件数・カテゴリ節）。account モードでも購読は無害。
   const officialMode = useOfficialBlogStore((s) => s.mode);
@@ -327,7 +344,7 @@ export const DsbSidebar: React.FC = () => {
       sx={{
         width: isProjectSidebarOpen ? 240 : 0,
         height: '100%',
-        bgcolor: BRAND.panel,
+        bgcolor: BRAND.bg,
         borderRight: isProjectSidebarOpen ? `1px solid ${BRAND.line}` : 'none',
         display: 'flex', flexDirection: 'column',
         py: isProjectSidebarOpen ? 2 : 0,
@@ -335,36 +352,7 @@ export const DsbSidebar: React.FC = () => {
         transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s, border 0.2s',
       }}
     >
-      <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase' }}>
-          ブログ / S.Blog
-        </Typography>
-      </Box>
-
-      {/* 管理者のみ: 自分のブログ ⇄ 公式ブログ の切替（Admin トグル）。 */}
-      {admin && (
-        <Box sx={{ mx: 1.5, mb: 1, display: 'flex', gap: 0.5, p: 0.4, borderRadius: 2, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)' }}>
-          {([
-            { key: 'account' as const, label: '自分のブログ', color: ACCENT },
-            { key: 'official' as const, label: '公式ブログ', color: 'light-dark(#0676a8, #38bdf8)' },
-          ]).map((opt) => {
-            const on = blogScope === opt.key;
-            return (
-              <Box key={opt.key} onClick={() => setBlogScope(opt.key)}
-                sx={{ flex: 1, textAlign: 'center', cursor: 'pointer', py: 0.6, borderRadius: 1.5,
-                  bgcolor: on ? `color-mix(in srgb, ${opt.color} 13%, transparent)` : 'transparent',
-                  boxShadow: on ? `inset 0 0 0 1px color-mix(in srgb, ${opt.color} 40%, transparent)` : 'none',
-                  '&:hover': { bgcolor: on ? `color-mix(in srgb, ${opt.color} 18%, transparent)` : 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
-                <Typography sx={{ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? opt.color : 'rgb(var(--brand-fg-rgb) / 0.6)' }}>
-                  {opt.label}
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
-      )}
-
-      <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.07)', mx: 1.5, my: 1 }} />
+      {/* 自分のブログ ⇄ 公式ブログ の切替は全幅ヘッダーバンド（DsbHeaderBar）へ移設。 */}
 
       <Box sx={{ flex: 1 }}>
         {blogScope === 'official' ? (
@@ -471,6 +459,11 @@ export const DsbSidebar: React.FC = () => {
           icon={<NewspaperRoundedIcon />} label="ホーム"
           active={mode !== 'edit' && view === 'feed'} onClick={() => navAway(() => setView('feed'))} color={ACCENT}
         />
+        {/* ソース記事 = ホームに表示するメディア（RSSソース）を選ぶ画面 */}
+        <ScopeItem
+          icon={<RssFeedRoundedIcon />} label="情報源"
+          active={mode !== 'edit' && view === 'sources'} onClick={() => navAway(() => setView('sources'))} color={ACCENT}
+        />
         {/* 概要・分析・戦略（データ管理＋運営戦略）。記事編集中でも押せば保存して切り替わる。 */}
         <ScopeItem
           icon={<InsightsRoundedIcon />} label="概要・分析・戦略"
@@ -478,7 +471,7 @@ export const DsbSidebar: React.FC = () => {
         />
         {/* スケジュール = 投稿カレンダー（月/リスト・AI投稿計画。タスクなし） */}
         <ScopeItem
-          icon={<EventNoteRoundedIcon />} label="スケジュール"
+          icon={<EventNoteRoundedIcon />} label="スケジュール" badgeCount={dueCount}
           active={mode !== 'edit' && (view === 'schedule' || view === 'plan')} onClick={() => navAway(() => setView('schedule'))} color="#5c9ce6"
         />
         {/* 記事一覧 = 自分の全記事（下書き/公開済みは本体の状況タブで把握） */}

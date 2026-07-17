@@ -19,6 +19,7 @@ import {
   type TtsSettings, type AiTtsStyle,
 } from '../../lib/tts';
 import { AI_VOICES, AiTtsPlayer } from '../../lib/aiTts';
+import { TtsUsageMeter } from './TtsUsageMeter';
 
 const AI_STYLES: { key: AiTtsStyle; label: string; desc: string }[] = [
   { key: 'anchor',    label: 'アナウンサー', desc: 'ニュース原稿のように明瞭・正確に' },
@@ -132,6 +133,8 @@ export const TtsSettingsForm: React.FC = () => {
                 </Typography>
               </Box>
             </Collapse>
+            {/* 残りの利用枠（枠切れ時は回復予定時刻も表示）。Reader の⚙からも同じものが見える */}
+            <TtsUsageMeter />
           </>
         )}
       </Box>

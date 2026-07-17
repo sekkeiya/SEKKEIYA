@@ -3,6 +3,12 @@ import { createContext, useContext } from "react";
 
 type EditorMode = "normal" | "layout" | "zoning" | "material" | "walkthrough" | "map" | "label";
 
+// ✅ 2D 配置 / 3D 演出 の上位グループ。
+// - 2D: 平面での配置作業（Item / Zone / Map）
+// - 3D: 見え方の演出（Lighting / Material / Label / Walkthrough）
+// 切替の副作用（スコープ退避・カメラ tilt）は utils/applyViewGroup.ts に集約。
+export type EditorViewGroup = "2d" | "3d";
+
 export interface WalkthroughCharacterDescriptor {
   source: "preset" | "model";
   id: string;
@@ -33,6 +39,10 @@ interface EditorModeState {
   editorMode: EditorMode;
   setEditorMode: (mode: EditorMode) => void;
   toggleEditorMode: () => void;
+
+  // ✅ 2D 配置 / 3D 演出 の上位グループ（UI からは applyViewGroup 経由で切替える）
+  editorViewGroup: EditorViewGroup;
+  setEditorViewGroup: (group: EditorViewGroup) => void;
 
   // Walkthrough (一人称ウォークスルー) — 入る前のモードを覚えておき exit で復帰
   preWalkthroughMode: EditorMode;
@@ -87,6 +97,10 @@ interface EditorModeState {
   setSectionClipZEnabled: (v: boolean) => void;
   sectionClipZ: number;
   setSectionClipZ: (v: number) => void;
+  /** 断面ビューの向き反転（A-A' の矢印を＋軸向きに）。
+   *  true: クリップは pos 以上側を残し、正面/側面カメラは −Z/−X 側から見る。 */
+  sectionViewFlip: boolean;
+  setSectionViewFlip: (v: boolean) => void;
   sceneExtentXZ: number;              // half-extent of scene on X/Z axes for slider range
   setSceneExtentXZ: (v: number) => void;
 
@@ -151,11 +165,24 @@ export const useEditorModeStore = create<EditorModeState>((set) => ({
     return { editorMode: nextMode };
   }),
 
+  // ✅ 初期は 2D 配置グループ（主作業＝家具配置）。
+  // 起動直後の俯瞰ビューは維持したいので、カメラの強制はここでは行わず
+  // ユーザーがトグルを操作したとき（applyViewGroup）にのみ tilt を切替える。
+  editorViewGroup: "2d",
+  setEditorViewGroup: (editorViewGroup) => set({ editorViewGroup }),
+
   preWalkthroughMode: "layout",
   enterWalkthrough: () => set((state) => {
     if (state.editorMode === "walkthrough") return {};
     // Preview 押下時はデフォルトで三人称モードを表示する
-    return { preWalkthroughMode: state.editorMode, editorMode: "walkthrough", walkthroughViewMode: "third" };
+    // ✅ ウォークスルーは「3D 演出」の機能なので、2D 配置から入った場合はグループも 3D へ揃える
+    //    （終了後も 3D 演出に留まる＝歩いて確認→材質/照明の調整、という流れに自然に繋がる）
+    return {
+      preWalkthroughMode: state.editorMode,
+      editorMode: "walkthrough",
+      walkthroughViewMode: "third",
+      editorViewGroup: "3d",
+    };
   }),
   exitWalkthrough: () => set((state) => {
     if (state.editorMode !== "walkthrough") return {};
@@ -223,6 +250,8 @@ export const useEditorModeStore = create<EditorModeState>((set) => ({
   setSectionClipZEnabled: (sectionClipZEnabled) => set({ sectionClipZEnabled }),
   sectionClipZ: 0,
   setSectionClipZ: (sectionClipZ) => set({ sectionClipZ }),
+  sectionViewFlip: false,
+  setSectionViewFlip: (sectionViewFlip) => set({ sectionViewFlip }),
   sceneExtentXZ: 10,
   setSceneExtentXZ: (sceneExtentXZ) => set({ sceneExtentXZ }),
 

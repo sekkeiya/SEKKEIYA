@@ -118,7 +118,7 @@ export interface BlogSourceRef {
 export interface BlogSourceSite {
   name: string;
   feed: string;      // RSS/Atom フィードURL
-  group: '国内・建築/デザイン' | '国内・住まい/インテリア' | '海外・トレンド' | 'カスタム';
+  group: '国内・建築/デザイン' | '国内・住まい/インテリア' | '海外・トレンド' | 'テック・AI' | '動画（YouTube）' | 'カスタム';
   note: string;      // 一言説明
   lang?: 'ja' | 'en';
   /** ユーザーのブログカテゴリと照合するための興味キーワード（おすすめ提案用） */
@@ -147,6 +147,75 @@ export const DEFAULT_SOURCE_SITES: BlogSourceSite[] = [
     keywords: ['建築', '設計', '海外', '事例', '住宅'] },
   { name: 'designboom',        feed: 'https://www.designboom.com/feed/',    group: '海外・トレンド', note: 'デザイン・建築・アート', lang: 'en',
     keywords: ['デザイン', '建築', 'アート', '海外', 'テクノロジー', 'プロダクト', '素材', '家具'] },
+  { name: 'Architizer',        feed: 'https://architizer.com/blog/feed/',   group: '海外・トレンド', note: '建築の作品・特集・素材', lang: 'en',
+    keywords: ['建築', 'architecture', 'デザイン', '海外', '事例'] },
+  { name: 'Yanko Design',      feed: 'https://www.yankodesign.com/feed/',   group: '海外・トレンド', note: 'プロダクト/工業デザイン', lang: 'en',
+    keywords: ['デザイン', 'design', 'プロダクト', 'product', '海外'] },
+  { name: 'Core77',            feed: 'https://www.core77.com/feed',         group: '海外・トレンド', note: 'インダストリアルデザイン総合', lang: 'en',
+    keywords: ['デザイン', 'design', 'プロダクト', '海外'] },
+  { name: 'Design Milk',       feed: 'https://design-milk.com/feed/',       group: '海外・トレンド', note: 'インテリア・プロダクトのデザイン', lang: 'en',
+    keywords: ['デザイン', 'design', 'インテリア', 'interior', '海外', '家具'] },
+  { name: 'Apartment Therapy', feed: 'https://www.apartmenttherapy.com/main.rss', group: '海外・トレンド', note: '住まい・インテリア実例', lang: 'en',
+    keywords: ['インテリア', 'interior', '住まい', '暮らし', '海外', '収納'] },
+  // 国内・建築/デザイン（追加）
+  { name: 'TECTURE MAG',       feed: 'https://mag.tecture.jp/feed',         group: '国内・建築/デザイン', note: '建築・空間・プロダクト', lang: 'ja',
+    keywords: ['建築', 'デザイン', 'プロダクト', '空間', '素材'] },
+  { name: 'Pen Online',        feed: 'https://www.pen-online.com/feed',     group: '国内・建築/デザイン', note: 'デザイン・カルチャー誌', lang: 'ja',
+    keywords: ['デザイン', 'カルチャー', 'アート', 'ライフスタイル'] },
+  // 国内・住まい/インテリア（追加）
+  { name: 'roomie',            feed: 'https://www.roomie.jp/feed',          group: '国内・住まい/インテリア', note: '暮らしの道具・インテリア', lang: 'ja',
+    keywords: ['インテリア', '暮らし', '住まい', '雑貨', '家具'] },
+  // テック・AI（AI/テクノロジーの公式ブログ・専門メディア）
+  { name: 'The Verge',         feed: 'https://www.theverge.com/rss/index.xml', group: 'テック・AI', note: 'テック・ガジェット・AI全般', lang: 'en',
+    keywords: ['ai', 'テック', 'tech', 'テクノロジー', 'ガジェット'] },
+  { name: 'Ars Technica',      feed: 'https://arstechnica.com/feed/',       group: 'テック・AI', note: '技術・科学の深掘り', lang: 'en',
+    keywords: ['ai', 'テック', 'tech', 'テクノロジー', '科学'] },
+  { name: 'TechCrunch',        feed: 'https://techcrunch.com/feed/',        group: 'テック・AI', note: 'スタートアップ・テック最新', lang: 'en',
+    keywords: ['ai', 'テック', 'tech', 'スタートアップ'] },
+  { name: 'MIT Technology Review', feed: 'https://www.technologyreview.com/feed/', group: 'テック・AI', note: '先端技術・AIの分析', lang: 'en',
+    keywords: ['ai', 'テック', 'tech', 'テクノロジー'] },
+  { name: 'VentureBeat',       feed: 'https://venturebeat.com/feed/',       group: 'テック・AI', note: 'AI・エンタープライズ技術', lang: 'en',
+    keywords: ['ai', 'テック', 'tech'] },
+  { name: 'WIRED',             feed: 'https://www.wired.com/feed/rss',      group: 'テック・AI', note: 'テクノロジーとカルチャー', lang: 'en',
+    keywords: ['ai', 'テック', 'tech', 'テクノロジー', 'カルチャー'] },
+  { name: 'Engadget',          feed: 'https://www.engadget.com/rss.xml',    group: 'テック・AI', note: 'ガジェット・テック', lang: 'en',
+    keywords: ['テック', 'tech', 'ガジェット', 'ai'] },
+  { name: 'OpenAI',            feed: 'https://openai.com/blog/rss.xml',     group: 'テック・AI', note: 'OpenAI 公式ブログ', lang: 'en',
+    keywords: ['ai', 'openai', 'テック', 'tech'] },
+  { name: 'Google DeepMind',   feed: 'https://deepmind.google/blog/rss.xml', group: 'テック・AI', note: 'DeepMind 公式ブログ', lang: 'en',
+    keywords: ['ai', 'deepmind', 'google', 'テック'] },
+  { name: 'Google AI',         feed: 'https://blog.google/technology/ai/rss/', group: 'テック・AI', note: 'Google の AI 公式ブログ', lang: 'en',
+    keywords: ['ai', 'google', 'テック', 'tech'] },
+  { name: 'Hugging Face',      feed: 'https://huggingface.co/blog/feed.xml', group: 'テック・AI', note: 'AI/MLコミュニティのブログ', lang: 'en',
+    keywords: ['ai', 'ml', 'テック', 'huggingface'] },
+  { name: 'ITmedia AIプラス',   feed: 'https://rss.itmedia.co.jp/rss/2.0/aiplus.xml', group: 'テック・AI', note: 'AI関連ニュース（日本語）', lang: 'ja',
+    keywords: ['ai', 'テック', 'tech', 'テクノロジー'] },
+  { name: 'ITmedia NEWS',      feed: 'https://rss.itmedia.co.jp/rss/2.0/news_bursts.xml', group: 'テック・AI', note: 'ITニュース（日本語）', lang: 'ja',
+    keywords: ['テック', 'tech', 'it', 'ai'] },
+  { name: 'GIGAZINE',          feed: 'https://gigazine.net/news/rss_2.0/',  group: 'テック・AI', note: 'テック・ガジェット・話題（日本語）', lang: 'ja',
+    keywords: ['テック', 'tech', 'ガジェット', 'ai'] },
+  { name: 'Gizmodo Japan',     feed: 'https://www.gizmodo.jp/atom.xml',     group: 'テック・AI', note: 'ガジェット・サイエンス（日本語）', lang: 'ja',
+    keywords: ['テック', 'tech', 'ガジェット', 'ai', '科学'] },
+  { name: 'ライフハッカー・ジャパン', feed: 'https://www.lifehacker.jp/feed/index.xml', group: 'テック・AI', note: '仕事術・ツール・テック（日本語）', lang: 'ja',
+    keywords: ['テック', 'tech', '仕事術', 'ツール'] },
+  { name: 'Publickey',         feed: 'https://www.publickey1.jp/atom.xml',  group: 'テック・AI', note: 'ITインフラ・技術ニュース（日本語）', lang: 'ja',
+    keywords: ['テック', 'tech', 'it', 'クラウド'] },
+  { name: 'The Next Web',      feed: 'https://thenextweb.com/feed/',        group: 'テック・AI', note: 'テック・スタートアップ・AI', lang: 'en',
+    keywords: ['ai', 'テック', 'tech', 'スタートアップ', 'startup'] },
+
+  // ── 動画（YouTube）: チャンネルの公式Atomフィードを購読。Readerで再生＋AI日本語字幕・記事化できる。
+  //    channel_id は @ハンドルのページから externalId で実解決・フィード疎通確認済み（2026-07-15）。
+  { name: 'The B1M',           feed: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC6n8I1UDTKP1IWjQMg6_TwA', group: '動画（YouTube）', note: '世界最大の建築・建設ドキュメンタリー', lang: 'en',
+    keywords: ['建築', 'architecture', '建設', 'インフラ', '都市'] },
+  { name: 'NEVER TOO SMALL',   feed: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC_zQ777U6YTyatP3P1wi3xw', group: '動画（YouTube）', note: '小さな住まいの名作リノベーション', lang: 'en',
+    keywords: ['インテリア', '狭小住宅', 'リノベーション', '住まい', 'デザイン'] },
+  // ⚠️ 同名の別クリエイターが存在。建築家は @DamiLeeArch（externalIdで実解決・内容確認済み）
+  { name: 'Dami Lee',          feed: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCJ_2hNMxOzNjviJBiLWHMqg', group: '動画（YouTube）', note: '建築家による名建築・都市の解説', lang: 'en',
+    keywords: ['建築', 'architecture', '設計', '建築家', '解説'] },
+  { name: 'Living Big In A Tiny House', feed: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCoNTMWgGuXtGPLv9UeJZwBw', group: '動画（YouTube）', note: 'タイニーハウス・小さな暮らしの訪問記', lang: 'en',
+    keywords: ['タイニーハウス', '住まい', '暮らし', 'オフグリッド'] },
+  { name: 'Kirsten Dirksen',   feed: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCDsElQQt_gCZ9LgnW-7v-cQ', group: '動画（YouTube）', note: 'ユニークな住まい・セルフビルドの記録', lang: 'en',
+    keywords: ['住まい', 'セルフビルド', '暮らし', 'サステナブル'] },
 ];
 
 /**

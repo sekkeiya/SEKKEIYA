@@ -107,25 +107,13 @@ export const OfficialBlogDashboard: React.FC = () => {
     <Box sx={{ flex: 1, height: '100%', display: 'flex', bgcolor: 'background.default', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: { xs: 2.5, md: 4 } }}>
-          {/* ヘッダ */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArticleRoundedIcon sx={{ color: ACCENT }} />
-              </Box>
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)', lineHeight: 1.2 }}>公式ブログ記事</Typography>
-                <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: '0.76rem' }}>SEKKEIYA 公式（sekkeiya.com/articles）</Typography>
-              </Box>
-            </Box>
+          {/* アクション */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 2.5 }}>
             <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={startNew}
               sx={{ bgcolor: ACCENT, color: '#001018', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#0ea5e9' } }}>
               新規記事
             </Button>
           </Box>
-          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.82rem', mb: 2.5, mt: 1 }}>
-            公式ブログの執筆・レビュー・公開を行います。
-          </Typography>
 
           {loading && articles.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: ACCENT }} /></Box>

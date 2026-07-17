@@ -181,6 +181,12 @@ interface RunCtx {
    * 判定はクライアント（isResearchBoardContext等・キーワード検出込み）で行うので誤爆しにくい。
    */
   excludeSilos?: string[];
+  /**
+   * サーバーの自動silo判定（キーワード検出）でも絶対に外させないsilo（例 'layout'）。
+   * 子アプリスコープのチャットでは、会話にドメイン語が出ていなくても
+   * そのアプリのツールが必要なため、サーバー側のマージ後に keepSilos 分を復元させる。
+   */
+  keepSilos?: string[];
 }
 
 /** UI-yield ツールで中断したループの再開スナップショット。 */
@@ -325,6 +331,7 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
         clientContext: ctx.clientContext || undefined,
         projectId: ctx.projectId || undefined,
         excludeSilos: (ctx.excludeSilos && ctx.excludeSilos.length) ? ctx.excludeSilos : undefined,
+        keepSilos: (ctx.keepSilos && ctx.keepSilos.length) ? ctx.keepSilos : undefined,
       });
       if (aborted()) return null;
       const { stopReason, text: assistantText, toolCalls } = (res.data as any).result as {
@@ -496,6 +503,7 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
             systemPromptWithSite: ctx.systemPromptWithSite,
             clientContext: ctx.clientContext,
             excludeSilos: ctx.excludeSilos,
+            keepSilos: ctx.keepSilos,
             projectId: ctx.projectId,
             model: ctx.model,
             step,
@@ -521,6 +529,7 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
             systemPromptWithSite: ctx.systemPromptWithSite,
             clientContext: ctx.clientContext,
             excludeSilos: ctx.excludeSilos,
+            keepSilos: ctx.keepSilos,
             projectId: ctx.projectId,
             model: ctx.model,
             step,
@@ -791,6 +800,20 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
         const sessionProjectId = session?.projectId && session.projectId !== '__global__'
           ? session.projectId : null;
 
+        // S.Layout スコープのチャット（右サイドバー埋め込み・task/subapp セッション）:
+        // エディタで開いている Base/Plan/Option を確定情報として注入する（Phase 2）。
+        const isLayoutScopedSession = session?.appScope === '3dsl'
+          && (session.scope === 'task' || session.scope === 'subapp');
+        let layoutChatContext = '';
+        if (isLayoutScopedSession && session) {
+          try {
+            const { buildLayoutChatContext } = await import('../features/dsl/layout/chat/layoutChatContext');
+            layoutChatContext = '\n\n' + buildLayoutChatContext(session);
+          } catch (e) {
+            console.warn('[Orchestrator] layout chat context build failed:', e);
+          }
+        }
+
         let schedulesTasksContext = '';
         // スケジュール・タスク関連発話か、または「把握」「確認」「整理」等の文脈
         const isScheduleTaskRequest = /スケジュール|予定|タスク|把握|確認|整理|追加|登録|作成|schedule|task/i.test(text);
@@ -864,12 +887,21 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
           ? `\n\n[リサーチボードの作成先] 現在のチャットは「アカウントサイト（マイページ）」の文脈で、特定プロジェクトに紐付いていません。ボードは既定でアカウント個人スコープ research_board_create({ projectId: 'account', title }) に作成すること。作成先を propose_choices で確認する場合も、必ず最初の選択肢（推奨）として { id: 'account', label: 'アカウントサイト', description: '個人の思考整理ボード（プロジェクトに属さない）' } を出し、その後に各プロジェクトを並べること。`
           : '';
 
-        const systemPromptWithSite = baseSystemPrompt + calendarPlaybook + batchProgressPlaybook + aiTaskPlaybook + globalSessionPlaybook + gen3dPlaybook + materialGenPlaybook + knowledgePlaybook + layoutRenderPlaybook + researchBoardPlaybook + researchBoardScopeHint + rag.promptSection + furnitureContextSection + schedulesTasksContext + gen3dContext;
+        const systemPromptWithSite = baseSystemPrompt + calendarPlaybook + batchProgressPlaybook + aiTaskPlaybook + globalSessionPlaybook + gen3dPlaybook + materialGenPlaybook + knowledgePlaybook + layoutRenderPlaybook + researchBoardPlaybook + researchBoardScopeHint + rag.promptSection + furnitureContextSection + schedulesTasksContext + gen3dContext + layoutChatContext;
 
         // 💰 前置き削減: リサーチボード文脈でない時は research_board_* ツール(約4.3k tok)を送らない。
         // isResearchBoardContext は「memoタブを開いている or メッセージにボード系キーワード」なので、
         // 通常チャットで「リサーチボードにまとめて」等と言われた場合は true になりツールが復活する（誤爆しにくい）。
         const excludeSilos: string[] = isResearchBoardContext ? [] : ['research'];
+        // S.Layout スコープのチャット: レイアウト作業に無関係な silo を落として前置きを削減。
+        // layout silo 自体はサーバーの自動キーワード判定でも外されないよう keepSilos で保護する
+        // （「これを大きくして」等、レイアウト語を含まない発話でツールが欠落するのを防ぐ）。
+        if (isLayoutScopedSession) {
+          for (const s of ['slide', 'blog', 'library', 'local_assets']) {
+            if (!excludeSilos.includes(s)) excludeSilos.push(s);
+          }
+        }
+        const keepSilos: string[] = isLayoutScopedSession ? ['layout'] : [];
 
         // agentTurn（サーバー）へ後置 system ブロックとして渡すクライアント文脈。
         // サーバーの固定 SYSTEM_PROMPT（キャッシュ対象）と重複・衝突する AIプロファイル /
@@ -877,7 +909,7 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
         // ⚠️これを送らない限り、上記プレイブック群はモデルに一切届かない
         // （systemPromptWithSite は agentTurn には渡っていない）。
         const clientContext =
-          dateContext + '\n\n' + editingTargetContext +
+          dateContext + '\n\n' + editingTargetContext + layoutChatContext +
           calendarPlaybook + batchProgressPlaybook + aiTaskPlaybook + globalSessionPlaybook +
           gen3dPlaybook + materialGenPlaybook + knowledgePlaybook + layoutRenderPlaybook +
           researchBoardPlaybook + researchBoardScopeHint + rag.promptSection + furnitureContextSection +
@@ -933,7 +965,7 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
         const result = await runLoop({
           sessionId, history, systemPromptWithSite, clientContext, projectId: ctxProjectId,
           model: selectedModel, step: 0,
-          source: options?.source, steps, citations: rag.citations, excludeSilos,
+          source: options?.source, steps, citations: rag.citations, excludeSilos, keepSilos,
         });
 
         // 中断（UI-yield）した場合は空応答を返す（UIはメッセージストアから描画）。
@@ -965,6 +997,7 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
           sessionId: p.sessionId, history, systemPromptWithSite: p.systemPromptWithSite,
           clientContext: p.clientContext, projectId: p.projectId,
           model: p.model, step: p.step, source: p.source, steps: p.steps,
+          excludeSilos: p.excludeSilos, keepSilos: p.keepSilos,
         });
       } catch (e: any) {
         console.error('[Orchestrator] resume failed:', e);
@@ -1039,8 +1072,13 @@ export const useCoreOrchestrator = create<CoreOrchestratorState>((set, get) => {
           }
           say(`S.Model のモデルから ${result.placedCount} 点を自動配置しました。`);
         } else {
-          // まだ 0 点＝S.Model に配置可能なモデルが無い。自動は再提示せず手動へ誘導し堂々巡りを断つ。
-          say('S.Model に自動配置できるモデルが見つかりませんでした。モデルを手動で選ぶか、S.Model にアップロードしてください。', {
+          // まだ 0 点。原因を切り分けて伝える（候補0件=モデル未発見 / 候補あり=配置ロジックが置けず）。
+          // 自動は再提示せず手動へ誘導し堂々巡りを断つ。
+          const cand = result.candidateCount ?? 0;
+          const zeroMsg = cand === 0
+            ? 'S.Model に配置に使える 3D モデルが見つかりませんでした。モデルを手動で選ぶか、S.Model にアップロードしてください。'
+            : `モデル候補は ${cand} 件見つかりましたが、この部屋条件では自動配置できませんでした。モデルを手動で選んで配置してください。`;
+          say(zeroMsg, {
             kind: 'choices',
             toolUseId: crypto.randomUUID(),
             prompt: '次にどうしますか？',

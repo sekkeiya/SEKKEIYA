@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, useMediaQuery } from '@mui/material';
 import { collection, collectionGroup, limit, onSnapshot, query, where, getDocs, or, and } from 'firebase/firestore';
 import { db } from '../../../lib/firebase/client';
 import { DssDashboard } from '../../../features/dss/DssDashboard';
+const DssEditorLazy = React.lazy(() => import('../../../features/dss/DssEditor').then(m => ({ default: m.DssEditor })));
 import { DslDashboard } from '../../../features/dsl/DslDashboard';
 
 import { DscDashboard } from '../../../features/dsc/DscDashboard';
@@ -1084,6 +1085,14 @@ import { useLocalUploadStore } from '../../../features/dss/store/useLocalUploadS
 import { useDscStore } from '../../../features/dsc/store/useDscStore';
 import { useDsdStore } from '../../../features/dsd/store/useDsdStore';
 import { useDsbStore } from '../../../features/dsb/store/useDsbStore';
+import { DsbSidebar } from '../dsb-sidebar/DsbSidebar';
+import { DsbHeaderBar } from '../../../features/dsb/DsbHeaderBar';
+// 全幅ヘッダー化: ダッシュボードを経由しない分岐（テンプレート管理・未選択メッセージ等）でも
+// デスクトップでは左サイドバーを埋め込む必要があるため、アダプタ側でも参照する。
+import { ModelsSidebar } from '../models-sidebar/ModelsSidebar';
+import { DspSidebar } from '../dsp-sidebar/DspSidebar';
+import { DscSidebar } from '../dsc-sidebar/DscSidebar';
+import { DslSidebar } from '../dsl-sidebar/DslSidebar';
 import { useAutosaveDraft } from '../../hooks/useAutosaveDraft';
 import { dsdFsHelpers } from '../../../features/dsd/utils/dsdFsHelpers';
 
@@ -1092,6 +1101,10 @@ import { dsdFsHelpers } from '../../../features/dsd/utils/dsdFsHelpers';
 // -------------------------------------------------------------
 export const DssAdapter: React.FC<AdapterProps> = ({ payload }) => {
   const modelsScope = useAppStore(s => s.modelsScope);
+  const dssShellMode = useAppStore(s => s.dssShellMode);
+  const setDssShellMode = useAppStore(s => s.setDssShellMode);
+  // 全幅ヘッダー化: ダッシュボード非表示の分岐でも左サイドバーを維持するため（デスクトップのみ）
+  const isMobile = useMediaQuery('(max-width:768px)');
   const isGlobal = ['global_models', 'global_following_models', 'global_projects', 'global_following_projects', 'my_public_models', 'my_private_models', 'view_public_project_models'].includes(modelsScope);
   const isLocal = modelsScope === 'local_models';
   const sourceFilter = useModelSourcesStore(s => s.sourceFilter);
@@ -1130,11 +1143,32 @@ export const DssAdapter: React.FC<AdapterProps> = ({ payload }) => {
     return base;
   }, [data, isLocal, sourceFilter, subfolderFilter, cloudFilter, uploadRecords]);
 
+  // S.Model エディター（3Dモデル生成）モード。S.Image と同じシェル切替パターン。
+  // スコープ（プロジェクト未選択など）に関わらず、エディター指定時は必ず開く。
+  if (dssShellMode === 'editor') {
+    return (
+      <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', bgcolor: 'background.default' }}>
+        <React.Suspense fallback={
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
+            <CircularProgress sx={{ color: '#ff5252', mb: 2 }} />
+            <Typography color="text.secondary">Loading S.Model エディター...</Typography>
+          </Box>
+        }>
+          <DssEditorLazy payload={payload} onBack={() => setDssShellMode('dashboard')} />
+        </React.Suspense>
+      </Box>
+    );
+  }
+
   if (!isGlobal && !isLocal && (!payload || !payload.workspaceId || !payload.projectId)) {
     return (
-      <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
-        <Typography variant="h5" color="text.primary">No Project Selected</Typography>
-        <Typography variant="body1">Please select a project from the left sidebar to view its models.</Typography>
+      <Box sx={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+        {/* ダッシュボード非表示でもプロジェクト選択用の左サイドバーは必要（デスクトップ埋め込み） */}
+        {!isMobile && <ModelsSidebar />}
+        <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
+          <Typography variant="h5" color="text.primary">No Project Selected</Typography>
+          <Typography variant="body1">Please select a project from the left sidebar to view its models.</Typography>
+        </Box>
       </Box>
     );
   }
@@ -1159,8 +1193,12 @@ export const DspAdapter: React.FC<AdapterProps> = ({ payload }) => {
   const { isInitializing, data } = useDspService(payload);
   const dspShellMode = useAppStore(s => s.dspShellMode);
   const selectedItem = useAppStore(s => payload?.workspaceId ? s.panelSelections[payload.workspaceId] : null);
+  // 全幅ヘッダー化: ダッシュボードを経由しない分岐（テンプレート管理・未選択）でも
+  // デスクトップでは左サイドバーを埋め込んで維持する（モバイルは MainLayout のドロワー）。
+  const isMobile = useMediaQuery('(max-width:768px)');
 
-  // テンプレート管理は専用ビュー（scope 駆動・shellMode に依存しない）
+  // テンプレート管理は専用ビュー（scope 駆動・shellMode に依存しない）。
+  // 左サイドバー/右詳細パネルはビュー内（全幅ヘッダー下の行）に埋め込み済み。
   if (dspScope === 'my_templates') {
     return (
       <Box sx={{ flex: 1, height: '100%', overflow: 'hidden' }}>
@@ -1172,9 +1210,12 @@ export const DspAdapter: React.FC<AdapterProps> = ({ payload }) => {
   // グローバルスコープでは projectId が不要。プロジェクトスコープのみ必須チェック
   if (!isGlobal && (!payload || !payload.workspaceId || !payload.projectId)) {
     return (
-      <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
-        <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
-        <Typography variant="body1">Please select a S.Slide workspace from the Project Overview to continue.</Typography>
+      <Box sx={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+        {!isMobile && <DspSidebar />}
+        <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
+          <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
+          <Typography variant="body1">Please select a S.Slide workspace from the Project Overview to continue.</Typography>
+        </Box>
       </Box>
     );
   }
@@ -1222,6 +1263,8 @@ export const DscAdapter: React.FC<AdapterProps> = ({ payload }) => {
   const dscShellMode = useAppStore(s => s.dscShellMode);
   const dscViewScope = useDscStore(s => s.dscViewScope);
   const isGlobalScope = ['global_furniture', 'global_following_furniture', 'global_projects', 'my_public_furniture', 'my_private_furniture'].includes(dscViewScope);
+  // 全幅ヘッダー化: ダッシュボード非表示の分岐でも左サイドバーを維持するため（デスクトップのみ）
+  const isMobile = useMediaQuery('(max-width:768px)');
 
   // スタジオ入室時に showDscProjectBrowser をリセット → DscEditorSidebar へ自動切替
   useEffect(() => {
@@ -1250,9 +1293,13 @@ export const DscAdapter: React.FC<AdapterProps> = ({ payload }) => {
   // グローバルスコープでは projectId は不要
   if (!isGlobalScope && (!payload || !payload.workspaceId || !payload.projectId)) {
     return (
-      <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
-        <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
-        <Typography variant="body1">Please select a S.Create workspace from the Project Overview to continue.</Typography>
+      <Box sx={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+        {/* ダッシュボード非表示でもワークスペース選択用の左サイドバーは必要（デスクトップ埋め込み） */}
+        {!isMobile && <DscSidebar />}
+        <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
+          <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
+          <Typography variant="body1">Please select a S.Create workspace from the Project Overview to continue.</Typography>
+        </Box>
       </Box>
     );
   }
@@ -1294,6 +1341,10 @@ const DSL_GLOBAL_SCOPES = ['global_layouts', 'global_following_layouts', 'global
 export const DslAdapter: React.FC<AdapterProps> = ({ payload }) => {
   const dslScope = useAppStore(s => s.dslScope);
   const isGlobal = DSL_GLOBAL_SCOPES.includes(dslScope);
+  // 全幅ヘッダー化: ダッシュボード非表示の分岐でも左サイドバーを維持するため（デスクトップのみ）
+  const isMobile = useMediaQuery('(max-width:768px)');
+  // DslSidebar のルートは width:100%（親任せ）なので、埋め込み時は 240px のラッパーで幅を与える
+  const isProjectSidebarOpen = useAppStore(s => s.isProjectSidebarOpen);
 
   const { isInitializing, data } = useDslService();
 
@@ -1307,9 +1358,17 @@ export const DslAdapter: React.FC<AdapterProps> = ({ payload }) => {
 
   if (!payload || !payload.workspaceId || !payload.projectId) {
     return (
-      <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
-        <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
-        <Typography variant="body1">Please select a S.Layout workspace from the Project Overview to continue.</Typography>
+      <Box sx={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+        {/* ダッシュボード非表示でもワークスペース選択用の左サイドバーは必要（デスクトップ埋め込み） */}
+        {!isMobile && (
+          <Box sx={{ width: isProjectSidebarOpen ? 240 : 0, flexShrink: 0, height: '100%', overflow: 'hidden', transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+            <DslSidebar />
+          </Box>
+        )}
+        <Box sx={{ flex: 1, p: 4, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', color: 'text.secondary' }}>
+          <Typography variant="h5" color="text.primary">No Workspace Selected</Typography>
+          <Typography variant="body1">Please select a S.Layout workspace from the Project Overview to continue.</Typography>
+        </Box>
       </Box>
     );
   }
@@ -2570,16 +2629,27 @@ const OfficialBlogDashboardLazy = React.lazy(() => import('../../../features/dsb
 export const DsbAdapter: React.FC<AdapterProps> = ({ payload }) => {
   // blogScope はシェル共通の状態（useDsbStore）。'official' のときだけ公式ダッシュボードを描画。
   const blogScope = useDsbStore((s) => s.blogScope);
+  // 全幅ヘッダー化レイアウト（デスクトップのみ）: DsbDashboard はビューごとにヘッダーが異なるため
+  // ダッシュボード側ではなくアダプタ側で左サイドバーを行として埋め込む（公式/通常の両モードをカバー）。
+  const isMobile = useMediaQuery('(max-width:768px)');
   return (
-    <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', bgcolor: 'background.default' }}>
-      <React.Suspense fallback={
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
-          <CircularProgress sx={{ color: blogScope === 'official' ? 'light-dark(#0676a8, #38bdf8)' : 'light-dark(#921b1b, #e57373)', mb: 2 }} />
-          <Typography color="text.secondary">Loading S.Blog...</Typography>
+    <Box sx={{ flex: 1, height: '100%', overflow: 'hidden', position: 'relative', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      {/* 全幅ヘッダーバンド（デスクトップのみ。編集モードでは自身が null を返す） */}
+      {!isMobile && <DsbHeaderBar />}
+      {/* 左サイドバー | ダッシュボード の 2 ゾーン行（サイドバーはストア駆動で自己サイズ調整） */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
+        {!isMobile && <DsbSidebar />}
+        <Box sx={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
+          <React.Suspense fallback={
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', bgcolor: 'background.default' }}>
+              <CircularProgress sx={{ color: blogScope === 'official' ? 'light-dark(#0676a8, #38bdf8)' : 'light-dark(#921b1b, #e57373)', mb: 2 }} />
+              <Typography color="text.secondary">Loading S.Blog...</Typography>
+            </Box>
+          }>
+            {blogScope === 'official' ? <OfficialBlogDashboardLazy /> : <DsbDashboardLazy payload={payload} />}
+          </React.Suspense>
         </Box>
-      }>
-        {blogScope === 'official' ? <OfficialBlogDashboardLazy /> : <DsbDashboardLazy payload={payload} />}
-      </React.Suspense>
+      </Box>
     </Box>
   );
 };

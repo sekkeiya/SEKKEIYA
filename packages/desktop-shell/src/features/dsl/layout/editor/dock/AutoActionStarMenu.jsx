@@ -148,8 +148,8 @@ export default function AutoActionStarMenu() {
       sx={{
         position: "absolute",
         left: 16,
-        // 左ドック(top:160)の下に元の間隔(200)を保って配置。
-        top: 360,
+        // 左ドック廃止に伴い、旧左ドックの位置(top:160)へ繰り上げ。
+        top: 160,
         zIndex: 62,
         display: "flex",
         flexDirection: "column",
@@ -223,7 +223,8 @@ export default function AutoActionStarMenu() {
                   pl: 0.6, pr: 1.4, py: 0.6, borderRadius: 999, cursor: "pointer",
                   color: "var(--brand-fg)",
                   background: isSelected ? `color-mix(in srgb, ${a.color} 28%, transparent)` : alpha("#0b1020", 0.9),
-                  border: `1px solid ${alpha(a.color, isSelected ? 0.95 : 0.5)}`,
+                  // a.color は light-dark() を含みうるため MUI の alpha() ではなく CSS color-mix で不透明度を付ける。
+                  border: `1px solid color-mix(in srgb, ${a.color} ${isSelected ? 95 : 50}%, transparent)`,
                   boxShadow: isSelected
                     ? `0 0 0 2px ${`color-mix(in srgb, ${a.color} 50%, transparent)`}, 0 8px 22px ${`color-mix(in srgb, ${a.color} 40%, transparent)`}`
                     : `0 6px 20px ${alpha("#000", 0.45)}`,
@@ -244,7 +245,7 @@ export default function AutoActionStarMenu() {
                   sx={{
                     width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    background: alpha(a.color, isSelected ? 0.35 : 0.22), color: a.color,
+                    background: `color-mix(in srgb, ${a.color} ${isSelected ? 35 : 22}%, transparent)`, color: a.color,
                     "& svg": { fontSize: 18 },
                   }}
                 >

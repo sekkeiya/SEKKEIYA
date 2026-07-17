@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Box, Typography, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  useMediaQuery,
 } from '@mui/material';
 import WbSunnyRoundedIcon from '@mui/icons-material/WbSunnyRounded';
 import RouteRoundedIcon from '@mui/icons-material/RouteRounded';
@@ -16,6 +17,8 @@ import { useDsdStore, type DsdTemplate } from './store/useDsdStore';
 
 import { BRAND } from '../../styles/theme';
 import { DsdLibraryGrid, type DsdExportItem } from './library/DsdLibraryGrid';
+import { DsdSidebar } from '../../shared/layout/dsd-sidebar/DsdSidebar';
+import { DsdRightPanel } from './components/DsdRightPanel';
 
 // ─── Template definitions ─────────────────────────────────────────────────────
 
@@ -255,6 +258,12 @@ export const DsdDashboard: React.FC<DsdDashboardProps> = ({
   const setCurrentTemplate = useDsdStore(s => s.setCurrentTemplate);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // ── 全幅ヘッダー化レイアウト用（デスクトップのみ） ──────────────────────────────
+  // デスクトップでは MainLayout の左サイドバー / RightPanelHost の右パネルを抑止し、
+  // 代わりにここ（ヘッダー下の 3 ゾーン行）へ埋め込む。これによりヘッダーが全幅になる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const isProjectSidebarOpen = useAppStore(s => s.isProjectSidebarOpen);
+
   const handleCreate = (template: DsdTemplate) => {
     setActiveDiagramId(null); // Clear any previously loaded diagram
     setCurrentTemplate(template);
@@ -328,18 +337,50 @@ export const DsdDashboard: React.FC<DsdDashboardProps> = ({
         </Box>
       </Box>
 
-      {/* ── Library grid ───────────────────────────────────────────────────── */}
-      <Box sx={{ flex: 1, minHeight: 0, p: 3, overflowY: 'auto' }}>
-        <DsdLibraryGrid
-          items={items}
-          diagramItems={diagramItems}
-          isInitializing={isInitializing}
-          onDelete={onDeleteItem}
-          onDeleteDiagram={onDeleteDiagram}
-          onOpenDiagram={onOpenDiagram}
-          onSelectDiagram={onSelectDiagram}
-          onNew={() => setDialogOpen(true)}
-        />
+      {/* ── 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | ライブラリグリッド | 右プロパティ ── */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（デスクトップのみ埋め込み。DsdSidebar は width:100% のためラッパーで開閉幅を制御） */}
+        {!isMobile && (
+          <Box sx={{ width: isProjectSidebarOpen ? 240 : 0, flexShrink: 0, height: '100%', overflow: 'hidden', transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+            <DsdSidebar />
+          </Box>
+        )}
+
+        {/* ── Library grid ───────────────────────────────────────────────────── */}
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, p: 3, overflowY: 'auto' }}>
+          <DsdLibraryGrid
+            items={items}
+            diagramItems={diagramItems}
+            isInitializing={isInitializing}
+            onDelete={onDeleteItem}
+            onDeleteDiagram={onDeleteDiagram}
+            onOpenDiagram={onOpenDiagram}
+            onSelectDiagram={onSelectDiagram}
+            onNew={() => setDialogOpen(true)}
+          />
+        </Box>
+
+        {/* 右パネル（デスクトップのみ埋め込み。旧 RightPanelHost と同じ 320px ゾーン） */}
+        {!isMobile && (
+          <Box
+            sx={{
+              width: 320, flexShrink: 0, height: '100%',
+              borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+              bgcolor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))',
+              display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+            }}
+          >
+            {/* パネルヘッダー（旧 RightPanelHost のタイトル行相当） */}
+            <Box sx={{ px: 2, display: 'flex', alignItems: 'center', height: 48, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)', flexShrink: 0 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
+                S.Diagram プロパティ
+              </Typography>
+            </Box>
+            <Box sx={{ flex: 1, overflow: 'hidden', overflowY: 'auto' }}>
+              <DsdRightPanel />
+            </Box>
+          </Box>
+        )}
       </Box>
 
       {/* ── Dialog ─────────────────────────────────────────────────────────── */}

@@ -82,7 +82,7 @@ export const DsmEditorSidebar: React.FC = () => {
       sx={{
         width: isProjectSidebarOpen ? 240 : 0,
         height: '100%',
-        bgcolor: BRAND.panel,
+        bgcolor: BRAND.bg,
         borderRight: isProjectSidebarOpen ? `1px solid ${BRAND.line}` : 'none',
         display: 'flex', flexDirection: 'column',
         overflowY: 'hidden', overflowX: 'hidden', flexShrink: 0,

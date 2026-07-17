@@ -454,7 +454,7 @@ export const DscSidebar: React.FC = () => {
     <Box sx={{
       width: isProjectSidebarOpen ? 240 : 0,
       height: '100%',
-      bgcolor: BRAND.panel,
+      bgcolor: BRAND.bg,
       borderRight: isProjectSidebarOpen ? `1px solid ${BRAND.line}` : 'none',
       display: 'flex', flexDirection: 'column',
       py: isProjectSidebarOpen ? 2 : 0,
@@ -462,11 +462,8 @@ export const DscSidebar: React.FC = () => {
       transition: 'width 0.2s cubic-bezier(0.4,0,0.2,1), padding 0.2s, border 0.2s',
     }}>
 
-      {/* ── Header + Search ── */}
+      {/* ── Search ── */}
       <Box sx={{ px: 2, mb: 1 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', mb: 1.5 }}>
-          3D SHAPE CREATE
-        </Typography>
         <Box sx={{
           display: 'flex', alignItems: 'center',
           bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, px: 1.5, py: 0.5,

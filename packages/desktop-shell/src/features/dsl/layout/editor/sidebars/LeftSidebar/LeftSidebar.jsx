@@ -153,10 +153,6 @@ export default function LeftSidebar({ width = "100%" }) {
         bgcolor: BRAND.panel,
       }}
     >
-      <Box sx={{ px: 2, py: 1.5, display: "flex", alignItems: "center", borderBottom: "1px solid rgb(var(--brand-fg-rgb) / 0.05)", flexShrink: 0 }}>
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "var(--brand-fg)", letterSpacing: 1 }}>3D SHAPE LAYOUT</Typography>
-      </Box>
-
       {finalVisibleSections.map((key, i) => {
         const isLast = i === finalVisibleSections.length - 1;
         const passExplicitHeight = !isLast; 

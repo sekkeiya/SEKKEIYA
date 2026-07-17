@@ -5,7 +5,6 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Button, Snackbar, Alert } from '@mui/material';
-import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
@@ -104,15 +103,6 @@ export const OfficialScheduleView: React.FC = () => {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, px: { xs: 2, md: 4 }, py: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexShrink: 0 }}>
-        <EventNoteRoundedIcon sx={{ color: ACCENT, fontSize: 26 }} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: 'var(--brand-fg)', fontWeight: 700, fontSize: 19, lineHeight: 1.2 }}>スケジュール</Typography>
-          <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.45)', fontSize: 12 }}>
-            左＝カレンダー（記事は公開日／📝は投稿計画、クリックで編集・生成）。右＝記事ネタ（作成待ち）から⚡で記事化。
-          </Typography>
-        </Box>
-      </Box>
       {/* カレンダー ＋ 記事ネタ（作成待ち）レール */}
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
         <Box sx={{ flex: 1, minHeight: { xs: 360, md: 0 } }}>

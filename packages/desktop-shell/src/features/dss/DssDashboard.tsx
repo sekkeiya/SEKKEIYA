@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Box, Button, ButtonGroup, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Switch, Modal, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip } from '@mui/material';
+import { Box, Button, ButtonGroup, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Switch, Modal, CircularProgress, Menu, MenuItem, ListItemIcon, ListItemText, IconButton, Tooltip, useMediaQuery } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SortRoundedIcon from '@mui/icons-material/SortRounded';
@@ -27,6 +27,11 @@ import { DssShareDialog } from './components/DssShareDialog';
 import { DssDeleteConfirmDialog } from './components/DssDeleteConfirmDialog';
 import { WorkspaceItemRepository } from '../workspace/WorkspaceItemRepository';
 import { DssModelDetailView } from './components/DssModelDetailView';
+// 全幅ヘッダー化レイアウト: 左のモデル一覧サイドバーと右の Search & Filter パネルを
+// このダッシュボード内（ツールバー下の 3 ゾーン行）に埋め込む。デスクトップのみ。
+// モバイルは従来どおり MainLayout / RightPanelHost 側の外部パネル（ドロワー）を使う。
+import { ModelsSidebar } from '../../shared/layout/models-sidebar/ModelsSidebar';
+import { DssRightPanel } from './components/DssRightPanel';
 import { projectAssetsApi } from '../projects/api/projectAssetsApi';
 import { useProjectAssetUsage } from './hooks/useProjectAssetUsage';
 import { useFurniturePickerStore } from '../../store/useFurniturePickerStore';
@@ -47,6 +52,7 @@ import { openModelInDcc, canPlaceInDcc, type DccApp } from './utils/dccPlacement
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import AutoAwesomeMotionRoundedIcon from '@mui/icons-material/AutoAwesomeMotionRounded';
 import ThreeDRotationRoundedIcon from '@mui/icons-material/ThreeDRotationRounded';
+import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { Snackbar, Alert } from '@mui/material';
 import { LensResultsDialog } from './components/LensResultsDialog';
@@ -84,6 +90,11 @@ export const DssDashboard: React.FC<{
   const viewingPublicProjectName = useAppStore(s => s.viewingPublicProjectName);
   const activeProjectId = useAppStore(s => s.activeProjectId);
   const projects = useAppStore(s => s.projects);
+  // S.Image の「画像生成・編集」エディターと同じ発想で、S.Model 内に 3D モデル生成エディターを開く。
+  const setDssShellMode = useAppStore(s => s.setDssShellMode);
+  const openModelGenerator = useCallback(() => {
+    setDssShellMode('editor');
+  }, [setDssShellMode]);
   const activeProjectName = useMemo(
     () => projects.find(p => p.id === activeProjectId)?.name ?? null,
     [projects, activeProjectId]
@@ -263,8 +274,11 @@ export const DssDashboard: React.FC<{
     m.authorId === currentUserUid || m.ownerId === currentUserUid || m.createdBy === currentUserUid
   ), [currentUserUid]);
 
-  const handleBulkRegister = useCallback(async () => {
-    const chosen = gridItemsRef.current.filter((m) => selectedIds.includes(m.id) && isAuthorOf(m) && !m.isProjectItem);
+  // explicitModels を渡すと選択状態に依らずそのモデル群を対象にする（詳細ビューの単一モデル操作用）。
+  // onClick に直接束ねられてイベントが渡るケースを Array.isArray でガード。
+  const handleBulkRegister = useCallback(async (explicitModels?: any[]) => {
+    const chosen = (Array.isArray(explicitModels) ? explicitModels : gridItemsRef.current.filter((m) => selectedIds.includes(m.id)))
+      .filter((m) => isAuthorOf(m) && !m.isProjectItem);
     if (chosen.length === 0) return;
     setBulkMode('related');
     const { isTauri } = await import('@tauri-apps/api/core');
@@ -316,8 +330,9 @@ export const DssDashboard: React.FC<{
 
   // 選択モデルへ S.Library カタログの似た商品（上位5件）を一括登録。
   // カタログ照合はローカル視覚索引なので隠し WebView 不要・直列実行。進捗は bulk* ダイアログを共用。
-  const handleBulkCatalog = useCallback(async () => {
-    const chosen = gridItemsRef.current.filter((m) => selectedIds.includes(m.id) && isAuthorOf(m) && !m.isProjectItem);
+  const handleBulkCatalog = useCallback(async (explicitModels?: any[]) => {
+    const chosen = (Array.isArray(explicitModels) ? explicitModels : gridItemsRef.current.filter((m) => selectedIds.includes(m.id)))
+      .filter((m) => isAuthorOf(m) && !m.isProjectItem);
     if (chosen.length === 0) return;
     setBulkMode('catalog');
     const controller = new AbortController();
@@ -380,8 +395,9 @@ export const DssDashboard: React.FC<{
   const [aiBulkDone, setAiBulkDone] = useState<{ models: number; rows: { title: string; fields: number; error?: string }[] } | null>(null);
   const aiBulkAbortRef = useRef<AbortController | null>(null);
 
-  const handleBulkAutoFill = useCallback(async () => {
-    const chosen = gridItemsRef.current.filter((m) => selectedIds.includes(m.id) && isAuthorOf(m) && !m.isProjectItem);
+  const handleBulkAutoFill = useCallback(async (explicitModels?: any[]) => {
+    const chosen = (Array.isArray(explicitModels) ? explicitModels : gridItemsRef.current.filter((m) => selectedIds.includes(m.id)))
+      .filter((m) => isAuthorOf(m) && !m.isProjectItem);
     if (chosen.length === 0) return;
     const controller = new AbortController();
     aiBulkAbortRef.current = controller;
@@ -429,8 +445,9 @@ export const DssDashboard: React.FC<{
     [selectedIds],
   );
 
-  const handlePlaceInDcc = useCallback(async (app: DccApp) => {
-    const chosen = gridItemsRef.current.filter((m) => selectedIds.includes(m.id) && canPlaceInDcc(m, app));
+  const handlePlaceInDcc = useCallback(async (app: DccApp, explicitModels?: any[]) => {
+    const chosen = (Array.isArray(explicitModels) ? explicitModels : gridItemsRef.current.filter((m) => selectedIds.includes(m.id)))
+      .filter((m) => canPlaceInDcc(m, app));
     if (chosen.length === 0) return;
     const { isTauri } = await import('@tauri-apps/api/core');
     if (!isTauri()) {
@@ -987,6 +1004,33 @@ export const DssDashboard: React.FC<{
     groups: groupedLayoutAssets.map(g => ({ title: g.pathName, count: g.items.length }))
   });
 
+  // ── 全幅ヘッダー化レイアウト用の埋め込みパネル（デスクトップのみ） ──────────────
+  // デスクトップでは MainLayout の左サイドバー / RightPanelHost の右パネルを抑止し、
+  // 代わりにここ（ツールバー下の 3 ゾーン行）へ埋め込む。これによりツールバーが全幅ヘッダーになる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+  const embeddedLeftSidebar = !isMobile ? <ModelsSidebar /> : null;
+  const embeddedRightPanel = !isMobile ? (
+    <Box
+      sx={{
+        width: 320, flexShrink: 0, height: '100%',
+        borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.08)',
+        bgcolor: 'light-dark(rgba(255, 255, 255, 0.85), rgba(10, 15, 25, 0.6))',
+        display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
+      }}
+    >
+      <Box sx={{ p: 2 }}><DssRightPanel /></Box>
+    </Box>
+  ) : null;
+
+  // ツールバー1行化: フィルタ/パンくずが実際にある時だけ 2 行目（フィルタ表示行）を出す。
+  const hasActiveFilters = !!(
+    (searchFilters.type && searchFilters.type !== 'ALL') ||
+    (searchFilters.category && searchFilters.category !== 'ALL') ||
+    (searchFilters.subCategory && searchFilters.subCategory !== 'ALL') ||
+    (searchFilters.format && searchFilters.format !== 'ALL') ||
+    searchFilters.tags || searchFilters.wantsReady || searchFilters.wantsCustom
+  );
+
   return (
     <Box sx={styles.root}>
       {/* S.Modelに保存ボタン押下後、GLBファイル取得〜ダイアログ開くまでのローディングオーバーレイ */}
@@ -1014,7 +1058,8 @@ export const DssDashboard: React.FC<{
           if (payload?.workspaceId) setPanelSelection(payload.workspaceId, target);
         };
         return (
-          <Box sx={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <Box sx={{ position: 'relative', flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
             <AnimatePresence mode="wait" custom={detailNavDir} initial={false}>
               <motion.div
                 key={detailModel.id}
@@ -1047,9 +1092,22 @@ export const DssDashboard: React.FC<{
                   canImageSearch={canImageSearch}
                   imgSearchBusy={imgSearchBusy}
                   onCameraClick={(el) => { setImgSearchError(null); setImgSearchAnchor(el); }}
+                  detailActions={{
+                    canRegister: isAuthorOf(detailModel) && !detailModel.isProjectItem,
+                    canRhino: canPlaceInDcc(detailModel, 'rhino'),
+                    canBlender: canPlaceInDcc(detailModel, 'blender'),
+                    dccBusy,
+                    onRegisterLinks: () => handleBulkRegister([detailModel]),
+                    onCatalog: () => handleBulkCatalog([detailModel]),
+                    onAutoFill: () => handleBulkAutoFill([detailModel]),
+                    onRhino: () => handlePlaceInDcc('rhino', [detailModel]),
+                    onBlender: () => handlePlaceInDcc('blender', [detailModel]),
+                  }}
                 />
               </motion.div>
             </AnimatePresence>
+            </Box>
+            {embeddedRightPanel}
           </Box>
         );
       })() : (
@@ -1176,99 +1234,9 @@ export const DssDashboard: React.FC<{
 
               {/* 画像検索メニュー＋Lens/カタログ ダイアログは常時描画領域へ移動（グリッド/詳細の両方で使用） */}
 
-              {/* 選択時の一括操作バー（画面下中央フロート・1行レスポンシブ。1件でも表示） */}
-              {selectedIds.length >= 1 && (() => {
-                const rhinoCount = dccEligibleCount('rhino');
-                const blenderCount = dccEligibleCount('blender');
-                const cnt = (n: number) => (n > 0 ? `（${n}）` : '');
-                const actionBtnSx = (bg: string, hover: string) => ({
-                  textTransform: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
-                  minWidth: 0, px: 1.25, py: 0.5, borderRadius: 999, bgcolor: bg, color: 'var(--brand-fg)',
-                  '& .MuiButton-startIcon': { mr: 0.5, ml: 0 },
-                  '&:hover': { bgcolor: hover },
-                  '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.35)' },
-                });
-                const divider = <Box sx={{ width: '1px', height: 20, bgcolor: 'rgb(var(--slate-ink-rgb) / 0.25)', flexShrink: 0 }} />;
-                return (
-                <Box
-                  data-no-dismiss="true"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  sx={{
-                    position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 1200,
-                    display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: 0.75, px: 1.5, py: 0.85, borderRadius: 999,
-                    maxWidth: 'min(94vw, 1040px)', width: 'max-content', overflowX: 'auto',
-                    bgcolor: 'rgb(var(--slate-panel-rgb) / 0.97)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-                    '&::-webkit-scrollbar': { height: 0 },
-                  }}
-                >
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)', whiteSpace: 'nowrap', flexShrink: 0, pl: 0.5 }}>{selectedIds.length}件選択</Typography>
-                  <Typography
-                    onClick={handleClearSelection}
-                    sx={{ fontSize: 11.5, color: 'rgb(var(--slate-ink-rgb) / 0.9)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { color: 'var(--brand-fg)' } }}
-                  >
-                    解除
-                  </Typography>
-                  {divider}
-                  <Tooltip title="選択モデルに関連URL（実商品リンク）を自動登録">
-                    <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                      <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
-                        startIcon={<ImageSearchRoundedIcon sx={{ fontSize: 16 }} />}
-                        onClick={handleBulkRegister} sx={actionBtnSx('#2563eb', '#1d4ed8')}>
-                        関連URL{cnt(bulkEligibleCount)}
-                      </Button>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title="選択モデルに S.Library カタログの似た商品を自動登録">
-                    <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                      <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
-                        startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
-                        onClick={handleBulkCatalog} sx={actionBtnSx('#16a34a', '#15803d')}>
-                        カタログ{cnt(bulkEligibleCount)}
-                      </Button>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title="AIで寸法・カテゴリを自動入力">
-                    <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                      <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
-                        startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 16 }} />}
-                        onClick={handleBulkAutoFill} sx={actionBtnSx('#7c3aed', '#6d28d9')}>
-                        AI入力{cnt(bulkEligibleCount)}
-                      </Button>
-                    </span>
-                  </Tooltip>
-                  {canBulkDelete && (
-                    <Tooltip title="選択モデルをまとめて削除">
-                      <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                        <Button size="small" variant="contained" disabled={bulkDeletableCount === 0}
-                          startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
-                          onClick={() => setBulkDeleteOpen(true)} sx={actionBtnSx('#dc2626', '#b91c1c')}>
-                          削除{cnt(bulkDeletableCount)}
-                        </Button>
-                      </span>
-                    </Tooltip>
-                  )}
-                  {divider}
-                  <Tooltip title="選択モデルを Rhino へ配置（開いて取り込み）">
-                    <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                      <Button size="small" variant="contained" disabled={rhinoCount === 0 || dccBusy !== null}
-                        startIcon={dccBusy === 'rhino' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />}
-                        onClick={() => handlePlaceInDcc('rhino')} sx={actionBtnSx('#0d9488', '#0f766e')}>
-                        Rhino{cnt(rhinoCount)}
-                      </Button>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title="選択モデルを Blender へ配置（開いて取り込み）">
-                    <span style={{ flexShrink: 0, display: 'inline-flex' }}>
-                      <Button size="small" variant="contained" disabled={blenderCount === 0 || dccBusy !== null}
-                        startIcon={dccBusy === 'blender' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 16 }} />}
-                        onClick={() => handlePlaceInDcc('blender')} sx={actionBtnSx('#ea7317', '#c2620f')}>
-                        Blender{cnt(blenderCount)}
-                      </Button>
-                    </span>
-                  </Tooltip>
-                </Box>
-                );
-              })()}
+              {/* 選択時の一括操作バーは、backdrop-filter を持つ sticky ヘッダー内だと
+                  それが position:fixed の containing block になり画面上部に貼り付いてしまう。
+                  そのため描画はルート直下（下部フロート）に移動した。 */}
 
               <Snackbar open={!!dccToast} autoHideDuration={4000} onClose={() => setDccToast(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                 {dccToast ? <Alert severity={dccToast.sev} onClose={() => setDccToast(null)} sx={{ fontSize: 13 }}>{dccToast.msg}</Alert> : undefined}
@@ -1460,10 +1428,83 @@ export const DssDashboard: React.FC<{
                   </ButtonGroup>
                 </Box>
               </Box>
+              {/* アクション群（詳細表示・3Dモデル生成・Upload・Sort）を 1 行目に統合 */}
+              <Box sx={styles.actionsRight}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mr: 1, fontWeight: 500 }}>
+                    詳細表示
+                  </Typography>
+                  <Switch
+                    size="small"
+                    checked={showDetails}
+                    onChange={(e) => setShowDetails(e.target.checked)}
+                    color="primary"
+                  />
+                </Box>
+                <Tooltip title="AIで3Dモデルを生成（画像→3D。生成画面が開きます）" placement="bottom">
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<ViewInArRoundedIcon />}
+                    sx={{ ...styles.actionBtn, bgcolor: '#7c3aed', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#6d28d9' } }}
+                    onClick={openModelGenerator}
+                  >
+                    3Dモデル生成
+                  </Button>
+                </Tooltip>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{ ...styles.actionBtn, bgcolor: '#29b6f6', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0288d1' } }}
+                  onClick={() => setUploadDialogOpen(true)}
+                >
+                  Upload
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<SortRoundedIcon />}
+                  sx={styles.actionBtn}
+                  onClick={(e) => { if (isGlobalProjectsScope) setSortMenuAnchor(e.currentTarget); }}
+                >
+                  {isGlobalProjectsScope ? (projectsSort === 'popular' ? '人気順' : '新着順') : 'Sort'}
+                </Button>
+                <Menu
+                  anchorEl={sortMenuAnchor}
+                  open={!!sortMenuAnchor}
+                  onClose={() => setSortMenuAnchor(null)}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                >
+                  <MenuItem onClick={() => { setProjectsSort('newest'); setSortMenuAnchor(null); }}>
+                    <ListItemIcon><FiberNewRoundedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>新着順</ListItemText>
+                    {projectsSort === 'newest' && <CheckRoundedIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
+                  </MenuItem>
+                  <MenuItem onClick={() => { setProjectsSort('popular'); setSortMenuAnchor(null); }}>
+                    <ListItemIcon><WhatshotRoundedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>人気順</ListItemText>
+                    {projectsSort === 'popular' && <CheckRoundedIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
+                  </MenuItem>
+                </Menu>
+              </Box>
             </Box>
+          </Box>
 
-            {/* Active Filters Display / Local Models breadcrumb */}
-            <Box component="section" sx={{ ...styles.filterRow, minHeight: 40, py: 1 }}>
+          {/* 全幅ヘッダー下の 3 ゾーン行: 左モデル一覧サイドバー | グリッド | 右 Search & Filter */}
+          <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            {embeddedLeftSidebar}
+            {/* Main Content Area */}
+            <Box
+              component="main"
+              sx={styles.content}
+              onPointerDownCapture={handleBackgroundPointerDownCapture}
+            >
+            {/* フィルタ/パンくず表示。ヘッダー高さを固定するため、ヘッダー2行目ではなく
+                グリッド列（結果エリア）の上部に配置する。左右サイドバーとヘッダーの高さは不変で、
+                表示ON/OFF時は結果エリア内だけが上下する。 */}
+            {(breadcrumb || hasActiveFilters) && (
+            <Box component="section" data-no-dismiss="true" sx={{ ...styles.filterRow, minHeight: 40, py: 1, flexShrink: 0 }}>
               {breadcrumb ? (
               <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
                 {breadcrumb.segs.map((seg, i) => (
@@ -1565,65 +1606,8 @@ export const DssDashboard: React.FC<{
                 </AnimatePresence>
               </Box>
               )}
-
-              <Box sx={{ flex: 1, minWidth: 0 }} />
-              <Box sx={styles.actionsRight}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', mr: 1, fontWeight: 500 }}>
-                    詳細表示
-                  </Typography>
-                  <Switch 
-                    size="small" 
-                    checked={showDetails} 
-                    onChange={(e) => setShowDetails(e.target.checked)} 
-                    color="primary"
-                  />
-                </Box>
-                <Button 
-                  size="small" 
-                  variant="contained" 
-                  startIcon={<CloudUploadIcon />} 
-                  sx={{ ...styles.actionBtn, bgcolor: '#29b6f6', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0288d1' } }}
-                  onClick={() => setUploadDialogOpen(true)}
-                >
-                  Upload
-                </Button>
-                <Button
-                  size="small"
-                  startIcon={<SortRoundedIcon />}
-                  sx={styles.actionBtn}
-                  onClick={(e) => { if (isGlobalProjectsScope) setSortMenuAnchor(e.currentTarget); }}
-                >
-                  {isGlobalProjectsScope ? (projectsSort === 'popular' ? '人気順' : '新着順') : 'Sort'}
-                </Button>
-                <Menu
-                  anchorEl={sortMenuAnchor}
-                  open={!!sortMenuAnchor}
-                  onClose={() => setSortMenuAnchor(null)}
-                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                >
-                  <MenuItem onClick={() => { setProjectsSort('newest'); setSortMenuAnchor(null); }}>
-                    <ListItemIcon><FiberNewRoundedIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText>新着順</ListItemText>
-                    {projectsSort === 'newest' && <CheckRoundedIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
-                  </MenuItem>
-                  <MenuItem onClick={() => { setProjectsSort('popular'); setSortMenuAnchor(null); }}>
-                    <ListItemIcon><WhatshotRoundedIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText>人気順</ListItemText>
-                    {projectsSort === 'popular' && <CheckRoundedIcon fontSize="small" sx={{ ml: 1, color: 'primary.main' }} />}
-                  </MenuItem>
-                </Menu>
-              </Box>
             </Box>
-          </Box>
-
-          {/* Main Content Area */}
-          <Box
-            component="main"
-            sx={styles.content}
-            onPointerDownCapture={handleBackgroundPointerDownCapture}
-          >
+            )}
             <Box sx={styles.pageBodyInner} data-center-page="true">
               {['global_projects', 'global_following_projects'].includes(modelsScope) ? (
                 <DssProjectsGrid
@@ -1687,6 +1671,8 @@ export const DssDashboard: React.FC<{
                 />
               )}
             </Box>
+            </Box>
+            {embeddedRightPanel}
           </Box>
         </>
       )}
@@ -1890,6 +1876,103 @@ export const DssDashboard: React.FC<{
         registering={lensRegistering}
         onRegister={handleRegisterLensLinks}
       />
+
+      {/* 選択時の一括操作バー（画面下中央フロート・1行レスポンシブ。1件でも表示）
+          backdrop-filter を持つ sticky ヘッダーの containing block に捕まらないよう、
+          ルート直下に置いて position:fixed をビューポート基準で効かせる。
+          詳細ビュー中は同じアクションを右ペインに出すため、このフロートバーは隠す。 */}
+      {selectedIds.length >= 1 && !detailModel && (() => {
+        const rhinoCount = dccEligibleCount('rhino');
+        const blenderCount = dccEligibleCount('blender');
+        const cnt = (n: number) => (n > 0 ? `（${n}）` : '');
+        const actionBtnSx = (bg: string, hover: string) => ({
+          textTransform: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+          minWidth: 0, px: 1.25, py: 0.5, borderRadius: 999, bgcolor: bg, color: 'var(--brand-fg)',
+          '& .MuiButton-startIcon': { mr: 0.5, ml: 0 },
+          '&:hover': { bgcolor: hover },
+          '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.35)' },
+        });
+        const divider = <Box sx={{ width: '1px', height: 20, bgcolor: 'rgb(var(--slate-ink-rgb) / 0.25)', flexShrink: 0 }} />;
+        return (
+        <Box
+          data-no-dismiss="true"
+          onPointerDown={(e) => e.stopPropagation()}
+          sx={{
+            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 1200,
+            display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: 0.75, px: 1.5, py: 0.85, borderRadius: 999,
+            maxWidth: 'min(94vw, 1040px)', width: 'max-content', overflowX: 'auto',
+            bgcolor: 'rgb(var(--slate-panel-rgb) / 0.97)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.3)', boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+            '&::-webkit-scrollbar': { height: 0 },
+          }}
+        >
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--brand-fg)', whiteSpace: 'nowrap', flexShrink: 0, pl: 0.5 }}>{selectedIds.length}件選択</Typography>
+          <Typography
+            onClick={handleClearSelection}
+            sx={{ fontSize: 11.5, color: 'rgb(var(--slate-ink-rgb) / 0.9)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { color: 'var(--brand-fg)' } }}
+          >
+            解除
+          </Typography>
+          {divider}
+          <Tooltip title="選択モデルに関連URL（実商品リンク）を自動登録">
+            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
+                startIcon={<ImageSearchRoundedIcon sx={{ fontSize: 16 }} />}
+                onClick={handleBulkRegister} sx={actionBtnSx('#2563eb', '#1d4ed8')}>
+                関連URL{cnt(bulkEligibleCount)}
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="選択モデルに S.Library カタログの似た商品を自動登録">
+            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
+                startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
+                onClick={handleBulkCatalog} sx={actionBtnSx('#16a34a', '#15803d')}>
+                カタログ{cnt(bulkEligibleCount)}
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="AIで寸法・カテゴリを自動入力">
+            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
+                startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 16 }} />}
+                onClick={handleBulkAutoFill} sx={actionBtnSx('#7c3aed', '#6d28d9')}>
+                AI入力{cnt(bulkEligibleCount)}
+              </Button>
+            </span>
+          </Tooltip>
+          {canBulkDelete && (
+            <Tooltip title="選択モデルをまとめて削除">
+              <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+                <Button size="small" variant="contained" disabled={bulkDeletableCount === 0}
+                  startIcon={<DeleteOutlineRoundedIcon sx={{ fontSize: 16 }} />}
+                  onClick={() => setBulkDeleteOpen(true)} sx={actionBtnSx('#dc2626', '#b91c1c')}>
+                  削除{cnt(bulkDeletableCount)}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+          {divider}
+          <Tooltip title="選択モデルを Rhino へ配置（開いて取り込み）">
+            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Button size="small" variant="contained" disabled={rhinoCount === 0 || dccBusy !== null}
+                startIcon={dccBusy === 'rhino' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => handlePlaceInDcc('rhino')} sx={actionBtnSx('#0d9488', '#0f766e')}>
+                Rhino{cnt(rhinoCount)}
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="選択モデルを Blender へ配置（開いて取り込み）">
+            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Button size="small" variant="contained" disabled={blenderCount === 0 || dccBusy !== null}
+                startIcon={dccBusy === 'blender' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 16 }} />}
+                onClick={() => handlePlaceInDcc('blender')} sx={actionBtnSx('#ea7317', '#c2620f')}>
+                Blender{cnt(blenderCount)}
+              </Button>
+            </span>
+          </Tooltip>
+        </Box>
+        );
+      })()}
 
     </Box>
   );

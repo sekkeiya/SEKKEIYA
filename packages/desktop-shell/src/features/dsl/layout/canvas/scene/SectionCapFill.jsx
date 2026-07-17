@@ -17,6 +17,7 @@ import * as THREE from "three";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useMaterialViewStore } from "../../store/useMaterialViewStore";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
+import { useElevationMarkerStore } from "../../store/useElevationMarkerStore";
 
 const CAP_COLOR = 0x0a0a0a;
 const AXES = ["y", "x", "z"]; // renderOrder 順（各軸が独立にステンシル→キャップ→clear する）
@@ -46,8 +47,12 @@ export default function SectionCapFill() {
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const sceneExtentXZ = useEditorModeStore((s) => s.sceneExtentXZ);
 
+  // 展開図ビュー（部屋の壁面を正対で見る姿図）では切断面の塗り（ポシェ）を出さない。
+  // 出すと断面図に見えてしまうため（展開図は切断ではなく「見え」の図面）。
+  const elevView = useElevationMarkerStore((s) => s.viewActive);
+
   // SectionClipManager と同じ有効条件。
-  const enabled = enabledRaw && editorMode !== "walkthrough" && !matFp && (editorMode !== "label" || heightActive);
+  const enabled = enabledRaw && editorMode !== "walkthrough" && !matFp && (editorMode !== "label" || heightActive) && !elevView;
 
   const rootRef = useRef();
   const builtRef = useRef({ key: "", items: [] });

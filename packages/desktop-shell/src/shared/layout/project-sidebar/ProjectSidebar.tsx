@@ -310,7 +310,7 @@ export const ProjectSidebar: React.FC = () => {
   return (
     <Box sx={{
       width: '100%', height: '100%',
-      bgcolor: BRAND.panel,
+      bgcolor: BRAND.bg,
       borderRight: isProjectSidebarOpen ? '1px solid rgb(var(--brand-fg-rgb) / 0.05)' : 'none',
       display: 'flex', flexDirection: 'column',
       py: isProjectSidebarOpen ? 2 : 0,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, InputBase, Chip, CircularProgress, Button, Tooltip, IconButton, ToggleButtonGroup, ToggleButton, Switch, Divider, LinearProgress, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, RadioGroup, FormControlLabel, Radio, List, ListItem, ListItemText, Slider } from '@mui/material';
+import { Box, Typography, InputBase, Chip, CircularProgress, Button, Tooltip, IconButton, ToggleButtonGroup, ToggleButton, Switch, Divider, LinearProgress, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, RadioGroup, FormControlLabel, Radio, List, ListItem, ListItemText, Slider, useMediaQuery } from '@mui/material';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import SkipNextRoundedIcon from '@mui/icons-material/SkipNextRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
@@ -25,6 +25,7 @@ import { generateMaterialsFromSelectedImages, baseNameOf, safeIdPart } from './d
 import { useMaterialGenStore } from './store/useMaterialGenStore';
 import { DssProjectsGrid } from '../dss/DssProjectsGrid';
 import { DSMT_CATEGORY_META, type DsmtMaterial, type DsmtCategory } from './types';
+import { DsmtSidebar } from '../../shared/layout/dsmt-sidebar/DsmtSidebar';
 
 const ACCENT = '#ec407a';
 
@@ -654,6 +655,11 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
     </>
   );
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──
+  // MainLayout のグローバル左サイドバーはデスクトップのダッシュボード表示時に抑止済みのため、
+  // 全幅ヘッダー下の 3 ゾーン行へ DsmtSidebar を埋め込む。モバイルは従来どおり。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
     <Box sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.default', position: 'relative' }}>
       {/* ヘッダー */}
@@ -697,6 +703,11 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
         )}
       </Box>
 
+      {/* 全幅ヘッダー下の 3 ゾーン行: 左サイドバー | 本体（詳細 / プロジェクト / 一覧＋右情報パネル） */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {/* 左サイドバー（デスクトップのみ）。ストア駆動で自身が開閉・幅を管理する。 */}
+      {!isMobile && <DsmtSidebar />}
+      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* 本体 */}
       {detail ? (
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -764,6 +775,8 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
           )}
         </Box>
       )}
+      </Box>
+      </Box>
 
       {/* 複数選択フローティングバー */}
       {multiSelectedIds.size > 0 && !isProjectsScope && !detail && (

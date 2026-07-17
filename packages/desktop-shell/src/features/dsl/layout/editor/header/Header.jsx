@@ -17,6 +17,10 @@ export default function Header({
   loadingMeta,
   onClickProductionPreview,
   onClickShare,
+  // インポート（躯体モデル / 下絵）。TopBar は typeof === "function" で出し分けるので、
+  // ここで受けて渡さないとボタンが出ない。
+  onClickImportBase,
+  onClickImportUnderlay,
 
   // ✅ Desktop additions
   onClickImportLocal,
@@ -98,6 +102,8 @@ export default function Header({
             layoutItems={layoutItems}
             onClickProductionPreview={onClickProductionPreview}
             onClickShare={onClickShare}
+            onClickImportBase={onClickImportBase}
+            onClickImportUnderlay={onClickImportUnderlay}
           />
         )}
       </GlobalMenuBar>

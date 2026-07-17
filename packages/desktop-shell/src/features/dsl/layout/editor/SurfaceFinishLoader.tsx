@@ -6,6 +6,7 @@ import { useAppStore } from "../../../../store/useAppStore";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useSurfaceFinishStore } from "../store/useSurfaceFinishStore";
 import { useSurfacePatternStore } from "../store/useSurfacePatternStore";
+import { useDrawnFinishStore } from "../store/useDrawnFinishStore";
 import { loadSurfaceData } from "../api/surfaceFinishApi";
 
 export default function SurfaceFinishLoader() {
@@ -21,12 +22,28 @@ export default function SurfaceFinishLoader() {
   // ライブ購読(onSnapshot)は Firestore SDK のアサーション誘発を避けるため使わない。
   useEffect(() => {
     let cancelled = false;
-    if (!projectId || !workspaceId || !layoutKey) { replaceFinishes([]); replacePatterns({}); replaceActive({}); return; }
+    if (!projectId || !workspaceId || !layoutKey) {
+      replaceFinishes([]); replacePatterns({}); replaceActive({});
+      useDrawnFinishStore.getState().clear();
+      return;
+    }
     loadSurfaceData(projectId, workspaceId, layoutKey).then((data) => {
       if (cancelled) return;
       replaceFinishes(data.finishes);
       replacePatterns(data.patterns);
       replaceActive(data.activePatterns || {});
+      // 作図した壁/床の仕上げ（無ければクリア＝既定色に戻す）
+      const df = data.drawnFinishes;
+      if (df) {
+        useDrawnFinishStore.getState().setFinishes({
+          interiorWall: df.interiorWall ?? null,
+          exteriorWall: df.exteriorWall ?? null,
+          floor: df.floor ?? null,
+          styleKey: df.styleKey ?? null,
+        });
+      } else {
+        useDrawnFinishStore.getState().clear();
+      }
     });
     return () => { cancelled = true; };
   }, [projectId, workspaceId, layoutKey, replaceFinishes, replacePatterns, replaceActive]);

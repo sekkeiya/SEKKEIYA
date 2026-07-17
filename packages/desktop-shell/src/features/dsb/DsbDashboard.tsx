@@ -13,7 +13,6 @@ import { functions, db } from '../../lib/firebase/client';
 import { DEFAULT_SOURCE_SITES } from './types';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
-import CategoryRoundedIcon from '@mui/icons-material/CategoryRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
@@ -29,6 +28,7 @@ import { useDsbStore } from './store/useDsbStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { DsbEditor } from './DsbEditor';
 import { BlogNewsFeed } from './BlogNewsFeed';
+import { BlogSourcesView } from './BlogSourcesView';
 import { BlogSummary } from './BlogSummary';
 import { BlogScheduleView } from './BlogScheduleView';
 import { BlogCategoryManager } from './BlogCategoryManager';
@@ -392,6 +392,10 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
     // ホーム = おすすめメディアの最新記事フィード（議論ファーストの入口）
     return <BlogNewsFeed />;
   }
+  if (view === 'sources') {
+    // ソース記事 = ホームに表示するメディア（RSSソース）の選択画面
+    return <BlogSourcesView />;
+  }
   if (view === 'overview') {
     return <BlogSummary source={{ kind: 'account' }} />;
   }
@@ -405,16 +409,7 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
       <Box sx={{ flex: 1, height: '100%', display: 'flex', bgcolor: 'background.default', overflow: 'hidden' }}>
         <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
           <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: { xs: 2.5, md: 4 } }}>
-            {/* ヘッダ */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-              <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CategoryRoundedIcon sx={{ color: ACCENT }} />
-              </Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>カテゴリ</Typography>
-            </Box>
-            <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.82rem', mb: 2.5 }}>
-              テーマごとにカテゴリを作成・管理し、記事を整理します。
-            </Typography>
+            {/* タイトルは全幅ヘッダーバンドへ移設 */}
             <BlogCategoryStrategist categories={categories} />
             <BlogCategoryManager selectedName={selCat} onSelect={setSelectedCategory} />
           </Box>
@@ -451,34 +446,26 @@ export const DsbDashboard: React.FC<DsbDashboardProps> = () => {
     <Box sx={{ flex: 1, height: '100%', display: 'flex', bgcolor: 'background.default', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
       <Box sx={{ maxWidth: 1120, mx: 'auto', width: '100%', p: { xs: 2.5, md: 4 } }}>
-        {/* ヘッダ */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ width: 38, height: 38, borderRadius: 1.5, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ArticleRoundedIcon sx={{ color: ACCENT }} />
-            </Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'var(--brand-fg)' }}>
-              {categoryFilter || 'ブログ記事'}
-            </Typography>
+        {/* アクション行（タイトルは全幅ヘッダーバンドへ移設。カテゴリ絞り込みチップと執筆ボタンを残す） */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
             {categoryFilter && (
-              <Chip label="カテゴリ" size="small" onDelete={() => setCategoryFilter(null)}
-                sx={{ height: 22, fontSize: '0.66rem', fontWeight: 700, color: ACCENT, bgcolor: `${ACCENT}1f`, '& .MuiChip-deleteIcon': { color: `${ACCENT}aa`, fontSize: '0.9rem', '&:hover': { color: ACCENT } } }} />
+              <Chip label={`カテゴリ: ${categoryFilter}`} size="small" onDelete={() => setCategoryFilter(null)}
+                sx={{ height: 24, fontSize: '0.72rem', fontWeight: 700, color: ACCENT, bgcolor: `${ACCENT}1f`, border: `1px solid ${ACCENT}55`, '& .MuiChip-deleteIcon': { color: `${ACCENT}aa`, fontSize: '0.95rem', '&:hover': { color: ACCENT } } }} />
             )}
           </Box>
-          <Button variant="outlined" startIcon={<AutoAwesomeRoundedIcon />} onClick={() => setAiDialogOpen(true)}
-            sx={{ color: 'light-dark(#921b1b, #e57373)', borderColor: 'rgba(229,115,115,0.45)', textTransform: 'none', fontWeight: 700, mr: 1,
-              '&:hover': { borderColor: '#e57373', bgcolor: 'rgba(229,115,115,0.08)' } }}>
-            AIで書く
-          </Button>
-          <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => uid && startNew(uid, displayName, categoryFilter ?? undefined)}
-            sx={{ bgcolor: ACCENT, color: '#191815', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#ef9a9a' } }}>
-            新規記事
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+            <Button variant="outlined" startIcon={<AutoAwesomeRoundedIcon />} onClick={() => setAiDialogOpen(true)}
+              sx={{ color: 'light-dark(#921b1b, #e57373)', borderColor: 'rgba(229,115,115,0.45)', textTransform: 'none', fontWeight: 700,
+                '&:hover': { borderColor: '#e57373', bgcolor: 'rgba(229,115,115,0.08)' } }}>
+              AIで書く
+            </Button>
+            <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => uid && startNew(uid, displayName, categoryFilter ?? undefined)}
+              sx={{ bgcolor: ACCENT, color: '#191815', fontWeight: 700, textTransform: 'none', borderRadius: 2, '&:hover': { bgcolor: '#ef9a9a' } }}>
+              新規記事
+            </Button>
+          </Box>
         </Box>
-        <Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: '0.82rem', mb: 2.5 }}>
-          <Box component="span" sx={{ color: 'light-dark(#921b1b, #e57373)', fontWeight: 700 }}>AIで書く</Box>＝気になる記事を元にAIと議論して執筆／
-          <Box component="span" sx={{ color: 'var(--brand-fg)', fontWeight: 700 }}>新規記事</Box>＝自分で自由に執筆。公開サイトと SEKKEIYA 検索に届きます。
-        </Typography>
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: ACCENT }} /></Box>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Button, Tooltip, Breadcrumbs, Link,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, useMediaQuery,
 } from '@mui/material';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRounded';
@@ -14,6 +14,7 @@ import { DsrUploadDialog } from './upload/DsrUploadDialog';
 import { dsrUploadService } from './upload/dsrUploadService';
 import { useDsrStore, DSR_CATEGORIES, type DsrCategoryFilter } from './store/useDsrStore';
 import { useAppStore } from '../../store/useAppStore';
+import { DsrSidebar } from '../../shared/layout/dsr-sidebar/DsrSidebar';
 
 const ACCENT = '#4db6ac';
 
@@ -123,15 +124,15 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
     }
   };
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──────────────────────────────
+  // デスクトップでは MainLayout 側の左サイドバー複製を抑止し、代わりにここ
+  // （ヘッダー下の 3 ゾーン行）へ埋め込む。これによりツールバーが全幅ヘッダーになる。
+  const isMobile = useMediaQuery('(max-width:768px)');
+
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default' }}>
-      {/* Main column */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {viewerItem ? (
-          <DsrPdfViewer item={viewerItem} onClose={() => setViewerItem(null)} onOpenExternal={openExternal} />
-        ) : (
-        <>
-        {/* Toolbar */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', bgcolor: 'background.default' }}>
+      {/* 全幅ヘッダー（PDF ビューア表示中は従来どおりヘッダーを出さない） */}
+      {!viewerItem && (
         <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
@@ -205,9 +206,20 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
           </Box>
           )}
         </Box>
+      )}
 
-        {/* Grid */}
-        <Box sx={{ flex: 1, minHeight: 0 }}>
+      {/* 全幅ヘッダー下の 3 ゾーン行: 左プロジェクトサイドバー | コンテンツ | 右情報パネル */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 左サイドバー（ストア駆動で自己サイズ調整。デスクトップのみ埋め込み） */}
+        {!isMobile && <DsrSidebar />}
+
+        {/* Main column */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          {viewerItem ? (
+            <DsrPdfViewer item={viewerItem} onClose={() => setViewerItem(null)} onOpenExternal={openExternal} />
+          ) : (
+          /* Grid */
+          <Box sx={{ flex: 1, minHeight: 0 }}>
           {isProjectsMode ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2, p: 3, overflowY: 'auto', alignContent: 'start' }}>
               {(projects || []).map((p: any) => (
@@ -238,23 +250,23 @@ export const DsrDashboard: React.FC<DsrDashboardProps> = ({ payload, drawings, s
               onSelectItem={(item) => setSelectedDrawingId(item.id)}
             />
           )}
+          </Box>
+          )}
         </Box>
-        </>
+
+        {/* Right info panel（3 ゾーン行の右端・ヘッダー下）。表示条件は従来どおり */}
+        {!isProjectsMode && (
+          <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
+            <DsrRightPanel
+              item={selectedItem}
+              sets={canWrite ? sets : []}
+              onMove={canWrite ? handleMove : undefined}
+              onSetVisibility={(canWrite || isGlobal) ? handleSetVisibility : undefined}
+              onOpen={setViewerItem}
+            />
+          </Box>
         )}
       </Box>
-
-      {/* Right info panel */}
-      {!isProjectsMode && (
-        <Box sx={{ width: 260, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
-          <DsrRightPanel
-            item={selectedItem}
-            sets={canWrite ? sets : []}
-            onMove={canWrite ? handleMove : undefined}
-            onSetVisibility={(canWrite || isGlobal) ? handleSetVisibility : undefined}
-            onOpen={setViewerItem}
-          />
-        </Box>
-      )}
 
       {/* Upload dialog */}
       {canWrite && (

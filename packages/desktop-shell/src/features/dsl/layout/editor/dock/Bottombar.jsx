@@ -90,18 +90,21 @@ export default function Bottombar({
     onChangeOpen?.(true);
   }, [mode, onChangeMode, onChangeOpen, handleClose]);
 
+  // 全幅ヘッダー化: 左右サイドバーが LayoutShell 内へ埋め込まれたため、
+  // ボトムパネルはサイドバー幅ぶん内側（＝ビューポート直下）にドッキングする。
   const wrapperSx = useMemo(
     () => ({
       position: "absolute",
-      left: 0,
-      right: 0,
+      left: leftSidebarWidth,
+      right: rightSidebarWidth,
       bottom: 0, // 下端フラットにドッキング（赤枠の無駄スペースを解消）
       zIndex: 70,
       display: "flex",
       justifyContent: "stretch",
       pointerEvents: "none",
+      transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), right 0.22s cubic-bezier(0.4,0,0.2,1)",
     }),
-    []
+    [leftSidebarWidth, rightSidebarWidth]
   );
 
   // 制御 prop があればそれを使い、無ければ内部 state（後方互換）。

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, useMediaQuery } from '@mui/material';
-import { WorkspaceTabBar } from './WorkspaceTabBar';
+import { Box } from '@mui/material';
 import { WorkspacePanelContainer } from './WorkspacePanelContainer';
 import { RightPanelHost } from './RightPanelHost';
 import { useAppStore } from '../../../store/useAppStore';
@@ -9,7 +8,6 @@ import type { AppScope } from './types';
 import { AiCanvasRightSidebar } from '../../../features/ai-canvas/Sidebar/AiCanvasRightSidebar';
 
 export const WorkspaceShell: React.FC = () => {
-  const isMobile = useMediaQuery('(max-width:768px)');
   const lastLaunchPayload = useAppStore(s => s.lastLaunchPayload);
   const setLastActiveAppScope = useAppStore(s => s.setLastActiveAppScope);
   const setActiveWorkspaceId = useAppStore(s => s.setActiveWorkspaceId);
@@ -50,7 +48,7 @@ export const WorkspaceShell: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
-      {!isMobile && <WorkspaceTabBar />}
+      {/* タブバーは全幅ヘッダーとして MainLayout 側へ移設（左サイドバーの上にも被せるため） */}
       <Box sx={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
         <WorkspacePanelContainer />
         {activeWorkspaceId === 'canvas' ? <AiCanvasRightSidebar /> : <RightPanelHost />}

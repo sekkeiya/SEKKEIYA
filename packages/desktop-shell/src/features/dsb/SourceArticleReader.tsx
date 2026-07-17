@@ -45,6 +45,10 @@ import { getSiteLogin, getSiteLoginEpoch, markSiteLoggedIn, setSitePreferRaw } f
 import { isSpeechSkippable } from './lib/speechFilter';
 import { getRatingFor, setArticleRating } from './lib/articleRatings';
 import { useAuthStore } from '../../store/useAuthStore';
+import { getYouTubeId, type VideoSegment } from './lib/youtube';
+import { VideoSourcePane } from './VideoSourcePane';
+import OndemandVideoRoundedIcon from '@mui/icons-material/OndemandVideoRounded';
+import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 
 const ACCENT = '#e57373';
 
@@ -149,6 +153,23 @@ function loadReadCache(url: string): { blocks: ReaderBlock[]; translated: boolea
   } catch { return null; }
 }
 
+// 🎬 動画（YouTube）解析結果のローカルキャッシュ。サーバー側にも共有キャッシュ
+// （videoReadCache）があるため、ここは「再表示の瞬時化」用の軽い層。
+const VIDEO_CACHE_PREFIX = 'sblog-video:';
+interface VideoPayload { blocks: ReaderBlock[]; segments: VideoSegment[]; summary: string }
+function loadVideoCache(videoId: string): VideoPayload | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(VIDEO_CACHE_PREFIX + videoId) || '');
+    if (Array.isArray(d.blocks) && Date.now() - (d.at || 0) < CACHE_TTL) {
+      return { blocks: d.blocks, segments: Array.isArray(d.segments) ? d.segments : [], summary: String(d.summary || '') };
+    }
+  } catch { /* なし */ }
+  return null;
+}
+function saveVideoCache(videoId: string, p: VideoPayload): void {
+  try { localStorage.setItem(VIDEO_CACHE_PREFIX + videoId, JSON.stringify({ at: Date.now(), ...p })); } catch { /* noop */ }
+}
+
 function saveReadCache(url: string, blocks: ReaderBlock[], translated: boolean): void {
   const entry = JSON.stringify({ blocks, translated, at: Date.now(), siteEpoch: getSiteLoginEpoch(url), v: CACHE_VERSION });
   try {
@@ -167,6 +188,12 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
   const [translated, setTranslated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // 🎬 動画ソース（YouTube）: 埋め込み再生＋AI生成の字幕/記事。viewMode で表示を切替
+  const ytId = getYouTubeId(source.url);
+  const [viewMode, setViewMode] = useState<'video' | 'article'>('video');
+  const [segments, setSegments] = useState<VideoSegment[]>([]);
+  const [videoSummary, setVideoSummary] = useState('');
+  useEffect(() => { setViewMode('video'); }, [source.url]);
   // 🔄 再取得（キャッシュ破棄）。ログイン直後などに「今のCookieで読み直す」ため
   const [reloadNonce, setReloadNonce] = useState(0);
   // 🔐 ログイン本文（原文）⇄ 翻訳の切替。旧CF（clientBlocks未対応）は英語記事の翻訳を
@@ -642,6 +669,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
     manualStopRef.current = true;
     stopAll();
     try { localStorage.removeItem(CACHE_PREFIX + source.url); } catch { /* noop */ }
+    if (ytId) { try { localStorage.removeItem(VIDEO_CACHE_PREFIX + ytId); } catch { /* noop */ } }
     setReloadNonce((n) => n + 1);
   };
 
@@ -807,6 +835,8 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
   useEffect(() => {
     if (autoRead && !loading && !error && readModel.flat.length > 1 && !autoReadStartedRef.current) {
       autoReadStartedRef.current = true;
+      // 連続読み上げ中に動画ソースへ遷移したら、記事モードに切り替えて聞き流しを途切れさせない
+      if (ytId) setViewMode('article');
       readFrom(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -818,6 +848,47 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
       setAltState(null);
       setShowingLocalRaw(false);
       setTranslateError('');
+
+      // 🎬 YouTube動画: 記事抽出ではなく CF videoRead（Gemini動画理解）で
+      // 「日本語記事ブロック＋タイムスタンプ字幕」を取得する。サーバー側は全ユーザー共有キャッシュ。
+      if (ytId) {
+        const vc = loadVideoCache(ytId);
+        if (vc) {
+          setBlocks(vc.blocks);
+          setSegments(vc.segments);
+          setVideoSummary(vc.summary);
+          setTranslated(false);
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
+        setError('');
+        try {
+          const vfn = httpsCallable(functions, 'blogDialogue');
+          const r: any = await vfn({ mode: 'videoRead', url: source.url });
+          if (!alive) return;
+          if (r.data?.success && Array.isArray(r.data.blocks) && r.data.blocks.length) {
+            const payload: VideoPayload = {
+              blocks: r.data.blocks,
+              segments: Array.isArray(r.data.segments) ? r.data.segments : [],
+              summary: String(r.data.summary || ''),
+            };
+            setBlocks(payload.blocks);
+            setSegments(payload.segments);
+            setVideoSummary(payload.summary);
+            setTranslated(false);
+            saveVideoCache(ytId, payload);
+          } else {
+            setError(r.data?.reason || '動画を解析できませんでした');
+          }
+        } catch (e: any) {
+          if (alive) setError(`動画の解析に失敗しました: ${e.message}`);
+        } finally {
+          if (alive) setLoading(false);
+        }
+        return;
+      }
+
       // キャッシュ命中なら即表示（Reader→エディタ遷移時の再取得・再翻訳を回避）。
       // 再取得ボタンは handleRefetch でキャッシュを消してから nonce を上げるのでここを素通りする
       const cached = loadReadCache(source.url);
@@ -943,11 +1014,32 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
             <Chip label={source.source} size="small"
               sx={{ height: 20, fontSize: 10.5, fontWeight: 700, bgcolor: 'rgba(100,181,246,0.12)', color: 'light-dark(#095fa5, #90caf9)', border: '1px solid rgba(100,181,246,0.35)' }} />
           )}
-          <Button size="small" startIcon={<LaunchRoundedIcon sx={{ fontSize: '13px !important' }} />}
-            onClick={() => void openReaderRaw(source.url, source.title)}
-            sx={{ color: 'light-dark(#095fa5, #90caf9)', textTransform: 'none', fontSize: 11.5, px: 1, '&:hover': { bgcolor: 'rgba(100,181,246,0.08)' } }}>
-            原文をアプリ内ウィンドウで開く
-          </Button>
+          {/* 🎬 動画ソース: 「動画（埋め込み+字幕）⇄ 記事（日本語記事化+読み上げ）」表示切替。
+              解析中でも動画側は観られるため loading 中から出す */}
+          {ytId && !error && (
+            <Box sx={{ display: 'flex', gap: 0.5, mr: 0.5 }}>
+              {([['video', '動画', OndemandVideoRoundedIcon], ['article', '記事', ArticleRoundedIcon]] as const).map(([key, label, Icon]) => (
+                <Chip key={key} icon={<Icon sx={{ fontSize: '13px !important' }} />} label={label} size="small"
+                  onClick={() => {
+                    if (key === 'video' && viewMode !== 'video') { manualStopRef.current = true; stopAll(); }
+                    setViewMode(key);
+                  }}
+                  sx={{ cursor: 'pointer', height: 22, fontSize: 11, fontWeight: 700,
+                    bgcolor: viewMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.05)',
+                    color: viewMode === key ? '#fff' : 'rgb(var(--brand-fg-rgb) / 0.6)',
+                    border: `1px solid ${viewMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.14)'}`,
+                    '& .MuiChip-icon': { color: 'inherit' },
+                    '&:hover': { bgcolor: viewMode === key ? ACCENT : 'rgb(var(--brand-fg-rgb) / 0.12)' } }} />
+              ))}
+            </Box>
+          )}
+          {!ytId && (
+            <Button size="small" startIcon={<LaunchRoundedIcon sx={{ fontSize: '13px !important' }} />}
+              onClick={() => void openReaderRaw(source.url, source.title)}
+              sx={{ color: 'light-dark(#095fa5, #90caf9)', textTransform: 'none', fontSize: 11.5, px: 1, '&:hover': { bgcolor: 'rgba(100,181,246,0.08)' } }}>
+              原文をアプリ内ウィンドウで開く
+            </Button>
+          )}
           <Button size="small" startIcon={<OpenInNewRoundedIcon sx={{ fontSize: '13px !important' }} />}
             onClick={() => { try { window.open(source.url, '_blank'); } catch { /* noop */ } }}
             sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', textTransform: 'none', fontSize: 11.5, px: 1, '&:hover': { color: 'var(--brand-fg)' } }}>
@@ -979,7 +1071,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
               </span>
             </Tooltip>
           )}
-          {isTauri() && (
+          {isTauri() && !ytId && (
             <Tooltip title="この媒体（サイト）にアプリ内ウィンドウでログインします。ログインしてウィンドウを閉じると、この媒体の全記事がログイン状態の本文で取得されるようになります">
               <span>
                 <Button size="small"
@@ -1033,7 +1125,7 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
               </span>
             </Tooltip>
           )}
-          {isTtsAvailable() && !loading && !error && (
+          {isTtsAvailable() && !loading && !error && (!ytId || viewMode === 'article') && (
             <>
               <Button size="small"
                 startIcon={reading
@@ -1125,11 +1217,17 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
       {/* 本文（リーダーモード：段落・見出し・画像を元記事の順で。テキスト選択で「意味を調べる」）
           data-reader-scroll: SEKKEIYA Reader 窓が ↑↓ キーでこの本文をスクロールするための目印。 */}
       <Box ref={bodyScrollRef} data-reader-scroll="1" onMouseUp={handleTextMouseUp} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', px: 4, py: 3 }}>
-        {loading ? (
+        {/* 🎬 動画モード: AI解析を待たずにプレイヤーを即表示・即再生。
+            字幕・記事は裏で生成し（analyzing）、出来次第この場に現れる */}
+        {ytId && viewMode === 'video' && !error ? (
+          <VideoSourcePane videoId={ytId} segments={segments} summary={videoSummary} analyzing={loading} />
+        ) : loading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.25, py: 8 }}>
             <CircularProgress size={20} sx={{ color: 'light-dark(#095fa5, #90caf9)' }} />
             <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>
-              記事を読み込んでいます…（英語記事は日本語に翻訳します）
+              {ytId
+                ? 'AIが動画を視聴して字幕と記事を作っています…（初回は1〜2分かかることがあります）'
+                : '記事を読み込んでいます…（英語記事は日本語に翻訳します）'}
             </Typography>
           </Box>
         ) : error ? (
@@ -1225,7 +1323,9 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
             )}
 
             <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', lineHeight: 1.8 }}>
-              ※ 自動抽出{translated ? '・自動翻訳' : ''}のため、正確な内容・図版・続きは元記事でご覧ください。
+              {ytId
+                ? '※ この記事はAIが動画の内容から自動生成したものです。正確な内容は動画本編でご確認ください。'
+                : `※ 自動抽出${translated ? '・自動翻訳' : ''}のため、正確な内容・図版・続きは元記事でご覧ください。`}
               著作権は{source.source || '各メディア'}に帰属します。
             </Typography>
             <Button size="small" startIcon={<LaunchRoundedIcon sx={{ fontSize: '13px !important' }} />}
@@ -1237,8 +1337,9 @@ export const SourceArticleReader: React.FC<SourceArticleReaderProps> = ({ source
         )}
       </Box>
 
-      {/* 🎬 読み上げプレイヤー（動画のような下部バー）: ▶/⏸・前後の文・シーク・推定時間 */}
-      {isTtsAvailable() && !loading && !error && readModel.flat.length > 1 && (() => {
+      {/* 🎬 読み上げプレイヤー（動画のような下部バー）: ▶/⏸・前後の文・シーク・推定時間。
+          動画ソースでは「記事」表示のときだけ出す（動画モードは本物のプレイヤーがあるため） */}
+      {isTtsAvailable() && !loading && !error && readModel.flat.length > 1 && (!ytId || viewMode === 'article') && (() => {
         const displayCur = seekFrac != null ? seekFrac * estTotalSec : elapsedSec;
         const sliderVal = seekFrac != null ? seekFrac : Math.min(1, estTotalSec > 0 ? elapsedSec / estTotalSec : 0);
         // 音が出ていない待ち時間（初回のAI準備 or チャンク合成待ち）＝動画の「くるくる」

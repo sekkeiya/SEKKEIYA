@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Typography, Button, InputBase, CircularProgress, Snackbar, Alert,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Dialog, DialogTitle, DialogContent, DialogActions, useMediaQuery,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
@@ -31,6 +31,7 @@ import { getSLibraryPath } from './api/knowledgeApi';
 import { ingestEntryToRag } from './lib/ragIngest';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { DskSidebar } from '../../shared/layout/dsk-sidebar/DskSidebar';
 
 const ACCENT = '#26a69a';
 const RAG_PURPLE = '#a855f7';
@@ -228,34 +229,19 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
     setRagReport({ ok, failures });
   };
 
+  // ── 全幅ヘッダー化レイアウト（デスクトップのみ） ──
+  // MainLayout のグローバル左サイドバーはデスクトップのダッシュボード表示時に抑止済みのため、
+  // ツールバーを全幅トップバンドにし、その下の 3 ゾーン行へ DskSidebar を埋め込む。
+  const isMobile = useMediaQuery('(max-width:768px)');
+  // 既定の一覧ビュー（brain / products / registry 以外）かどうか＝ツールバーの表示条件。
+  const isListView = view !== 'brain' && view !== 'products' && view !== 'registry';
+
   return (
-    <Box sx={{ display: 'flex', height: '100%', width: '100%', bgcolor: 'background.default', position: 'relative' }}>
-      {/* Main column */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {view === 'brain' ? (
-          <BrainView />
-        ) : view === 'products' ? (
-          <IndexedProductsView />
-        ) : view === 'registry' ? (
-          <Box sx={{ p: 3, overflowY: 'auto', height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              {registryFocus === 'catalog'
-                ? <CollectionsBookmarkRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0f9d58, #86efac)' }} />
-                : <WeekendRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0474a9, #7dd3fc)' }} />}
-              <Typography sx={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-fg)' }}>
-                {registryFocus === 'catalog' ? 'メーカー電子カタログ' : 'おすすめソースを追加'}
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 2 }}>
-              {registryFocus === 'catalog'
-                ? '壁紙・床材・タイル等メーカーの電子カタログ。「サイトを開く」で確認し、使うメーカーをライブラリに追加（購読）できます。画像の入手・利用は各メーカーの利用条件に従ってください。'
-                : '家具・テクスチャ・イメージ事例・建材の厳選ソースを、自分のライブラリに追加。家具は追加でそのまま端末内に商品索引が作られ、SEKKEIYA Search や S.Model 照合で使えます。'}
-            </Typography>
-            <SourceRegistryList filter={regFilter} focus={registryFocus} />
-          </Box>
-        ) : (
-         <>
-        {/* Toolbar */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', bgcolor: 'background.default', position: 'relative' }}>
+      {/* ── 全幅トップバンド: 一覧ビューのツールバー ──
+          brain / products / registry は各ビューが独自ヘッダーを持つため、
+          既定の一覧ビューの時だけ表示する（従来の表示条件と同じ）。 */}
+      {isListView && (
         <Box sx={{ px: 3, pt: 2.5, pb: 1.5, borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.07)' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
             <Box>
@@ -344,8 +330,38 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
             />
           </Box>
         </Box>
+      )}
 
-        {/* Grid */}
+      {/* 全幅ヘッダー下の 3 ゾーン行: 左サイドバー | メインカラム | 右パネル */}
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {/* 左サイドバー（デスクトップのみ）。ストア駆動で自身が開閉・幅を管理する。 */}
+      {!isMobile && <DskSidebar />}
+      {/* Main column */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+        {view === 'brain' ? (
+          <BrainView />
+        ) : view === 'products' ? (
+          <IndexedProductsView />
+        ) : view === 'registry' ? (
+          <Box sx={{ p: 3, overflowY: 'auto', height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              {registryFocus === 'catalog'
+                ? <CollectionsBookmarkRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0f9d58, #86efac)' }} />
+                : <WeekendRoundedIcon sx={{ fontSize: 22, color: 'light-dark(#0474a9, #7dd3fc)' }} />}
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-fg)' }}>
+                {registryFocus === 'catalog' ? 'メーカー電子カタログ' : 'おすすめソースを追加'}
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: 12.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)', mb: 2 }}>
+              {registryFocus === 'catalog'
+                ? '壁紙・床材・タイル等メーカーの電子カタログ。「サイトを開く」で確認し、使うメーカーをライブラリに追加（購読）できます。画像の入手・利用は各メーカーの利用条件に従ってください。'
+                : '家具・テクスチャ・イメージ事例・建材の厳選ソースを、自分のライブラリに追加。家具は追加でそのまま端末内に商品索引が作られ、SEKKEIYA Search や S.Model 照合で使えます。'}
+            </Typography>
+            <SourceRegistryList filter={regFilter} focus={registryFocus} />
+          </Box>
+        ) : (
+         <>
+        {/* Grid（ツールバーは全幅トップバンドへ移動済み） */}
         <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {loading && entries.length === 0 ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -403,7 +419,7 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
         )}
       </Box>
 
-      {/* Right info panel（レジストリ=絞り込み / 索引商品=メインエリア詳細のため右パネル無し） */}
+      {/* Right info panel（レジストリ=絞り込み / 索引商品=メインエリア詳細のため右パネル無し。行の右端＝ヘッダー下に収まる） */}
       {view !== 'products' && (
         <Box sx={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgb(var(--brand-fg-rgb) / 0.07)', bgcolor: 'light-dark(rgba(15,23,42,0.05), rgba(0,0,0,0.15))' }}>
           {view === 'registry' ? (
@@ -417,6 +433,7 @@ export const DskDashboard: React.FC<DskDashboardProps> = ({ payload }) => {
           )}
         </Box>
       )}
+      </Box>
 
       {/* Add dialog */}
       <AddEntryDialog open={addOpen} onClose={() => setAddOpen(false)} />

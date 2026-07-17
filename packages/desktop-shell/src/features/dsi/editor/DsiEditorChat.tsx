@@ -46,6 +46,28 @@ export const DsiEditorChat: React.FC = () => {
   const [input, setInput] = useState('');
   // ローカル(無料)生成の可否。ComfyUI が起動している時だけ「内観LoRA（ローカル・無料）」を出す。
   const [localAvailable, setLocalAvailable] = useState(false);
+  // モデル製造ラインで学習した最新の SDXL LoRA（テスト生成用・管理者のみ読める）。
+  const [sdxlLora, setSdxlLora] = useState<{ file: string; trigger: string; scale: number; name: string } | null>(null);
+  const sdxlLoraRef = useRef<typeof sdxlLora>(null);
+  useEffect(() => { sdxlLoraRef.current = sdxlLora; }, [sdxlLora]);
+  useEffect(() => {
+    if (!localAvailable) { setSdxlLora(null); return; }
+    let unsub: (() => void) | null = null;
+    (async () => {
+      try {
+        const { subscribeLoraModels } = await import('../loraModels');
+        unsub = subscribeLoraModels((rows) => {
+          const m = rows.find((r: any) => r.base === 'SDXL' && r.weightsUrl);
+          if (!m) { setSdxlLora(null); return; }
+          const file = String(m.weightsUrl).split(/[\\/]/).pop() || '';
+          setSdxlLora(file.endsWith('.safetensors')
+            ? { file, trigger: m.triggerWord || '', scale: m.scale ?? 1.0, name: m.name || 'SDXL' }
+            : null);
+        });
+      } catch { setSdxlLora(null); /* 非管理者は読めない＝項目非表示 */ }
+    })();
+    return () => { if (unsub) unsub(); };
+  }, [localAvailable]);
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
   const [clarify, setClarify] = useState<{ instruction: string; questions: ClarifyQuestion[]; answers: Record<string, string[]> } | null>(null);
@@ -59,12 +81,17 @@ export const DsiEditorChat: React.FC = () => {
   const hasBaseImage = !!(activeBranch?.currentImageUrl || originImageUrl);
   const editingIntent = mode === 'edit' || mode === 'img2img';
   // 候補モデル: 編集の意図では「編集対応 or ローカル(comfy_edit で編集可)」のみ。
-  // flux-lora-local は ComfyUI 導入時のみ。
-  const availableModels = MODELS.filter(m => {
-    if (m.value === 'flux-lora-local' && !localAvailable) return false;
-    if (editingIntent && !(m.edit || m.value === 'flux-lora-local')) return false;
-    return true;
-  });
+  // flux-lora-local は ComfyUI 導入時のみ。学習済み SDXL LoRA（製造ライン）は新規生成のみ動的追加。
+  const availableModels = [
+    ...MODELS.filter(m => {
+      if (m.value === 'flux-lora-local' && !localAvailable) return false;
+      if (editingIntent && !(m.edit || m.value === 'flux-lora-local')) return false;
+      return true;
+    }),
+    ...(localAvailable && sdxlLora && !editingIntent
+      ? [{ value: 'sdxl-lora-local', label: `学習モデル: ${sdxlLora.name}（SDXL・無料）`, description: '', available: true, edit: false }]
+      : []),
+  ];
   // 編集の意図で非対応モデル（FLUX schnell 等）が選ばれていたら編集対応モデルへ矯正。
   // ローカルは comfy_edit で編集できるので矯正しない。
   useEffect(() => {
@@ -89,7 +116,7 @@ export const DsiEditorChat: React.FC = () => {
 
   // ローカルを選んだら裏で ComfyUI をウォームアップ（初回生成の待ち時間を短縮）。
   useEffect(() => {
-    if (provider !== 'flux-lora-local') return;
+    if (provider !== 'flux-lora-local' && provider !== 'sdxl-lora-local') return;
     (async () => {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
@@ -191,12 +218,22 @@ export const DsiEditorChat: React.FC = () => {
 
     // ── ローカル(無料)生成: あなたのGPUの ComfyUI で生成し、結果を Storage に上げて解決する。
     //    クラウド(requestAiRender)は通さない＝fal課金ゼロ。テキスト生成専用（edit-gate 済）。
-    if (provider === 'flux-lora-local') {
+    if (provider === 'flux-lora-local' || provider === 'sdxl-lora-local') {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        const dataUrl = (usingImage && base)
-          ? await invoke<string>('comfy_edit', { prompt: effectivePrompt, inputImage: base, denoise: 0.6, loraStrength: 1.0 })
-          : await invoke<string>('comfy_generate', { prompt: effectivePrompt, steps: 4, loraStrength: 1.0 });
+        let dataUrl: string;
+        if (provider === 'sdxl-lora-local') {
+          // 製造ラインで学習した SDXL LoRA のテスト生成（新規生成のみ・トリガー語を前置）。
+          const lo = sdxlLoraRef.current;
+          if (!lo) throw new Error('学習済みの SDXL モデルが見つかりません');
+          const p = lo.trigger && !effectivePrompt.toLowerCase().includes(lo.trigger.toLowerCase())
+            ? `${lo.trigger}, ${effectivePrompt}` : effectivePrompt;
+          dataUrl = await invoke<string>('comfy_generate_sdxl', { prompt: p, loraName: lo.file, loraStrength: lo.scale, steps: 25 });
+        } else {
+          dataUrl = (usingImage && base)
+            ? await invoke<string>('comfy_edit', { prompt: effectivePrompt, inputImage: base, denoise: 0.6, loraStrength: 1.0 })
+            : await invoke<string>('comfy_generate', { prompt: effectivePrompt, steps: 4, loraStrength: 1.0 });
+        }
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], `local_${Date.now()}.png`, { type: 'image/png' });
         const url = await uploadImageAndGetUrl(file);

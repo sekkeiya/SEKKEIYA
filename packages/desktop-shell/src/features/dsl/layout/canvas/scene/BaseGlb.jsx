@@ -136,8 +136,10 @@ export default function BaseGlb({ url, onLoaded }) {
 
         // 壁判定: 鉛直方向に高さがあるメッシュ＝壁（薄い床・板は除外）。mm/m スケール両対応。
         let isWall = false;
+        let objMinY = null; // ワールド最小Y（断面クリップの見上げ線判定に使う）
         try {
           const wb = new THREE.Box3().setFromObject(o);
+          objMinY = wb.min.y;
           const yExt = wb.max.y - wb.min.y;
           const mm = wb.max.y > 50; // mm スケール GLB かどうかの簡易判定
           isWall = yExt > (mm ? 500 : 0.5);
@@ -158,7 +160,19 @@ export default function BaseGlb({ url, onLoaded }) {
               o.userData.baseOutlineMesh = outlineMesh;
             } catch (err) {}
           }
-          if (o.userData.baseOutlineMesh) o.userData.baseOutlineMesh.visible = true;
+          if (o.userData.baseOutlineMesh) {
+            // 平面図の水平カット中は、カット面より「完全に上」にある躯体（屋根など）の
+            // 輪郭線を隠す。輪郭線(LineSegments)はクリップ面を無視するため、そのままだと
+            // 屋根を見上げたような線が平面図に写り込む。
+            let aboveCut = false;
+            if (isSectionClipEnabled && objMinY != null && Number.isFinite(sectionClipHeight)) {
+              // カット面より少し上（微小マージン）から上を「屋根等」とみなす。
+              // スケールは sectionClipHeight の桁で判定（mm≒1500 / m≒1.5）。
+              const marginY = sectionClipHeight > 100 ? 20 : 0.02;
+              if (objMinY > sectionClipHeight + marginY) aboveCut = true;
+            }
+            o.userData.baseOutlineMesh.visible = !aboveCut;
+          }
 
           // 壁の黒塗り（平面図ポシェ）: 壁メッシュと同形状の黒い子メッシュを重ねる。
           // 上から見ると壁の天端面が黒く塗られ、平面図の「壁の中が黒」表現になる。
@@ -210,7 +224,7 @@ export default function BaseGlb({ url, onLoaded }) {
         }
       }
     };
-  }, [gltf, url, onLoaded, layoutSubMode, editorMode, isSectionClipEnabled, effectiveSubMode]);
+  }, [gltf, url, onLoaded, layoutSubMode, editorMode, isSectionClipEnabled, sectionClipHeight, effectiveSubMode]);
 
   const clonedScene = useMemo(() => {
     return gltf.scene ? gltf.scene.clone() : null;

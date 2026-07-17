@@ -88,9 +88,13 @@ export async function loadLocalAiDriveAssets(): Promise<AIDriveAsset[]> {
     invoke('list_local_model_assets').catch((e) => { console.warn('[AI Drive] local models failed', e); return []; }) as Promise<any[]>,
   ]);
 
+  // ※ Rust 側 struct は #[serde(rename_all="camelCase")] のため JS には camelCase で届く
+  //   （mediaType / companionGlbPath / modifiedMs / sourceLabel）。snake_case は旧互換で残す。
+  const mediaTypeOf = (x: any) => x.mediaType ?? x.media_type;
+
   // 動画はそのまま個別アイテムに。
   const videoItems: AIDriveAsset[] = (imgs || [])
-    .filter((x) => x.media_type === 'video')
+    .filter((x) => mediaTypeOf(x) === 'video')
     .map((x) => ({
       id: `local:vid:${x.id}`,
       projectId: 'local',
@@ -109,7 +113,7 @@ export async function loadLocalAiDriveAssets(): Promise<AIDriveAsset[]> {
   const singleImages: AIDriveAsset[] = [];
 
   for (const x of (imgs || [])) {
-    if (x.media_type === 'video') continue;
+    if (mediaTypeOf(x) === 'video') continue;
     const stem = String(x.name || '').replace(/\.[^.]+$/, '');
     const stripped = stripMapSuffix(stem);
     if (!stripped || !stripped.base) {
@@ -166,17 +170,21 @@ export async function loadLocalAiDriveAssets(): Promise<AIDriveAsset[]> {
     } as AIDriveAsset);
   }
 
-  const modelItems: AIDriveAsset[] = (models || []).map((x) => ({
-    id: `local:model:${x.id}`,
-    projectId: 'local',
-    name: x.name,
-    type: '3d-model',
-    storageUrl: x.companion_glb_path ? convertFileSrc(norm(x.companion_glb_path)) : undefined,
-    thumbnailUrl: undefined,
-    tags: ['ローカル', String(x.ext || '').toUpperCase(), x.source_label].filter(Boolean),
-    createdAt: typeof x.modified_ms === 'number' ? x.modified_ms : 0,
-    sourceCollection: 'local',
-  } as AIDriveAsset));
+  const modelItems: AIDriveAsset[] = (models || []).map((x) => {
+    const companion = x.companionGlbPath ?? x.companion_glb_path;
+    const modified = x.modifiedMs ?? x.modified_ms;
+    return {
+      id: `local:model:${x.id}`,
+      projectId: 'local',
+      name: x.name,
+      type: '3d-model',
+      storageUrl: companion ? convertFileSrc(norm(companion)) : undefined,
+      thumbnailUrl: undefined,
+      tags: ['ローカル', String(x.ext || '').toUpperCase(), x.sourceLabel ?? x.source_label].filter(Boolean),
+      createdAt: typeof modified === 'number' ? modified : 0,
+      sourceCollection: 'local',
+    } as AIDriveAsset;
+  });
 
   return [...setItems, ...singleImages, ...videoItems, ...modelItems];
 }

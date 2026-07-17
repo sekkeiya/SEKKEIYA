@@ -186,12 +186,6 @@ export const AiCanvasSidebar: React.FC = () => {
         transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s, border 0.2s",
       }}
     >
-      <Box sx={{ px: 2, mb: 2 }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: "rgb(var(--brand-fg-rgb) / 0.45)", textTransform: "uppercase" }}>
-          AI Canvas
-        </Typography>
-      </Box>
-
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
         <List sx={{ px: 1, mb: 2 }}>
           {MENU_ITEMS.map((item) => {

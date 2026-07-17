@@ -143,6 +143,11 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
   // ============================================================
   const editorMode = useEditorModeStore((s) => s.editorMode);
   const isWalkthroughMode = editorMode === "walkthrough";
+  // 2画面の右ペインに出すビュー（左は常に Top）。ドックの切替でここが差し替わる。
+  const splitRightViewId = useViewportUiStore((s) => s.splitRightViewId);
+  // 図面グリッド（立面4面 / 断面 / 展開の分割図面ビュー）。非 null なら SINGLE/SPLIT より優先。
+  const drawingGrid = useViewportUiStore((s) => s.drawingGrid);
+  const isDrawingGrid = !isWalkthroughMode && !!(drawingGrid?.panes?.length);
   // TRIPLE / QUAD は廃止済み → SPLIT か SINGLE のみ
   // ウォークスルー中は必ず 1 画面（Perspective フルスクリーン）に固定する。
   const normalizedLayoutMode = useMemo(() => {
@@ -165,8 +170,32 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
   // ✁Etiles�E�EINGLE / SPLIT 専用�E�E
   // ============================================================
   const viewportsData = useMemo(() => {
-    // ── SPLIT: 左=Top(furniture_top) / 右=Perspective(furniture_iso) ──
+    // ── 図面グリッド: 立面4面 / 断面 / 展開 をペイン別設定（flip/クリップ/フレーミング）で並べる ──
+    if (isDrawingGrid) {
+      // id にグリッドの key（elevation / section / room:xxx）を含める:
+      // 立面→断面のようにグリッドを切り替えたとき、React がペインを再利用せず
+      // 必ず新品のキャンバスとしてマウントし直す（カメラ・クリップの引き継ぎ事故を防ぐ）。
+      return drawingGrid.panes.map((p, i) => ({
+        id: `vp_grid_${drawingGrid.key}_${i}`,
+        type: p.viewType === "right" ? VIEW_TYPES.RIGHT : VIEW_TYPES.FRONT,
+        visible: true,
+        gridArea: undefined,
+        paneDrawing: {
+          // ビュー名チップ（左上）に「2D / 立面 北」のように出す
+          label: p.label,
+          flip: !!p.flip,
+          clipPlanes: p.clipPlanes || null,
+          frameBox: p.frameBox || null,
+          cap: p.cap || null,
+        },
+      }));
+    }
+
+    // ── SPLIT: 左=Top(furniture_top) / 右=splitRightViewId（2画面に入った時のビュー。
+    //    以後ドックの立面/断面/展開/パースで差し替わる）──
     if (normalizedLayoutMode === LAYOUT_MODES.SPLIT) {
+      const rightId = splitRightViewId && splitRightViewId !== "vp_top" ? splitRightViewId : "vp_persp";
+      const isDrawing = rightId === "vp_front" || rightId === "vp_right"; // 立面図/断面図/展開図（正射）
       return [
         {
           id: "vp_top",
@@ -177,8 +206,11 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
           gridArea: undefined,
         },
         {
-          id: "vp_persp",
-          type: VIEW_TYPES.PERSPECTIVE,
+          id: rightId,
+          // 立面/断面/展開は 2D 正射なので PERSPECTIVE に寄せない（SINGLE と同じ扱い）。
+          type: isDrawing ? getTypeByViewportId(rightId) : VIEW_TYPES.PERSPECTIVE,
+          // overrideSubMode を明示しておくと layoutCameraTilt のグローバル上書きを受けない。
+          // これが無いと 1F（tilt="top"）クリック時に右ペインまで Top 化してしまう。
           overrideSubMode: "furniture_iso",
           overrideRotOffset: 0,
           visible: true,
@@ -197,16 +229,21 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
     // ウォークスルー中は、既にマウント済みの vp_persp（Perspective）を
     // そのまま再利用してフルスクリーン表示する。canvas を作り直さないので
     // WebGL コンテキストの再生成（＝終了時の黒画面）が起きない。
-    const id = isWalkthroughMode ? "vp_persp" : (singleViewId || activeViewportId || "vp_persp");
+    const idRaw = isWalkthroughMode ? "vp_persp" : (singleViewId || activeViewportId || "vp_persp");
+    // 図面グリッドのペイン（vp_grid_*）が active のまま SINGLE へ戻った場合は Perspective へ逃がす
+    // （どのビューポートにも一致せず全非表示＝黒画面になるのを防ぐ）。
+    const id = all.some((t) => t.id === idRaw) ? idRaw : "vp_persp";
     return all.map(t => ({
       ...t,
-      type: (editorMode === "layout" || (isWalkthroughMode && t.id === "vp_persp"))
+      // layout モードでは persp/top を PERSPECTIVE に寄せる（Top は tilt/subMode 機構で表現）。
+      // ただし vp_front / vp_right は 2D 図面（立面図・断面図）用の正射ビューなので強制しない。
+      type: ((editorMode === "layout" && t.id !== "vp_front" && t.id !== "vp_right") || (isWalkthroughMode && t.id === "vp_persp"))
         ? VIEW_TYPES.PERSPECTIVE
         : t.type,
       visible: t.id === id,
       gridArea: undefined,
     }));
-  }, [normalizedLayoutMode, singleViewId, activeViewportId, editorMode, isWalkthroughMode]);
+  }, [normalizedLayoutMode, singleViewId, activeViewportId, editorMode, isWalkthroughMode, splitRightViewId, getTypeByViewportId, isDrawingGrid, drawingGrid]);
 
   // ============================================================
   // ✁Eactive viewport
@@ -216,6 +253,34 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
     if (normalizedLayoutMode !== LAYOUT_MODES.SINGLE) return activeViewportId || "vp_persp";
     return viewportsData.find(v => v.visible)?.id || activeViewportId || "vp_persp";
   }, [normalizedLayoutMode, activeViewportId, viewportsData, isWalkthroughMode]);
+
+  // ============================================================
+  // ✁Eビュー切替クロスフェード
+  //   SINGLE で表示ビューポートが変わったら、直前のビューを最前面に重ねて
+  //   フェードアウトさせ、下で描画が確定した新ビューへ自然に溶け込ませる。
+  //   （旧ビューは frameloop=demand でフリーズフレームのまま残るので軽い）
+  //   perspective 同士の保存ビュー切替は同一 vp_persp なのでここは発火せず、
+  //   EditorAngleBar 側の flyTo（カメラ移動）で滑らかに繋がる。
+  // ============================================================
+  const visibleViewportId = useMemo(
+    () => viewportsData.find((v) => v.visible)?.id ?? null,
+    [viewportsData]
+  );
+  const [fadeOutViewportId, setFadeOutViewportId] = useState(null);
+  const prevVisibleViewportRef = useRef(visibleViewportId);
+  // レンダー中に直前ビューとの差分を検知して即座にフェード対象を確定する
+  // （effect 経由だと 1 フレーム display:none を挟んでフリーズフレームが消える）
+  if (prevVisibleViewportRef.current !== visibleViewportId) {
+    const prev = prevVisibleViewportRef.current;
+    prevVisibleViewportRef.current = visibleViewportId;
+    const canFade = normalizedLayoutMode === LAYOUT_MODES.SINGLE && !isWalkthroughMode;
+    setFadeOutViewportId(canFade && prev && prev !== visibleViewportId ? prev : null);
+  }
+  useEffect(() => {
+    if (!fadeOutViewportId) return;
+    const t = setTimeout(() => setFadeOutViewportId(null), 320);
+    return () => clearTimeout(t);
+  }, [fadeOutViewportId]);
 
   const activate = useCallback(
     (id) => {
@@ -389,6 +454,16 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
   const theme = useTheme();
 
   const gridSx = useMemo(() => {
+    if (isDrawingGrid) {
+      const n = drawingGrid.panes.length;
+      // 2ペイン=横並び / 3〜4ペイン=2x2
+      return {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gridTemplateRows: n <= 2 ? "1fr" : "1fr 1fr",
+        gap: "4px", p: "4px", width: "100%", height: "100%", minWidth: 0, minHeight: 0,
+      };
+    }
     if (normalizedLayoutMode === LAYOUT_MODES.SPLIT) {
       return {
         display: "grid",
@@ -404,7 +479,7 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
       gridTemplateRows: "1fr",
       gap: "4px", p: "4px", width: "100%", height: "100%", minWidth: 0, minHeight: 0,
     };
-  }, [normalizedLayoutMode]);
+  }, [normalizedLayoutMode, isDrawingGrid, drawingGrid]);
 
   const layoutLabel = normalizedLayoutMode.toUpperCase();
 
@@ -455,6 +530,9 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
           const id = t?.id || `vp_${idx}`;
           const type = t?.type || VIEW_TYPES.PERSPECTIVE;
           const visible = t?.visible;
+          // 切替直後の旧ビュー：最前面に重ねてフェードアウト（クリックは透過）
+          const isFadingOut = !visible && id === fadeOutViewportId;
+          const shouldRender = visible || isFadingOut;
 
           const active = id === effectiveActiveViewportId;
 
@@ -471,8 +549,7 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
                 activate(id);
               }}
               sx={{
-                display: visible ? "block" : "none",
-                position: "relative",
+                display: shouldRender ? "block" : "none",
                 minHeight: 0,
                 minWidth: 0,
                 gridArea: t.gridArea,
@@ -481,16 +558,29 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
                 transition: "border-color 0.2s ease",
                 "&:hover": {
                   borderColor: active ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.4),
-                }
+                },
+                ...(isFadingOut
+                  ? {
+                      // 直前ビューをグリッドセル上に絶対配置で重ね、opacity を落として溶暗
+                      position: "absolute",
+                      inset: "4px",
+                      zIndex: 5,
+                      pointerEvents: "none",
+                      opacity: 0,
+                      transition: "opacity 300ms ease",
+                    }
+                  : { position: "relative" }),
               }}
             >
-
+              {/* 図面グリッドのペイン名は SingleViewportCanvas 左上のビュー名チップが
+                  「2D / 立面 北」のように表示する（paneDrawing.label）。 */}
               <SingleViewportCanvas
                 viewportId={id}
                 type={type}
                 active={active}
                 overrideSubMode={t.overrideSubMode}
                 overrideRotOffset={t.overrideRotOffset}
+                paneDrawing={t.paneDrawing || null}
                 onActivate={activate}
                 onToggleMaximize={() => {}}
                 isBaseReady={isBaseReady}
