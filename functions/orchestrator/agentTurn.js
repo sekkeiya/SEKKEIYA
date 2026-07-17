@@ -1092,6 +1092,118 @@ const TOOLS = [
       required: ["ids"],
     },
   },
+  // ─── マインドマップ（Research & Memo の既定の思考面）─────────────────────────
+  {
+    name: "mindmap_get",
+    description:
+      "Research & Memo のマインドマップ（既定の思考面）の現在のトピック一覧を取得する。トピックを足す前・整理する前に必ず呼んで現状を把握すること。返り値: topics[]（id / parentId: null=中心トピック / text / note=補足メモ / link / refTitle=出典 / hasImage / collapsed）と relations[]（id / source→target / text: 木構造とは別の横断関係の注釈矢印）と summaries[]（id / nodeIds / text: 兄弟をくくる要約）。木構造そのものが思考の構造（親=上位の論点・子=それを支える具体）。",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "対象プロジェクトID（省略時はアクティブ）" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "mindmap_add_topics",
+    description:
+      "マインドマップにトピックを複数まとめて生やす（必要なら関係線も同時に張れる）。対話で言語化した論点・気づき・選択肢をトピック化していくのが基本動作。parent に既存トピックの id を渡すとその子に、\"#0\" 形式（topics 配列の添字）で今回追加分の子にでき、1回の呼び出しで部分木を組める。parent 省略は中心トピック直下。長い補足は text に詰めず note に入れる（トピックは短い見出し、note が本文）。S.Library/S.Blog 由来の内容は refType/refId/refTitle を付けて出典に遡れる状態を保つこと。image には https の実URL（blog_get の coverUrl 等）を使う（data: URL は不可）。置いたら一言で報告し、対話を続けること（マップが成果物、チャットは対話）。",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "対象プロジェクトID（省略時はアクティブ）" },
+        topics: {
+          type: "array",
+          description: "生やすトピックの配列。",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string", description: "トピック名（短い見出し。長文は note へ）。" },
+              parent: { type: "string", description: "親トピックの id、または \"#N\"（topics 配列の添字）。省略時は中心トピック直下。" },
+              note: { type: "string", description: "補足メモ（根拠・背景・詳細）。" },
+              link: { type: "string", description: "関連 URL。" },
+              image: { type: "string", description: "トピックに載せる画像の https URL。" },
+              refType: { type: "string", enum: ["library", "article"], description: "出典種別（library=S.Library / article=S.Blog）。" },
+              refId: { type: "string", description: "出典 ID（library: localId / article: 記事ID）。" },
+              refTitle: { type: "string", description: "出典タイトル。" },
+            },
+            required: ["text"],
+          },
+        },
+        relations: {
+          type: "array",
+          description: "同時に張る関係線（省略可）。木の親子とは別の横断関係。",
+          items: {
+            type: "object",
+            properties: {
+              source: { type: "string", description: "始点トピック。既存 id または \"#N\"。" },
+              target: { type: "string", description: "終点トピック。既存 id または \"#N\"。" },
+              text: { type: "string", description: "関係の一言（例: トレードオフ / 同じ根拠）。" },
+            },
+            required: ["source", "target"],
+          },
+        },
+      },
+      required: ["topics"],
+    },
+  },
+  {
+    name: "mindmap_update_topic",
+    description:
+      "マインドマップの既存トピック1つを更新する（見出しの推敲・note の追記・リンク付与・親の付け替え=構造の整理）。id は mindmap_get で取得する。ユーザーが書いたトピックの text を書き換えるときは事前に合意を取ること。parent を渡すとそのトピックの子へ移動する（部分木ごと・末尾に付く）。",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "対象プロジェクトID（省略時はアクティブ）" },
+        id: { type: "string", description: "対象トピックの ID。" },
+        text: { type: "string", description: "新しいトピック名。" },
+        note: { type: "string", description: "新しい補足メモ（空文字で削除）。" },
+        link: { type: "string", description: "新しいリンク（空文字で削除）。" },
+        parent: { type: "string", description: "移動先の親トピック ID。" },
+        collapsed: { type: "boolean", description: "枝の折りたたみ状態。" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "mindmap_remove_topics",
+    description:
+      "マインドマップからトピックを枝ごと削除する（配下の子トピック・関係線・まとめへの参照も一緒に消える）。ユーザーの思考の痕跡を消す操作なので、ユーザーが明確に削除を求めたときだけ使うこと（整理は削除ではなく mindmap_update_topic の parent 移動を優先）。中心トピックは削除できない。",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "対象プロジェクトID（省略時はアクティブ）" },
+        ids: { type: "array", items: { type: "string" }, description: "削除するトピックIDの配列（部分木ごと消える）。" },
+      },
+      required: ["ids"],
+    },
+  },
+  {
+    name: "mindmap_connect_topics",
+    description:
+      "マインドマップの既存トピック同士を関係線（木構造とは別の横断的な注釈矢印）で結ぶ。別の枝どうしの「トレードオフ」「同じ根拠を共有」「これが前提」のような関係を残すのに使う。text には関係の一言を入れること。トピック id は mindmap_get で取得。removeRelationIds で不要な関係線を外せる。構造の変更（親の付け替え）は mindmap_update_topic の parent を使う。",
+    input_schema: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "対象プロジェクトID（省略時はアクティブ）" },
+        relations: {
+          type: "array",
+          description: "張る関係線の配列。",
+          items: {
+            type: "object",
+            properties: {
+              source: { type: "string", description: "始点トピック ID。" },
+              target: { type: "string", description: "終点トピック ID。" },
+              text: { type: "string", description: "関係の一言（例: トレードオフ / 同じ根拠 / これが前提）。" },
+            },
+            required: ["source", "target"],
+          },
+        },
+        removeRelationIds: { type: "array", items: { type: "string" }, description: "削除する関係線IDの配列。" },
+      },
+    },
+  },
   // ─── AIメモリー（長期記憶・docs/21）───────────────────────────────────────
   {
     name: "save_memory",
@@ -1388,7 +1500,8 @@ function toAnthropicMessages(messages) {
 // index.js が excludeSilos として渡す。キー名は siloTools.js の DEFAULT_SILO_KEYWORDS と一致させる。
 // コア/site編集/schedule/task/3d・image は曖昧な依頼が多いため silo 化しない（常時送信）。
 const SILOS = {
-  research: (n) => n.startsWith("research_board"),
+  // マインドマップは Research & Memo の既定の思考面なので research silo と一心同体で扱う
+  research: (n) => n.startsWith("research_board") || n.startsWith("mindmap_"),
   slide: (n) => /^(apply_presentation_template|build_slides_from_layout|edit_presentation|get_open_presentation|list_presentation_templates)$/.test(n),
   layout: (n) => /^(layout_|run_auto_layout$|render_layout$|get_layout_outputs$|furniture_catalog_search$|add_furniture_to_project$|open_furniture_picker$|catalog_product_search$)/.test(n),
   blog: (n) => /^(blog_|create_blog_draft$)/.test(n),
