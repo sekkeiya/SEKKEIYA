@@ -22,6 +22,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+// 純粋な変換関数は lib/ に切り出してテスト可能にしてある（scripts/__tests__/ 参照）
+import { tauriSpecToShim, toRelative } from './lib/sync-transforms.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.resolve(__dirname, '..');
@@ -44,13 +46,6 @@ const SHIMMED = new Set(
     .filter((f) => f.endsWith('.ts'))
     .map((f) => f.replace(/\.ts$/, '')),
 );
-
-// '@tauri-apps/api/core' -> 'api-core' ; '@tauri-apps/plugin-fs' -> 'plugin-fs'
-function tauriSpecToShim(spec) {
-  const m = spec.match(/^@tauri-apps\/(?:api\/(\w+)|(plugin-[\w-]+))/);
-  if (!m) return null;
-  return m[1] ? `api-${m[1]}` : m[2];
-}
 
 function rmExceptPreserve(dir) {
   for (const entry of fs.readdirSync(dir)) {
@@ -77,14 +72,6 @@ function walk(dir, fn) {
   }
 }
 
-// '@/features/x' を、fromFile から SHELL_SRC/features/x への相対パスへ変換
-function toRelative(fromFile, specPath) {
-  const target = path.join(SHELL_SRC, specPath);
-  let rel = path.relative(path.dirname(fromFile), target).replace(/\\/g, '/');
-  if (!rel.startsWith('.')) rel = './' + rel;
-  return rel;
-}
-
 let fileCount = 0;
 let rewriteCount = 0;
 const missingShims = new Set();
@@ -97,7 +84,7 @@ function processFile(file) {
   code = code.replace(/(['"])@\/([^'"]+)\1/g, (_m, q, p) => {
     changed = true;
     rewriteCount++;
-    return q + toRelative(file, p) + q;
+    return q + toRelative(SHELL_SRC, file, p) + q;
   });
 
   // 2) tauri 指定子の shim カバレッジ検証

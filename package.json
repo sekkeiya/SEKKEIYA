@@ -17,6 +17,7 @@
     "indexnow": "node scripts/indexnow-ping.mjs",
     "gsc-report": "node scripts/gsc-report.mjs",
     "lint": "eslint .",
+    "test": "node --test \"scripts/__tests__/*.test.mjs\"",
     "preview": "vite preview",
     "emulators": "firebase emulators:start --only auth,firestore,functions,storage"
   },
