@@ -14,8 +14,6 @@ import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import { useTeamsStore } from '../../store/useTeamsStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { MemberInvitePanel } from './components/MemberInvitePanel';
-import { fetchTeam } from './api/teamsApi';
-import type { Team } from './api/teamsApi';
 import { getDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase/client';
 import { BRAND } from '../../styles/theme';

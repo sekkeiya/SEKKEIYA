@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, List, ListItem, ListItemButton, ListItemText, Divider, Paper, Slider, TextField, Button, Chip, Stack, Switch, FormControlLabel, MenuItem, Select, FormControl, InputLabel, Menu, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemButton, ListItemText, Divider, Paper, Slider, TextField, Button, Chip, Stack, Switch, MenuItem, Select, FormControl, Menu, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import PrecisionManufacturingIcon from '@mui/icons-material/PrecisionManufacturing';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import ImageSearchIcon from '@mui/icons-material/ImageSearch';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import { useAiProfileStore } from '../../../store/useAiProfileStore';
@@ -871,7 +869,7 @@ export const AiStudioModels: React.FC<{ initialProfileId?: string | null }> = ({
              </Typography>
           ) : (
             <List disablePadding>
-              {correctionEvents.map((ev, index) => (
+              {correctionEvents.map((ev) => (
                 <Paper key={ev.id} sx={{ mb: 2, p: 2, bgcolor: 'light-dark(rgba(15,23,42,0.1), rgba(0,0,0,0.3))', borderRadius: 2 }}>
                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, alignItems: 'center' }}>
                      <Typography sx={{ fontSize: 13, color: 'light-dark(#5908a6, #a855f7)', fontWeight: 600 }}>

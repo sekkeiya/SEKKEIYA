@@ -215,7 +215,7 @@ function drawNorthArrow(
 
 function drawScaleBar(
   ctx: CanvasRenderingContext2D,
-  W: number, H: number, scale: number, style: 'clean' | 'bold' | 'dark',
+  H: number, scale: number, style: 'clean' | 'bold' | 'dark',
 ) {
   const colors = BG_STYLES[style];
   const barLen = 10 * scale;
@@ -305,10 +305,10 @@ export const SiteDiagramCanvas = forwardRef<SiteDiagramCanvasHandle, Props>(
       siteElements, addSiteElement, updateSiteElement, removeSiteElement,
       selectedSiteElementId, setSelectedSiteElementId,
       siteAccesses, addSiteAccess, selectedSiteAccessId, setSelectedSiteAccessId,
-      siteTool, siteElementType,
+      siteTool,
       isSiteAnimating,
       annotations, selectedAnnotationId, annotationTool,
-      addAnnotation, annotationColor,
+      addAnnotation,
     } = useDsdStore();
 
     const getScale = useCallback(() => Math.min(width, height) / 80, [width, height]);
@@ -415,7 +415,7 @@ export const SiteDiagramCanvas = forwardRef<SiteDiagramCanvasHandle, Props>(
       }
 
       drawNorthArrow(ctx, W, siteNorthAngle, style);
-      drawScaleBar(ctx, W, H, scale, style);
+      drawScaleBar(ctx, H, scale, style);
       drawAnnotations(ctx, annotations, cx, cy, scale, selectedAnnotationId);
 
       // Status text

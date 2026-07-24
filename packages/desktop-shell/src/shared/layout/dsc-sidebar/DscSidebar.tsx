@@ -127,7 +127,7 @@ interface FurnitureProjectNestingItemProps {
   onDeleteClick: () => void;
 }
 
-function FurnitureProjectNestingItem({ project, active, isTeam, onClick, onRenameClick, onDeleteClick }: FurnitureProjectNestingItemProps) {
+function FurnitureProjectNestingItem({ project, active, onClick, onRenameClick, onDeleteClick }: FurnitureProjectNestingItemProps) {
   const [expanded, setExpanded] = useState(active);
   const [furnitureItems, setFurnitureItems] = useState<any[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -362,7 +362,7 @@ export const DscSidebar: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createProjectType, setCreateProjectType] = useState<'my' | 'team'>('my');
+  const [createProjectType] = useState<'my' | 'team'>('my');
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 

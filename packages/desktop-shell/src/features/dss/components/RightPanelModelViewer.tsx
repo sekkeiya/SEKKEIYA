@@ -1,11 +1,25 @@
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Box, CircularProgress } from '@mui/material';
-import { Canvas } from '@react-three/fiber';
-import { useGLTF, OrbitControls, Stage, Line, Html } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, OrbitControls, Stage, Line, Html, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import { getModelLocalPathCached } from '../../../lib/modelLocalPathCache';
-import { applyBindingToObject } from '../../shared/material/applyMaterial';
+import { applyBindingToObject, enumerateMaterialSlots, type EnumeratedSlot } from '../../shared/material/applyMaterial';
+import { applySelectionToObject, type MaterialPresetSlot } from '../../shared/material/materialPresets';
+import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
+
+/**
+ * マテリアルタブ（DssMaterialPresets）の3Dプレビューをメインビューアへ委譲するための状態。
+ * 詳細画面で Canvas を1つに集約し、GPU負荷を抑える。
+ */
+export interface MaterialPreviewState {
+  presets: MaterialPresetSlot[];
+  selection: Record<string, string>;
+  /** ハイライトするメッシュ名（編集モードで選択中の行のメンバー）。 */
+  highlight: string[];
+  /** true ならメッシュクリックで部位選択できる（編集モード）。 */
+  pickable: boolean;
+}
 
 function extractCanonicalId(url: string) {
   const match = url.match(/assets%2F([a-f0-9-]+)%2F/);
@@ -117,22 +131,78 @@ const DimensionOverlay = ({ box, dims }: { box: THREE.Box3; dims: ViewerDimensio
   );
 };
 
+const HILITE_COLOR = '#22d3ee';
+
+/**
+ * 現在の描画内容を JPEG データURL として取り出す関数を親へ渡すブリッジ。
+ * `preserveDrawingBuffer` を有効にすると常時わずかな描画コストが乗るため、
+ * 代わりに「その場で1回描画してから即座に読み出す」方式にしている。
+ * 描画直後は同フレーム内でバッファが残っているため、この順序なら取得できる。
+ */
+const CaptureBridge: React.FC<{
+  captureRef: React.MutableRefObject<(() => string | null) | null>;
+}> = ({ captureRef }) => {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  useEffect(() => {
+    captureRef.current = () => {
+      try {
+        gl.render(scene, camera);
+        return gl.domElement.toDataURL('image/jpeg', 0.82);
+      } catch {
+        return null;
+      }
+    };
+    return () => { captureRef.current = null; };
+  }, [gl, scene, camera, captureRef]);
+  return null;
+};
+
 const Model = ({
   url,
   targetDimensions,
   showDimensions,
   materialBindings,
+  materialPreview,
+  onMaterialPick,
+  onMaterialSlots,
 }: {
   url: string;
   targetDimensions?: ViewerDimensions | null;
   showDimensions?: boolean;
   materialBindings?: Array<{ meshName?: string; materialIndex?: number; material?: any }> | null;
+  materialPreview?: MaterialPreviewState | null;
+  onMaterialPick?: (meshName: string) => void;
+  onMaterialSlots?: (slots: EnumeratedSlot[]) => void;
 }) => {
   const { scene } = useGLTF(url);
 
   // useGLTF はURLごとにsceneをキャッシュ共有するため、複数Canvas表示やスケール適用で
-  // キャッシュを汚さないようクローンして使う
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+  // キャッシュを汚さないようクローンして使う。
+  // 元のGLB素材も保存し、マテリアルプレビュー解除で完全に復元できるようにする。
+  const cloned = useMemo(() => {
+    const c = scene.clone(true);
+    c.traverse((o: any) => { if (o.isMesh && o.userData.__origMat === undefined) o.userData.__origMat = o.material; });
+    return c;
+  }, [scene]);
+
+  // マテリアルタブ用: 部位スロットを列挙して親（DssMaterialPresets）へ通知。
+  // タブ再訪時は cloned が変わらないため、プレビュー有効化のタイミングでも再通知する。
+  const previewActive = !!materialPreview;
+  useEffect(() => {
+    if (!onMaterialSlots) return;
+    onMaterialSlots(enumerateMaterialSlots(cloned));
+  }, [cloned, onMaterialSlots, previewActive]);
+
+  // マテリアルプレビュー（選択中の素材）を適用。未選択部位は元のGLB素材へ復元してから適用。
+  // プレビュー解除（タブ離脱）時は元の見た目へ戻す。
+  useEffect(() => {
+    cloned.traverse((o: any) => { if (o.isMesh && o.userData.__origMat !== undefined) o.material = o.userData.__origMat; });
+    if (materialPreview) {
+      applySelectionToObject(cloned, materialPreview.presets, materialPreview.selection).catch(() => {});
+    }
+  }, [cloned, materialPreview]);
 
   // マテリアル上書き（バインディング）を適用
   useEffect(() => {
@@ -140,6 +210,47 @@ const Model = ({
     if (!slots.length) return;
     applyBindingToObject(cloned, { id: '', targetType: 'model', modelId: '', slots } as any).catch(() => {});
   }, [cloned, materialBindings]);
+
+  // 選択部位のハイライト枠（BoxHelper）。
+  // Stage が子要素にスケール/センタリング変換を掛けるため、group 内に置くと変換が二重適用されて
+  // ずれる。シーン直下に追加し、毎フレーム update して Stage のスケール後も追従させる。
+  const rootScene = useThree((s) => s.scene);
+  const helpersRef = useRef<THREE.BoxHelper[]>([]);
+  const highlightKey = (materialPreview?.highlight || []).join('|');
+  useEffect(() => {
+    const names = highlightKey ? highlightKey.split('|') : [];
+    if (!names.length) return;
+    const helpers: THREE.BoxHelper[] = [];
+    for (const name of names) {
+      let target: any = null;
+      cloned.traverse((m: any) => { if (!target && m.isMesh && (m.name || '') === name) target = m; });
+      if (!target) continue;
+      const h = new THREE.BoxHelper(target, new THREE.Color(HILITE_COLOR));
+      (h.material as any).depthTest = false;
+      (h.material as any).transparent = true;
+      h.renderOrder = 9999;
+      rootScene.add(h);
+      helpers.push(h);
+    }
+    helpersRef.current = helpers;
+    return () => {
+      for (const h of helpers) {
+        rootScene.remove(h);
+        h.geometry.dispose();
+        (h.material as any).dispose?.();
+      }
+      helpersRef.current = [];
+    };
+  }, [cloned, highlightKey, rootScene]);
+  useFrame(() => { for (const h of helpersRef.current) h.update(); });
+
+  // 編集モード時のみメッシュクリックで部位選択
+  const pickable = !!materialPreview?.pickable;
+  const handleClick = useCallback((e: any) => {
+    if (!pickable || !onMaterialPick) return;
+    e.stopPropagation();
+    if (e.object?.isMesh) onMaterialPick(e.object.name || '');
+  }, [pickable, onMaterialPick]);
 
   // 素（スケール適用前）のバウンディングボックス。
   // <primitive object={cloned} scale={scale}> は cloned.scale を直接書き換えるため、
@@ -180,7 +291,7 @@ const Model = ({
 
   return (
     <group>
-      <primitive object={cloned} scale={scale} />
+      <primitive object={cloned} scale={scale} onClick={handleClick} />
       {showDimensions && <DimensionOverlay box={scaledBox} dims={displayDims} />}
     </group>
   );
@@ -195,9 +306,25 @@ interface RightPanelModelViewerProps {
   showDimensions?: boolean;
   /** マテリアル上書き（[{meshName, materialIndex, material(snapshot)}]）。プレビューに反映。 */
   materialBindings?: Array<{ meshName?: string; materialIndex?: number; material?: any }> | null;
+  /** マテリアルタブのプレビューを本ビューアへ委譲する場合の状態（詳細画面のCanvas集約用）。 */
+  materialPreview?: MaterialPreviewState | null;
+  /** materialPreview.pickable 時、クリックされたメッシュ名を通知。 */
+  onMaterialPick?: (meshName: string) => void;
+  /** モデルロード時に部位スロット一覧を通知（マテリアルタブの編集UI用）。 */
+  onMaterialSlots?: (slots: EnumeratedSlot[]) => void;
+  /** 渡すと、現在の描画をJPEGデータURLで取り出す関数がここに入る（素材パターンのサムネ生成用）。 */
+  captureRef?: React.MutableRefObject<(() => string | null) | null>;
+  /** GLBの読み込み中に表示する画像（通常はサムネイル）。ビューアが空白になるのを防ぐ。 */
+  placeholderImageUrl?: string;
+  /**
+   * GLB の取得を開始するまでの待ち時間(ms)。
+   * 一覧をクリックで見て回るときに、選択が変わるたび即ダウンロードを始めると
+   * 大量の取得が積み上がって重くなる。少し待てば「通り過ぎただけ」の選択を捨てられる。
+   */
+  loadDelayMs?: number;
 }
 
-export const RightPanelModelViewer: React.FC<RightPanelModelViewerProps> = ({ modelUrl, versionId, targetDimensions, showDimensions, materialBindings }) => {
+export const RightPanelModelViewer: React.FC<RightPanelModelViewerProps> = ({ modelUrl, versionId, targetDimensions, showDimensions, materialBindings, materialPreview, onMaterialPick, onMaterialSlots, captureRef, placeholderImageUrl, loadDelayMs = 0 }) => {
   const [resolvedUrl, setResolvedUrl] = useState<string>('');
   const [isCaching, setIsCaching] = useState(false);
 
@@ -220,13 +347,13 @@ export const RightPanelModelViewer: React.FC<RightPanelModelViewerProps> = ({ mo
     const cacheAndResolve = async () => {
       try {
         const cacheKey = versionId ? `${canonicalId}_v${versionId}` : canonicalId;
-        await invoke('ensure_model_cached', {
+        // ensure_model_cached はローカルパスを返すのでそのまま使う（IPC 1往復）
+        const filePath = await invoke<string>('ensure_model_cached', {
           modelId: cacheKey,
           model_id: canonicalId,
           ext: 'glb',
           downloadUrl: modelUrl
         });
-        const filePath = await getModelLocalPathCached(cacheKey, 'glb');
 
         if (!isMounted) return;
 
@@ -245,32 +372,79 @@ export const RightPanelModelViewer: React.FC<RightPanelModelViewerProps> = ({ mo
       }
     };
 
-    cacheAndResolve();
+    // loadDelayMs が指定されていれば少し待ってから取得を始める。待っている間に
+    // 選択が変わればこの effect は破棄されるので、通り過ぎただけのモデルは取得しない。
+    const timer = setTimeout(cacheAndResolve, loadDelayMs);
 
-    return () => { isMounted = false; };
-  }, [modelUrl, versionId]);
+    return () => { isMounted = false; clearTimeout(timer); };
+  }, [modelUrl, versionId, loadDelayMs]);
+
+  // ホイールでのズームは「一度ビューアをクリックしてから」有効にする。
+  // そうしないと、画面を開いた直後にスクロールしたときページではなく3Dが拡大縮小してしまい、
+  // ユーザーの操作イメージと食い違う。ドラッグ回転はページ操作と競合しないので常時有効。
+  const [zoomEnabled, setZoomEnabled] = useState(false);
+  // モデルが切り替わったら未操作状態に戻す
+  useEffect(() => { setZoomEnabled(false); }, [modelUrl]);
 
   return (
-    <Box sx={{ width: '100%', height: '100%', position: 'relative', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: 1.5, overflow: 'hidden' }}>
-      {isCaching || !resolvedUrl ? (
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Canvas shadows camera={{ position: [5, 5, 5], fov: 45 }}>
-          <Suspense fallback={null}>
-            <Stage environment="city" intensity={0.5} adjustCamera={1.3}>
-              <Model url={resolvedUrl} targetDimensions={targetDimensions} showDimensions={showDimensions} materialBindings={materialBindings} />
+    <Box
+      onPointerDown={() => setZoomEnabled(true)}
+      sx={{ width: '100%', height: '100%', position: 'relative', bgcolor: 'rgba(0,0,0,0.5)', borderRadius: 1.5, overflow: 'hidden' }}
+    >
+      {/* GLB のキャッシュ解決を待たずに Canvas を先にマウントし、
+          WebGL 初期化と環境マップ(ローカルHDR)のロードをダウンロードと並行して進める。
+          Stage は子が空だとカメラフィットが壊れるためモデル準備後にマウントし、
+          environment={null} で Environment の二重ロードを避ける。 */}
+      <Canvas shadows camera={{ position: [5, 5, 5], fov: 45 }}>
+        <Suspense fallback={null}>
+          <Environment files={VIEWER_ENVIRONMENT.files} />
+          {captureRef && <CaptureBridge captureRef={captureRef} />}
+          {resolvedUrl && !isCaching && (
+            <Stage environment={null} intensity={0.5} adjustCamera={1.3}>
+              <Model
+                url={resolvedUrl}
+                targetDimensions={targetDimensions}
+                showDimensions={showDimensions}
+                materialBindings={materialBindings}
+                materialPreview={materialPreview}
+                onMaterialPick={onMaterialPick}
+                onMaterialSlots={onMaterialSlots}
+              />
             </Stage>
-            <OrbitControls
-               autoRotate={!showDimensions}
-               autoRotateSpeed={1.5}
-               enablePan={false}
-               enableZoom={true}
-               makeDefault
+          )}
+          <OrbitControls
+             autoRotate={!showDimensions && !materialPreview?.pickable}
+             autoRotateSpeed={1.5}
+             enablePan={false}
+             enableZoom={zoomEnabled}
+             makeDefault
+          />
+        </Suspense>
+      </Canvas>
+      {(isCaching || !resolvedUrl) && (
+        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          {/* 読み込み中はサムネイルをつなぎに出す（真っ暗な待ち時間を作らない）。 */}
+          {placeholderImageUrl && (
+            <Box
+              component="img"
+              src={placeholderImageUrl}
+              alt=""
+              sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', opacity: 0.55 }}
             />
-          </Suspense>
-        </Canvas>
+          )}
+          <CircularProgress sx={{ position: 'relative' }} />
+        </Box>
+      )}
+      {/* 未操作のうちはホイールがページスクロールに流れる。その理由が分かるよう控えめに示す。 */}
+      {!zoomEnabled && !isCaching && resolvedUrl && (
+        <Box sx={{
+          position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+          px: 1.25, py: 0.4, borderRadius: 999, pointerEvents: 'none',
+          bgcolor: 'rgba(0,0,0,0.5)', color: 'rgb(var(--brand-fg-rgb) / 0.75)',
+          fontSize: 10.5, whiteSpace: 'nowrap',
+        }}>
+          クリックすると拡大縮小できます
+        </Box>
       )}
     </Box>
   );

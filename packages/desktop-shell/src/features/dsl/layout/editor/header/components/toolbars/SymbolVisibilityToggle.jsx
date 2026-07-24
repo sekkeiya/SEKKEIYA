@@ -13,31 +13,63 @@ import { alpha, useTheme } from "@mui/material/styles";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
+import LockRoundedIcon from "@mui/icons-material/LockRounded";
+import LockOpenRoundedIcon from "@mui/icons-material/LockOpenRounded";
 
 import {
   useViewportDisplayStore,
   SYMBOL_KINDS,
   SYMBOL_LABEL,
+  LOCKABLE_SYMBOL_KINDS,
 } from "../../../../store/useViewportDisplayStore";
 
 export default function SymbolVisibilityToggle() {
   const theme = useTheme();
   const showSymbols = useViewportDisplayStore((s) => s.showSymbols);
-  const toggleShowSymbols = useViewportDisplayStore((s) => s.toggleShowSymbols);
   const symbolFlags = useViewportDisplayStore((s) => s.symbolFlags);
   const toggleSymbolFlag = useViewportDisplayStore((s) => s.toggleSymbolFlag);
   const setAllSymbolFlags = useViewportDisplayStore((s) => s.setAllSymbolFlags);
   const setShowSymbols = useViewportDisplayStore((s) => s.setShowSymbols);
+  const symbolLocks = useViewportDisplayStore((s) => s.symbolLocks);
+  const toggleSymbolLock = useViewportDisplayStore((s) => s.toggleSymbolLock);
 
   const [anchor, setAnchor] = useState(null);
 
+  // 本体クリックで「表示 → 非表示 → 全ロック」を循環する。
+  //   表示   : 表示ON＋ロック全解除
+  //   非表示 : 表示OFF
+  //   全ロック: 表示ON＋ロック対象を全ロック
   const handleClick = useCallback(() => {
-    toggleShowSymbols();
-  }, [toggleShowSymbols]);
+    const st = useViewportDisplayStore.getState();
+    const shown = st.showSymbols;
+    const everLocked = shown && LOCKABLE_SYMBOL_KINDS.every((k) => !!st.symbolLocks[k]);
+    if (!shown) {
+      // 非表示 → 全ロック
+      st.setShowSymbols(true);
+      st.setAllSymbolLocks(true);
+    } else if (everLocked) {
+      // 全ロック → 表示（全解除）
+      st.setAllSymbolLocks(false);
+    } else {
+      // 表示 → 非表示
+      st.setShowSymbols(false);
+    }
+  }, []);
 
   const accent = theme.palette.primary.main;
+  const lockColor = "#f59e0b"; // 全ロック状態は琥珀色で区別
   const line = alpha(theme.palette.common.white, 0.12);
-  const Icon = showSymbols ? VisibilityRoundedIcon : VisibilityOffRoundedIcon;
+
+  // 現在の状態（3値）。全ロック＝表示中かつロック対象すべてロック。
+  const allLocked = showSymbols && LOCKABLE_SYMBOL_KINDS.every((k) => !!symbolLocks[k]);
+  const state = !showSymbols ? "hidden" : allLocked ? "locked" : "shown";
+  const on = state !== "hidden";                 // 見えている（表示 or 全ロック）
+  const activeColor = state === "locked" ? lockColor : accent;
+  const Icon = state === "hidden"
+    ? VisibilityOffRoundedIcon
+    : state === "locked"
+      ? LockRoundedIcon
+      : VisibilityRoundedIcon;
 
   // 個別に隠している項目の数（マスターが ON のときだけ意味を持つ）。
   const offCount = SYMBOL_KINDS.filter((k) => !symbolFlags[k]).length;
@@ -45,15 +77,17 @@ export default function SymbolVisibilityToggle() {
   return (
     <Box sx={{ display: "flex", alignItems: "center" }}>
       <Tooltip
-        title={showSymbols ? "記号を隠す（まとめて）" : "記号を表示（まとめて）"}
+        title={
+          state === "shown" ? "記号：表示中（クリックで非表示）"
+            : state === "hidden" ? "記号：非表示（クリックで全ロック表示）"
+              : "記号：全ロック中（表示のまま操作不可・クリックで表示に戻す）"
+        }
         arrow
       >
         <Box
           component="button"
           type="button"
-          role="switch"
-          aria-checked={showSymbols}
-          aria-label="記号の表示"
+          aria-label="記号の表示・ロック"
           onClick={handleClick}
           sx={{
             display: "flex",
@@ -70,22 +104,22 @@ export default function SymbolVisibilityToggle() {
             letterSpacing: 0.2,
             whiteSpace: "nowrap",
             transition: "background 120ms, color 120ms, border-color 120ms",
-            border: `1px solid ${showSymbols ? alpha(accent, 0.5) : line}`,
+            border: `1px solid ${on ? alpha(activeColor, 0.5) : line}`,
             borderRight: "none",
-            background: showSymbols ? alpha(accent, 0.22) : alpha("#fff", 0.04),
-            color: showSymbols
+            background: on ? alpha(activeColor, 0.22) : alpha("#fff", 0.04),
+            color: on
               ? "color-mix(in srgb, var(--brand-fg) 95%, transparent)"
               : "color-mix(in srgb, var(--brand-fg) 45%, transparent)",
             "&:hover": {
-              background: showSymbols ? alpha(accent, 0.3) : alpha("#fff", 0.08),
+              background: on ? alpha(activeColor, 0.3) : alpha("#fff", 0.08),
               color: "color-mix(in srgb, var(--brand-fg) 95%, transparent)",
             },
           }}
         >
           <Icon sx={{ fontSize: 14 }} />
           記号
-          {/* ON/OFF を文字でも出す（アイコンだけだと「今どっちか」が読み取りにくい）。
-              一部だけ隠しているときは ON ではなく残数を出して気づけるようにする。 */}
+          {/* 現在の状態を文字でも出す（アイコンだけだと読み取りにくい）。
+              表示中に一部だけ隠しているときは残数を出して気づけるようにする。 */}
           <Box
             component="span"
             sx={{
@@ -95,11 +129,17 @@ export default function SymbolVisibilityToggle() {
               fontSize: 9.5,
               fontWeight: 900,
               lineHeight: "14px",
-              background: showSymbols ? alpha(accent, 0.55) : alpha("#fff", 0.1),
-              color: showSymbols ? "#fff" : "color-mix(in srgb, var(--brand-fg) 55%, transparent)",
+              background: on ? alpha(activeColor, 0.55) : alpha("#fff", 0.1),
+              color: on ? "#fff" : "color-mix(in srgb, var(--brand-fg) 55%, transparent)",
             }}
           >
-            {!showSymbols ? "OFF" : offCount ? `${SYMBOL_KINDS.length - offCount}/${SYMBOL_KINDS.length}` : "ON"}
+            {state === "hidden"
+              ? "OFF"
+              : state === "locked"
+                ? "LOCK"
+                : offCount
+                  ? `${SYMBOL_KINDS.length - offCount}/${SYMBOL_KINDS.length}`
+                  : "ON"}
           </Box>
         </Box>
       </Tooltip>
@@ -114,10 +154,10 @@ export default function SymbolVisibilityToggle() {
           sx={{
             display: "flex", alignItems: "center", justifyContent: "center",
             height: 26, width: 18, borderRadius: "0 4px 4px 0", cursor: "pointer",
-            border: `1px solid ${showSymbols ? alpha(accent, 0.5) : line}`,
-            background: showSymbols ? alpha(accent, 0.22) : alpha("#fff", 0.04),
+            border: `1px solid ${on ? alpha(activeColor, 0.5) : line}`,
+            background: on ? alpha(activeColor, 0.22) : alpha("#fff", 0.04),
             color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)",
-            "&:hover": { background: showSymbols ? alpha(accent, 0.3) : alpha("#fff", 0.08) },
+            "&:hover": { background: on ? alpha(activeColor, 0.3) : alpha("#fff", 0.08) },
           }}
         >
           <ArrowDropDownRoundedIcon sx={{ fontSize: 16 }} />
@@ -138,26 +178,58 @@ export default function SymbolVisibilityToggle() {
           },
         }}
       >
-        <Typography sx={{ px: 1.5, pt: 0.75, pb: 0.5, fontSize: 10, fontWeight: 800, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
-          表示する記号
-        </Typography>
-        {SYMBOL_KINDS.map((k) => (
-          <MenuItem
-            key={k}
-            onClick={() => {
-              // 個別を触ったらマスターは ON にする（OFF のまま操作しても見えないため）。
-              if (!showSymbols) setShowSymbols(true);
-              toggleSymbolFlag(k);
-            }}
-            sx={{ fontSize: 12.5, py: 0.25 }}
-          >
-            <Checkbox
-              size="small" checked={!!symbolFlags[k]} disableRipple
-              sx={{ p: 0.5, mr: 0.5, color: alpha(accent, 0.6), "&.Mui-checked": { color: accent } }}
-            />
-            <ListItemText primaryTypographyProps={{ fontSize: 12.5 }} primary={SYMBOL_LABEL[k]} />
-          </MenuItem>
-        ))}
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, pt: 0.75, pb: 0.5 }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 800, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
+            表示する記号
+          </Typography>
+          <Typography sx={{ fontSize: 10, fontWeight: 800, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
+            ロック
+          </Typography>
+        </Box>
+        {SYMBOL_KINDS.map((k) => {
+          const lockable = LOCKABLE_SYMBOL_KINDS.includes(k);
+          const locked = !!symbolLocks[k];
+          return (
+            <MenuItem
+              key={k}
+              onClick={() => {
+                // 個別を触ったらマスターは ON にする（OFF のまま操作しても見えないため）。
+                if (!showSymbols) setShowSymbols(true);
+                toggleSymbolFlag(k);
+              }}
+              sx={{ fontSize: 12.5, py: 0.25, pr: 0.75 }}
+            >
+              <Checkbox
+                size="small" checked={!!symbolFlags[k]} disableRipple
+                sx={{ p: 0.5, mr: 0.5, color: alpha(accent, 0.6), "&.Mui-checked": { color: accent } }}
+              />
+              <ListItemText primaryTypographyProps={{ fontSize: 12.5 }} primary={SYMBOL_LABEL[k]} />
+              {/* ロック: 表示はそのままで、選択・移動・編集だけ不可にする。行クリック（表示切替）と
+                  分けるため stopPropagation する。床グリッドは操作が無いのでロックボタンを出さない。 */}
+              {lockable ? (
+                <Tooltip title={locked ? "ロック中：クリックで解除（操作可に戻す）" : "ロック（表示のまま選択・移動・編集を不可にする）"} arrow>
+                  <Box
+                    component="span"
+                    role="button"
+                    aria-label={`${SYMBOL_LABEL[k]}のロック`}
+                    onClick={(e) => { e.stopPropagation(); toggleSymbolLock(k); }}
+                    sx={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      ml: 1, p: 0.35, borderRadius: 0.75, cursor: "pointer",
+                      color: locked ? accent : "color-mix(in srgb, var(--brand-fg) 32%, transparent)",
+                      background: locked ? alpha(accent, 0.14) : "transparent",
+                      "&:hover": { background: alpha("#fff", 0.1) },
+                    }}
+                  >
+                    {locked ? <LockRoundedIcon sx={{ fontSize: 15 }} /> : <LockOpenRoundedIcon sx={{ fontSize: 15 }} />}
+                  </Box>
+                </Tooltip>
+              ) : (
+                <Box component="span" sx={{ width: 27 }} />
+              )}
+            </MenuItem>
+          );
+        })}
         <Divider sx={{ my: 0.5, borderColor: line }} />
         <MenuItem
           onClick={() => { setShowSymbols(true); setAllSymbolFlags(true); setAnchor(null); }}

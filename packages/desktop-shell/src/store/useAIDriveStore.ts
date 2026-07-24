@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { collection, query, where, onSnapshot, orderBy, addDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase/client';
 import { uploadImageAndGetUrl } from '../lib/firebase/uploadImage';
 import { useAppStore } from './useAppStore';
@@ -180,7 +180,6 @@ export const useAIDriveStore = create<AIDriveState>((set, get) => ({
 
     updateAssets: () => {
          const { activeScope } = get();
-         const projectId = useAppStore.getState().activeProjectId;
          const userId = auth.currentUser?.uid;
 
          const allAssets = Array.from(globalFetchedMap.values()).flat();

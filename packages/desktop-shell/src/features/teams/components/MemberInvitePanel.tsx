@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import PersonAddRoundedIcon from '@mui/icons-material/PersonAddRounded';
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { fetchMutualFollows, fetchPendingInvitations, sendInvitation, cancelInvitation } from '../api/teamsApi';
 import type { MutualFollowUser, TeamInvitation, Team } from '../api/teamsApi';

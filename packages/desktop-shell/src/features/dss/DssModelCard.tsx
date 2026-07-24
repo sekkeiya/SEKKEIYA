@@ -38,9 +38,7 @@ export const DssModelCard: React.FC<{
   onAuthorClick?: (model: any) => void;
   onDoubleClick?: (model: any) => void;
   cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels";
-  usageCount?: number;   // total placements across all layouts
-  layoutCount?: number;  // number of distinct layouts / option plans
-}> = ({ model, isSelected, onClick, onDragStart, badgeColor, showDetails, cardContext, onSave, onShare, onDelete, onAuthorClick, onDoubleClick, usageCount, layoutCount }) => {
+}> = ({ model, isSelected, onClick, onDragStart, badgeColor, showDetails, cardContext, onSave, onShare, onDelete, onAuthorClick, onDoubleClick }) => {
   // (Cache state no longer needed)
   const [busyMode, setBusyMode] = useState<"caching" | "opening" | null>(null);
   const busyStartRef = useRef<number | null>(null);
@@ -133,6 +131,11 @@ export const DssModelCard: React.FC<{
   // ローカルモデルは GLB から遅延生成したサムネを使う（クラウド側に画像が無いため）。
   const localThumb = useLocalModelThumbnail(resolvedModel);
   const displayThumbnailUrl = thumbnailUrl || localThumb;
+
+  // サムネイルが旧方式(16:9・カメラを引き過ぎ)か新方式(正方形・適正)かを onLoad で判定し、
+  // 旧方式のときだけ拡大補正をかける。判定前は従来どおり旧方式として扱う。
+  const [thumbIsLegacy, setThumbIsLegacy] = useState(true);
+  useEffect(() => { setThumbIsLegacy(true); }, [displayThumbnailUrl]);
 
   // ローカルモデルのクラウド保存状態（公開/非公開）。
   const uploadRecords = useLocalUploadStore(s => s.records);
@@ -231,11 +234,6 @@ export const DssModelCard: React.FC<{
   const handleCloseMenu = () => {
     cancelCloseMenuTimer();
     setMenuAnchorEl(null);
-  };
-
-  const handleIconMouseLeave = () => {
-    if (busyMode) return;
-    scheduleCloseMenu();
   };
 
   const handleSelectTarget = async (target: any) => {
@@ -414,9 +412,11 @@ export const DssModelCard: React.FC<{
                 : '0 16px 32px rgba(0,0,0,0.6), 0 0 4px rgb(var(--slate-ink-rgb) / 0.3)',
               borderColor: isSelected ? undefined : 'rgb(var(--slate-ink-rgb) / 0.4)',
             },
+            // ホバー時のみ合成レイヤーへ昇格させる（全カードで willChange を常時持つと
+            // 画面内のカード数だけGPUメモリを占有するため）。
             '&:hover .DesktopModelCard-thumbnail': !isBusy ? {
               transform: 'translateZ(0) scale(1.2) translateY(-4px)',
-              filter: 'drop-shadow(8px 16px 20px rgba(0,0,0,0.8))',
+              willChange: 'transform',
             } : {},
             '& .DssModelCard-details': {
               opacity: showDetails ? 1 : 0,
@@ -467,20 +467,24 @@ export const DssModelCard: React.FC<{
             draggable={false}
             loading="lazy"
             decoding="async"
+            onLoad={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              const el = e.currentTarget;
+              // 正方形＝新方式（適正フレーミング済み）。16:9＝旧方式で被写体が小さい。
+              setThumbIsLegacy(Math.abs(el.naturalWidth / el.naturalHeight - 1) > 0.1);
+            }}
             sx={{
               position: 'absolute',
-              top: '-75%',
-              left: '-75%',
-              width: '250%',
-              height: '250%',
+              // 旧サムネ(16:9・引き過ぎ)は拡大して余白を詰める。新サムネ(正方形・適正)は
+              // 等倍でカードいっぱいに収まるので拡大しない（描画面積も6.25倍→1倍になる）。
+              top: thumbIsLegacy ? '-75%' : 0,
+              left: thumbIsLegacy ? '-75%' : 0,
+              width: thumbIsLegacy ? '250%' : '100%',
+              height: thumbIsLegacy ? '250%' : '100%',
               objectFit: 'contain',
               backgroundColor: 'transparent',
               transform: 'translateZ(0) scale(1.05)',
               transformOrigin: 'center center',
-              transition: 'transform 220ms cubic-bezier(0.22,0.61,0.36,1), filter 220ms ease',
-              willChange: 'transform',
-              imageRendering: 'high-quality',
-              filter: 'drop-shadow(5px 10px 14px rgba(0,0,0,0.6))',
+              transition: 'transform 220ms cubic-bezier(0.22,0.61,0.36,1)',
             }}
           />
         ) : (

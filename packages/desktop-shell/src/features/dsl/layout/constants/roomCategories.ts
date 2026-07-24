@@ -64,6 +64,26 @@ export function getRoomCategories(buildingType?: string | null): RoomCategory[] 
   return ROOM_CATEGORIES[buildingType ?? ''] ?? ROOM_CATEGORIES.residential;
 }
 
+/** 部屋（室）の用途 → その室内で意味のある「機能ゾーン」のカテゴリキー。
+ *  ゾーンは室内の機能分割なので、選べるサブ機能は室の用途で決まる。
+ *  例: LDK → リビング/ダイニング/キッチン。単一用途の室は分割不要なので汎用のみ。 */
+const ZONE_SUBCATEGORY_KEYS: Record<string, string[]> = {
+  ldk: ['living', 'dining', 'kitchen', 'general'],
+  workspace: ['focus', 'meeting', 'lounge', 'general'], // office: 執務エリアを機能分割
+  seating: ['seating', 'counter', 'terrace', 'general'], // cafe: 客席の機能分割
+};
+
+/** 与えた全カテゴリ一覧から、その室用途で選べる機能ゾーンだけを抜き出す。
+ *  定義の無い（＝単一用途の）室や未設定は「汎用」のみ＝基本ゾーン分割は不要。 */
+export function zoneSubCategoriesFor(
+  allCategories: RoomCategory[],
+  roomCategoryKey?: string | null,
+): RoomCategory[] {
+  const keys = roomCategoryKey ? ZONE_SUBCATEGORY_KEYS[roomCategoryKey] : null;
+  if (keys) return allCategories.filter((c) => keys.includes(c.key));
+  return allCategories.filter((c) => c.key === 'general');
+}
+
 /** カテゴリキーからメタ情報を取得。建物タイプ内→全タイプの順で探索 */
 export function getRoomCategoryMeta(categoryKey?: string | null, buildingType?: string | null): RoomCategory | null {
   if (!categoryKey) return null;
@@ -76,11 +96,49 @@ export function getRoomCategoryMeta(categoryKey?: string | null, buildingType?: 
   return null;
 }
 
+/** 用途カテゴリの解決: 「用途は部屋（室）が持つ」モデルの読み取り口。
+ *  ゾーンが機能サブカテゴリ（LDK 内のリビング等）を持てばそれを、無ければ
+ *  所属する部屋（室）の用途を返す。どちらも無ければ null。
+ *  自動レイアウト・ラベルなど category を消費する箇所は必ずここを通す。 */
+export function resolveCategoryKey(
+  zone?: { category?: string | null } | null,
+  room?: { category?: string | null } | null,
+): string | null {
+  return zone?.category ?? room?.category ?? null;
+}
+
 /** ゾーンの表示ラベル: カテゴリ名（無ければゾーン名）。面積は呼び出し側で付加 */
 export function zoneCategoryLabel(zone: { category?: string | null; name?: string | null }, buildingType?: string | null): string {
   const meta = getRoomCategoryMeta(zone.category, buildingType);
   if (meta) return meta.label;
   return zone.name || 'ゾーン';
+}
+
+/**
+ * 部屋（ゾーン）ごとに自動で異なる色を割り当てるパレット。
+ * カテゴリ色とは別軸で「部屋の範囲を色分けして見たい」（部屋色トグル ON）とき用。
+ * 視認性の高い離散色を巡回させ、隣り合う部屋が同色になりにくい並びにしている。
+ */
+export const ROOM_AUTO_PALETTE: string[] = [
+  '#3b82f6', // blue
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f97316', // orange
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#a855f7', // purple
+  '#eab308', // yellow
+];
+
+/** 部屋インデックス → 自動配色（パレットを巡回）。負値でも安全にラップする。 */
+export function roomAutoColor(index: number): string {
+  const n = ROOM_AUTO_PALETTE.length;
+  const i = ((Math.trunc(index) % n) + n) % n;
+  return ROOM_AUTO_PALETTE[i];
 }
 
 /** rect (mm) から面積表示文字列 (㎡) を生成 */

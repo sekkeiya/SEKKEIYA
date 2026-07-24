@@ -28,6 +28,9 @@ import { subscribeMaterialLibrary } from '../../dsmt/api/dsmtQueries';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { DSMT_CATEGORY_META, type DsmtMaterial } from '../../dsmt/types';
 import { WorkspaceItemRepository } from '../../workspace/WorkspaceItemRepository';
+import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
+import type { MaterialPreviewState } from './RightPanelModelViewer';
+import { uploadVariantThumb } from '../utils/variantThumb';
 
 const ACCENT = '#ec407a';
 const HILITE = '#22d3ee';
@@ -156,13 +159,24 @@ interface Props {
   hideToggle?: boolean;
   /** 表示セクション。'material'=部位ごとの素材のみ / 'variants'=家具パターンのみ / 'both'=両方。 */
   section?: 'material' | 'variants' | 'both';
+  /** true なら自前のCanvasを持たず、3Dプレビューを外部（メイン）ビューアへ委譲する（詳細画面のCanvas集約用）。 */
+  externalViewer?: boolean;
+  /** externalViewer 時、プレビュー状態（presets/selection/highlight/pickable）の変化を親へ通知。 */
+  onPreviewState?: (st: MaterialPreviewState | null) => void;
+  /** externalViewer 時、外部ビューアのパーツクリックを受けるハンドラの受け渡し先。 */
+  pickHandlerRef?: React.MutableRefObject<((meshName: string) => void) | null>;
+  /** externalViewer 時、外部ビューアが列挙した部位スロットを受け取るセッターの受け渡し先。 */
+  slotsHandlerRef?: React.MutableRefObject<((slots: EnumeratedSlot[]) => void) | null>;
+  /** パターン保存時に、メインビューアの描画をJPEGデータURLで取得する（サムネイル生成用）。 */
+  captureThumb?: () => string | null;
 }
 
-export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId, mode: controlledMode, hideToggle, section = 'both' }) => {
+export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: controlledMode, hideToggle, section = 'both', externalViewer, onPreviewState, pickHandlerRef, slotsHandlerRef, captureThumb }) => {
   const showMat = section !== 'variants';
   const showVar = section !== 'material';
   const glbUrl = useMemo(() => getDownloadUrlForModel(model, 'glb') as string, [model]);
-  const { url: resolvedUrl, loading: resolving } = useResolvedGlbUrl(glbUrl);
+  // externalViewer 時は自前でGLBを解決しない（メインビューア側が解決済みのため）
+  const { url: resolvedUrl, loading: resolving } = useResolvedGlbUrl(externalViewer ? undefined : glbUrl);
   const canonicalId = useMemo(() => getCanonicalModelId(model) || model?.id, [model]);
 
   const [slots, setSlots] = useState<EnumeratedSlot[]>([]);
@@ -267,6 +281,7 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId
         swatchColor: v.swatchColor ?? null,
         isDefault: !!v.isDefault,
         selection: { ...v.selection },
+        thumbUrl: v.thumbUrl ?? null,
       }));
       await WorkspaceItemRepository.updateGlobalAsset(canonicalId, { materialVariants: clean });
     } catch (e) {
@@ -419,6 +434,33 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId
     if (key) toggleSelected(key);
   }, [rowKeyForMeshName, toggleSelected]);
 
+  // ── 外部（メイン）ビューアへの3Dプレビュー委譲の配線 ─────────────────────
+  // ハンドラを ref 経由で親→ビューアへ渡し、プレビュー状態の変化を親へ通知する。
+  useEffect(() => {
+    if (!externalViewer || !pickHandlerRef) return;
+    pickHandlerRef.current = handlePick;
+    return () => { pickHandlerRef.current = null; };
+  }, [externalViewer, pickHandlerRef, handlePick]);
+  useEffect(() => {
+    if (!externalViewer || !slotsHandlerRef) return;
+    slotsHandlerRef.current = setSlots;
+    return () => { slotsHandlerRef.current = null; };
+  }, [externalViewer, slotsHandlerRef]);
+  useEffect(() => {
+    if (!externalViewer || !onPreviewState) return;
+    onPreviewState({
+      presets,
+      selection,
+      highlight: isEditing ? highlightMeshNames : [],
+      pickable: isEditing,
+    });
+  }, [externalViewer, onPreviewState, presets, selection, isEditing, highlightMeshNames]);
+  // アンマウント（タブ離脱）時はプレビューを解除して元の見た目へ戻す
+  useEffect(() => {
+    if (!externalViewer || !onPreviewState) return;
+    return () => { onPreviewState(null); };
+  }, [externalViewer, onPreviewState]);
+
   /** バリアントの selection から、グループ化で消える旧キーを新キーへ寄せる。 */
   const migrateVariantsForRegroup = useCallback((removedKeys: string[], newKey: string | null, optionIds: Set<string>) => {
     setVariants((prev) => {
@@ -532,7 +574,8 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId
 
   // ===== 家具まるごとのパターン（バリアント） =====
 
-  /** 現在のプレビューの見た目を1パターンとして保存。 */
+  /** 現在のプレビューの見た目を1パターンとして保存。
+   *  併せてメインビューアの描画をサムネイル化して保存し、素材バリエーション・ギャラリーで使う。 */
   const saveCurrentAsVariant = useCallback(() => {
     const sel: Record<string, string> = {};
     for (const ps of presets) {
@@ -546,9 +589,23 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId
       selection: sel,
       isDefault: isFirst,
     };
-    updateVariants([...variants, variant]);
+    const nextVariants = [...variants, variant];
+    updateVariants(nextVariants);
     setSelectedVariantId(variant.id);
-  }, [presets, selection, variants, updateVariants]);
+
+    // サムネイルは取得できなくても致命的ではない（ギャラリーは色スウォッチにフォールバック）。
+    const dataUrl = captureThumb?.() ?? null;
+    if (dataUrl && canonicalId) {
+      uploadVariantThumb(canonicalId, variant.id, dataUrl).then((url) => {
+        if (!url) return;
+        setVariants((prev) => {
+          const patched = prev.map((v) => v.id === variant.id ? { ...v, thumbUrl: url } : v);
+          persistVariants(patched);
+          return patched;
+        });
+      });
+    }
+  }, [presets, selection, variants, updateVariants, captureThumb, canonicalId, persistVariants]);
 
   /** パターンを適用（家具全体を切替）。 */
   const applyVariant = useCallback((variant: MaterialVariant) => {
@@ -590,18 +647,26 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId
     return <Box sx={{ p: 3 }}><Typography sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontSize: 13 }}>このモデルには GLB がないためマテリアルを表示できません。</Typography></Box>;
   }
 
-  const viewerSlots = presets.filter((p) => p.options.length > 0);
-
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 2 }}>
-      {/* プレビュー */}
+      {/* プレビュー（externalViewer 時はメインビューアへ委譲し、Canvas を持たない） */}
+      {externalViewer ? (
+        isEditing && (
+          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.3)' }}>
+            <TouchAppRoundedIcon sx={{ fontSize: 15, color: HILITE }} />
+            <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>
+              上の3Dビューアでパーツをクリックして選択（複数選択でグループ化）
+            </Typography>
+          </Box>
+        )
+      ) : (
       <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 340, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', position: 'relative', overflow: 'hidden' }}>
         {resolving || !resolvedUrl ? (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: ACCENT }} /></Box>
         ) : (
           <Canvas shadows camera={{ position: [4, 4, 4], fov: 45 }}>
             <Suspense fallback={null}>
-              <Stage environment="city" intensity={0.5} adjustCamera={1.3}>
+              <Stage environment={VIEWER_ENVIRONMENT} intensity={0.5} adjustCamera={1.3}>
                 <PresetModel
                   key={selectionHash}
                   url={resolvedUrl}
@@ -624,6 +689,7 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, projectId
           </Box>
         )}
       </Box>
+      )}
 
       {/* 右ペイン */}
       <Box sx={{ flex: '1 1 360px', minWidth: 300 }}>

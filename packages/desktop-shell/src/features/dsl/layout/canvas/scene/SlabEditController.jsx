@@ -13,6 +13,9 @@
 //       水平/垂直＝直交スナップ）→ 他の頂点と同じX/Z（整列。ガイド線を表示）→ 50mmグリッド。
 //       Shift を押していなければ自由配置（1mm 丸めのみ）。
 //   ・Delete: 選択中の頂点を削除（3頂点未満になる操作は無視）
+//   ・Alt+ドラッグ（面/辺/頂点）: 掴んだ床を複製する。元の床はその場に残り、動かした形の
+//       コピーができて選択が移る（部屋 ZoneActiveGizmo の Alt+ドラッグ複製と同じ操作感）。
+//       ドラッグ中はカーソルが copy になり、複製になることが分かる。
 //   ヒットの優先順位は y の高さで決める（面 < 辺 < 中点 < 頂点。Top ビューは上から見るので
 //   高い方が先に当たる）。ドラッグ中はローカル更新のみ、離した時に Base へ永続化する（壁と同じ）。
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
@@ -20,15 +23,15 @@ import * as THREE from "three";
 import { Line } from "@react-three/drei";
 import { useThree, useFrame } from "@react-three/fiber";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
-import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
+import { useBuildingSpecStore, ceilingHeightOf } from "../../store/useBuildingSpecStore";
 import { useSlabStore, SLAB_MIN_POINTS } from "../../store/useSlabStore";
 import { useWallStore } from "../../store/useWallStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
 import { wallTopLiftMm } from "../../utils/handleLift";
+import { gridSnap } from "../../utils/drawSnap";
 import { useHoverCursor } from "./useHoverCursor";
 import VertexGizmo from "./VertexGizmo.jsx";
 
-const SNAP_MM = 50;
 const PT_SNAP_MM = 250;   // 他頂点／壁端点への吸着距離
 const ALIGN_MM = 120;     // 「同じX/Z」に揃えるアライメント吸着距離
 const HANDLE_COLOR = "#38bdf8";
@@ -44,7 +47,8 @@ const EDGE_TOL_PX = 11;   // 辺の掴み判定の半幅(px)
 // 見た目は小さくても掴みやすいよう、当たり判定は見た目より大きくとる（透明ヒット）。
 const HANDLE_HIT_PX = 14;
 
-const snap = (v) => Math.round(v / SNAP_MM) * SNAP_MM;
+// グリッド丸めは表示中の床グリッド（gridCellSizeMm）に合わせる（Shift 押下中のみ使用）。
+const snap = gridSnap;
 // useFrame 内で毎フレーム使う視線ベクトルのスクラッチ（アロケーション回避）
 const _viewDir = new THREE.Vector3();
 
@@ -95,14 +99,20 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
   const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
   const floors = useBuildingSpecStore((s) => s.floors);
 
-  // 床が載るレベル(mm)。FloorSlabsRenderer と同じ規約（オフセット 0 の床の上面）。
-  //   選択中の床がある階に合わせる（3D/断面で他階の床を選んでもハンドルがその階に出る）。
+  // 選択中スラブの「基準レベル」(mm)。床=FL / 天井(role="ceiling")=CL。
+  //   FloorSlabsRenderer と同じ規約（オフセット 0 のスラブの上面）。選択中のスラブがある階に
+  //   合わせる（3D/断面で他階の床を選んでもハンドルがその階に出る）。
+  //   ⚠️ 天井は必ず CL 基準にすること。FL のままだと断面で天井を選択したのに
+  //      ギズモ・上下左右ハンドルが床レベルに出て「選択できていない」ように見え、
+  //      上端ドラッグの offsetYMm も CL 基準（レンダラーの貼り位置）とズレる。
   const floorBaseYMm = useMemo(() => {
     const sel = slabs.find((x) => x.id === selectedSlabId);
     const idx = sel ? (sel.floorIndex || 0) : (activeFloorIndex || 0);
     const i = Math.max(0, Math.min(idx, (floors?.length || 1) - 1));
-    return (fl0Mm || 0) + (floors?.[i]?.flMm || 0);
-  }, [fl0Mm, floors, activeFloorIndex, slabs, selectedSlabId]);
+    const fl = (fl0Mm || 0) + (floors?.[i]?.flMm || 0);
+    if (sel?.role === "ceiling") return fl + ceilingHeightOf(useBuildingSpecStore.getState(), i);
+    return fl;
+  }, [fl0Mm, floors, activeFloorIndex, slabs, selectedSlabId, ceilingHeightMm, floorHeightMm]);
 
   // ハンドルを浮かせる高さ(mm)。いちばん高い壁の「頭」より上に置く（下の yEdge/y の説明を参照）。
   //   ⚠️ 壁の高さだけで計算しないこと。壁は各階の FL に建ち上下オフセットも載るので、
@@ -148,6 +158,12 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
   const [hoverMid, setHoverMid] = useState(null);
   // 頂点ハンドルのホバー（拡大して掴みやすさを示す）
   const [hoverVertex, setHoverVertex] = useState(null);
+  // 断面(gizmoOnly)の縦リサイズ: "top"=レベル(上下オフセット) / "bottom"=厚み。
+  const [secEdge, setSecEdge] = useState(null);
+  const secOrigRef = useRef(null);
+  // 断面(gizmoOnly)の横リサイズ: "left"/"right"。反対側の辺を固定してスラブを横に伸縮する。
+  const [secH, setSecH] = useState(null);
+  const secHOrigRef = useRef(null);
 
   const isMm = (sceneMaxY || 0) > 100;
   const k = isMm ? 1 : 0.001;
@@ -276,8 +292,9 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
       const d = dragRef.current;
       if (!d) return;
       // 配置/移動中はカーソルを十字の移動アイコンで固定
-      // （他ハンドルの上を通っても resize 等に変わらないように）
-      cursorApi.set("move");
+      // （他ハンドルの上を通っても resize 等に変わらないように）。
+      // Alt 押下中は複製カーソル（部屋の Alt+ドラッグ複製と同じ操作感）。
+      cursorApi.set(ev.altKey ? "copy" : "move");
       const pt = toFloor(ev.clientX, ev.clientY);
       if (!pt) return;
 
@@ -326,6 +343,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
         const rd = ev.shiftKey ? snap : Math.round;
         const dx = rd(pt.x - d.grab.x);
         const dz = rd(pt.z - d.grab.z);
+        if (dx || dz) d.moved = true; // 実際に動いた（クリックや Alt+クリックの空複製と区別する）
         st.updateSlabLocal(d.slabId, {
           points: d.orig.map((p) => ({ x: p.x + dx, z: p.z + dz })),
         });
@@ -351,7 +369,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
       useViewportUiStore.getState().setGizmoDragging?.(false);
     };
 
-    const onUp = () => {
+    const onUp = (ev) => {
       const d = dragRef.current;
       if (!d) return;
       // すべてドラッグ式（押して動かし、離して確定）。
@@ -360,6 +378,12 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
         useSlabStore.getState().toggleEdgeIndex(d.index);
       } else if (d.mode === "vertex" && !d.moved) {
         // 頂点のクリック＝選択のみ（activeVertex は begin で設定済み。ギズモが出る）。保存は不要。
+      } else if (ev?.altKey && d.moved) {
+        // Alt+ドラッグ複製（部屋の ZoneActiveGizmo と同じ）: いま編集した形で床を複製し、
+        // 元の床は掴む前の位置へ戻す。移動・辺の伸縮・頂点移動のどれからでも複製できる。
+        const cur = useSlabStore.getState().slabs.find((x) => x.id === d.slabId);
+        useSlabStore.getState().duplicateSlab(d.slabId, cur ? cur.points : d.orig, d.orig);
+        setActiveVertex(null); // 複製後は新しい床の主選択に切り替わる
       } else {
         useSlabStore.getState().persistSlabs();
       }
@@ -436,6 +460,99 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
     if (!active) { cursorApi.clear(); setHoverVertex(null); setHoverMid(null); }
     return () => { cursorApi.clear(); };
   }, [active]);
+
+  // 断面(gizmoOnly)での縦リサイズ。上端ハンドル=レベル(offsetYMm)/下端ハンドル=厚み。
+  //   断面はカメラが sideAxis に沿って見るので、その視線に直交する鉛直平面へレイキャストして
+  //   ポインタの世界Yを取る。スナップ: 上端は床レベル(offset 0)へ吸着＋50mmグリッド、下端は50mm。
+  useEffect(() => {
+    if (!secEdge || !gizmoOnly) return;
+    const el = gl.domElement;
+    const normal = sideAxis === "x" ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+    const ray = new THREE.Raycaster();
+    const v2 = new THREE.Vector2();
+    const hit = new THREE.Vector3();
+    const onMove = (ev) => {
+      const o = secOrigRef.current; if (!o) return;
+      const rect = el.getBoundingClientRect();
+      v2.set(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1);
+      ray.setFromCamera(v2, camera);
+      const plane = new THREE.Plane(normal, -o.planeAt);
+      if (!ray.ray.intersectPlane(plane, hit)) return;
+      let yMm = hit.y / k;
+      if (secEdge === "top") {
+        yMm = Math.abs(yMm - o.floorBaseYMm) < 120 ? o.floorBaseYMm : Math.round(yMm / 50) * 50;
+        useSlabStore.getState().updateSlabLocal(o.slabId, { offsetYMm: Math.round(yMm - o.floorBaseYMm) });
+      } else {
+        yMm = Math.round(yMm / 50) * 50;
+        const t = Math.max(50, Math.round(o.topY - yMm)); // 上端は保持、下端で厚み
+        useSlabStore.getState().updateSlabLocal(o.slabId, { thicknessMm: t });
+      }
+    };
+    const onUp = () => {
+      useSlabStore.getState().persistSlabs();
+      setSecEdge(null);
+      useViewportUiStore.getState().setGizmoDragging?.(false);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [secEdge, gizmoOnly, sideAxis, camera, gl, k]);
+
+  // 断面(gizmoOnly)での横リサイズ。左/右ハンドルを掴むと、反対側の辺を固定したまま
+  //   スラブを横方向（sideAxis）に伸縮する（＝スラブの横幅を変える）。多角形でも破綻しないよう
+  //   反対辺を基準にした一様スケールで全頂点の sideAxis 座標を動かす（矩形なら＝辺の移動と同じ）。
+  //   縦ハンドルと同じく、視線に直交する鉛直面へレイキャストしてポインタの横位置(mm)を取る。
+  useEffect(() => {
+    if (!secH || !gizmoOnly) return;
+    const el = gl.domElement;
+    const normal = sideAxis === "x" ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+    const ray = new THREE.Raycaster();
+    const v2 = new THREE.Vector2();
+    const hit = new THREE.Vector3();
+    const onMove = (ev) => {
+      const o = secHOrigRef.current; if (!o) return;
+      const rect = el.getBoundingClientRect();
+      v2.set(((ev.clientX - rect.left) / rect.width) * 2 - 1, -((ev.clientY - rect.top) / rect.height) * 2 + 1);
+      ray.setFromCamera(v2, camera);
+      const plane = new THREE.Plane(normal, -o.planeAt);
+      if (!ray.ray.intersectPlane(plane, hit)) return;
+      let hMm = (sideAxis === "x" ? hit.x : hit.z) / k;
+      hMm = ev.shiftKey ? Math.round(hMm / 50) * 50 : Math.round(hMm); // Shift=50mm 刻み
+      const span = o.maxH - o.minH;
+      if (span <= 1) return;
+      let scale, anchor;
+      if (secH === "right") {
+        anchor = o.minH;
+        scale = (hMm - anchor) / span;
+      } else {
+        anchor = o.maxH;
+        scale = (anchor - hMm) / span;
+      }
+      scale = Math.max(scale, 50 / span); // 最小幅 50mm（潰れ・反転を防ぐ）
+      const next = o.points.map((p) => {
+        const v = p[sideAxis];
+        const nv = secH === "right"
+          ? anchor + (v - anchor) * scale
+          : anchor - (anchor - v) * scale;
+        return sideAxis === "x" ? { ...p, x: Math.round(nv) } : { ...p, z: Math.round(nv) };
+      });
+      useSlabStore.getState().updateSlabLocal(o.slabId, { points: next });
+    };
+    const onUp = () => {
+      useSlabStore.getState().persistSlabs();
+      setSecH(null);
+      useViewportUiStore.getState().setGizmoDragging?.(false);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [secH, gizmoOnly, sideAxis, camera, gl, k]);
 
   if (!active || !faceGeo) return null;
 
@@ -616,7 +733,10 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
           position={[0, yFace, 0]}
           onPointerDown={begin("move", null)}
           onClick={(e) => e.stopPropagation()}
-          onPointerOver={() => { if (!dragRef.current) cursorApi.set("move"); }}
+          // move カーソルは onPointerMove で毎回張り直す（onPointerOver 1回だと、辺/頂点/中点の
+          // ハンドルが stopPropagation でこの面のイベントを止めたあと、内側に戻っても move が
+          // 復帰しない）。ハンドル上ではハンドル側が stopPropagation するのでここは呼ばれない。
+          onPointerMove={() => { if (!dragRef.current) cursorApi.set("move"); }}
           onPointerOut={() => { if (!dragRef.current) cursorApi.clear(); }}
         >
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} side={THREE.DoubleSide} />
@@ -639,7 +759,10 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
               rotation={[-Math.PI / 2, 0, -Math.atan2(dz, dx)]}
               onPointerDown={begin("edge", i)}
               onClick={(e) => e.stopPropagation()}
-              onPointerOver={() => { if (!dragRef.current) cursorApi.set(cursor); }}
+              // 辺は「その辺に直交する向き」のリサイズカーソル。下の面(move)へイベントを流すと
+              // move で上書きされるので stopPropagation で止める。onPointerMove で毎回張り直す。
+              onPointerMove={(e) => { e.stopPropagation(); if (!dragRef.current) cursorApi.set(cursor); }}
+              onPointerOver={(e) => { e.stopPropagation(); if (!dragRef.current) cursorApi.set(cursor); }}
               onPointerOut={() => { if (!dragRef.current) cursorApi.clear(); }}
             >
               <planeGeometry args={[len * k, edgeHalf * 2]} />
@@ -673,7 +796,10 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
               // 頂点は「クリックして選択する」対象なのでホバーでは既定カーソルのまま。
               // 十字（move）は掴んで移動している間だけ（onMove 側で固定する）。
               // 代わりにホバーで少し拡大して、掴めることを示す。
-              onPointerOver={() => { if (!dragRef.current) setHoverVertex(i); }}
+              // 下の面(move)へイベントを流すと move で上書きされるので stopPropagation で止め、
+              // 既定カーソル（clear）を張り直す。
+              onPointerMove={(e) => { e.stopPropagation(); if (!dragRef.current) cursorApi.clear(); }}
+              onPointerOver={(e) => { e.stopPropagation(); if (!dragRef.current) { setHoverVertex(i); cursorApi.clear(); } }}
               onPointerOut={() => { setHoverVertex((h) => (h === i ? null : h)); }}
             >
               <circleGeometry args={[hitR, 12]} />
@@ -719,7 +845,10 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
               renderOrder={9998}
               onPointerDown={beginInsert(i, mid)}
               onClick={(e) => e.stopPropagation()}
-              onPointerOver={() => { if (dragRef.current) return; setHoverMid(i); cursorApi.set("copy"); }}
+              // ＋ハンドルは「頂点を追加」の copy カーソル。下の面(move)で上書きされないよう
+              // stopPropagation で止め、onPointerMove で毎回張り直す。
+              onPointerMove={(e) => { e.stopPropagation(); if (!dragRef.current) { setHoverMid(i); cursorApi.set("copy"); } }}
+              onPointerOver={(e) => { e.stopPropagation(); if (dragRef.current) return; setHoverMid(i); cursorApi.set("copy"); }}
               onPointerOut={() => { setHoverMid((h) => (h === i ? null : h)); if (!dragRef.current) cursorApi.clear(); }}
             >
               <circleGeometry args={[hitR, 12]} />
@@ -750,7 +879,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
 
       {/* 移動ギズモ（Item と同じ操作感）: 頂点選択中はその頂点、通常は床の中心（重心）。
           直接ドラッグ中は隠す */}
-      {!drag && gizmoPos && (
+      {!drag && !secEdge && !secH && gizmoPos && (
         <VertexGizmo
           orbitRef={orbitRef}
           xMm={gizmoPos.x} zMm={gizmoPos.z} yMm={gizmoYMm} k={k}
@@ -758,6 +887,70 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
           onBegin={onGizmoBegin} onMove={onGizmoMove} onCommit={onGizmoCommit}
         />
       )}
+
+      {/* 断面(gizmoOnly)の縦リサイズハンドル: 上端＝レベル(上下オフセット) / 下端＝厚み。
+          横リサイズハンドル: 左/右＝スラブの横幅（反対辺を固定して伸縮）。
+          縦は上端＝床レベルへ吸着＋50mm・下端＝50mm刻み、横は Shift 中のみ 50mm 刻み。 */}
+      {gizmoOnly && slabMid && (() => {
+        const topY = floorBaseYMm + slabOffsetMm;
+        const thick = slab.thicknessMm || 150;
+        const bottomY = topY - thick;
+        const midY = (topY + bottomY) / 2;
+        const hx = slabMid.x * k, hz = slabMid.z * k;
+        const hr = 7 * pxWorld;
+        // 横方向(sideAxis)のスラブ端。左=min / 右=max（切り口の左右に一致する）。
+        const hvals = pts.map((p) => p[sideAxis]);
+        const minH = Math.min(...hvals);
+        const maxH = Math.max(...hvals);
+        const begin = (edge) => (e) => {
+          if (e.button !== 0) return;
+          e.stopPropagation();
+          useViewportUiStore.getState().setGizmoDragging?.(true);
+          secOrigRef.current = {
+            slabId: slab.id,
+            floorBaseYMm,
+            topY,
+            planeAt: (sideAxis === "x" ? slabMid.z : slabMid.x) * k,
+          };
+          setSecEdge(edge);
+        };
+        const beginH = (side) => (e) => {
+          if (e.button !== 0) return;
+          e.stopPropagation();
+          useViewportUiStore.getState().setGizmoDragging?.(true);
+          secHOrigRef.current = {
+            slabId: slab.id,
+            points: pts.map((p) => ({ ...p })),
+            minH, maxH,
+            planeAt: (sideAxis === "x" ? slabMid.z : slabMid.x) * k,
+          };
+          setSecH(side);
+        };
+        // 左/右ハンドルのワールド位置（縦は上下端の中央、奥行きはスラブ中心＝切り口の面上）。
+        const leftPos = sideAxis === "x" ? [minH * k, midY * k, hz] : [hx, midY * k, minH * k];
+        const rightPos = sideAxis === "x" ? [maxH * k, midY * k, hz] : [hx, midY * k, maxH * k];
+        return (
+          <group userData={{ ignoreClipping: true }}>
+            <mesh position={[hx, topY * k, hz]} renderOrder={10001} onPointerDown={begin("top")}>
+              <sphereGeometry args={[hr, 14, 14]} />
+              <meshBasicMaterial color="#38bdf8" depthTest={false} />
+            </mesh>
+            <mesh position={[hx, bottomY * k, hz]} renderOrder={10001} onPointerDown={begin("bottom")}>
+              <sphereGeometry args={[hr, 14, 14]} />
+              <meshBasicMaterial color="#a5f3fc" depthTest={false} />
+            </mesh>
+            {/* 左/右（横幅）ハンドル */}
+            <mesh position={leftPos} renderOrder={10001} onPointerDown={beginH("left")}>
+              <sphereGeometry args={[hr, 14, 14]} />
+              <meshBasicMaterial color="#38bdf8" depthTest={false} />
+            </mesh>
+            <mesh position={rightPos} renderOrder={10001} onPointerDown={beginH("right")}>
+              <sphereGeometry args={[hr, 14, 14]} />
+              <meshBasicMaterial color="#38bdf8" depthTest={false} />
+            </mesh>
+          </group>
+        );
+      })()}
 
       {/* 主選択以外の選択中スラブの頂点（選択状態なら常に表示）。クリックで主選択へ昇格。 */}
       {!gizmoOnly && otherSelected.map((s) =>

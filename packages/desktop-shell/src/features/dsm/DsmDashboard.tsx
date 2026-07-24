@@ -250,7 +250,7 @@ const DsmEditor: React.FC<DsmDashboardProps & { onBack: () => void }> = ({ paylo
   const isDirty = useDsmStore(s => s.isDirty);
   const {
     addClip, removeClip, reorderClips, updateClip, setTransition,
-    setBgm, addOverlay, removeOverlay, setAspect, setSelectedClipId, exportDraft,
+    setBgm, addOverlay, removeOverlay, setAspect, exportDraft,
     saveDraft, loadDraftFromFile,
   } = useDsmStore.getState();
 

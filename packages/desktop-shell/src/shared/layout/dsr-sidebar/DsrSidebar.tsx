@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Typography, CardActionArea, IconButton, InputBase, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Divider } from '@mui/material';
+import { Box, Typography, CardActionArea, IconButton, InputBase, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Divider } from '@mui/material';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import { useAppStore, type DsrScope } from '../../../store/useAppStore';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -114,7 +113,7 @@ export const DsrSidebar: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createProjectType, setCreateProjectType] = useState<'my' | 'team'>('my');
+  const [createProjectType] = useState<'my' | 'team'>('my');
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 

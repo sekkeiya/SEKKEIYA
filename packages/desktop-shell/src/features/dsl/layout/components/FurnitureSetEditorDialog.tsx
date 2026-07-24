@@ -4,19 +4,16 @@
  * 左：セット一覧 / 中央：3Dパースビュー / 右：家具カテゴリ追加パネル
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent,
   Box, IconButton, Typography, Button, TextField,
-  Divider, Tooltip, List, ListItem, ListItemButton,
-  ListItemText, ListItemAvatar, Avatar, CircularProgress,
-  InputAdornment,
+  Divider, Tooltip, Avatar, CircularProgress,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import RotateRightRoundedIcon from '@mui/icons-material/RotateRightRounded';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 

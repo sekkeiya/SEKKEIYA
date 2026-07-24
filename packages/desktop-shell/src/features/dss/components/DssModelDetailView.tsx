@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, IconButton, Paper, Divider, TextField, Chip, List, ListItem, ListItemText, Tooltip, CircularProgress } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import PhotoCameraRoundedIcon from '@mui/icons-material/PhotoCameraRounded';
@@ -10,34 +10,28 @@ import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ImageIcon from '@mui/icons-material/Image';
-import ViewInArIcon from '@mui/icons-material/ViewInAr';
 import StraightenIcon from '@mui/icons-material/Straighten';
-import TextureRoundedIcon from '@mui/icons-material/TextureRounded';
-import AnimationRoundedIcon from '@mui/icons-material/AnimationRounded';
-import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
-import { RightPanelModelViewer } from './RightPanelModelViewer';
-import { DssMaterialPresets } from './DssMaterialPresets';
-import WalkthroughMetadataEditor from './WalkthroughMetadataEditor';
+import { RightPanelModelViewer, type MaterialPreviewState } from './RightPanelModelViewer';
+import type { EnumeratedSlot } from '../../shared/material/applyMaterial';
 import { DssWalkthroughViewer } from './DssWalkthroughViewer';
+import { DssDetailStudio, DssStudioTabs, type DetailTab } from './DssDetailStudio';
+import { DssModelInfoPanel } from './DssRightPanel';
 import { normalizeGimmicks } from '../../shared/walkthrough/gimmicks';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import { readMaterialPresets, readMaterialVariants, expandVariantSelection, type MaterialVariant } from '../../shared/material/materialPresets';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { DssVariantGallery } from './DssVariantGallery';
+import { DeferUntilVisible } from './DeferUntilVisible';
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
-import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
-import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
 import ImageSearchRoundedIcon from '@mui/icons-material/ImageSearchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import AutoAwesomeMotionRoundedIcon from '@mui/icons-material/AutoAwesomeMotionRounded';
 import ThreeDRotationRoundedIcon from '@mui/icons-material/ThreeDRotationRounded';
-import { ToggleButton, ToggleButtonGroup, Tabs, Tab } from '@mui/material';
-import { DssFurnitureSwap } from './DssFurnitureSwap';
 import { useAppStore } from '../../../store/useAppStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useDssLiveDimensionsStore } from '../../../store/useDssLiveDimensionsStore';
 import { getDownloadUrlForModel, getCanonicalModelId } from '../utils/modelUtils';
+import { prefetchModelGlb } from '../utils/prefetchModelGlb';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { DssModelCard } from '../DssModelCard';
 
@@ -83,7 +77,99 @@ interface Props {
   };
 }
 
-export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, onSelectRelated, usageMap, prevModel, nextModel, onNavigate, searchQuery, onSearchChange, onSearchSubmit, canImageSearch, imgSearchBusy, onCameraClick, detailActions }) => {
+/**
+ * 詳細画面のヘッダー内容（戻る / 検索＋カメラ / 前後モデルナビ）。
+ * 一覧画面と同じく「全幅ヘッダー（右サイドバーの上まで届く）」にするため、
+ * 詳細ビュー本体ではなく DssDashboard 側のヘッダー枠で描画する。
+ * flex コンテナ（styles.topBar）の直接の子になる前提でフラグメントを返す。
+ */
+export const DssDetailHeader: React.FC<{
+  onBack: () => void;
+  searchQuery?: string;
+  onSearchChange?: (v: string) => void;
+  onSearchSubmit?: () => void;
+  canImageSearch?: boolean;
+  imgSearchBusy?: boolean;
+  onCameraClick?: (el: HTMLElement) => void;
+  prevModel?: any | null;
+  nextModel?: any | null;
+  onNavigate?: (dir: 1 | -1) => void;
+}> = ({ onBack, searchQuery, onSearchChange, onSearchSubmit, canImageSearch, imgSearchBusy, onCameraClick, prevModel, nextModel, onNavigate }) => (
+  <>
+    <Button
+      variant="contained"
+      startIcon={<ArrowBackIcon />}
+      onClick={onBack}
+      sx={{
+        bgcolor: 'rgb(var(--slate-panel-rgb) / 0.6)',
+        color: 'var(--brand-fg)',
+        borderRadius: 999,
+        textTransform: 'none',
+        flexShrink: 0,
+        '&:hover': { bgcolor: 'rgb(var(--slate-panel-rgb) / 0.8)' }
+      }}
+    >
+      Back
+    </Button>
+
+    {/* 検索バー＋カメラ（機能はダッシュボードと同じ。中央配置） */}
+    <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+      {onSearchChange && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', maxWidth: 620 }}>
+          <TextField
+            fullWidth
+            size="small"
+            value={searchQuery ?? ''}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSearchSubmit?.(); } }}
+            placeholder="Search models..."
+            InputProps={{ startAdornment: <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--slate-ink-rgb) / 0.8)', mr: 1 }} /> }}
+            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgb(var(--slate-panel-rgb) / 0.55)', color: 'var(--brand-fg)', borderRadius: 999 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--slate-ink-rgb) / 0.25)' }, '& input': { fontSize: 13, py: 0.85 } }}
+          />
+          <Tooltip title={canImageSearch ? 'この3Dモデルを画像検索（実在する商品を探す）' : 'モデルを表示中のみ'} arrow>
+            <span>
+              <IconButton
+                size="small"
+                disabled={!canImageSearch || imgSearchBusy}
+                onClick={(e) => onCameraClick?.(e.currentTarget)}
+                sx={{ width: 38, height: 38, borderRadius: 999, border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)', background: 'rgb(var(--slate-panel-rgb) / 0.62)', color: canImageSearch ? 'light-dark(#0352aa, #93c5fd)' : 'rgb(var(--slate-ink-rgb) / 0.5)', flexShrink: 0, '&:hover': { background: 'rgba(96,165,250,0.18)', borderColor: 'rgba(96,165,250,0.6)' } }}
+              >
+                {imgSearchBusy ? <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} /> : <PhotoCameraRoundedIcon sx={{ fontSize: 20 }} />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      )}
+    </Box>
+
+    {/* 前/次のモデルナビ（クリック or ←/→キー） */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 1, maxWidth: '24%', minWidth: 0 }}>
+      {prevModel && (
+        <Box
+          onClick={() => onNavigate?.(-1)}
+          title="前のモデル（←）"
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, maxWidth: 140, minWidth: 0, px: 1.25, py: 0.6, borderRadius: 999, cursor: 'pointer', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.5)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.75)', transition: 'all 0.15s', '&:hover': { bgcolor: 'rgba(56,189,248,0.18)', borderColor: 'rgba(56,189,248,0.5)', color: 'var(--brand-fg)' } }}
+        >
+          <ChevronLeftRoundedIcon sx={{ fontSize: 18, flexShrink: 0 }} />
+          <Typography sx={{ fontSize: 12.5, fontWeight: 600 }} noWrap>{prevModel.title || prevModel.name || 'Untitled'}</Typography>
+        </Box>
+      )}
+      {nextModel && (
+        <Box
+          onClick={() => onNavigate?.(1)}
+          title="次のモデル（→）"
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5, maxWidth: 140, minWidth: 0, px: 1.25, py: 0.6, borderRadius: 999, cursor: 'pointer', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.5)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.75)', transition: 'all 0.15s', '&:hover': { bgcolor: 'rgba(56,189,248,0.18)', borderColor: 'rgba(56,189,248,0.5)', color: 'var(--brand-fg)' } }}
+        >
+          <Typography sx={{ fontSize: 12.5, fontWeight: 600 }} noWrap>{nextModel.title || nextModel.name || 'Untitled'}</Typography>
+          <ChevronRightRoundedIcon sx={{ fontSize: 18, flexShrink: 0 }} />
+        </Box>
+      )}
+    </Box>
+  </>
+);
+
+// 検索/カメラ/前後ナビはヘッダー（DssDetailHeader）へ移したため、ここでは受け取らない。
+export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, onSelectRelated, usageMap, prevModel, nextModel, onNavigate, detailActions }) => {
   const glbUrl = useMemo(() => getDownloadUrlForModel(model, 'glb'), [model]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -100,11 +186,82 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
     return () => window.removeEventListener('keydown', onKey);
   }, [onNavigate, prevModel, nextModel]);
   
-  // Default to 3D if GLB is available, otherwise 2D
-  const [viewMode, setViewMode] = useState<'2D' | '3D'>(glbUrl ? '3D' : '2D');
+  // 2D/3D の手動切替は廃止。GLB があれば常に3D、無ければサムネイルで代替する。
+
+  // 前後モデルのGLBを先読みして ←/→ ナビ時の3D表示を即時にする。
+  // 表示中モデルのダウンロードを妨げないよう少し遅らせて開始する。
+  useEffect(() => {
+    if (!prevModel && !nextModel) return;
+    const t = setTimeout(() => {
+      if (nextModel) prefetchModelGlb(nextModel);
+      if (prevModel) prefetchModelGlb(prevModel);
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [prevModel, nextModel]);
 
   // 寸法線の表示ON/OFF
   const [showDimensions, setShowDimensions] = useState(false);
+
+  // 旧サムネイル（800x450・カメラを引き過ぎ）を3Dビューと同じ見え方に寄せる拡大率。
+  // 旧生成はモデル外接球の約1.74倍の距離から撮っていたため、その分だけ拡大して打ち消す。
+  const [thumbIsLegacy, setThumbIsLegacy] = useState(true);
+
+  // ── マテリアルタブの3Dプレビューをメインビューアへ集約するための配線 ──
+  // DssMaterialPresets が Canvas を持たず、選択状態をメインビューアに反映し、
+  // メインビューアでのパーツクリック/スロット列挙を ref 経由でタブ側へ返す。
+  const [matPreview, setMatPreview] = useState<MaterialPreviewState | null>(null);
+  const matPickRef = useRef<((meshName: string) => void) | null>(null);
+  const matSlotsRef = useRef<((slots: EnumeratedSlot[]) => void) | null>(null);
+  const handleMaterialPick = useCallback((meshName: string) => { matPickRef.current?.(meshName); }, []);
+  const handleMaterialSlots = useCallback((slots: EnumeratedSlot[]) => { matSlotsRef.current?.(slots); }, []);
+  // 家具置き換えタブで選択された差し替え先（メインビューアに表示）。null=元モデル。
+  const [swapSel, setSwapSel] = useState<{ url: string; dims: any } | null>(null);
+
+  // 素材バリエーション・ギャラリーで選択中のパターン（null=元の見た目）。
+  const [galleryVariantId, setGalleryVariantId] = useState<string | null>(null);
+  const galleryPreview = useMemo<MaterialPreviewState | null>(() => {
+    if (!galleryVariantId) return null;
+    const presets = readMaterialPresets(model);
+    const variant = readMaterialVariants(model).find((v) => v.id === galleryVariantId);
+    if (!variant || presets.length === 0) return null;
+    return { presets, selection: expandVariantSelection(presets, variant), highlight: [], pickable: false };
+  }, [galleryVariantId, model]);
+  const handleGallerySelect = useCallback((variant: MaterialVariant | null) => {
+    setGalleryVariantId(variant?.id ?? null);
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // パターンのサムネイル生成用：メインビューアの描画を取り出す
+  const viewerCaptureRef = useRef<(() => string | null) | null>(null);
+  const captureThumb = useCallback(() => viewerCaptureRef.current?.() ?? null, []);
+
+  // 今見えている3Dビューをこのモデルのサムネイルとして保存する。
+  // 角度をユーザーが決められるので、一括再生成より狙った絵にしやすい。
+  const [thumbSaving, setThumbSaving] = useState(false);
+  const [thumbMsg, setThumbMsg] = useState<string | null>(null);
+  const handleSaveViewAsThumbnail = useCallback(async () => {
+    const canonicalId = getCanonicalModelId(model) || model?.id;
+    if (!canonicalId) return;
+    setThumbSaving(true);
+    setThumbMsg(null);
+    try {
+      const dataUrl = captureThumb();
+      if (!dataUrl) throw new Error('3Dビューの取得に失敗しました');
+      const { uploadModelThumbFromView } = await import('../utils/variantThumb');
+      const url = await uploadModelThumbFromView(canonicalId, dataUrl);
+      if (!url) throw new Error('画像の保存に失敗しました');
+      const { WorkspaceItemRepository } = await import('../../workspace/WorkspaceItemRepository');
+      await WorkspaceItemRepository.updateGlobalAsset(canonicalId, { thumbnailUrl: url });
+      // 画面上のモデルにも反映して、2D表示や一覧へ戻ったときに新しい絵が出るようにする。
+      model.thumbnailUrl = url;
+      setThumbMsg('サムネイルを更新しました');
+    } catch (e: any) {
+      console.error('[DssModelDetailView] save view as thumbnail failed', e);
+      setThumbMsg(e?.message || 'サムネイルの更新に失敗しました');
+    } finally {
+      setThumbSaving(false);
+    }
+  }, [model, captureThumb]);
 
   const [walkthroughChar, setWalkthroughChar] = useState<any>(model.extendedMetadata?.character || null);
   const [walkthroughGimmicks, setWalkthroughGimmicks] = useState<any[]>(() => normalizeGimmicks(model.extendedMetadata));
@@ -114,10 +271,16 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   const [walkthroughDirty, setWalkthroughDirty] = useState(false);
   // ページ全体の表示モード（編集 / プレビュー）＋ 設定タブ（マテリアル/ウォークスルー/情報）
   const [walkthroughMode, setWalkthroughMode] = useState<'edit' | 'preview'>('edit');
-  const [detailTab, setDetailTab] = useState<'material' | 'swap' | 'walkthrough' | 'info'>('material');
-  // 保存済みのウォークスルー設定（ギミック/アニメ/情報のいずれか）があるか（閲覧者へのセクション表示判定）
-  const hasWalkthrough = !!(model.extendedMetadata?.gimmick || (model.extendedMetadata?.gimmicks?.length) || model.extendedMetadata?.anim || model.extendedMetadata?.info);
+  const [detailTab, setDetailTab] = useState<DetailTab>('overview');
 
+
+  // 変更は自動保存する（設計原則 State Synchronization）。連続操作をまとめるため少し待つ。
+  useEffect(() => {
+    if (!walkthroughDirty || isSavingWalkthrough) return;
+    const t = setTimeout(() => { saveWalkthroughSettings(); }, 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walkthroughDirty, isSavingWalkthrough]);
   const saveWalkthroughSettings = async () => {
     setIsSavingWalkthrough(true);
     try {
@@ -162,6 +325,24 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
     model?.createdBy === currentUser.uid
   );
 
+  // 表示するタブ。作成者には常に4つ、閲覧者には中身のあるタブだけを出す（空タブを見せない）。
+  // isAuthor を参照するため、必ずその宣言より後に置くこと（useMemo は描画中に実行されるため）。
+  const visibleTabs = useMemo<DetailTab[]>(() => {
+    if (isAuthor) return ['overview', 'material', 'swap', 'walkthrough'];
+    const tabs: DetailTab[] = ['overview'];
+    const hasMaterial = readMaterialVariants(model).length > 0 || readMaterialPresets(model).length > 0;
+    if (hasMaterial) tabs.push('material');
+    if ((model.extendedMetadata?.swapModels?.length ?? 0) > 0) tabs.push('swap');
+    const hasAnim = normalizeGimmicks(model.extendedMetadata).length > 0 || !!model.extendedMetadata?.anim;
+    if (hasAnim) tabs.push('walkthrough');
+    return tabs;
+  }, [isAuthor, model]);
+
+  // 表示できないタブが選ばれた状態（モデル切替直後など）は概要へ戻す
+  useEffect(() => {
+    if (!visibleTabs.includes(detailTab)) setDetailTab('overview');
+  }, [visibleTabs, detailTab]);
+
   // Model Info パネルで編集中の寸法があれば即時反映、なければ保存済み寸法を使う
   const liveDims = useDssLiveDimensionsStore(s => s.liveDimensions[model.id]);
   const targetDimensions = useMemo(() => {
@@ -183,6 +364,10 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
 
   const title = model.title || model.name || 'Untitled';
   const thumbnailUrl = model.thumbnailUrl || model.thumbnail || '';
+
+  // サムネイルが差し替わったら、いったん旧方式とみなして onLoad で判定し直す。
+  // （この useEffect は thumbnailUrl の宣言より後に置くこと。前に置くと TDZ になる）
+  useEffect(() => { setThumbIsLegacy(true); }, [thumbnailUrl]);
 
   // カタログ登録のサムネ補完: 保存済み thumbnail が無いものは、ローカルの S.Library
   // カタログ索引（cropDataUrl）から商品URLをキーに引く（ダイアログと同じ画像を表示）。
@@ -207,89 +392,16 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
 
   return (
     <Box ref={scrollContainerRef} sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
-      {/* Top Bar */}
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<ArrowBackIcon />}
-          onClick={onBack}
-          sx={{
-            bgcolor: 'rgb(var(--slate-panel-rgb) / 0.6)',
-            color: 'var(--brand-fg)',
-            borderRadius: 999,
-            textTransform: 'none',
-            flexShrink: 0,
-            '&:hover': { bgcolor: 'rgb(var(--slate-panel-rgb) / 0.8)' }
-          }}
-        >
-          Back
-        </Button>
+      {/* Main Content Area（高さ固定：ビューアを広く、右パネルは固定高さで内部スクロール） */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', flexShrink: 0, p: 2, gap: 2, alignItems: 'stretch', height: { xs: 'auto', md: '80vh' } }}>
 
-        {/* 検索バー＋カメラ（機能はダッシュボードと同じ。中央配置） */}
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-          {onSearchChange && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', maxWidth: 620 }}>
-              <TextField
-                fullWidth
-                size="small"
-                value={searchQuery ?? ''}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSearchSubmit?.(); } }}
-                placeholder="Search models..."
-                InputProps={{ startAdornment: <SearchRoundedIcon sx={{ fontSize: 18, color: 'rgb(var(--slate-ink-rgb) / 0.8)', mr: 1 }} /> }}
-                sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgb(var(--slate-panel-rgb) / 0.55)', color: 'var(--brand-fg)', borderRadius: 999 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--slate-ink-rgb) / 0.25)' }, '& input': { fontSize: 13, py: 0.85 } }}
-              />
-              <Tooltip title={canImageSearch ? 'この3Dモデルを画像検索（実在する商品を探す）' : 'モデルを表示中のみ'} arrow>
-                <span>
-                  <IconButton
-                    size="small"
-                    disabled={!canImageSearch || imgSearchBusy}
-                    onClick={(e) => onCameraClick?.(e.currentTarget)}
-                    sx={{ width: 38, height: 38, borderRadius: 999, border: '1px solid rgb(var(--slate-ink-rgb) / 0.30)', background: 'rgb(var(--slate-panel-rgb) / 0.62)', color: canImageSearch ? 'light-dark(#0352aa, #93c5fd)' : 'rgb(var(--slate-ink-rgb) / 0.5)', flexShrink: 0, '&:hover': { background: 'rgba(96,165,250,0.18)', borderColor: 'rgba(96,165,250,0.6)' } }}
-                  >
-                    {imgSearchBusy ? <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} /> : <PhotoCameraRoundedIcon sx={{ fontSize: 20 }} />}
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-          )}
-        </Box>
-
-        {/* 前/次のモデルナビ（クリック or ←/→キー） */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, maxWidth: '34%', minWidth: 0 }}>
-          {prevModel && (
-            <Box
-              onClick={() => onNavigate?.(-1)}
-              title="前のモデル（←）"
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, maxWidth: 180, minWidth: 0, px: 1.25, py: 0.6, borderRadius: 999, cursor: 'pointer', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.5)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.75)', transition: 'all 0.15s', '&:hover': { bgcolor: 'rgba(56,189,248,0.18)', borderColor: 'rgba(56,189,248,0.5)', color: 'var(--brand-fg)' } }}
-            >
-              <ChevronLeftRoundedIcon sx={{ fontSize: 18, flexShrink: 0 }} />
-              <Typography sx={{ fontSize: 12.5, fontWeight: 600 }} noWrap>{prevModel.title || prevModel.name || 'Untitled'}</Typography>
-            </Box>
-          )}
-          {nextModel && (
-            <Box
-              onClick={() => onNavigate?.(1)}
-              title="次のモデル（→）"
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, maxWidth: 180, minWidth: 0, px: 1.25, py: 0.6, borderRadius: 999, cursor: 'pointer', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.5)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.75)', transition: 'all 0.15s', '&:hover': { bgcolor: 'rgba(56,189,248,0.18)', borderColor: 'rgba(56,189,248,0.5)', color: 'var(--brand-fg)' } }}
-            >
-              <Typography sx={{ fontSize: 12.5, fontWeight: 600 }} noWrap>{nextModel.title || nextModel.name || 'Untitled'}</Typography>
-              <ChevronRightRoundedIcon sx={{ fontSize: 18, flexShrink: 0 }} />
-            </Box>
-          )}
-        </Box>
-      </Box>
-
-      {/* Main Content Area */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', flexShrink: 0, p: 2, pt: 0, gap: 2 }}>
-        
-        {/* Left Side: Media Viewer */}
-        <Box sx={{ flex: '1 1 400px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
-          <Box sx={{ 
+        {/* Left Side: Media Viewer（全タブの3Dはこの1枚に集約） */}
+        <Box sx={{ flex: '1 1 520px', minWidth: 280, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'hidden' }}>
+          <Box sx={{
             width: '100%',
-            aspectRatio: '16/9',
-            maxHeight: '70vh', 
-            bgcolor: 'var(--brand-bg)', 
+            flex: 1,
+            minHeight: 0,
+            bgcolor: 'var(--brand-bg)',
             borderRadius: '12px', 
             position: 'relative', 
             overflow: 'hidden',
@@ -297,55 +409,8 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {/* 2D/3D Toggle Floating Button */}
-            <Paper 
-              sx={{ 
-                position: 'absolute', 
-                top: 16, 
-                left: 16, 
-                display: 'flex', 
-                background: 'rgb(var(--brand-fg-rgb) / 0.9)', 
-                borderRadius: '8px',
-                overflow: 'hidden',
-                zIndex: 10
-              }}
-            >
-              <Button
-                variant={viewMode === '2D' ? 'contained' : 'text'}
-                size="small"
-                startIcon={<ImageIcon fontSize="small" />}
-                onClick={() => setViewMode('2D')}
-                sx={{ 
-                  textTransform: 'none', 
-                  color: viewMode === '2D' ? 'var(--brand-fg)' : '#000',
-                  bgcolor: viewMode === '2D' ? 'var(--brand-bg)' : 'transparent',
-                  borderRadius: 0,
-                  px: 2,
-                  '&:hover': { bgcolor: viewMode === '2D' ? '#333' : 'light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.05))' }
-                }}
-              >
-                2D
-              </Button>
-              <Button
-                variant={viewMode === '3D' ? 'contained' : 'text'}
-                size="small"
-                startIcon={<ViewInArIcon fontSize="small" />}
-                onClick={() => setViewMode('3D')}
-                sx={{ 
-                  textTransform: 'none', 
-                  color: viewMode === '3D' ? 'var(--brand-fg)' : '#000',
-                  bgcolor: viewMode === '3D' ? 'var(--brand-bg)' : 'transparent',
-                  borderRadius: 0,
-                  px: 2,
-                  '&:hover': { bgcolor: viewMode === '3D' ? '#333' : 'light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.05))' }
-                }}
-              >
-                3D
-              </Button>
-            </Paper>
-
-            {/* 寸法表示トグル */}
-            {viewMode === '3D' && glbUrl && (
+            {/* 寸法表示トグル（アニメーションタブでは対象外なので隠す） */}
+            {glbUrl && detailTab !== 'walkthrough' && (
               <Paper
                 sx={{
                   position: 'absolute',
@@ -376,47 +441,51 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
               </Paper>
             )}
 
-            {viewMode === '2D' ? (
-              thumbnailUrl ? (
-                 <Box 
-                   component="img" 
-                   src={thumbnailUrl} 
-                   alt={title}
-                   sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                 />
-              ) : (
-                <Typography color="text.secondary">No Image Available</Typography>
-              )
-            ) : (
-              glbUrl ? (
-                <ErrorBoundary>
-                   <RightPanelModelViewer
-                     modelUrl={glbUrl as string}
-                     targetDimensions={targetDimensions}
-                     showDimensions={showDimensions}
+            {/* 常に3D表示。GLBが無いモデルだけサムネイルで代替する（2D/3Dの手動切替は廃止）。
+                3Dの読み込み中はサムネイルをつなぎとして出すのでビューアが空白にならない。 */}
+            {glbUrl ? (
+              <ErrorBoundary>
+                 {detailTab === 'walkthrough' ? (
+                   /* アニメーションタブ：実績あるウォークスルービューアをメイン枠いっぱいに表示 */
+                   <DssWalkthroughViewer
+                     fill
+                     glbUrl={glbUrl}
+                     gimmicks={isAuthor ? walkthroughGimmicks : normalizeGimmicks(model.extendedMetadata)}
+                     anim={isAuthor ? walkthroughAnim : (model.extendedMetadata?.anim || null)}
+                     info={isAuthor ? walkthroughInfo : (model.extendedMetadata?.info || null)}
+                     swapModels={model.extendedMetadata?.swapModels || null}
                    />
-                </ErrorBoundary>
-              ) : (
-                <Typography color="text.secondary">No GLB format available for 3D preview.</Typography>
-              )
-            )}
-            
-            {/* View trigger placeholder (like in the screenshot "3D VIEWERを読み込む") */}
-            {viewMode === '3D' && !glbUrl && (
-               <Button 
-                 variant="contained" 
-                 startIcon={<ViewInArIcon />}
-                 sx={{ 
-                   position: 'absolute', 
-                   bottom: 16, 
-                   right: 16, 
-                   bgcolor: 'rgb(var(--brand-fg-rgb) / 0.9)', 
-                   color: '#000', 
-                   borderRadius: 999 
-                 }}
-               >
-                 3D VIEWERを読み込む
-               </Button>
+                 ) : (
+                   <RightPanelModelViewer
+                     modelUrl={detailTab === 'swap' && swapSel ? swapSel.url : (glbUrl as string)}
+                     targetDimensions={detailTab === 'swap' && swapSel ? swapSel.dims : targetDimensions}
+                     showDimensions={showDimensions}
+                     materialPreview={detailTab === 'material' ? matPreview : galleryPreview}
+                     onMaterialPick={handleMaterialPick}
+                     onMaterialSlots={handleMaterialSlots}
+                     captureRef={viewerCaptureRef}
+                     placeholderImageUrl={thumbnailUrl || undefined}
+                   />
+                 )}
+              </ErrorBoundary>
+            ) : thumbnailUrl ? (
+              <Box
+                component="img"
+                src={thumbnailUrl}
+                alt={title}
+                onLoad={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                  const el = e.currentTarget;
+                  // 正方形＝新方式（適正フレーミング済み）。16:9＝旧方式で被写体が小さく写っている。
+                  setThumbIsLegacy(Math.abs(el.naturalWidth / el.naturalHeight - 1) > 0.1);
+                }}
+                sx={{
+                  width: '100%', height: '100%', objectFit: 'contain',
+                  transform: thumbIsLegacy ? 'scale(1.75)' : 'none',
+                  transformOrigin: 'center center',
+                }}
+              />
+            ) : (
+              <Typography color="text.secondary">プレビューがありません</Typography>
             )}
           </Box>
           
@@ -467,23 +536,88 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           </Box>
         </Box>
 
-        {/* Right Side: Details Pane */}
-        <Paper sx={{ 
-          flex: '1 1 300px',
-          maxWidth: { xs: '100%', md: 320 },
-          alignSelf: 'flex-start',
-          bgcolor: 'rgb(var(--slate-panel-rgb) / 0.4)', 
+        {/* Right Side: Details Pane（タブUIをここに集約） */}
+        <Paper sx={{
+          flex: { xs: '1 1 320px', md: '0 0 380px' },
+          maxWidth: { xs: '100%', md: 380 },
+          minWidth: 300,
+          minHeight: 0,
+          height: { xs: 'auto', md: '100%' },
+          bgcolor: 'rgb(var(--slate-panel-rgb) / 0.4)',
           border: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
           borderRadius: '12px',
           p: 2,
           display: 'flex',
           flexDirection: 'column',
-          gap: 2,
+          gap: 1.5,
+          overflow: 'hidden',
         }}>
-           <Box>
-             <Typography variant="h6" fontWeight="bold" color="var(--brand-fg)" mb={0.5}>
-               {title}
-             </Typography>
+           {/* アクションバー（常用操作・タブに依らず常時表示） */}
+           <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
+             <Button
+               variant="contained"
+               startIcon={<ExpandMoreIcon />}
+               sx={{ flex: 1, minWidth: 0, bgcolor: '#3b82f6', color: 'var(--brand-fg)', textTransform: 'none', fontSize: 12.5, fontWeight: 700, justifyContent: 'space-between', px: 1.5, '&:hover': { bgcolor: '#2563eb' } }}
+             >
+               Download
+             </Button>
+             {detailActions && (
+               <>
+                 <Tooltip title="Rhino へ配置（開いて取り込み）" arrow>
+                   <span>
+                     <Button size="small" variant="contained" disabled={!detailActions.canRhino || detailActions.dccBusy !== null}
+                       startIcon={detailActions.dccBusy === 'rhino' ? <CircularProgress size={13} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 15 }} />}
+                       onClick={detailActions.onRhino}
+                       sx={{ textTransform: 'none', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', minWidth: 0, px: 1.1, bgcolor: '#0d9488', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0f766e' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
+                       Rhino
+                     </Button>
+                   </span>
+                 </Tooltip>
+                 <Tooltip title="Blender へ配置（開いて取り込み）" arrow>
+                   <span>
+                     <Button size="small" variant="contained" disabled={!detailActions.canBlender || detailActions.dccBusy !== null}
+                       startIcon={detailActions.dccBusy === 'blender' ? <CircularProgress size={13} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 15 }} />}
+                       onClick={detailActions.onBlender}
+                       sx={{ textTransform: 'none', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', minWidth: 0, px: 1.1, bgcolor: '#ea7317', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#c2620f' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
+                       Blender
+                     </Button>
+                   </span>
+                 </Tooltip>
+               </>
+             )}
+             <IconButton size="small" sx={{ border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', color: 'var(--brand-fg)', borderRadius: '8px', flexShrink: 0 }}>
+               <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+             </IconButton>
+             <IconButton size="small" sx={{ border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', color: 'var(--brand-fg)', borderRadius: '8px', flexShrink: 0 }}>
+               <FavoriteBorderIcon sx={{ fontSize: 18 }} />
+             </IconButton>
+             {/* 常設だった「編集/プレビュー」トグルは廃止（作成者は常時編集＋自動保存）。
+                 閲覧者にどう見えるかの確認だけを、控えめな切り替えとして残す。 */}
+             {isAuthor && (
+               <Tooltip title={walkthroughMode === 'preview' ? '編集に戻る' : '閲覧者の見え方を確認'} arrow>
+                 <IconButton
+                   size="small"
+                   onClick={() => setWalkthroughMode(walkthroughMode === 'preview' ? 'edit' : 'preview')}
+                   sx={{
+                     border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: '8px', flexShrink: 0,
+                     color: walkthroughMode === 'preview' ? 'light-dark(#003fad, #9ec1ff)' : 'var(--brand-fg)',
+                     bgcolor: walkthroughMode === 'preview' ? 'rgba(79,140,255,0.22)' : 'transparent',
+                     borderColor: walkthroughMode === 'preview' ? 'rgba(79,140,255,0.55)' : undefined,
+                   }}
+                 >
+                   <VisibilityRoundedIcon sx={{ fontSize: 18 }} />
+                 </IconButton>
+               </Tooltip>
+             )}
+           </Box>
+
+           {/* タブ（パネル上部・固定）：下の詳細内容を切り替える */}
+           <DssStudioTabs detailTab={detailTab} setDetailTab={setDetailTab} visibleTabs={visibleTabs} />
+
+           {/* タブ内容（この部分だけ内部スクロール。アクションバーとタブは上に固定） */}
+           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 2, pr: 0.5 }}>
+           {detailTab === 'overview' && (<>
+             {/* レイアウトでの使用状況（Model Info には無い情報なので残す） */}
              {(() => {
                const raw = usageMap?.[model.id];
                if (!raw) return null;
@@ -492,41 +626,22 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
                const layoutCount = locations.length || (totalCount > 0 ? 1 : 0);
                if (!totalCount || totalCount <= 0) return null;
                return (
-                 <Box sx={{ mt: 1.5 }}>
-                   <Divider sx={{ borderColor: 'rgba(234,179,8,0.3)', mb: 1 }} />
+                 <Box>
                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                      <PlaceRoundedIcon sx={{ fontSize: 13, color: 'light-dark(#aa8804, #facc15)' }} />
                      <Typography variant="caption" sx={{ color: 'light-dark(#aa8804, #facc15)', fontWeight: 700, fontSize: 11, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                        Used in Layouts
                      </Typography>
-                     <Chip
-                       size="small"
-                       label={`${layoutCount} layout${layoutCount !== 1 ? 's' : ''} / ${totalCount} item${totalCount !== 1 ? 's' : ''}`}
-                       sx={{
-                         height: 18,
-                         fontSize: 10,
-                         fontWeight: 700,
-                         bgcolor: 'rgba(234,179,8,0.15)',
-                         color: 'light-dark(#aa8804, #facc15)',
-                         border: '1px solid rgba(234,179,8,0.3)',
-                       }}
-                     />
+                     <Chip size="small" label={`${layoutCount} layout${layoutCount !== 1 ? 's' : ''} / ${totalCount} item${totalCount !== 1 ? 's' : ''}`}
+                       sx={{ height: 18, fontSize: 10, fontWeight: 700, bgcolor: 'rgba(234,179,8,0.15)', color: 'light-dark(#aa8804, #facc15)', border: '1px solid rgba(234,179,8,0.3)' }} />
                    </Box>
                    {locations.length > 0 && (
                      <List dense disablePadding>
                        {locations.map((loc) => (
                          <ListItem key={loc.optionId} disableGutters sx={{ py: 0.3, alignItems: 'flex-start' }}>
                            <ListItemText
-                             primary={
-                               <Typography variant="caption" sx={{ color: 'light-dark(rgba(31,41,55,0.8), rgba(226,232,240,0.8))', fontSize: 10.5, lineHeight: 1.4 }}>
-                                 {loc.pathName}
-                               </Typography>
-                             }
-                             secondary={
-                               <Typography variant="caption" sx={{ color: 'light-dark(rgba(172,144,2,0.7), rgba(253,224,71,0.7))', fontSize: 10, fontWeight: 600 }}>
-                                 {loc.count}個
-                               </Typography>
-                             }
+                             primary={<Typography variant="caption" sx={{ color: 'light-dark(rgba(31,41,55,0.8), rgba(226,232,240,0.8))', fontSize: 10.5, lineHeight: 1.4 }}>{loc.pathName}</Typography>}
+                             secondary={<Typography variant="caption" sx={{ color: 'light-dark(rgba(172,144,2,0.7), rgba(253,224,71,0.7))', fontSize: 10, fontWeight: 600 }}>{loc.count}個</Typography>}
                            />
                          </ListItem>
                        ))}
@@ -536,373 +651,95 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
                  </Box>
                );
              })()}
-           </Box>
 
-           <Box sx={{ display: 'flex', gap: 1 }}>
-             <Button 
-               variant="contained" 
-               fullWidth 
-               startIcon={<ExpandMoreIcon />} // Note: In the screenshot it's a download icon, but using ExpandMore for dropdown look
-               sx={{ 
-                 bgcolor: '#3b82f6', 
-                 color: 'var(--brand-fg)', 
-                 textTransform: 'none', 
-                 justifyContent: 'space-between',
-                 px: 2
-               }}
-             >
-               Download
-             </Button>
-             <IconButton sx={{ border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', borderRadius: '8px' }}>
-               <BookmarkBorderIcon />
-             </IconButton>
-             <IconButton sx={{ border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', color: 'var(--brand-fg)', borderRadius: '8px' }}>
-               <FavoriteBorderIcon />
-             </IconButton>
-           </Box>
-
-           {/* ── このモデルへのアクション（旧・画面下フロートバーから移設） ───────── */}
-           {detailActions && (() => {
-             const actBtnSx = (bg: string, hover: string) => ({
-               textTransform: 'none' as const, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' as const,
-               minWidth: 0, px: 1.25, py: 0.6, borderRadius: 999, bgcolor: bg, color: 'var(--brand-fg)',
-               justifyContent: 'flex-start', gap: 0.5,
-               '& .MuiButton-startIcon': { mr: 0.5, ml: 0 },
-               '&:hover': { bgcolor: hover },
-               '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' },
-             });
-             const busy = detailActions.dccBusy;
-             return (
+             {/* 整備アクション（作成者のみ）：情報を充実させる操作 */}
+             {detailActions && detailActions.canRegister && (
                <Box>
                  <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'rgb(var(--brand-fg-rgb) / 0.4)', mb: 0.75 }}>
-                   このモデルの操作
+                   情報を充実させる
                  </Typography>
                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75 }}>
                    <Tooltip title="実在する商品リンク（関連URL）を自動登録" arrow>
-                     <span>
-                       <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRegister}
-                         startIcon={<ImageSearchRoundedIcon sx={{ fontSize: 16 }} />}
-                         onClick={detailActions.onRegisterLinks} sx={actBtnSx('#2563eb', '#1d4ed8')}>
-                         関連URL
-                       </Button>
-                     </span>
+                     <Button size="small" variant="contained" startIcon={<ImageSearchRoundedIcon sx={{ fontSize: 15 }} />}
+                       onClick={detailActions.onRegisterLinks}
+                       sx={{ textTransform: 'none', fontSize: 11.5, fontWeight: 600, px: 1, bgcolor: '#2563eb', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#1d4ed8' } }}>
+                       関連URL
+                     </Button>
                    </Tooltip>
                    <Tooltip title="S.Library カタログの似た商品を自動登録" arrow>
-                     <span>
-                       <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRegister}
-                         startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
-                         onClick={detailActions.onCatalog} sx={actBtnSx('#16a34a', '#15803d')}>
-                         カタログ
-                       </Button>
-                     </span>
+                     <Button size="small" variant="contained" startIcon={<MenuBookRoundedIcon sx={{ fontSize: 15 }} />}
+                       onClick={detailActions.onCatalog}
+                       sx={{ textTransform: 'none', fontSize: 11.5, fontWeight: 600, px: 1, bgcolor: '#16a34a', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#15803d' } }}>
+                       カタログ
+                     </Button>
                    </Tooltip>
-                   <Tooltip title="AIで寸法・カテゴリを自動入力" arrow>
-                     <span>
-                       <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRegister}
-                         startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 16 }} />}
-                         onClick={detailActions.onAutoFill} sx={actBtnSx('#7c3aed', '#6d28d9')}>
-                         AI入力
-                       </Button>
-                     </span>
-                   </Tooltip>
-                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75 }}>
-                     <Tooltip title="Rhino へ配置（開いて取り込み）" arrow>
-                       <span style={{ display: 'inline-flex', width: '100%' }}>
-                         <Button fullWidth size="small" variant="contained" disabled={!detailActions.canRhino || busy !== null}
-                           startIcon={busy === 'rhino' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 16 }} />}
-                           onClick={detailActions.onRhino} sx={actBtnSx('#0d9488', '#0f766e')}>
-                           Rhino
-                         </Button>
-                       </span>
-                     </Tooltip>
-                     <Tooltip title="Blender へ配置（開いて取り込み）" arrow>
-                       <span style={{ display: 'inline-flex', width: '100%' }}>
-                         <Button fullWidth size="small" variant="contained" disabled={!detailActions.canBlender || busy !== null}
-                           startIcon={busy === 'blender' ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 16 }} />}
-                           onClick={detailActions.onBlender} sx={actBtnSx('#ea7317', '#c2620f')}>
-                           Blender
-                         </Button>
-                       </span>
-                     </Tooltip>
-                   </Box>
                  </Box>
+                 {/* 今見えている3Dビューをそのままサムネイルにする。角度は自分で決められる。 */}
+                 <Tooltip
+                   title={!glbUrl
+                     ? '3Dモデル（GLB）が無いため使えません'
+                     : '今の向き・見た目をこのモデルのサムネイルとして保存します'}
+                   arrow
+                 >
+                   <span style={{ display: 'block', width: '100%' }}>
+                     <Button
+                       fullWidth size="small" variant="outlined"
+                       disabled={!glbUrl || thumbSaving}
+                       startIcon={thumbSaving
+                         ? <CircularProgress size={13} sx={{ color: 'inherit' }} />
+                         : <PhotoCameraRoundedIcon sx={{ fontSize: 15 }} />}
+                       onClick={handleSaveViewAsThumbnail}
+                       sx={{
+                         mt: 0.75, textTransform: 'none', fontSize: 11.5, fontWeight: 600,
+                         color: 'light-dark(#0352aa, #93c5fd)', borderColor: 'rgba(96,165,250,0.5)',
+                         '&:hover': { borderColor: 'rgba(96,165,250,0.9)', bgcolor: 'rgba(96,165,250,0.12)' },
+                       }}
+                     >
+                       {thumbSaving ? '保存中…' : 'この表示をサムネイルにする'}
+                     </Button>
+                   </span>
+                 </Tooltip>
+                 {thumbMsg && (
+                   <Typography sx={{ mt: 0.5, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.55)' }}>{thumbMsg}</Typography>
+                 )}
                </Box>
-             );
-           })()}
+             )}
 
-           {/* 詳細サマリー: 余白を埋め、要点（仕様・素材・タグ・説明・関連URL）を一望できるようにする。 */}
-           {(() => {
-             const cat = [model.macroCategory, model.mainCategory, model.subCategory || model.userCategory].filter(Boolean).join(' / ');
-             const dm = model.dimensions || {};
-             const dim = (dm.width || dm.depth || dm.height) ? `W ${dm.width ?? '—'} × D ${dm.depth ?? '—'} × H ${dm.height ?? '—'} mm` : null;
-             const price = model.price ? `¥${Number(model.price).toLocaleString()}` : null;
-             const materials: string[] = Array.isArray(model.materials) ? model.materials.filter((m: any) => typeof m === 'string' && m.trim()) : [];
-             const tags: string[] = Array.isArray(model.tags) ? model.tags.filter((t: any) => typeof t === 'string' && t.trim()) : [];
-             const info = (isAuthor ? walkthroughInfo : model.extendedMetadata?.info) || model.extendedMetadata?.info || null;
-             const description: string = (info?.description || '').trim();
-             const rl: any[] = Array.isArray(model.relatedLinks)
-               ? model.relatedLinks.filter((l: any) => l && l.url)
-               : (model.sourceUrl ? [{ title: '関連リンク', url: model.sourceUrl }] : []);
-             const cl: any[] = Array.isArray(model.catalogLinks) ? model.catalogLinks.filter((l: any) => l && l.url) : [];
-             const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-               <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgb(var(--slate-ink-rgb) / 0.9)', textTransform: 'uppercase', mb: 0.75 }}>{children}</Typography>
-             );
-             const specs = [
-               ['カテゴリ', cat || '—'],
-               ['寸法', dim || '—'],
-               ['価格', price || '—'],
-             ];
-             return (
-               <>
-                 <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)' }} />
-
-                 <Box>
-                   <SectionLabel>仕様</SectionLabel>
-                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                     {specs.map(([k, v]) => (
-                       <Box key={k} sx={{ display: 'flex', gap: 1 }}>
-                         <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)', width: 56, flexShrink: 0 }}>{k}</Typography>
-                         <Typography sx={{ fontSize: 11.5, color: 'var(--brand-fg)', fontWeight: 600, wordBreak: 'break-all' }}>{v}</Typography>
-                       </Box>
-                     ))}
-                   </Box>
-                 </Box>
-
-                 {materials.length > 0 && (
-                   <Box>
-                     <SectionLabel>素材</SectionLabel>
-                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                       {materials.map((m) => (
-                         <Chip key={m} size="small" label={m} sx={{ height: 20, fontSize: 10.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)', color: 'rgb(var(--brand-fg-rgb) / 0.85)' }} />
-                       ))}
-                     </Box>
-                   </Box>
-                 )}
-
-                 {tags.length > 0 && (
-                   <Box>
-                     <SectionLabel>タグ</SectionLabel>
-                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                       {tags.slice(0, 10).map((t) => (
-                         <Chip key={t} size="small" label={t} sx={{ height: 20, fontSize: 10.5, bgcolor: 'rgba(56,189,248,0.1)', color: 'light-dark(rgba(5,112,169,0.95), rgba(186,230,253,0.95))', border: '1px solid rgba(56,189,248,0.25)' }} />
-                       ))}
-                       {tags.length > 10 && (
-                         <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--slate-ink-rgb) / 0.8)', alignSelf: 'center' }}>+{tags.length - 10}</Typography>
-                       )}
-                     </Box>
-                   </Box>
-                 )}
-
-                 {description && (
-                   <Box>
-                     <SectionLabel>説明</SectionLabel>
-                     <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.8)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{description}</Typography>
-                   </Box>
-                 )}
-
-                 {(cl.length > 0 || rl.length > 0) && (
-                   <Box
-                     onClick={() => scrollContainerRef.current?.querySelector('[data-section="similar"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                     sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, borderRadius: 1.5, cursor: 'pointer', bgcolor: 'rgba(134,239,172,0.08)', border: '1px solid rgba(134,239,172,0.25)', '&:hover': { bgcolor: 'rgba(134,239,172,0.15)' } }}
-                   >
-                     <StorefrontRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#149944, #86efac)', flexShrink: 0 }} />
-                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                       <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-fg)' }}>似ている商品・購入先</Typography>
-                       <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--slate-ink-rgb) / 0.95)' }}>
-                         カタログ {cl.length} 件{rl.length > 0 ? ` ・ 関連リンク ${rl.length} 件` : ''} — 下に一覧
-                       </Typography>
-                     </Box>
-                     <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18, color: 'light-dark(#149944, #86efac)', flexShrink: 0 }} />
-                   </Box>
-                 )}
-               </>
-             );
-           })()}
+             {/* モデル情報（旧・最右 Model Info パネル）をここに一本化。
+                 仕様/素材/タグ/説明/タイトルはこのパネルが持つため、重複表示は廃止した。 */}
+             <DssModelInfoPanel selectedItem={model} hideViewer />
+           </>)}
+           {/* 概要以外のタブ内容（マテリアル/家具置き換え/アニメーション）— 3Dは左のメインビューアに集約 */}
+           <DssDetailStudio
+             model={model} isAuthor={isAuthor} projectId={activeProjectId || undefined}
+             glbUrl={glbUrl || null} title={title}
+             detailTab={detailTab} setDetailTab={setDetailTab}
+             walkthroughMode={walkthroughMode} setWalkthroughMode={setWalkthroughMode}
+             setMatPreview={setMatPreview} matPickRef={matPickRef} matSlotsRef={matSlotsRef}
+             onSelectSwap={setSwapSel}
+             walkthroughChar={walkthroughChar} setWalkthroughChar={setWalkthroughChar}
+             walkthroughGimmicks={walkthroughGimmicks} setWalkthroughGimmicks={setWalkthroughGimmicks}
+             walkthroughAnim={walkthroughAnim} setWalkthroughAnim={setWalkthroughAnim}
+             walkthroughInfo={walkthroughInfo} setWalkthroughInfo={setWalkthroughInfo}
+             walkthroughDirty={walkthroughDirty} setWalkthroughDirty={setWalkthroughDirty}
+             isSavingWalkthrough={isSavingWalkthrough} saveWalkthroughSettings={saveWalkthroughSettings}
+             captureThumb={captureThumb}
+           />
+           </Box>
 
         </Paper>
       </Box>
 
-      {/* 詳細スタジオ：ページ全体の 編集/プレビュー トグル ＋ タブ（マテリアル/ウォークスルー/情報） */}
-      <Box sx={{ px: 2, mt: 2, mb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
-          <Tabs value={detailTab} onChange={(_e, v) => setDetailTab(v)}
-            sx={{ minHeight: 38, '& .MuiTab-root': { minHeight: 38, fontSize: 13, fontWeight: 700, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, '& .Mui-selected': { color: '#fff !important' }, '& .MuiTabs-indicator': { bgcolor: '#4fc3f7' } }}>
-            <Tab value="material" icon={<TextureRoundedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="マテリアル" />
-            <Tab value="swap" icon={<SwapHorizRoundedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="家具置き換え" />
-            <Tab value="walkthrough" icon={<AnimationRoundedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="アニメーション" />
-            <Tab value="info" icon={<InfoOutlinedIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="情報" />
-          </Tabs>
-          <Box sx={{ flex: 1 }} />
-          {isAuthor && (
-            <ToggleButtonGroup
-              size="small" exclusive value={walkthroughMode}
-              onChange={(_e, v) => { if (v) setWalkthroughMode(v); }}
-              sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 1, fontSize: 11, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', '&.Mui-selected': { bgcolor: 'rgba(79,140,255,0.28)', color: 'var(--brand-fg)', borderColor: 'rgba(79,140,255,0.55)' } } }}
-            >
-              <ToggleButton value="edit"><EditRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} />編集</ToggleButton>
-              <ToggleButton value="preview"><VisibilityRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} />プレビュー</ToggleButton>
-            </ToggleButtonGroup>
-          )}
-        </Box>
+      {/* ここから下は初期表示では画面外。スクロールで近づいてから描画する（開いた直後に
+          最大70枚のカードを作らないようにするため）。 */}
 
-        <Box sx={{ borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.4)' }}>
-          {/* === マテリアル（部位ごとの素材＋現在の見た目を保存＝パターン複数保存） === */}
-          {detailTab === 'material' && (
-            <DssMaterialPresets model={model} isAuthor={isAuthor} projectId={activeProjectId || undefined} mode={walkthroughMode} hideToggle section="both" />
-          )}
-
-          {/* === 家具置き換え（同カテゴリの他モデルを登録して差し替え） === */}
-          {detailTab === 'swap' && (
-            <DssFurnitureSwap model={model} isAuthor={isAuthor} mode={walkthroughMode} />
-          )}
-
-          {/* === ウォークスルー === */}
-          {detailTab === 'walkthrough' && (
-            <Box sx={{ p: 1.5 }}>
-              {isAuthor && walkthroughMode === 'edit' ? (
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <Box sx={{ flex: '1 1 340px', minWidth: 280 }}>
-                    <DssWalkthroughViewer glbUrl={glbUrl || null} gimmicks={walkthroughGimmicks} anim={walkthroughAnim} info={walkthroughInfo} swapModels={model.extendedMetadata?.swapModels || null} />
-                    {(() => {
-                      const gms = Array.isArray(walkthroughGimmicks) ? walkthroughGimmicks : [];
-                      const animLabel = walkthroughAnim?.type === 'rotate' ? '常時回転' : walkthroughAnim?.type === 'move' ? '常時往復' : null;
-                      const typeJa = (t: string) => t === 'hinge' ? 'ヒンジ' : t === 'slide' ? 'スライド' : t === 'clip' ? 'アニメ' : t;
-                      return (
-                        <Box sx={{ mt: 1, px: 2 }}>
-                          <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1 }}>アニメーションで表示されるアクション</Typography>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                            {gms.map((g: any) => (
-                              <Chip key={g.id} size="small" label={`${g.label || typeJa(g.type)}（${typeJa(g.type)}）`}
-                                sx={{ bgcolor: 'rgba(79,140,255,0.18)', color: 'var(--brand-fg)', border: '1px solid rgba(79,140,255,0.4)', fontWeight: 700 }} />
-                            ))}
-                            {gms.length === 0 && (
-                              <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontStyle: 'italic' }}>アクション未設定（右で追加）</Typography>
-                            )}
-                          </Box>
-                          {animLabel && (
-                            <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)', mt: 1 }}>自動：{animLabel}（ボタン操作なしで動作）</Typography>
-                          )}
-                          <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>※ 上の3Dでモデルをクリックすると、これらのボタンが実際に表示されます。</Typography>
-                        </Box>
-                      );
-                    })()}
-                  </Box>
-                  <Box sx={{ flex: '1 1 300px', minWidth: 280 }}>
-                    <WalkthroughMetadataEditor
-                      glbUrl={glbUrl || null}
-                      macroCategory={model.macroCategory || model.category}
-                      character={walkthroughChar}
-                      gimmicks={walkthroughGimmicks}
-                      anim={walkthroughAnim}
-                      showInfo={false}
-                      disabled={false}
-                      onChange={({ character, gimmicks, anim }) => {
-                        setWalkthroughChar(character);
-                        setWalkthroughGimmicks(gimmicks);
-                        setWalkthroughAnim(anim);
-                        setWalkthroughDirty(true);
-                      }}
-                    />
-                    {walkthroughDirty && (
-                      <Button size="small" startIcon={isSavingWalkthrough ? null : <SaveRoundedIcon />} onClick={saveWalkthroughSettings} disabled={isSavingWalkthrough}
-                        sx={{ mt: 1, textTransform: 'none', fontSize: 12, bgcolor: 'rgba(79,140,255,0.2)', color: 'light-dark(#003fad, #9ec1ff)', border: '1px solid rgba(79,140,255,0.4)', borderRadius: 1, '&:hover': { bgcolor: 'rgba(79,140,255,0.3)' } }}>
-                        {isSavingWalkthrough ? '保存中…' : '保存'}
-                      </Button>
-                    )}
-                  </Box>
-                </Box>
-              ) : (
-                <DssWalkthroughViewer
-                  glbUrl={glbUrl || null}
-                  gimmicks={isAuthor ? walkthroughGimmicks : normalizeGimmicks(model.extendedMetadata)}
-                  anim={isAuthor ? walkthroughAnim : (model.extendedMetadata?.anim || null)}
-                  info={isAuthor ? walkthroughInfo : (model.extendedMetadata?.info || null)}
-                  swapModels={model.extendedMetadata?.swapModels || null}
-                />
-              )}
-            </Box>
-          )}
-
-          {/* === 情報（作成者のみ編集可） === */}
-          {detailTab === 'info' && (
-            <Box sx={{ p: 2 }}>
-              {/* 基本情報のまとめ（右サイドバーの内容を集約・読み取り専用） */}
-              {(() => {
-                const cat = [model.macroCategory, model.mainCategory, model.subCategory || model.userCategory].filter(Boolean).join(' / ');
-                const dm = model.dimensions || {};
-                const dim = (dm.width || dm.depth || dm.height) ? `W ${dm.width ?? '—'} × D ${dm.depth ?? '—'} × H ${dm.height ?? '—'} mm` : '—';
-                const price = model.price ? `¥${Number(model.price).toLocaleString()}` : '—';
-                const rows = [
-                  ['タイトル', title],
-                  ['カテゴリ', cat || '—'],
-                  ['寸法', dim],
-                  ['価格', price],
-                ];
-                return (
-                  <Box sx={{ mb: 2, borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
-                    {rows.map(([k, v], i) => (
-                      <Box key={k} sx={{ display: 'flex', px: 1.5, py: 0.9, bgcolor: i % 2 ? 'rgb(var(--brand-fg-rgb) / 0.02)' : 'transparent' }}>
-                        <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.5)', width: 88, flexShrink: 0 }}>{k}</Typography>
-                        <Typography sx={{ fontSize: 12.5, color: 'var(--brand-fg)', fontWeight: 600, wordBreak: 'break-all' }}>{v}</Typography>
-                      </Box>
-                    ))}
-                    <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.35)', px: 1.5, py: 0.75 }}>
-                      ※ タイトル・カテゴリ・寸法・価格は右の Model Info パネルで編集します。
-                    </Typography>
-                  </Box>
-                );
-              })()}
-
-              {/* 関連URL/カタログの一覧はページ下部の「似ている商品・購入先」セクションに集約。
-                  ここ（情報タブ）はアイテム情報＝ウォークスルー用の説明/リンク編集に専念する。 */}
-
-              {isAuthor && walkthroughMode === 'edit' ? (
-                <>
-                  <WalkthroughMetadataEditor
-                    glbUrl={glbUrl || null}
-                    macroCategory={model.macroCategory || model.category}
-                    info={walkthroughInfo}
-                    infoOnly
-                    onChange={({ info }) => { setWalkthroughInfo(info); setWalkthroughDirty(true); }}
-                  />
-                  {walkthroughDirty && (
-                    <Button size="small" startIcon={isSavingWalkthrough ? null : <SaveRoundedIcon />} onClick={saveWalkthroughSettings} disabled={isSavingWalkthrough}
-                      sx={{ mt: 1, textTransform: 'none', fontSize: 12, bgcolor: 'rgba(79,140,255,0.2)', color: 'light-dark(#003fad, #9ec1ff)', border: '1px solid rgba(79,140,255,0.4)', borderRadius: 1, '&:hover': { bgcolor: 'rgba(79,140,255,0.3)' } }}>
-                      {isSavingWalkthrough ? '保存中…' : '保存'}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                (() => {
-                  const info = isAuthor ? walkthroughInfo : (model.extendedMetadata?.info || null);
-                  const links = Array.isArray(info?.links) ? info.links.filter((l: any) => l && l.url) : [];
-                  const hasInfo = !!(info && ((info.description && info.description.trim()) || links.length));
-                  if (!hasInfo) return <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>情報は未設定です。</Typography>;
-                  const openUrl = (raw: string) => {
-                    let u = raw; if (!/^https?:\/\//.test(u)) u = 'https://' + u;
-                    import('@tauri-apps/plugin-opener').then((m: any) => (m.openUrl ? m.openUrl(u) : window.open(u, '_blank'))).catch(() => window.open(u, '_blank'));
-                  };
-                  return (
-                    <Box>
-                      {info.description && (
-                        <Typography sx={{ fontSize: 13, color: 'rgb(var(--brand-fg-rgb) / 0.85)', whiteSpace: 'pre-wrap', mb: 1.5 }}>{info.description}</Typography>
-                      )}
-                      {links.map((l: any, i: number) => (
-                        <Box key={i} onClick={() => openUrl(l.url)} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.75, mb: 0.75, borderRadius: 1, cursor: 'pointer', bgcolor: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', '&:hover': { bgcolor: 'rgba(56,189,248,0.2)' } }}>
-                          <LaunchRoundedIcon sx={{ color: 'light-dark(#0676a8, #38bdf8)', fontSize: 16 }} />
-                          <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'var(--brand-fg)', flex: 1 }} noWrap>{l.title || l.url}</Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  );
-                })()
-              )}
-            </Box>
-          )}
-        </Box>
-      </Box>
+      {/* 素材バリエーション（同じ家具の素材違い。クリックで上部ビューアへ適用） */}
+      <DeferUntilVisible minHeight={120}>
+        <DssVariantGallery model={model} onSelect={handleGallerySelect} selectedVariantId={galleryVariantId} />
+      </DeferUntilVisible>
 
       {/* 似ている商品・購入先（カタログ商品 + Web関連リンク を統合表示） */}
+      <DeferUntilVisible minHeight={120}>
       {(() => {
         const cl: any[] = Array.isArray(model.catalogLinks) ? model.catalogLinks.filter((l: any) => l && l.url) : [];
         const rl: any[] = Array.isArray(model.relatedLinks)
@@ -1002,8 +839,10 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           </Box>
         );
       })()}
+      </DeferUntilVisible>
 
       {/* Related Models section */}
+      <DeferUntilVisible minHeight={260}>
       {relatedModels.length > 0 && (
         <Box sx={{ p: 2, mt: 2, mb: 4, display: 'flex', flexDirection: 'column' }}>
           <Typography variant="h6" sx={{ color: 'var(--brand-fg)', mb: 2, fontWeight: 700 }}>関連モデル / Other related items</Typography>
@@ -1028,9 +867,11 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           </Box>
         </Box>
       )}
+      </DeferUntilVisible>
 
       {/* ── ギャラリー（このリストの他モデル・Drive プレビュー風カードグリッド） ──
           メイングリッドは仮想化だがここは非仮想化のため、表示中モデルを中心に上限件数へ絞る。 */}
+      <DeferUntilVisible minHeight={320}>
       {(() => {
         const list = Array.isArray(allItems) ? allItems : [];
         if (list.length <= 1) return null;
@@ -1082,6 +923,7 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           </Box>
         );
       })()}
+      </DeferUntilVisible>
 
     </Box>
   );

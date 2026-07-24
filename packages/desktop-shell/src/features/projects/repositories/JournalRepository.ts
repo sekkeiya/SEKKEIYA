@@ -1,9 +1,7 @@
 import { 
   collection, 
-  doc, 
-  setDoc, 
-  updateDoc,
-  serverTimestamp, 
+  doc,
+  serverTimestamp,
   query, 
   orderBy, 
   limit, 

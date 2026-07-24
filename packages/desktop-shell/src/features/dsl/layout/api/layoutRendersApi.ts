@@ -9,7 +9,6 @@ import {
   serverTimestamp,
   updateDoc,
   writeBatch,
-  doc,
 } from 'firebase/firestore';
 import { db } from '../../../../lib/firebase/client';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';

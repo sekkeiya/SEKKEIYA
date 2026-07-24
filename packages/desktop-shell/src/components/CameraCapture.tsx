@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, RotateCcw, Check, Image as ImageIcon } from 'lucide-react';
-import { BRAND } from '../styles/theme';
 import { uploadFieldPhoto } from '../features/projects/fieldPhotosApi';
 import { useAIDriveStore } from '../store/useAIDriveStore';
 

@@ -24,6 +24,12 @@ export interface ElevationRoomBox {
   minX: number; maxX: number;
   minZ: number; maxZ: number;
   yMin: number; yMax: number;
+  /** 内壁面そのものの位置（パディングを含まない実寸）。
+   *  寸法オーバーレイが「箱からパディングを引いて内法を逆算」しなくて済むように持たせる。
+   *  側面と対象壁でパディングが違う（隣室の映り込み対策）ため、逆算は成立しない。
+   *  旧経路（openDevelopedView）では未設定＝従来どおりパディング逆算にフォールバック。 */
+  innerMinX?: number; innerMaxX?: number;
+  innerMinZ?: number; innerMaxZ?: number;
 }
 
 interface ElevationMarkerState {
@@ -74,9 +80,15 @@ export function computeBuildingCenterXZ(): { x: number; z: number } {
  *    A(上=−Z): z≤pos を残し +Z 側から見る（FRONT）        / C(下=+Z): z≥pos を残し −Z 側から（FRONT+flip）
  *    D(左=−X): x≤pos を残し +X 側から見る（RIGHT）        / B(右=+X): x≥pos を残し −X 側から（RIGHT+flip）
  */
-/** 表示範囲がゾーン矩形（＝内壁面）から外側へはみ出すパディング(mm)。壁厚ぶん外側で切って壁面を残す。
- *  展開図の寸法オーバーレイが「内壁面の位置」を逆算するのにも使う。 */
+/** 見ている壁（展開図の対象面）の側に取るパディング(mm)。壁厚ぶん外側で切って壁面を残す。
+ *  クリップ面が内壁面と同一平面だと壁そのものが消える/ちらつくため余裕を持たせる。 */
 export const ELEV_ROOM_PAD_MM = 400;
+
+/** 左右（画面横）と背面側に取るパディング(mm)。
+ *  ここを対象壁と同じ 400mm にすると、100〜200mm の間仕切りを越えて
+ *  隣室の壁・天井まで表示範囲に入り、展開図に黒い塊として映り込む。
+ *  見えるのは内壁面の断口だけなので、壁厚より小さい値で十分。 */
+export const ELEV_SIDE_PAD_MM = 80;
 
 /** ゾーン矩形の集合 → 展開図の表示範囲（合併バウンディング）。壁面を残すため壁厚ぶん外側で切る。
  *  L字部屋＝「同じ部屋に属する複数の矩形ゾーン」を1つの部屋として扱うため配列で受ける。 */
@@ -105,6 +117,10 @@ export function computeRoomBoxFromRects(rects: any[]): ElevationRoomBox | null {
     maxZ: maxZ + pad,
     yMin: flWorld - yPad,
     yMax: clWorld + yPad,
+    innerMinX: minX,
+    innerMaxX: maxX,
+    innerMinZ: minZ,
+    innerMaxZ: maxZ,
   };
 }
 

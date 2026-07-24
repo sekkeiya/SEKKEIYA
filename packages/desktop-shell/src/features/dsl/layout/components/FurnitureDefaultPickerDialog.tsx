@@ -4,7 +4,7 @@
  * LayoutRulesPanel の「デフォルト家具」タブから呼ばれる。
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Button, CircularProgress, Typography, TextField,

@@ -5,7 +5,7 @@
 // publishedSites を読むだけなので、これらを **公開時点で解決して section に焼き込み**、
 // Web は静的に描画する。本人権限で読めるデータ（assets/followers 等）はここで取得する。
 
-import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase/client';
 import { resolveAssetPreviewUrl } from '../../store/useAIDriveStore';
 import { listBlogArticles, loadBlogCategories } from '../dsb/api/blogApi';

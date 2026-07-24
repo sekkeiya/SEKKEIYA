@@ -21,19 +21,10 @@ import type {
   SiteLayoutMode,
 } from '../projects/types';
 import { variantsForType, VARIANT_LABEL, SECTION_META, ADDABLE_SECTION_TYPES } from './siteTemplates';
-import {
-  MOTION_PRESETS, MOTION_CATEGORY_LABEL, MOTION_CATEGORY_ORDER, LIB_LABEL,
-  CURATED_MOTIONS,
-  type MotionCategory,
-} from './motionPresets';
-import { EDITORIAL_THEMES, PERSONALITY_LIST, CURATED_PERSONALITIES, MOTION_OPTIONS } from './editorialThemes';
-import {
-  LAYOUT_PRESETS, LAYOUT_CATEGORY_LABEL, LAYOUT_CATEGORY_ORDER, CURATED_LAYOUTS, type LayoutCategory,
-} from './layoutPresets';
-import {
-  TEMPLATE_PRESETS, CATEGORY_LABEL, CATEGORY_ICON,
-  type TemplateCategory, type TemplatePreset,
-} from './templatePresets';
+import { CURATED_MOTIONS } from './motionPresets';
+import { EDITORIAL_THEMES, CURATED_PERSONALITIES, MOTION_OPTIONS } from './editorialThemes';
+import { CURATED_LAYOUTS } from './layoutPresets';
+import { TEMPLATE_PRESETS } from './templatePresets';
 import { useMyAssets } from './useMyAssets';
 import { sampleLibraryRefs } from './sampleAssets';
 import { useProjectSiteStore } from '../../store/useProjectSiteStore';
@@ -77,8 +68,6 @@ interface Props {
 type DockTab = 'style' | 'layout' | 'motion' | 'sections' | 'assets';
 type AssetSource = 'mine' | 'sample';
 
-const CATEGORIES: TemplateCategory[] = ['editorial', 'minimal', 'dark', 'contemporary', 'accent'];
-
 const MOTION_SHORT: Record<string, string> = {
   '自動（人格に従う）': '自動',
   '控えめ': '控えめ',
@@ -88,155 +77,11 @@ const MOTION_SHORT: Record<string, string> = {
   '静止': '静止',
 };
 
-// ─── レイアウトカード定義 ────────────────────────────────────────────────
-interface LayoutCard {
-  mode: SiteLayoutMode;
-  label: string;
-  desc: string;
-  svg: React.ReactNode;
-}
-
 const LayoutSVG: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <svg viewBox="0 0 48 36" fill="none" width="48" height="36" style={{ display: 'block' }}>
     {children}
   </svg>
 );
-
-const LAYOUT_CARDS: LayoutCard[] = [
-  {
-    mode: 'editorial', label: 'エディトリアル', desc: '左サイドバー＋本文',
-    svg: (
-      <LayoutSVG>
-        <rect x="2" y="2" width="10" height="32" stroke="currentColor" strokeWidth="1.5" rx="1"/>
-        <line x1="16" y1="8" x2="46" y2="8" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="16" y1="16" x2="46" y2="16" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="16" y1="24" x2="40" y2="24" stroke="currentColor" strokeWidth="1.5"/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'minimal', label: 'ミニマル', desc: 'サイドバーなし、センター寄せ',
-    svg: (
-      <LayoutSVG>
-        <line x1="8" y1="10" x2="40" y2="10" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="4" y1="18" x2="44" y2="18" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="8" y1="26" x2="40" y2="26" stroke="currentColor" strokeWidth="1.5"/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'magazine', label: 'マガジン', desc: 'トップヘッダー＋全幅',
-    svg: (
-      <LayoutSVG>
-        <rect x="2" y="2" width="44" height="6" rx="1" fill="currentColor" opacity={0.4}/>
-        <line x1="2" y1="14" x2="46" y2="14" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="2" y1="22" x2="46" y2="22" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="2" y1="30" x2="46" y2="30" stroke="currentColor" strokeWidth="1.5"/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'portfolio', label: 'ポートフォリオ', desc: 'フルスクリーン没入',
-    svg: (
-      <LayoutSVG>
-        <rect x="2" y="2" width="44" height="32" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="8" y1="16" x2="30" y2="16" stroke="currentColor" strokeWidth="1.5"/>
-        <circle cx="42" cy="30" r="2" fill="currentColor" opacity={0.6}/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'split', label: 'スプリット', desc: '左ナビ＋右コンテンツ',
-    svg: (
-      <LayoutSVG>
-        <rect x="2" y="2" width="14" height="32" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="20" y1="8" x2="46" y2="8" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="20" y1="18" x2="46" y2="18" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="20" y1="28" x2="40" y2="28" stroke="currentColor" strokeWidth="1.5"/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'studio', label: 'スタジオ', desc: 'トップバー＋全幅コンテンツ',
-    svg: (
-      <LayoutSVG>
-        <line x1="2" y1="6" x2="46" y2="6" stroke="currentColor" strokeWidth="1"/>
-        <line x1="2" y1="14" x2="46" y2="14" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="2" y1="22" x2="46" y2="22" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="2" y1="30" x2="46" y2="30" stroke="currentColor" strokeWidth="1.5"/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'immersive', label: 'イマーシブ', desc: 'ナビなし完全没入',
-    svg: (
-      <LayoutSVG>
-        <rect x="2" y="2" width="44" height="32" fill="currentColor" opacity={0.15} rx="1"/>
-        <line x1="10" y1="18" x2="38" y2="18" stroke="currentColor" strokeWidth="2"/>
-      </LayoutSVG>
-    ),
-  },
-  {
-    mode: 'grid', label: 'グリッド', desc: 'グリッドマガジン',
-    svg: (
-      <LayoutSVG>
-        <rect x="2" y="2" width="20" height="14" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-        <rect x="26" y="2" width="20" height="14" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-        <rect x="2" y="20" width="20" height="14" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-        <rect x="26" y="20" width="20" height="14" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-      </LayoutSVG>
-    ),
-  },
-];
-
-// mode → SVG プレビュー（レイアウトプリセットカードで流用）。
-const LAYOUT_SVG_BY_MODE: Record<SiteLayoutMode, React.ReactNode> =
-  LAYOUT_CARDS.reduce((acc, c) => { acc[c.mode] = c.svg; return acc; }, {} as Record<SiteLayoutMode, React.ReactNode>);
-
-// ─── プリセットカード（2 カラム用） ────────────────────────────────────
-const PresetCard: React.FC<{ preset: TemplatePreset; active: boolean; onClick: () => void }> = ({
-  preset, active, onClick,
-}) => {
-  const bg      = preset.overrides?.bg      ?? '#fbfaf8';
-  const surface = preset.overrides?.surface ?? bg;
-  const text    = preset.overrides?.text    ?? '#16140f';
-  const accent  = preset.accent;
-  const isDark  = (preset.overrides?.text ?? '').startsWith('#f') || (preset.overrides?.text ?? '').startsWith('rgba(24');
-
-  return (
-    <Tooltip title={preset.name} placement="top" arrow enterDelay={600}>
-      <Box
-        onClick={onClick}
-        sx={{
-          position: 'relative', borderRadius: 1.5, overflow: 'hidden', cursor: 'pointer',
-          border: `1.5px solid ${active ? '#00BFFF' : 'rgba(255,255,255,0.09)'}`,
-          boxShadow: active ? '0 0 0 2px rgba(0,191,255,0.25)' : 'none',
-          transition: 'border-color 0.12s, transform 0.1s, box-shadow 0.12s',
-          '&:hover': { borderColor: active ? '#00BFFF' : 'rgba(255,255,255,0.28)', transform: 'translateY(-1px)' },
-        }}
-      >
-        <Box sx={{ height: 52, bgcolor: bg, position: 'relative', overflow: 'hidden' }}>
-          <Box sx={{
-            position: 'absolute', top: 8, left: 8, right: 8, height: 20, borderRadius: 0.75, bgcolor: surface,
-            boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.08)', opacity: surface === bg ? 0.4 : 0.85,
-          }} />
-          <Box sx={{ position: 'absolute', bottom: 7, left: 8, width: 28, height: 3, borderRadius: 2, bgcolor: accent }} />
-          <Box sx={{ position: 'absolute', bottom: 7, left: 44, width: 20, height: 3, borderRadius: 2, bgcolor: text, opacity: 0.3 }} />
-        </Box>
-        <Box sx={{ px: 0.875, py: 0.625, bgcolor: bg, borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}` }}>
-          <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: text, lineHeight: 1.25, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-            {preset.nameJa ?? preset.name}
-          </Typography>
-        </Box>
-        {active && (
-          <Box sx={{ position: 'absolute', top: 5, right: 5, width: 14, height: 14, borderRadius: '50%', bgcolor: '#00BFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 1.5px rgba(0,0,0,0.3)' }}>
-            <Typography sx={{ fontSize: '0.45rem', color: '#000', fontWeight: 900, lineHeight: 1 }}>✓</Typography>
-          </Box>
-        )}
-      </Box>
-    </Tooltip>
-  );
-};
 
 // ─── セクション一覧の 1 行（ドラッグ並び替え対応） ─────────────────────
 const SortableSectionRow: React.FC<{
@@ -636,19 +481,15 @@ const AssetPicker: React.FC<{
 
 // ─── コンポーネント本体 ────────────────────────────────────────────────
 export const SiteAssetPickerDock: React.FC<Props> = ({
-  projectId, selectedSectionId, selectedSection, personality, motionOverride,
+  projectId, selectedSectionId, personality, motionOverride,
   onPick, onSelectPersonality, onSelectMotion, onSetVariant,
   onApplyLayoutPreset, currentLayoutPresetId,
   onApplyMotionPreset, onApplyBundle, currentMotionPresetId, sections, onSelectSection,
   onToggleHidden, onRemoveSection, onReorder, onInsertSection, onChangeSectionType,
 }) => {
   const [tab, setTab] = useState<DockTab>('style');
-  const [activeCategory, setActiveCategory] = useState<TemplateCategory | 'all'>('all');
   const [styleOpen, setStyleOpen] = useState(false);
-  const [motionCat, setMotionCat] = useState<MotionCategory | null>(null); // null＝カテゴリ一覧
-  const [layoutCat, setLayoutCat] = useState<LayoutCategory | null>(null); // null＝カテゴリ一覧
   const [intensityOpen, setIntensityOpen] = useState(false);
-  const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   // ── リサイズ ──────────────────────────────────────────────────────
   const MIN_W = 220;
@@ -692,18 +533,10 @@ export const SiteAssetPickerDock: React.FC<Props> = ({
     };
   }, []);
 
-  const applyPreset     = useProjectSiteStore(s => s.applyPreset);
   const currentPresetId = useProjectSiteStore(s => s.site?.theme.presetId);
   const activePreset    = useMemo(
     () => TEMPLATE_PRESETS.find(p => p.id === currentPresetId),
     [currentPresetId],
-  );
-
-  const filteredPresets = useMemo(
-    () => activeCategory === 'all'
-      ? TEMPLATE_PRESETS
-      : TEMPLATE_PRESETS.filter(p => p.category === activeCategory),
-    [activeCategory],
   );
 
   const TAB_DEFS: { val: DockTab; label: string }[] = [

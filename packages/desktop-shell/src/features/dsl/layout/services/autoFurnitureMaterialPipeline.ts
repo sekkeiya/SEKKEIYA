@@ -82,7 +82,7 @@ export interface AutoFurnitureMaterialResult {
 export async function autoApplyFurnitureMaterials(
   styleKey: FurnitureMaterialStyleKey,
   layoutItems: any[],
-  projectId?: string,
+  _projectId?: string,
 ): Promise<AutoFurnitureMaterialResult> {
   const styleSpec = FURNITURE_MATERIAL_STYLES[styleKey];
   if (!styleSpec) {

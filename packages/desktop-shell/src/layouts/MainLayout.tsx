@@ -82,7 +82,6 @@ interface MainLayoutProps {
 
 import { useAppStore } from '../store/useAppStore';
 import { useUiLeftSidebarStore } from '../features/dsl/layout/store/uiLeftSidebarStore';
-import { useEditorModeStore } from '../features/dsl/layout/store/useEditorModeStore';
 import { useDspStore } from '../features/dsp/store/useDspStore';
 import { useDscStore } from '../features/dsc/store/useDscStore';
 
@@ -482,8 +481,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const isLayoutWorkspace = currentMainView === 'workspace' && activeWorkspaceId === 'layout';
 
-  const editorMode = useEditorModeStore((s: any) => s.editorMode);
-  
+
   const actualDslLeftVisibleSections = isLibraryDetached
     ? dslLeftVisibleSections?.filter((k: string) => k !== "library")
     : dslLeftVisibleSections;

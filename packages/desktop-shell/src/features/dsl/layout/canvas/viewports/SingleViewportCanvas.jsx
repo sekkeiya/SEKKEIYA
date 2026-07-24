@@ -66,6 +66,7 @@ import FloorSlabsRenderer from "../scene/FloorSlabsRenderer.jsx";
 import FloorSlabDrawController from "../scene/FloorSlabDrawController.jsx";
 import RoomCreateController from "../scene/RoomCreateController.jsx";
 import SlabEditController from "../scene/SlabEditController.jsx";
+import SectionPickController from "../scene/SectionPickController.jsx";
 import ZoneCirculationController from "../scene/ZoneCirculationController.jsx";
 
 import TransformGizmo from "../tools/gizmo/TransformGizmo.jsx";
@@ -110,6 +111,7 @@ import { useWalkthroughToggle } from "../tools/walkthrough/useWalkthroughToggle"
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useGimmickRegistryStore } from "../../store/gimmickRegistryStore";
 import ZoneVisualizer from "../scene/ZoneVisualizer.jsx";
+import RoomVisualizer from "../scene/RoomVisualizer.jsx";
 
 import { PerspectiveControlsBinder, OrthoControlsBinder } from "../controls/controlsBinders.jsx";
 import ViewportFramingController from "../controls/ViewportFramingController.jsx";
@@ -131,6 +133,7 @@ import { useSectionLinesStore } from "../../store/useSectionLinesStore";
 import { useWallStore } from "../../store/useWallStore";
 import { useSlabStore } from "../../store/useSlabStore";
 import { pickStructureInRect } from "../../utils/marqueeStructurePick";
+import { isBaseEditMode } from "../../utils/baseEditMode";
 
 // ✁ESnap Engine
 import SnapGuide from "../tools/align/SnapGuide.jsx";
@@ -991,7 +994,35 @@ export default function SingleViewportCanvas({
 
   const frameCameraToBase = useCallback(
     ({ force = false } = {}) => {
-      const b = paneFrameBox || baseBoundsRef.current;
+      // 展開図ビュー中の対象ペイン（A/C→FRONT, B/D→RIGHT）は部屋の表示範囲(roomBox)へ。
+      // ここが建物全体のままだと、flip変化時の force リフレーム(rAF)が
+      // ViewportFramingController の部屋フレーム(40ms)と競合し、実行順で
+      // 「1回目は建物中心・2回目で部屋中心」になる。
+      let elevBox = null;
+      if (!paneFrameBox) {
+        const elev = useElevationMarkerStore.getState();
+        if (elev.viewActive && elev.roomBox && elev.activeDir) {
+          const elevAxis = elev.activeDir === "A" || elev.activeDir === "C" ? "z" : "x";
+          const isElevPane =
+            (elevAxis === "z" && effectiveType === VIEW_TYPES.FRONT) ||
+            (elevAxis === "x" && effectiveType === VIEW_TYPES.RIGHT);
+          if (isElevPane) {
+            const rb = elev.roomBox;
+            const maxDim = Math.max(rb.maxX - rb.minX, rb.maxZ - rb.minZ, rb.yMax - rb.yMin);
+            if (maxDim > 0) {
+              elevBox = {
+                center: new THREE.Vector3(
+                  (rb.minX + rb.maxX) / 2,
+                  (rb.yMin + rb.yMax) / 2,
+                  (rb.minZ + rb.maxZ) / 2
+                ),
+                maxDim,
+              };
+            }
+          }
+        }
+      }
+      const b = paneFrameBox || elevBox || baseBoundsRef.current;
       const controls = orbitRef.current;
       if (!b || !controls) return;
       if (!force && didInitCameraRef.current) return;
@@ -1062,7 +1093,16 @@ export default function SingleViewportCanvas({
       previousSectionFlipRef.current = sectionViewFlip;
       // Reset initialization when switching camera types (or section flip) so it forces framing
       didInitCameraRef.current = false;
-      requestAnimationFrame(() => frameCameraToBase({ force: true }));
+      // 展開図切替（applyElevationView）由来の flip 変化なら、直後の requestFrameAll(40ms)
+      // が部屋基準（roomBox）でフレーミングするので、ここでの強制リフレームはしない。
+      // 両方走ると rAF と 40ms の実行順しだいで「1回目だけ中心/ズームがずれる」。
+      const elev = useElevationMarkerStore.getState();
+      const elevAxis = elev.activeDir === "A" || elev.activeDir === "C" ? "z" : "x";
+      const isElevPane =
+        elev.viewActive && elev.roomBox &&
+        ((elevAxis === "z" && effectiveType === VIEW_TYPES.FRONT) ||
+          (elevAxis === "x" && effectiveType === VIEW_TYPES.RIGHT));
+      if (!isElevPane) requestAnimationFrame(() => frameCameraToBase({ force: true }));
     }
   }, [effectiveType, sectionViewFlip, frameCameraToBase]);
 
@@ -1762,6 +1802,10 @@ export default function SingleViewportCanvas({
   // Shift+ドラッグは既存選択への追加、それ以外は置換（家具側の流儀に合わせる）。
   const applyStructureMarquee = useCallback((ctx, e) => {
     if (!ctx) return;
+    // 壁・床は Base（躯体）データ。躯体編集モード以外（Plan/Option を開いている間）は
+    // 範囲選択で躯体を掴ませない（クリック選択と同じガード。うっかり全プラン共通の
+    // 壁/床を編集・削除する事故を防ぐ）。家具の範囲選択はそのまま効く。
+    if (!isBaseEditMode()) return;
     if (useSelectionScopeStore.getState().scope !== "all") return;
     const { wallIds, slabIds } = pickStructureInRect(ctx);
     const additive = !!e?.shiftKey;
@@ -3546,6 +3590,8 @@ return (
       <SectionClipManager
         isTopView={effectiveType === VIEW_TYPES.TOP}
         passive={(isSplitLayout && effectiveType === VIEW_TYPES.TOP) || !!paneDrawing}
+        // 平面/天井/断面/立面（＝2D作図ビュー）では切断面フレームを出さない。3D パースのみ表示。
+        is2DView={effectiveType !== VIEW_TYPES.PERSPECTIVE}
       />
       {paneDrawing && <PaneClipPlanes planes={paneDrawing.clipPlanes || null} />}
       {/* 断面ペインは切り口の黒塗り（ポシェ）＋切断面フレームを単体ビューと同様に出す */}
@@ -3880,13 +3926,17 @@ return (
             <FurnitureGapOverlay />
             <ItemDimensionOverlay />
             {showZoneSymbols && (
-              <ZoneVisualizer
-                items={normalizedItems}
-                orbitRef={orbitRef}
-                editable={isZoning}
-                roomBounds={zoneRoomBounds}
-                isTopView={effectiveType === VIEW_TYPES.TOP}
-              />
+              <>
+                <ZoneVisualizer
+                  items={normalizedItems}
+                  orbitRef={orbitRef}
+                  editable={isZoning}
+                  roomBounds={zoneRoomBounds}
+                  isTopView={effectiveType === VIEW_TYPES.TOP}
+                />
+                {/* ゾーンレスの部屋（Room.rect）を平面に表示＋選択＋移動/リサイズ（Phase B） */}
+                <RoomVisualizer orbitRef={orbitRef} isTopView={effectiveType === VIEW_TYPES.TOP} />
+              </>
             )}
             <ZoneDrawController enabled={isZoning} roomSpec={roomSpec} />
             <ZoneCirculationController />
@@ -3916,7 +3966,7 @@ return (
               orbitRef={orbitRef}
               sideAxis={isSideOrtho ? (effectiveType === VIEW_TYPES.FRONT ? "x" : "z") : null}
             />
-            {!isSideOrtho && <FloorSlabDrawController enabled />}
+            {!isSideOrtho && <FloorSlabDrawController enabled role={effectiveSubMode === "ceiling_top" ? "ceiling" : "floor"} />}
             {/* 自動部屋作成: クリック地点から壁で囲われた範囲を検出して部屋を作る
                 （床スラブの有無・GLB躯体かどうかに依存しない。ツールを構えたときだけ出る） */}
             {!isSideOrtho && <RoomCreateController enabled />}
@@ -3926,6 +3976,13 @@ return (
               orbitRef={orbitRef}
               sideAxis={isSideOrtho ? (effectiveType === VIEW_TYPES.FRONT ? "x" : "z") : null}
             />
+            {/* 断面ビュー: 黒く塗られた切り口（床/天井/壁）をクリックで選択する。
+                R3F のレイキャストは「クリップで消えた手前側の躯体」にも当たって交差順で
+                クリックを奪われるため、canvas の click を直接拾い、データから
+                「どの切り口の中をクリックしたか」を計算して選択する（詳細はコンポーネント冒頭）。 */}
+            {isSideOrtho && (
+              <SectionPickController sideAxis={effectiveType === VIEW_TYPES.FRONT ? "x" : "z"} />
+            )}
             {/* 手動寸法（ヘッダー「寸法」ツール）: 2点クリックで作図し、
                 作図したビュー（平面/天井/断面/立面/展開）でのみ表示・編集する。 */}
             {(() => {

@@ -10,7 +10,7 @@ import { useWorkFileStore } from '../../store/useWorkFileStore';
 import { useAppStore } from '../../store/useAppStore';
 import { invoke } from '@tauri-apps/api/core';
 import { PreviewDialog } from './PreviewDialog';
-import { createNextLocalVersion, constructLocalDirPath, getLocalVersions, getAllLocalVersions } from '../../features/projects/utils/workFileFsHelpers';
+import { createNextLocalVersion, constructLocalDirPath, getAllLocalVersions } from '../../features/projects/utils/workFileFsHelpers';
 import type { LocalVersionInfo } from '../../features/projects/utils/workFileFsHelpers';
 
 interface Props {

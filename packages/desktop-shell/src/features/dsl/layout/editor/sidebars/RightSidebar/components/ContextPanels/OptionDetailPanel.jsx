@@ -21,8 +21,10 @@ import { useRoomCreateToolStore } from "../../../../../store/useRoomCreateToolSt
 import { useEditorModeStore } from "../../../../../store/useEditorModeStore";
 import { useBuildingSpecStore } from "../../../../../store/useBuildingSpecStore";
 import { useAutoLayoutStore } from "../../../../../store/useAutoLayoutStore";
-import { getRoomCategories } from "../../../../../constants/roomCategories";
+import { getRoomCategories, zoneSubCategoriesFor } from "../../../../../constants/roomCategories";
+import { useCustomNamesStore, customNameCandidate } from "../../../../../store/useCustomNamesStore";
 import { computeBuildingCenterXZ } from "../../../../../store/useElevationMarkerStore";
+import { measureRoomRectAt } from "../../../../../utils/baseFootprint";
 
 // 用途（建物タイプ）。spaceProgram.buildingType に永続化され、部屋カテゴリ語彙・
 // 自動ゾーニング・自動レイアウトが同じ値を参照する。
@@ -544,31 +546,97 @@ const PatternListItem = ({ p, activeCirculationPatternId, circulationPatterns, o
 const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candidates, allowAddZone = true }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingZone, setIsAddingZone] = useState(false);
+  // 開閉: 既定は閉じておき、部屋名クリックでゾーン＋＋ゾーンを開閉する。
+  const [expanded, setExpanded] = useState(false);
 
-  const commitRoomName = (name) => {
+  const roomMaster = rooms.find((r) => r.id === group.id);
+  const roomCategory = roomMaster?.category ?? null;
+
+  // 部屋の選択（平面でその部屋の全ゾーンをハイライト）。未割当擬似グループは選択しない。
+  const selectedRoomId = useLayoutTaskStore((s) => s.selectedRoomId);
+  const isRoomSelected = group.id !== "__unassigned__" && selectedRoomId === group.id;
+  const selectRoom = () => {
+    if (group.id === "__unassigned__") return;
+    useLayoutTaskStore.getState().setSelectedRoomId(group.id);
+  };
+  // 部屋名クリック: 選択しつつ開閉トグル。
+  const onClickRoom = () => {
+    selectRoom();
+    setExpanded((v) => !v);
+  };
+
+  // 手入力した名前（ユーザー独自の候補）と、名前を覚える関数。
+  const customRoomNames = useCustomNamesStore((s) => s.room);
+  const customZoneNames = useCustomNamesStore((s) => s.zone);
+  const addCustomName = useCustomNamesStore((s) => s.addName);
+  const knownRoomLabels = React.useMemo(() => (candidates || []).map((c) => c.label), [candidates]);
+
+  // ダブルクリック編集の候補 = 標準カテゴリ ＋ ユーザーの手入力名（重複除外）。
+  const roomNameCandidates = React.useMemo(() => {
+    const seen = new Set(knownRoomLabels);
+    const extras = customRoomNames.filter((n) => !seen.has(n)).map(customNameCandidate);
+    return [...(candidates || []), ...extras];
+  }, [candidates, customRoomNames, knownRoomLabels]);
+
+  const commitRoomName = (name, cat) => {
     setIsEditing(false);
-    if (!name || name === group.name) return;
+    if (!name) return;
+    // 既知カテゴリなら用途も設定。手入力の独自名は今後の候補として覚える。
+    const isKnownCat = cat?.key && !String(cat.key).startsWith("custom:");
+    const catPatch = isKnownCat ? { category: cat.key, color: cat.color } : {};
+    if (!isKnownCat && !knownRoomLabels.includes(name)) addCustomName("room", name, knownRoomLabels);
     const exists = rooms.some((r) => r.id === group.id);
     const newRooms = exists
-      ? rooms.map((r) => (r.id === group.id ? { ...r, name } : r))
+      ? rooms.map((r) => (r.id === group.id ? { ...r, name, ...catPatch } : r))
       // 擬似グループをマスタへ昇格。階はグループが持つ floorIndex（＝所属ゾーンの階）を継承。
-      : [...rooms, { id: group.id, name, floorIndex: group.floorIndex ?? 0, createdAtMs: Date.now() }];
+      : [...rooms, { id: group.id, name, floorIndex: group.floorIndex ?? 0, createdAtMs: Date.now(), ...catPatch }];
     window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms: newRooms } }));
   };
 
-  // ゾーン作成（選択式 or 自由入力）。矩形は既存ゾーンの右隣（無ければ建物中心）に既定サイズで置き、
-  // あとはギズモ/ドラッグで調整してもらう。
+  // 躯体にフィット: 部屋の rect を、実際の壁の内側（床スラブ/作図壁/GLB/内法）に合わせる。
+  const fitRoomToBase = () => {
+    if (group.id === "__unassigned__") return;
+    const rm = rooms.find((r) => r.id === group.id);
+    const center = rm?.rect ? { x: rm.rect.x, z: rm.rect.z } : computeBuildingCenterXZ();
+    const rect = measureRoomRectAt(center);
+    if (!rect) return;
+    const newRooms = rooms.map((r) => (r.id === group.id ? { ...r, rect } : r));
+    window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms: newRooms } }));
+  };
+
+  // ＋ゾーンの選択肢 = この室の用途で意味のある機能ゾーン ＋ ユーザーの手入力ゾーン名。
+  const zoneCandidates = React.useMemo(() => {
+    const base = zoneSubCategoriesFor(candidates || [], roomCategory);
+    const seen = new Set(base.map((c) => c.label));
+    const extras = customZoneNames.filter((n) => !seen.has(n)).map(customNameCandidate);
+    return [...base, ...extras];
+  }, [candidates, roomCategory, customZoneNames]);
+
+  // ゾーン作成（選択式 or 自由入力）。ゾーン＝室内の機能バブルなので、
+  // 既定では「その部屋の内側」に、部屋に収まる小さめの円で置く（部屋が動いたように
+  // 見えないよう、建物中心には飛ばさない）。あとはドラッグで位置・大きさを調整。
   const commitNewZone = (name, category) => {
     setIsAddingZone(false);
     if (!name) return;
+    // 標準カテゴリならその用途を、手入力の独自名は今後のゾーン候補として覚える。
+    const isKnownCat = category?.key && !String(category.key).startsWith("custom:");
+    if (!isKnownCat) addCustomName("zone", name, knownRoomLabels);
     const isMm = (useEditorModeStore.getState().sceneMaxY || 0) > 100;
-    const size = isMm ? 2700 : 2.7;
+    let size = isMm ? 2700 : 2.7;
     const gap = isMm ? 300 : 0.3;
     let cx, cz;
     const last = group.zones[group.zones.length - 1];
     if (last?.rect) {
+      // 2本目以降は直前ゾーンの右隣
       cx = last.rect.x + (last.rect.width || 0) / 2 + size / 2 + gap;
       cz = last.rect.z;
+    } else if (roomMaster?.rect) {
+      // 最初のゾーンは部屋の中心に、部屋に収まる大きさで
+      const rw = roomMaster.rect.width || size;
+      const rd = roomMaster.rect.depth || size;
+      size = Math.max(isMm ? 800 : 0.8, Math.min(size, Math.min(rw, rd) * 0.55));
+      cx = roomMaster.rect.x;
+      cz = roomMaster.rect.z;
     } else {
       const c = computeBuildingCenterXZ();
       cx = c.x; cz = c.z;
@@ -579,8 +647,8 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
         roomId: group.id === "__unassigned__" ? null : group.id,
         name,
         targetSeats: 0,
-        category: category?.key ?? null,
-        color: category?.color || "rgb(var(--brand-fg-rgb) / 0.65)",
+        category: isKnownCat ? category.key : null,
+        color: isKnownCat ? category.color : "rgb(var(--brand-fg-rgb) / 0.65)",
         rect: { x: cx, z: cz, width: size, depth: size },
         // ゾーンは所属部屋と同じ階に置く（部屋の floorIndex を継承）。
         floorIndex: group.floorIndex ?? 0,
@@ -590,24 +658,50 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
     }));
   };
 
+  const isRealRoom = group.id !== "__unassigned__";
+  // 未割当（擬似グループ）は開閉対象外＝常時開く。追加入力中も開いたまま。
+  const isOpen = !isRealRoom || expanded || isAddingZone;
   return (
     <Box sx={{ mb: 1 }}>
-      {/* 部屋名ヘッダ */}
-      <Box sx={{ px: 0.5, py: 0.25 }}>
+      {/* 部屋名ヘッダ（クリックで選択＋開閉・ダブルクリックで改名） */}
+      <Box
+        sx={{
+          px: 0.5, py: 0.25, borderRadius: 1,
+          bgcolor: isRoomSelected ? alpha("#38bdf8", 0.16) : "transparent",
+          "&:hover": { bgcolor: isRoomSelected ? alpha("#38bdf8", 0.22) : (isRealRoom ? alpha("#fff", 0.05) : "transparent") },
+          transition: "background-color 0.15s",
+        }}
+      >
         {isEditing ? (
           <NameEditor
             initial={group.name || ""}
             placeholder="部屋名"
-            candidates={candidates}
-            onCommit={(name) => commitRoomName(name)}
+            candidates={roomNameCandidates}
+            onCommit={(name, cat) => commitRoomName(name, cat)}
             onCancel={() => setIsEditing(false)}
           />
         ) : (
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            {isRealRoom && (
+              <ExpandMoreIcon
+                sx={{
+                  fontSize: 16, flexShrink: 0, cursor: "pointer",
+                  color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)",
+                  transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+                  transition: "transform 0.15s",
+                }}
+                onClick={onClickRoom}
+              />
+            )}
             <Typography
-              sx={{ fontSize: 12.5, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 85%, transparent)", flex: 1 }}
-              onDoubleClick={() => { if (group.id !== "__unassigned__") setIsEditing(true); }}
-              title={group.id !== "__unassigned__" ? "ダブルクリックで部屋名を変更" : undefined}
+              sx={{
+                fontSize: 12.5, fontWeight: 700, flex: 1,
+                color: isRoomSelected ? "var(--brand-fg)" : "color-mix(in srgb, var(--brand-fg) 85%, transparent)",
+                cursor: isRealRoom ? "pointer" : "default",
+              }}
+              onClick={() => { if (isRealRoom) onClickRoom(); }}
+              onDoubleClick={() => { if (isRealRoom) { selectRoom(); setIsEditing(true); } }}
+              title={isRealRoom ? "クリックでゾーンを開閉・選択 / ダブルクリックで名前を変更" : undefined}
             >
               {group.name || "（名称未設定）"}
             </Typography>
@@ -647,7 +741,11 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
         )}
       </Box>
 
-      {/* 所属ゾーン（ネスト・グループ内 DnD）＋ ＋ゾーン */}
+      {/* 用途カテゴリは部屋名のダブルクリック編集（NameEditor の候補チップ）で設定する。
+          常時チップは出さない（画面がうるさくなるため）。 */}
+
+      {/* 所属ゾーン＋＋ゾーンは、部屋を開いているときだけ表示（クリックで開閉）。 */}
+      {isOpen && (
       <Box sx={{ pl: 1, borderLeft: `2px solid ${alpha("#fff", 0.1)}`, ml: 0.75 }}>
         {group.zones.length > 0 && (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => onGroupDragEnd(group.zones, e)}>
@@ -666,7 +764,7 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
             <Box sx={{ px: 0.5, py: 0.5 }}>
               <NameEditor
                 placeholder="ゾーン名"
-                candidates={candidates}
+                candidates={zoneCandidates}
                 onCommit={commitNewZone}
                 onCancel={() => setIsAddingZone(false)}
               />
@@ -689,7 +787,27 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
             </Box>
           )
         )}
+
+        {/* 躯体にフィット（部屋の rect を実際の壁の内側へ合わせる）。実部屋のみ。 */}
+        {isRealRoom && (
+          <Box
+            component="button" type="button"
+            onClick={fitRoomToBase}
+            title="実際の躯体（壁の内側）を実測して、部屋の範囲を合わせます"
+            sx={{
+              display: "flex", alignItems: "center", gap: 0.4,
+              px: 0.7, height: 20, mt: 0.25, ml: 0.5, borderRadius: 1, cursor: "pointer",
+              fontSize: 10, fontWeight: 700, fontFamily: "inherit",
+              border: `1px solid ${alpha("#38bdf8", 0.4)}`, background: "transparent",
+              color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)",
+              "&:hover": { background: alpha("#38bdf8", 0.12), borderColor: alpha("#38bdf8", 0.7), color: "var(--brand-fg)" },
+            }}
+          >
+            躯体にフィット
+          </Box>
+        )}
       </Box>
+      )}
     </Box>
   );
 };

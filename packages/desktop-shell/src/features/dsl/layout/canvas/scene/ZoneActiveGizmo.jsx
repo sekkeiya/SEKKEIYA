@@ -10,7 +10,10 @@ import { useEditorModeStore } from '../../store/useEditorModeStore';
 import { useZoningStore } from '../../store/useZoningStore';
 import { useAutoLayoutStore } from '../../store/useAutoLayoutStore';
 import { useSelectionScopeStore, canSelectZone } from '../../store/useSelectionScopeStore';
+import { useViewportDisplayStore } from '../../store/useViewportDisplayStore';
 import { zoneCategoryLabel, zoneAreaLabel, getRoomCategoryMeta } from '../../constants/roomCategories';
+import { snapZoneRectMove, snapZoneCoordX, snapZoneCoordZ } from '../../utils/drawSnap';
+import BubbleFill, { ellipseOutline } from './BubbleFill.jsx';
 
 export const BOX_H = 10; // mm thickness for the zone box
 const SNAP_DIST = 300; // snapping threshold in mm
@@ -38,6 +41,8 @@ export default function ZoneActiveGizmo({
   zone, orbitRef, versionLabel = "", isActive = false,
   editable = false, roomBounds = null,
   ghost = false, // 他階のトレース表示（薄く・触れない）
+  roomColorOn = false, // 部屋色トグル: 部屋ごとの自動配色で範囲を塗る
+  autoColor = null,    // この部屋の自動配色（roomColorOn のとき塗り/枠に使う）
 }) {
   const { camera, gl } = useThree();
   const baseColliders = useSceneObjectRegistryStore((s) => s.baseColliders) || [];
@@ -134,9 +139,12 @@ export default function ZoneActiveGizmo({
     return Math.max(roomBounds.minZ, Math.min(roomBounds.maxZ, z));
   }, [roomBounds]);
 
+  // 記号ロック中（ゾーン）は移動/リサイズ/選択ドラッグを止める（表示・ラベルからの Properties 表示は残す）。
+  const zoneLocked = useViewportDisplayStore((s) => s.symbolLocks.zone);
+
   /** 現在の編集モードでこのゾーンを操作してよいか */
   const canInteract = useCallback(() => {
-    if (!editable) return false;
+    if (!editable || zoneLocked) return false;
     const store = useZoningStore.getState();
     const modeStore = useEditorModeStore.getState();
     if (modeStore.editorMode === 'zoning') {
@@ -145,7 +153,7 @@ export default function ZoneActiveGizmo({
     }
     if (!canSelectZone(useSelectionScopeStore.getState().scope)) return false;
     return true;
-  }, [editable]);
+  }, [editable, zoneLocked]);
 
   /**
    * ワールド座標 (wx, wz) がゾーンのどの領域か判定する。
@@ -216,9 +224,19 @@ export default function ZoneActiveGizmo({
     let newRect = { ...initial };
     const type = info.type;
 
+    // Shift 押下中だけスナップ（通り芯/壁芯/端点/床辺/グリッド）を効かせる。
+    // 押していなければ従来どおり自由に動く（リサイズは既存の壁マグネットのみ）。
+    const snap = !!e.shiftKey;
+
     if (type === 'center') {
       newRect.x += dx;
       newRect.z += dz;
+      if (snap) {
+        // サイズは変えず、矩形の辺を通り芯/壁/グリッドへ寄せる平行移動。
+        const { dx: sdx, dz: sdz } = snapZoneRectMove(newRect);
+        newRect.x += sdx;
+        newRect.z += sdz;
+      }
       newRect = clampRect(newRect);
     } else {
       // エッジ/コーナーのリサイズ。コーナーは2軸同時。
@@ -232,8 +250,11 @@ export default function ZoneActiveGizmo({
       if (resizeE) { // East edge is +X
         let targetEdgeX = (initial.x + initial.width / 2) + dx;
         rayOrigin.setX(targetEdgeX);
-        const snappedEdge = getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(1, 0, 0), rayOrigin.clone());
-        const newMaxX = clampEdgeX(snappedEdge.x);
+        // Shift = 通り芯/壁/端点/グリッドへ吸着。非Shift = 従来の壁マグネットのみ。
+        const snappedX = snap
+          ? snapZoneCoordX(targetEdgeX, initial.z)
+          : getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(1, 0, 0), rayOrigin.clone()).x;
+        const newMaxX = clampEdgeX(snappedX);
         const minX = initial.x - initial.width / 2;
         newRect.width = Math.max(MIN_ZONE_SIZE, newMaxX - minX);
         newRect.x = minX + newRect.width / 2;
@@ -241,8 +262,10 @@ export default function ZoneActiveGizmo({
       if (resizeW) { // West edge is -X
         let targetEdgeX = (initial.x - initial.width / 2) + dx;
         rayOrigin.setX(targetEdgeX);
-        const snappedEdge = getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(-1, 0, 0), rayOrigin.clone());
-        const newMinX = clampEdgeX(snappedEdge.x);
+        const snappedX = snap
+          ? snapZoneCoordX(targetEdgeX, initial.z)
+          : getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(-1, 0, 0), rayOrigin.clone()).x;
+        const newMinX = clampEdgeX(snappedX);
         const maxX = initial.x + initial.width / 2;
         newRect.width = Math.max(MIN_ZONE_SIZE, maxX - newMinX);
         newRect.x = maxX - newRect.width / 2;
@@ -250,8 +273,10 @@ export default function ZoneActiveGizmo({
       if (resizeS) { // South edge is +Z
         let targetEdgeZ = (initial.z + initial.depth / 2) + dz;
         rayOrigin.setZ(targetEdgeZ);
-        const snappedEdge = getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(0, 0, 1), rayOrigin.clone());
-        const newMaxZ = clampEdgeZ(snappedEdge.z);
+        const snappedZ = snap
+          ? snapZoneCoordZ(targetEdgeZ, initial.x)
+          : getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(0, 0, 1), rayOrigin.clone()).z;
+        const newMaxZ = clampEdgeZ(snappedZ);
         const minZ = initial.z - initial.depth / 2;
         newRect.depth = Math.max(MIN_ZONE_SIZE, newMaxZ - minZ);
         newRect.z = minZ + newRect.depth / 2;
@@ -259,8 +284,10 @@ export default function ZoneActiveGizmo({
       if (resizeN) { // North edge is -Z
         let targetEdgeZ = (initial.z - initial.depth / 2) + dz;
         rayOrigin.setZ(targetEdgeZ);
-        const snappedEdge = getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(0, 0, -1), rayOrigin.clone());
-        const newMinZ = clampEdgeZ(snappedEdge.z);
+        const snappedZ = snap
+          ? snapZoneCoordZ(targetEdgeZ, initial.x)
+          : getSnappedWallPos(rayOrigin.clone(), new THREE.Vector3(0, 0, -1), rayOrigin.clone()).z;
+        const newMinZ = clampEdgeZ(snappedZ);
         const maxZ = initial.z + initial.depth / 2;
         newRect.depth = Math.max(MIN_ZONE_SIZE, maxZ - newMinZ);
         newRect.z = maxZ - newRect.depth / 2;
@@ -327,6 +354,7 @@ export default function ZoneActiveGizmo({
       const tag = (e.target?.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (zoneLocked) return; // ロック中は削除しない
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("LayoutShell:DeleteZone", { detail: { id: zone.id } }));
       } else if (e.key === 'Escape' && !dragInfo.current.type) {
@@ -335,18 +363,21 @@ export default function ZoneActiveGizmo({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isActive, editable, zone.id]);
+  }, [isActive, editable, zone.id, zoneLocked]);
 
   const renderRect = dr || zone.rect;
   const { width, depth, x = 0, z = 0 } = renderRect;
 
-  const showHandles = editable && isActive;
+  const showHandles = editable && isActive && !zoneLocked;
 
   // ラベル: カテゴリ名 + 面積（㎡）
   const catMeta = getRoomCategoryMeta(zone.category, buildingType);
   const labelTitle = zoneCategoryLabel(zone, buildingType);
   const areaText = zoneAreaLabel(renderRect);
-  const labelColor = zone.color || catMeta?.color || "#94a3b8";
+  // 枠線・ラベル・ハンドルの基準色。部屋色 ON では自動配色を優先し、部屋の色分けを枠まで揃える。
+  const labelColor = (roomColorOn && autoColor) || zone.color || catMeta?.color || "#94a3b8";
+  // 塗りは部屋色 ON なら濃いめ（範囲を色で示す）、OFF なら従来どおり淡く。他階トレースは常に極薄。
+  const fillOpacity = ghost ? 0.07 : roomColorOn ? (isActive ? 0.48 : hovered ? 0.4 : 0.32) : (isActive ? 0.40 : hovered ? 0.26 : 0.18);
 
   // 可視ハンドル（スクリーンpx基準サイズ）
   const mk = MARKER_PX * pxWorld;
@@ -360,8 +391,19 @@ export default function ZoneActiveGizmo({
 
   return (
     <group position={[x, BOX_H / 2 + gridHeightMm, z]}>
-      {/* 1) ゾーン本体（非選択時のみクリック/ドラッグを受ける。選択中はピックプレーンが担当） */}
-      <mesh
+      {/* 1) ゾーン本体＝グラデーションの円（バブル）。Phase C: 矩形の塗りをやめ、
+             中心が濃く縁で透明になる楕円グラデで“ざっくり範囲”を柔らかく示す。
+             非選択時のみクリック/ドラッグを受ける（選択中はピックプレーンが担当）。
+             ヒットは板（rect 全域）で取るのでバブルの透明部分も掴める。 */}
+      <BubbleFill
+        width={width}
+        depth={depth}
+        color={labelColor}
+        // グラデは縁で透明になるぶん平均が下がるので、中心の濃さを少し補う。
+        opacity={Math.min(0.62, fillOpacity * 1.6)}
+        core={0.18}
+        y={0}
+        renderOrder={roomColorOn ? 9986 : 0}
         onPointerDown={editable && !isActive ? (e) => handlePointerDown(e, 'center') : undefined}
         onClick={editable && !isActive ? (e) => {
           e.stopPropagation();
@@ -373,29 +415,22 @@ export default function ZoneActiveGizmo({
         onPointerOver={editable && !isActive ? () => {
           if (!canInteract()) return;
           setHovered(true);
-          gl.domElement.style.cursor = 'move'; // 掴んでそのまま動かせる（手＝pointer は使わない）
+          gl.domElement.style.cursor = 'move';
         } : undefined}
         onPointerOut={editable && !isActive ? () => {
           setHovered(false);
-          if (!dragInfo.current.type) gl.domElement.style.cursor = ''; // 指定を外す（'default' は他のホバーカーソルを塗り潰す）
+          if (!dragInfo.current.type) gl.domElement.style.cursor = '';
         } : undefined}
-      >
-        <boxGeometry args={[width, BOX_H, depth]} />
-        <meshBasicMaterial
-          color={labelColor}
-          transparent
-          opacity={ghost ? 0.07 : isActive ? 0.40 : hovered ? 0.26 : 0.18}
-          depthTest={false}
-          depthWrite={false}
-        />
-      </mesh>
+      />
 
-      {/* 選択中の境界線 */}
+      {/* 選択中の境界線（バブルの楕円輪郭） */}
       {isActive && (
-        <lineSegments position={[0, BOX_H / 2 + 1, 0]}>
-          <edgesGeometry args={[new THREE.BoxGeometry(width, 0.1, depth)]} />
+        <lineLoop position={[0, BOX_H / 2 + 1, 0]}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[ellipseOutline(width, depth), 3]} count={48} />
+          </bufferGeometry>
           <lineBasicMaterial color={labelColor} transparent opacity={0.9} depthTest={false} />
-        </lineSegments>
+        </lineLoop>
       )}
 
       {showHandles && (

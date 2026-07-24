@@ -24,7 +24,6 @@ import { useCredits } from '../../billing/useCredits';
 import { CREDIT_COST, PLANS, getPlan, formatJpy } from '../../billing/creditModel';
 import { CHAT_MODEL_OPTIONS, IMAGE_PROVIDER_OPTIONS } from '../../../store/useAiSettingsStore';
 import { useAiModelLimits } from '../hooks/useAiModelLimits';
-import { monthlyModel3dQuota } from '../../billing/creditModel';
 import { useAiProfileStore } from '../../../store/useAiProfileStore';
 
 const ACCENT = '#a855f7';

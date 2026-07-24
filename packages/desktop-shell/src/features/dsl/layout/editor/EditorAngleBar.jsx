@@ -30,7 +30,7 @@ import { useLayoutLoadSignal } from "../store/useLayoutLoadSignal";
 import { useElevationMarkerStore, computeRoomBoxFromRects } from "../store/useElevationMarkerStore";
 // 部屋ごとの展開ドキュメント（展開A〜D + 追加分）とオープン経路
 import { useRoomElevationsStore } from "../store/useRoomElevationsStore";
-import { openRoomElevation, computeElevationRooms, getElevationMarkerPos } from "../utils/openElevationView";
+import { openRoomElevation, computeElevationRooms, getElevationMarkerPos, computeElevationRoomBox } from "../utils/openElevationView";
 import { useSelectionScopeStore } from "../store/useSelectionScopeStore";
 import { useLayoutTaskStore } from "../store/useLayoutTaskStore";
 // 断面表示時に右サイドバーの Properties（断面専用）を自動で開く
@@ -682,38 +682,43 @@ export default function EditorAngleBar() {
       .map((el) => {
         const pos = getElevationMarkerPos(el);
         if (!pos) return null;
+        // 単体の展開ビューと同じ実測ベースの箱（隣室・上階が映り込まないよう
+        // 間仕切りまでで切る）。測れなければゾーン矩形ベースにフォールバック。
+        const rb = computeElevationRoomBox(room, pos, el.dir) || roomBox;
         const axis = el.dir === "A" || el.dir === "C" ? "z" : "x";
         const flip = el.dir === "C" || el.dir === "B"; // ＋軸方向を見る＝反転側
         const s = flip ? 1 : -1; // 視線方向の符号（−Z/−X が既定）
         const m = axis === "x" ? pos.x : pos.z; // マーカー（視点）位置
         const ax = axis === "x" ? [1, 0, 0] : [0, 0, 1];
         const o = axis === "x" ? [0, 0, 1] : [1, 0, 0];
-        const oMin = axis === "x" ? roomBox.minZ : roomBox.minX;
-        const oMax = axis === "x" ? roomBox.maxZ : roomBox.maxX;
-        const farEdge = axis === "x" ? (s > 0 ? roomBox.maxX : roomBox.minX) : (s > 0 ? roomBox.maxZ : roomBox.minZ);
+        const oMin = axis === "x" ? rb.minZ : rb.minX;
+        const oMax = axis === "x" ? rb.maxZ : rb.maxX;
         const mul = (v, k) => [v[0] * k, v[1] * k, v[2] * k];
         return {
           label: `${el.name}${room.name ? ` ・ ${room.name}` : ""}`,
           viewType: axis === "x" ? "right" : "front",
           flip,
+          // 展開＝記号位置で切った断面を部屋範囲でクロップ（単体ビューの
+          // SectionClipManager.elevationPlanes と同じ構成）。far は切らない——
+          // 奥は見ている壁が不透明なので自然に隠れ、far で切ると奥の部屋の壁が
+          // 輪切りになって黒い断口（ポシェ）が映り込む。
           clipPlanes: [
             { normal: mul(ax, s), constant: -s * m },          // near: 視点の背面側を消す
-            { normal: mul(ax, -s), constant: s * farEdge },    // far: 対象壁の外側で切る
             { normal: o, constant: -oMin },                    // 横: 部屋の左右端（隣室を消す）
             { normal: mul(o, -1), constant: oMax },
-            { normal: [0, 1, 0], constant: -roomBox.yMin },    // 床〜天井
-            { normal: [0, -1, 0], constant: roomBox.yMax },
+            { normal: [0, 1, 0], constant: -rb.yMin },    // 床〜天井
+            { normal: [0, -1, 0], constant: rb.yMax },
           ],
           frameBox: {
             center: [
-              (roomBox.minX + roomBox.maxX) / 2,
-              (roomBox.yMin + roomBox.yMax) / 2,
-              (roomBox.minZ + roomBox.maxZ) / 2,
+              (rb.minX + rb.maxX) / 2,
+              (rb.yMin + rb.yMax) / 2,
+              (rb.minZ + rb.maxZ) / 2,
             ],
             maxDim: Math.max(
-              roomBox.maxX - roomBox.minX,
-              roomBox.maxZ - roomBox.minZ,
-              roomBox.yMax - roomBox.yMin
+              rb.maxX - rb.minX,
+              rb.maxZ - rb.minZ,
+              rb.yMax - rb.yMin
             ),
           },
         };

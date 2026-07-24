@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 import AddRoundedIcon              from '@mui/icons-material/AddRounded';
 import HistoryRoundedIcon           from '@mui/icons-material/HistoryRounded';
-import EditRoundedIcon              from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon            from '@mui/icons-material/DeleteRounded';
 import CheckCircleRoundedIcon       from '@mui/icons-material/CheckCircleRounded';
 import RadioButtonUncheckedRoundedIcon from '@mui/icons-material/RadioButtonUncheckedRounded';
@@ -17,8 +16,6 @@ import MicRoundedIcon               from '@mui/icons-material/MicRounded';
 import PersonRoundedIcon            from '@mui/icons-material/PersonRounded';
 import FactCheckRoundedIcon         from '@mui/icons-material/FactCheckRounded';
 import AccessAlarmsRoundedIcon      from '@mui/icons-material/AccessAlarmsRounded';
-import ViewListRoundedIcon          from '@mui/icons-material/ViewListRounded';
-import ViewKanbanRoundedIcon        from '@mui/icons-material/ViewKanbanRounded';
 import CalendarMonthRoundedIcon     from '@mui/icons-material/CalendarMonthRounded';
 import CalendarViewWeekRoundedIcon  from '@mui/icons-material/CalendarViewWeekRounded';
 import CalendarViewDayRoundedIcon   from '@mui/icons-material/CalendarViewDayRounded';
@@ -44,8 +41,6 @@ type TaskType       = 'ai' | 'manual' | 'review';
 type TaskPriority   = 'high' | 'medium' | 'low';
 type TaskStatus     = 'todo' | 'in_progress' | 'done';
 type CalView        = 'month' | 'week' | 'day';
-type TaskView       = 'list' | 'kanban';
-type TaskFilter     = 'all' | 'ai' | 'manual' | 'review' | 'todo' | 'done';
 type UserTaskFilter = 'all' | 'todo' | 'in_progress' | 'done';
 type AITaskFilter   = 'all' | 'todo' | 'in_progress' | 'done';
 type TaskPanelMode  = 'both' | 'user' | 'ai';
@@ -140,12 +135,6 @@ const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = {
   done: 'todo',
 };
 
-const KANBAN_COLS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'todo',        label: 'TO DO', color: 'rgb(var(--brand-fg-rgb) / 0.5)' },
-  { id: 'in_progress', label: 'DOING', color: '#00BFFF' },
-  { id: 'done',        label: 'DONE',  color: '#43e97b' },
-];
-
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function toDateStr(d: Date): string {
@@ -196,7 +185,6 @@ function timeDiffH(s: string, e?: string): number {
 
 // ─── Shared dialog styles ──────────────────────────────────────────────────────
 
-const dlgPaper  = { bgcolor: 'var(--brand-surface)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', borderRadius: 3, color: 'var(--brand-fg)' };
 const fldSx     = { '& label.Mui-focused': { color: '#00BFFF' }, '& .MuiOutlinedInput-root.Mui-focused fieldset': { borderColor: '#00BFFF' } };
 const lblSx     = { color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&.Mui-focused': { color: '#00BFFF' } };
 const inpProp   = { sx: { color: 'var(--brand-fg)', '& fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } } };
@@ -645,7 +633,7 @@ interface TaskListViewProps {
   showProject?: boolean;
 }
 
-const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, onCycleStatus, onExecute, executingIds = EMPTY_SET, showProject }) => (
+const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onCycleStatus, onExecute, executingIds = EMPTY_SET, showProject }) => (
   <Box>
     {tasks.map(task => {
       const tp      = TASK_TYPES[task.type]       ?? TASK_TYPES.manual;
@@ -744,238 +732,6 @@ const TaskListView: React.FC<TaskListViewProps> = ({ tasks, onEdit, onDelete, on
     })}
   </Box>
 );
-
-// ─── Kanban View ──────────────────────────────────────────────────────────────
-
-interface KanbanViewProps {
-  tasks: TaskItem[];
-  onEdit: (t: TaskItem) => void;
-  onDelete: (t: TaskItem) => void;
-  onCycleStatus: (t: TaskItem) => void;
-  onExecute?: (t: TaskItem) => void;
-  executingIds?: Set<string>;
-  onInlineSave: (title: string, type: TaskType, status: TaskStatus) => void;
-  showProject?: boolean;
-}
-
-const KanbanView: React.FC<KanbanViewProps> = ({ tasks, onEdit, onDelete, onExecute, executingIds = EMPTY_SET, onInlineSave, showProject }) => {
-  const [inlineCol,   setInlineCol]   = useState<TaskStatus | null>(null);
-  const [inlineTitle, setInlineTitle] = useState('');
-  const [inlineType,  setInlineType]  = useState<TaskType>('manual');
-
-  const commitInline = (colId: TaskStatus) => {
-    if (!inlineTitle.trim()) return;
-    onInlineSave(inlineTitle.trim(), inlineType, colId);
-    setInlineCol(null); setInlineTitle(''); setInlineType('manual');
-  };
-  const cancelInline = () => { setInlineCol(null); setInlineTitle(''); setInlineType('manual'); };
-
-  return (
-    <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1, px: '2px' }}>
-      {KANBAN_COLS.map(col => {
-        const colTasks = tasks.filter(t => t.status === col.id);
-        return (
-          <Box key={col.id} sx={{ flex: '0 0 200px', minWidth: 200 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-              <Typography sx={{ fontSize: '0.67rem', fontWeight: 800, letterSpacing: 1, color: col.color }}>
-                {col.label}
-              </Typography>
-              <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography sx={{ fontSize: '0.6rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)', fontWeight: 700 }}>
-                  {colTasks.length}
-                </Typography>
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.875, minHeight: 60 }}>
-              {colTasks.map(task => {
-                const tp      = TASK_TYPES[task.type]       ?? TASK_TYPES.manual;
-                const pri     = PRIORITY_CFG[task.priority]  ?? PRIORITY_CFG.medium;
-                const ov      = isOverdue(task.dueDate) && task.status !== 'done';
-                const isAi    = task.type === 'ai';
-                const running = executingIds.has(task.id);
-                return (
-                  <Paper key={task.id} onClick={() => onEdit(task)}
-                    sx={{ p: 1.25, cursor: 'pointer',
-                      bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.07)',
-                      borderRadius: 2, transition: 'all 0.15s',
-                      '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', transform: 'translateY(-1px)', '& .kact': { opacity: 1 } },
-                    }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.625 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, flex: 1, minWidth: 0 }}>
-                        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: pri.color, flexShrink: 0, mt: '4px' }}/>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'var(--brand-fg)', fontSize: '0.8rem', lineHeight: 1.3 }}>
-                          {task.title}
-                        </Typography>
-                      </Box>
-                      <Box className="kact" sx={{ opacity: 0, transition: 'opacity 0.15s', flexShrink: 0, ml: 0.5, display: 'flex', gap: '2px' }}>
-                        {isAi && task.status !== 'done' && (
-                          <Tooltip title={running ? '実行中…' : 'AIに実行させる'}>
-                            <span>
-                              <IconButton size="small" disabled={running} onClick={e => { e.stopPropagation(); onExecute(task); }}
-                                sx={{ p: '2px', color: running ? '#00BFFF' : 'rgba(0,191,255,0.7)',
-                                  '&:hover:not(:disabled)': { color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.12)' },
-                                  '&.Mui-disabled': { color: '#00BFFF' } }}>
-                                {running
-                                  ? <CircularProgress size={10} sx={{ color: '#00BFFF' }}/>
-                                  : <AutoAwesomeRoundedIcon sx={{ fontSize: 12 }}/>}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        )}
-                        <IconButton size="small"
-                          onClick={e => { e.stopPropagation(); onDelete(task); }}
-                          sx={{ p: '2px', color: 'rgb(var(--brand-fg-rgb) / 0.3)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' } }}>
-                          <DeleteRoundedIcon sx={{ fontSize: 12 }}/>
-                        </IconButton>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <Chip label={tp.label} size="small"
-                        sx={{ height: 16, fontSize: '0.58rem', fontWeight: 700, color: tp.color, bgcolor: tp.bg }}/>
-                      {showProject && task.projectName && (
-                        <Chip label={task.projectName} size="small"
-                          sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, color: 'rgb(var(--brand-fg-rgb) / 0.6)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.07)', maxWidth: 90 }}/>
-                      )}
-                      {task.assigneeName && (
-                        <Chip label={`@${task.assigneeName}`} size="small"
-                          sx={{ height: 16, fontSize: '0.58rem', fontWeight: 600, color: '#00BFFF', bgcolor: 'rgba(0,191,255,0.12)', maxWidth: 90 }}/>
-                      )}
-                      {task.dueDate && (
-                        <Typography sx={{ fontSize: '0.62rem', ml: 'auto',
-                          color: ov ? 'light-dark(#a80637, #fa709a)' : 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: ov ? 700 : 500 }}>
-                          {formatShort(task.dueDate)}
-                        </Typography>
-                      )}
-                    </Box>
-                    {isAi && task.status !== 'done' && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                        <AutoAwesomeRoundedIcon sx={{ fontSize: 10, color: '#00BFFF' }}/>
-                        <Typography sx={{ fontSize: '0.6rem', color: 'rgba(0,191,255,0.7)', fontWeight: 600 }}>
-                          {task.startTime ? `${task.dueDate ? task.dueDate.slice(5) + ' ' : ''}${task.startTime} 自動実行` : 'AI自動実行予定'}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Paper>
-                );
-              })}
-
-              {/* Inline add card */}
-              {inlineCol === col.id ? (
-                <Box sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)', border: '1px solid rgba(0,191,255,0.25)', borderRadius: 2, p: 1.125 }}>
-                  <TextField
-                    autoFocus
-                    value={inlineTitle}
-                    onChange={e => setInlineTitle(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && inlineTitle.trim()) commitInline(col.id);
-                      if (e.key === 'Escape') cancelInline();
-                    }}
-                    placeholder="タスク名を入力..."
-                    size="small" fullWidth multiline maxRows={3}
-                    InputProps={{ sx: { color: 'var(--brand-fg)', fontSize: '0.8rem', fontWeight: 600, '& fieldset': { borderColor: 'transparent' }, '&:hover fieldset': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' }, '&.Mui-focused fieldset': { borderColor: '#00BFFF' } } }}
-                  />
-                  <FormControl size="small" variant="outlined" sx={{ mt: 0.75, minWidth: 100 }}>
-                    <Select value={inlineType} onChange={e => setInlineType(e.target.value as TaskType)}
-                      sx={{ height: 22, fontSize: '0.63rem', fontWeight: 700, color: TASK_TYPES[inlineType].color, bgcolor: TASK_TYPES[inlineType].bg, borderRadius: 1, '& fieldset': { borderColor: 'transparent' }, '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 14 } }}
-                      MenuProps={{ PaperProps: { sx: menuPpr } }}>
-                      {(Object.entries(TASK_TYPES) as [TaskType, typeof TASK_TYPES[TaskType]][]).map(([k, v]) => (
-                        <MenuItem key={k} value={k} sx={{ fontSize: '0.72rem', color: v.color, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75, justifyContent: 'flex-end' }}>
-                    <Button size="small" onClick={cancelInline}
-                      sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', py: 0.25, px: 0.75, '&:hover': { color: 'var(--brand-fg)' } }}>
-                      キャンセル
-                    </Button>
-                    <Button size="small" onClick={() => commitInline(col.id)} disabled={!inlineTitle.trim()}
-                      sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.68rem', bgcolor: 'rgba(0,191,255,0.15)', color: '#00BFFF', py: 0.25, px: 0.75, borderRadius: 1,
-                        '&:hover': { bgcolor: 'rgba(0,191,255,0.25)' }, '&:disabled': { color: 'rgb(var(--brand-fg-rgb) / 0.2)', bgcolor: 'transparent' } }}>
-                      追加
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Button size="small" startIcon={<AddRoundedIcon sx={{ fontSize: 13 }}/>}
-                  onClick={() => { setInlineCol(col.id); setInlineTitle(''); setInlineType('manual'); }}
-                  sx={{ justifyContent: 'flex-start', color: 'rgb(var(--brand-fg-rgb) / 0.35)', textTransform: 'none',
-                    fontWeight: 600, fontSize: '0.75rem', py: 0.625,
-                    '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>
-                  カードを追加
-                </Button>
-              )}
-            </Box>
-          </Box>
-        );
-      })}
-    </Box>
-  );
-};
-
-// ─── Inline Add Row (list view) ───────────────────────────────────────────────
-
-interface InlineAddRowProps {
-  onSave: (title: string, type: TaskType) => void;
-  onCancel: () => void;
-}
-
-const InlineAddRow: React.FC<InlineAddRowProps> = ({ onSave, onCancel }) => {
-  const [title, setTitle] = useState('');
-  const [type,  setType]  = useState<TaskType>('manual');
-
-  const commit = () => {
-    if (!title.trim()) return;
-    onSave(title.trim(), type);
-    setTitle(''); setType('manual');
-  };
-
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 0.875,
-      borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.05)',
-      bgcolor: 'rgba(0,191,255,0.04)', borderLeft: '3px solid rgba(0,191,255,0.4)' }}>
-      {/* Unchecked circle */}
-      <Box sx={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid rgb(var(--brand-fg-rgb) / 0.25)', flexShrink: 0 }}/>
-      {/* Priority dot (default medium) */}
-      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: PRIORITY_CFG.medium.color, flexShrink: 0 }}/>
-      {/* Title input */}
-      <TextField
-        autoFocus
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && title.trim()) commit();
-          if (e.key === 'Escape') onCancel();
-        }}
-        placeholder="タスク名を入力... (Enter で保存)"
-        variant="standard"
-        size="small"
-        sx={{ flex: 1,
-          '& input': { color: 'var(--brand-fg)', fontSize: '0.83rem', fontWeight: 600, py: 0 },
-          '& .MuiInput-underline:before': { borderBottomColor: 'rgb(var(--brand-fg-rgb) / 0.1)' },
-          '& .MuiInput-underline:after':  { borderBottomColor: '#00BFFF' },
-        }}
-      />
-      {/* Type selector */}
-      <FormControl size="small" variant="standard" sx={{ flexShrink: 0, minWidth: 88 }}>
-        <Select value={type} onChange={e => setType(e.target.value as TaskType)} disableUnderline
-          sx={{ fontSize: '0.68rem', fontWeight: 700, color: TASK_TYPES[type].color,
-            bgcolor: TASK_TYPES[type].bg, borderRadius: 1, px: 0.75, py: '2px',
-            '& .MuiSvgIcon-root': { color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontSize: 14 } }}
-          MenuProps={{ PaperProps: { sx: menuPpr } }}>
-          {(Object.entries(TASK_TYPES) as [TaskType, typeof TASK_TYPES[TaskType]][]).map(([k, v]) => (
-            <MenuItem key={k} value={k} sx={{ fontSize: '0.72rem', color: v.color, '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' } }}>{v.label}</MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      {/* Close */}
-      <IconButton size="small" onClick={onCancel}
-        sx={{ p: '2px', color: 'rgb(var(--brand-fg-rgb) / 0.25)', '&:hover': { color: 'light-dark(#a80637, #fa709a)' }, flexShrink: 0 }}>
-        <CloseRoundedIcon sx={{ fontSize: 15 }}/>
-      </IconButton>
-    </Box>
-  );
-};
 
 // ─── Schedule Side Panel ─────────────────────────────────────────────────────
 
@@ -1625,7 +1381,6 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
   }, [calView, year, month, calDate, weekDays]);
 
   // ── Task state ────────────────────────────────────────────────────────────
-  const [taskView,        setTaskView]        = useState<TaskView>('list');
   const [taskPanelMode,   setTaskPanelMode]   = useState<TaskPanelMode>('both');
   const [userTaskFilter,  setUserTaskFilter]  = useState<UserTaskFilter>('all');
   const [aiTaskFilter,    setAiTaskFilter]    = useState<AITaskFilter>('all');
@@ -1738,9 +1493,6 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
     | null
   >(null);
 
-  // ── Inline add state (list view, single-project mode only) ───────────────
-  const [inlineListAdd, setInlineListAdd] = useState(false);
-
   const openNewSchedule = useCallback((date?: Date, time?: string) => {
     setSidePanel({ kind: 'new-schedule', date: date ? toDateStr(date) : toDateStr(new Date()), time: time || undefined });
   }, []);
@@ -1789,15 +1541,6 @@ export const SchedulesTasksList: React.FC<SchedulesTasksListProps> = ({ project 
     }
     setSidePanel(null);
   }, [sidePanel, isAllMode, projectId, uid]);
-
-  // ── Inline task save (no dialog) ──────────────────────────────────────────
-  const saveInlineTask = useCallback(async (title: string, type: TaskType, status: TaskStatus = 'todo') => {
-    await addDoc(collection(db, 'projects', projectId, 'tasks'), {
-      title, type, priority: 'medium' as TaskPriority, status, dueDate: '', description: '',
-      createdAt: serverTimestamp(), createdBy: uid,
-    });
-    setInlineListAdd(false);
-  }, [projectId, uid]);
 
   const deleteTask = useCallback(async (item: TaskItem) => {
     setDeleteTarget({ kind: 'task', item });

@@ -12,7 +12,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import PlaylistAddRoundedIcon from '@mui/icons-material/PlaylistAddRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import {
-  SOURCE_SECTIONS, ALL_SOURCE_ENTRIES, KIND_COLOR, STATUS_LABEL, entryStatus, applyFilter,
+  SOURCE_SECTIONS, KIND_COLOR, STATUS_LABEL, entryStatus, applyFilter,
   DEFAULT_REGISTRY_FILTER, type SourceRegistryEntry, type RegistryFilter,
 } from '../data/sourceRegistry';
 import { saveKnowledgeEntry } from '../api/knowledgeApi';

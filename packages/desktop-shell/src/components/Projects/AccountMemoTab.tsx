@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Paper, InputBase, Button, Chip, CircularProgress,
-  IconButton, Select, MenuItem, FormControl, Dialog, DialogTitle,
+  IconButton, Select, MenuItem, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField,
 } from '@mui/material';
-import AddRoundedIcon       from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon    from '@mui/icons-material/DeleteRounded';
 import EditRoundedIcon      from '@mui/icons-material/EditRounded';
-import CloseRoundedIcon     from '@mui/icons-material/CloseRounded';
 import MenuBookRoundedIcon  from '@mui/icons-material/MenuBookRounded';
 import FolderRoundedIcon    from '@mui/icons-material/FolderRounded';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -179,8 +177,6 @@ export const AccountMemoTab: React.FC = () => {
       </Box>
     );
   }
-
-  const composerProject = projects.find(p => p.id === composerProjectId);
 
   return (
     <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 4 }, py: 3, boxSizing: 'border-box' }}>

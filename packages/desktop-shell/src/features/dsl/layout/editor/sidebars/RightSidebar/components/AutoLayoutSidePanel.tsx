@@ -4,7 +4,6 @@
  * 実行ボタンは RightSidebar の常時下部バー (AutoLayoutBottomBar) に集約済み。
  */
 
-import React from 'react';
 import {
   Box, Typography, FormControl, FormLabel, RadioGroup,
   FormControlLabel, Radio, TextField, InputAdornment, Divider,
@@ -13,7 +12,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
-import { useAutoLayoutStore } from '../../../../store/useAutoLayoutStore';
+import { useAutoLayoutStore, resolveAutoLayoutIds } from '../../../../store/useAutoLayoutStore';
 import { useLayoutTaskStore } from '../../../../store/useLayoutTaskStore';
 import type { BuildingType } from '../../../../types/layoutRules';
 
@@ -71,12 +70,7 @@ export default function AutoLayoutSidePanel({ projectId: _projectId }: Props) {
   const hasZones = zones.length > 0;
 
   const handleExecute = () => {
-    const ids = selectedZoneIds.length > 0
-      ? selectedZoneIds
-      : zones.length > 0
-        ? zones.map((z) => z.id)
-        : ['__full_room__'];
-    requestAutoLayout(ids);
+    requestAutoLayout(resolveAutoLayoutIds());
   };
 
   const hint =

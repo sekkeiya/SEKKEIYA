@@ -1,12 +1,19 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 
 const SCOPE_TO_LABEL: Record<string, string> = {
-  '3dss': '3DSS（Models）',
-  '3dsl': '3DSL（Layout）',
-  '3dsp': '3DSP（Presents）',
-  '3dsc': '3DSC（Create）',
+  '3dss': 'S.Model',
+  '3dsl': 'S.Layout',
+  '3dsp': 'S.Slide',
+  '3dsc': 'S.Create',
   '3dsd': 'S.Diagram',
   '3dsr': 'S.Drawing',
+  '3dsi': 'S.Image',
+  '3dsq': 'S.Quest',
+  '3dsf': 'S.Portfolio',
+  '3dsk': 'S.Library',
+  '3dsb': 'S.Blog',
+  '3dsm': 'S.Movie',
+  '3dsmt': 'S.Material',
 };
 
 export const openChildWindow = (scope: string, projectId: string | null) => {

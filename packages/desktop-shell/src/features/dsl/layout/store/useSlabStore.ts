@@ -88,7 +88,13 @@ interface SlabState {
   toggleEdgeIndex: (i: number) => void;
   clearEdgeSelection: () => void;
 
-  addSlab: (points: SlabPoint[], floorIndex?: number) => void;
+  addSlab: (points: SlabPoint[], floorIndex?: number, role?: SlabRole) => void;
+  /**
+   * 既存スラブを複製する（Alt+ドラッグ複製）。sourceId の見た目プロパティ
+   * （厚み/役割/階/上下オフセット）を引き継ぎ、points を差し替えた新規スラブを作って選択する。
+   * restorePoints を渡すと元スラブの points をそこへ戻す（ドラッグで動かした分を元位置へ）。
+   */
+  duplicateSlab: (sourceId: string, points: SlabPoint[], restorePoints?: SlabPoint[] | null) => void;
   updateSlab: (id: string, patch: Partial<Omit<FloorSlab, "id">>) => void;
   /** ドラッグ中の高頻度更新用（永続化しない）。確定時に persistSlabs() を呼ぶ。 */
   updateSlabLocal: (id: string, patch: Partial<Omit<FloorSlab, "id">>) => void;
@@ -135,7 +141,7 @@ export const useSlabStore = create<SlabState>((set, get) => ({
     })),
   clearEdgeSelection: () => set({ selectedEdgeIndices: [] }),
 
-  addSlab: (points, floorIndex = 0) =>
+  addSlab: (points, floorIndex = 0, role) =>
     set((s) => {
       if (!points || points.length < SLAB_MIN_POINTS) return {};
       const slab: FloorSlab = {
@@ -143,10 +149,35 @@ export const useSlabStore = create<SlabState>((set, get) => ({
         points: points.map((p) => ({ x: Math.round(p.x), z: Math.round(p.z) })),
         thicknessMm: SLAB_DEFAULT_THICKNESS,
         floorIndex,
+        // 天井ビューで作図した面は天井として使う（未指定は従来どおり床）。
+        ...(role ? { role } : {}),
       };
       const slabs = [...s.slabs, slab];
       persist(slabs);
       return { slabs, selectedSlabId: slab.id, selectedSlabIds: [slab.id], draftPoints: [] };
+    }),
+
+  duplicateSlab: (sourceId, points, restorePoints) =>
+    set((s) => {
+      const src = s.slabs.find((x) => x.id === sourceId);
+      if (!src || !points || points.length < SLAB_MIN_POINTS) return {};
+      const clone: FloorSlab = {
+        ...src, // 厚み/役割/階/上下オフセットなど見た目を引き継ぐ
+        id: nextId(),
+        points: points.map((p) => ({ x: Math.round(p.x), z: Math.round(p.z) })),
+      };
+      // 元スラブは掴む前の位置へ戻す（ドラッグした分はコピー側に乗る＝部屋の Alt 複製と同じ）
+      const slabs = s.slabs.map((x) =>
+        x.id === sourceId && restorePoints ? { ...x, points: restorePoints } : x,
+      );
+      slabs.push(clone);
+      persist(slabs);
+      return {
+        slabs,
+        selectedSlabId: clone.id,
+        selectedSlabIds: [clone.id],
+        selectedEdgeIndices: [],
+      };
     }),
 
   updateSlab: (id, patch) =>

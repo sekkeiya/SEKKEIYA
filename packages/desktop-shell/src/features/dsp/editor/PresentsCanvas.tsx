@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 import { Box, Typography, Snackbar } from '@mui/material';
 import { useDspStore } from '../store/useDspStore';
@@ -9,7 +9,7 @@ import { useAIDriveDragStore } from '../../../store/useAIDriveDragStore';
 import { resolveAssetPreviewUrl } from '../../../store/useAIDriveStore';
 
 export const PresentsCanvas: React.FC = () => {
-  const { projectId, presentation, selectedPageId, selectedElementIds, setSelectedElementIds, updateElements, addElements, addElement, deleteElements, undo, redo, isSnapEnabled, isGridEnabled, gridSize, activeTool, setActiveTool, setSelectedPageId } = useDspStore();
+  const { projectId, presentation, selectedPageId, selectedElementIds, setSelectedElementIds, updateElements, addElements, addElement, deleteElements, undo, redo, isSnapEnabled, isGridEnabled, gridSize, activeTool } = useDspStore();
   const canvasRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasW = presentation?.canvasSize?.width || 1587;
@@ -404,7 +404,6 @@ export const PresentsCanvas: React.FC = () => {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (!file) return;
       try {
-        const tempEl: PresentationElement = { id: elementId, type: 'image', x: 0, y: 0, w: 0, h: 0, zIndex: 0, rotation: 0, data: { src: '', alt: 'Uploading...' } };
         updateElements([{ id: elementId, updates: { data: { ...(page?.elements.find(e => e.id === elementId)?.data || {}), src: '' } } }]);
         const uploadResult = await dspAssetUploadService.uploadLocalImage(projectId!, file, userId!);
         const currentEl = useDspStore.getState().presentation?.pages.flatMap(p => p.elements).find(e => e.id === elementId);
@@ -1014,8 +1013,8 @@ export const PresentsCanvas: React.FC = () => {
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
       onContextMenu={(e) => e.preventDefault()}
-      onDragOverCapture={(e) => console.log('[CanvasRoot] drag over capture')}
-      onDropCapture={(e) => console.log('[CanvasRoot] drop capture')}
+      onDragOverCapture={() => console.log('[CanvasRoot] drag over capture')}
+      onDropCapture={() => console.log('[CanvasRoot] drop capture')}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
@@ -1322,7 +1321,6 @@ export const PresentsCanvas: React.FC = () => {
                                  const drag = cropDragRef.current;
                                  if (!drag || drag.type === 'move') return;
                                  const dx = (e.clientX - drag.startMouseX) / (totalScale * drag.elW);
-                                 const dy = (e.clientY - drag.startMouseY) / (totalScale * drag.elH);
                                  const { startImgX: sx, startImgY: sy, startImgW: sw, startImgH: sh, k: dk } = drag;
                                  let nX = sx, nY = sy, nW = sw, nH = sh;
                                  if (drag.type === 'se') { nW = Math.max(MIN_CROP_SIZE, sw + dx); nH = nW / dk; }

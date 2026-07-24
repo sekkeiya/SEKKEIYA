@@ -403,7 +403,7 @@ export const DspSidebar: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createProjectType, setCreateProjectType] = useState<'my' | 'team'>('my');
+  const [createProjectType] = useState<'my' | 'team'>('my');
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 

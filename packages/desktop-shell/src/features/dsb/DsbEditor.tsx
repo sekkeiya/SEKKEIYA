@@ -24,7 +24,7 @@ import ScienceRoundedIcon from '@mui/icons-material/ScienceRounded';
 import { BlogSeoPanel } from './BlogSeoPanel';
 import { SourceArticleReader } from './SourceArticleReader';
 import { loadBlogStyle, saveBlogStyle } from './api/blogApi';
-import { BLOG_STYLE_PRESETS, DEFAULT_BLOG_STYLE, type BlogStyle } from './types';
+import { DEFAULT_BLOG_STYLE, type BlogStyle } from './types';
 import { useDsbStore } from './store/useDsbStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useAutosaveDraft } from '../../shared/hooks/useAutosaveDraft';

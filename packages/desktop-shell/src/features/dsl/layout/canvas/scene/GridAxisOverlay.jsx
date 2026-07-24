@@ -13,6 +13,7 @@ import { useSlabStore } from "../../store/useSlabStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import LineEndHandle from "./LineEndHandle.jsx";
 import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
 import { isBaseEditMode, useBaseEditMode } from "../../utils/baseEditMode";
@@ -54,7 +55,9 @@ function AxisBadge({ axis, active, position }) {
   // Plan/Option（家具サイド）でも同様に無効化（通り芯は Base 共通＝編集は Base で）。
   const drawing = useDrawToolActive();
   const baseEdit = useBaseEditMode();
-  const interactive = !drawing && baseEdit;
+  // 記号ロック中（通り芯）は表示のまま操作不可にする。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.grid);
+  const interactive = !drawing && baseEdit && !locked;
   const select = (e) => {
     e?.stopPropagation?.();
     selectAxis(axis.id);
@@ -141,6 +144,8 @@ function AxisBadge({ axis, active, position }) {
 function PlanAxis({ axis, half, y, active, autoSpan, badgeGapWorld }) {
   const axisRef = useRef(axis);
   axisRef.current = axis;
+  // 記号ロック中（通り芯）は選択・移動・伸縮の操作を止める（表示は残す）。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.grid);
 
   const isX = axis.axis === "x";
   // 線の伸びる向き: X通り(縦線) は Z 方向 / Y通り(横線) は X 方向。
@@ -189,10 +194,11 @@ function PlanAxis({ axis, half, y, active, autoSpan, badgeGapWorld }) {
           if (isDrawToolActive()) return;
           // Plan/Option（家具サイド）では通り芯は「見えるだけ」（編集は Base で）。
           if (!isBaseEditMode()) return;
+          if (locked) return; // ロック中は選択させない
           e.stopPropagation();
           selectAxis(axis.id);
         }}
-        onClick={(e) => { if (!isDrawToolActive() && isBaseEditMode()) e.stopPropagation(); }} // 床/躯体の onClick（選択解除）へ届かせない
+        onClick={(e) => { if (!isDrawToolActive() && isBaseEditMode() && !locked) e.stopPropagation(); }} // 床/躯体の onClick（選択解除）へ届かせない
       >
         <planeGeometry args={[Math.abs(to - from), hitW]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
@@ -208,8 +214,9 @@ function PlanAxis({ axis, half, y, active, autoSpan, badgeGapWorld }) {
       <AxisBadge axis={axis} active={active} position={b1} />
       <AxisBadge axis={axis} active={active} position={b2} />
 
-      {/* 選択中: 端部ハンドルで線の長さを伸縮＋中央に移動ギズモ（断面線と同じ操作感）。 */}
-      {active && (
+      {/* 選択中: 端部ハンドルで線の長さを伸縮＋中央に移動ギズモ（断面線と同じ操作感）。
+          ロック中はハンドル/ギズモを出さない（選択済みのまま固定できる）。 */}
+      {active && !locked && (
         <>
           <LineEndHandle
             position={p1} dirAxis={dirAxis} planeY={y}

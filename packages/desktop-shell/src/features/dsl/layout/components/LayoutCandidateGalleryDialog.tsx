@@ -1,6 +1,5 @@
 // LayoutCandidateGalleryDialog.tsx
 // 自動レイアウトの複数案を平面図サムネで一覧し、案ごとに「採用する／不採用」を選ぶギャラリー。
-import React from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Box, Stack, Typography, IconButton, Divider,

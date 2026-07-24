@@ -4,7 +4,6 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import FolderSpecialRoundedIcon from '@mui/icons-material/FolderSpecialRounded';
 import PhotoLibraryRoundedIcon from '@mui/icons-material/PhotoLibraryRounded';
@@ -360,7 +359,7 @@ export const DsiSidebar: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createProjectType, setCreateProjectType] = useState<'my' | 'team'>('my');
+  const [createProjectType] = useState<'my' | 'team'>('my');
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 

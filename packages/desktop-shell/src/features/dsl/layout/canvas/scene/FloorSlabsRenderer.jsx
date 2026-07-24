@@ -188,11 +188,19 @@ export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = 
     <group>
       {slabs.map((s) => {
         if (!(s.points?.length >= 3)) return null;
-        // 役割で出し分ける。天井伏図では「天井として使う面」だけを CL に貼り、
-        // 平面図・立体では「床として使う面」を FL に敷く。
-        //   both（床/天井）は同じ輪郭が両方の図面に出る＝部屋の輪郭を1回描けば済む。
-        const asCeiling = isCeilingView && slabIsCeiling(s);
-        if (isCeilingView ? !asCeiling : !slabIsFloor(s)) return null;
+        // 役割と図面種別で「出すか」「FL/CL どちらの高さで描くか」を決める。
+        //   ・天井伏図(isCeilingView): 天井面(ceiling/both)だけを CL に。
+        //   ・平面図(isTopView): 床面(floor/both)だけを FL に（天井は平面図に出さない）。
+        //   ・立体/断面/立面(それ以外): 床も天井も実体として描く（床/both=FL、ceiling単独=CL）。
+        //     both は床として1回だけ描く（同じ輪郭を二重に描かない）。
+        const show = isCeilingView
+          ? slabIsCeiling(s)
+          : isTopView
+            ? slabIsFloor(s)
+            : (slabIsFloor(s) || slabIsCeiling(s));
+        if (!show) return null;
+        // 天井として（CL の高さに）描くか。天井伏図なら天井面、断面/立体/立面なら ceiling 単独面。
+        const asCeiling = isCeilingView ? slabIsCeiling(s) : (!isTopView && s.role === "ceiling");
         // 平面図ではアクティブ階だけ実体、他階は薄いトレース（立体/断面は全階を実体で）。
         const ghost = isTopView && (s.floorIndex || 0) !== (activeFloorIndex || 0);
         // 他階は既定で非表示。マスターON かつ その階の目アイコンONのときだけ透過表示する。

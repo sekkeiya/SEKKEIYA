@@ -8,7 +8,6 @@ import {
   Box,
   Typography,
   IconButton,
-  Avatar,
   CircularProgress
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';

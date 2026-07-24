@@ -20,7 +20,7 @@ import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStor
 import { useRoomElevationsStore } from "../../store/useRoomElevationsStore";
 import { useElevationDimOverridesStore } from "../../store/useElevationDimOverridesStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
-import { measureBaseInterior } from "../../utils/baseFootprint";
+import { measureBaseInterior, measureCeilingUndersideAt } from "../../utils/baseFootprint";
 
 const INK = "#475569";        // 寸法線（ミディアムスレート）
 const INK_DARK = "#0f172a";   // 文字
@@ -317,9 +317,13 @@ export default function ElevationDimensionsOverlay() {
     const pad = toWorld(ELEV_ROOM_PAD_MM);
     const hMinBox = axis === "x" ? roomBox.minX : roomBox.minZ;
     const hMaxBox = axis === "x" ? roomBox.maxX : roomBox.maxZ;
-    // ゾーン矩形（内法）の位置＝roomBox から壁厚パディングを戻した位置
-    let innerMin = hMinBox + pad;
-    let innerMax = hMaxBox - pad;
+    // 内法（内壁面）の位置。openRoomElevation が実測した値を箱に持たせているので
+    // それを使う。側面と対象壁でパディングが違うため箱からの逆算は成立しない
+    // （旧経路 openDevelopedView だけ未設定＝従来どおりパディング逆算）。
+    const innerLo = axis === "x" ? roomBox.innerMinX : roomBox.innerMinZ;
+    const innerHi = axis === "x" ? roomBox.innerMaxX : roomBox.innerMaxZ;
+    let innerMin = innerLo ?? hMinBox + pad;
+    let innerMax = innerHi ?? hMaxBox - pad;
     if (innerMax - innerMin < toWorld(300)) return null;
 
     let flW = toWorld(fl0Mm || 0);
@@ -347,6 +351,12 @@ export default function ElevationDimensionsOverlay() {
       if (mFl != null && Math.abs(mFl - flW) < toWorld(600)) flW = mFl;
       const mCl = rayY(1, false);
       if (mCl != null && mCl > flW + toWorld(1500) && mCl < flW + toWorld(6500)) clW = mCl;
+    }
+    // 作図した天井スラブ（上面＝CL・厚みは下向き）がある場合はその下面が実際の天井。
+    // クリップ（openElevationView）と同じ値にしないと寸法線が壁の上端をはみ出す。
+    {
+      const under = measureCeilingUndersideAt(markerPos);
+      if (under != null && under > flW + toWorld(1500)) clW = Math.min(clW, under);
     }
 
     // ── 表示中の奥行きスラブ（見ている壁〜クリップ位置） ──

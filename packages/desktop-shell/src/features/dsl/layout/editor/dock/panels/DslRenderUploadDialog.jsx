@@ -456,11 +456,18 @@ export default function DslRenderUploadDialog({
   // ── PC\SEKKEIYA へのローカル保存 ─────────────────────────────────
   const saveToLocalSekkeiya = useCallback(async (activeCards, pid) => {
     try {
-      const sekkeiyaPath = await invoke("get_ai_drive_path");
+      // アカウント私物ルート（PC\SEKKEIYA\Accounts\<アカウント>）配下の Projects に保存する。
+      // 未ログイン等で取得できない場合のみ旧来の SEKKEIYA 直下へフォールバック。
+      let baseRoot;
+      try {
+        baseRoot = await invoke("get_account_dir");
+      } catch {
+        baseRoot = await invoke("get_ai_drive_path");
+      }
       const safeProjName = projectName ? safeName(projectName) : null;
       const dir = safeProjName
-        ? `${sekkeiyaPath}\\Projects\\${safeProjName}\\WorkFiles\\3DSL\\renders\\${pid ?? "unknown"}`
-        : `${sekkeiyaPath}\\3DSL\\renders\\${pid ?? "unknown"}`;
+        ? `${baseRoot}\\Projects\\${safeProjName}\\WorkFiles\\3DSL\\renders\\${pid ?? "unknown"}`
+        : `${baseRoot}\\3DSL\\renders\\${pid ?? "unknown"}`;
       await mkdir(dir, { recursive: true });
       for (const card of activeCards) {
         // 動画は mp4 本体、静止画はサムネイル画像を保存する

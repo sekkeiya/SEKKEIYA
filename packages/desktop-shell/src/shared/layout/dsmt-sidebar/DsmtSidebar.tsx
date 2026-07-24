@@ -10,8 +10,6 @@ import { useAppStore, type DsmtScope } from '../../../store/useAppStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { BRAND } from '../../../styles/theme';
 
-const ACCENT = '#ec407a';
-
 function ScopeItem({ icon, label, active, onClick, color }: {
   icon: React.ReactNode; label: string; active: boolean; onClick: () => void; color?: string;
 }) {

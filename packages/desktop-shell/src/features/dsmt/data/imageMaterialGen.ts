@@ -520,7 +520,7 @@ export async function generateMaterialsFromSources(
   let skipped = 0;
 
   // ── フェーズ2: 画像グループを処理 ──
-  for (const { base, items, pid } of imageGroups) {
+  for (const { base, items } of imageGroups) {
     current++;
     onProgress?.(current, totalGroups, base);
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Chip, Button, Divider,
-  Switch, FormControlLabel, TextField, IconButton,
+  Switch, TextField,
   CircularProgress,
 } from '@mui/material';
 import WbSunnyRoundedIcon from '@mui/icons-material/WbSunnyRounded';
@@ -17,7 +17,6 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useAppStore } from '../../../store/useAppStore';
 import { useDsdStore } from '../store/useDsdStore';
-import { BRAND } from '../../../styles/theme';
 
 const TEMPLATE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
   sun:    { label: '日照・日影',   icon: <WbSunnyRoundedIcon sx={{ fontSize: 14 }} />, color: 'light-dark(#5a822b, #aed581)' },

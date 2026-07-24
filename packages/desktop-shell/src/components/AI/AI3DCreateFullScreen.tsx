@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { Box, Typography, TextField, Button, IconButton, CircularProgress, Select, MenuItem, FormControl, InputLabel, Dialog, Slider } from '@mui/material';
+import { Box, Typography, TextField, Button, IconButton, CircularProgress, Dialog } from '@mui/material';
 import { useAppStore } from '../../store/useAppStore';
 import { useAI3DCreateStore } from '../../store/useAI3DCreateStore';
 import { useDriveAssets, PICKER_LAYERS } from '../../features/drive/driveAccess';
@@ -17,7 +17,7 @@ import { Modal } from '@mui/material';
 import { useAiProfileStore } from '../../store/useAiProfileStore';
 import { useAuth } from "../../features/dsl/layout/hooks/useAuthProxy";
 import AI3DHistorySidebar, { type AIJob } from './AI3DHistorySidebar';
-import { MODEL_3D_DISPLAY_NAMES, MODEL_3D_PLAN_REQUIRED, AI_3D_LIMITS, type UserPlan } from '../../features/ai-studio/constants/ai-model-plans';
+import { MODEL_3D_DISPLAY_NAMES } from '../../features/ai-studio/constants/ai-model-plans';
 import { useAiModelLimits } from '../../features/ai-studio/hooks/useAiModelLimits';
 
 
@@ -53,7 +53,7 @@ const AI3DCreateFullScreen: React.FC = () => {
   const [uploadFiles, setUploadFiles] = React.useState<File[]>([]);
   
   // SEKKEIYA Drive の画像資産（driveAccess = 単一の読み取り窓口・決定的プール）。
-  const { assets: driveAssets } = useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
+  useDriveAssets({ media: 'image', layers: PICKER_LAYERS });
 
   const [resultAssetId, setResultAssetId] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState(0);

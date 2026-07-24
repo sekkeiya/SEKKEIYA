@@ -143,7 +143,6 @@ export const dssUploadService = {
     const { doc, getDoc } = await import('firebase/firestore');
     
     // 1. Fetch current asset
-    const assetRef = doc(storage.app ? await import('../../../lib/firebase/client').then(m => m.db) : require('../../../lib/firebase/client').db, 'assets', assetId);
     let assetSnap;
     try {
       const { db } = await import('../../../lib/firebase/client');

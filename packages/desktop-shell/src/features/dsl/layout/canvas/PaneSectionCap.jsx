@@ -4,15 +4,12 @@
 // グリッドではペインごとに切断位置が違うため、axis/pos を props で受けて単軸だけ描く。
 // ステンシル手法は「切られたジオメトリ」から断面を検出するので、切り方が
 // material.clippingPlanes（単体ビュー）でも renderer.clippingPlanes（グリッドペイン）でも成立する。
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 
 const CAP_COLOR = 0x0a0a0a;
-// 切断面フレームの色は SectionClipManager の CutPlaneFrame と揃える（x=赤 / z=青）。
-const FRAME_COLOR = { x: "#ef9a9a", z: "#90caf9" };
 
 function makeStencilMat(side, op) {
   const m = new THREE.MeshBasicMaterial();
@@ -20,23 +17,6 @@ function makeStencilMat(side, op) {
   m.stencilFunc = THREE.AlwaysStencilFunc; m.side = side;
   m.stencilFail = op; m.stencilZFail = op; m.stencilZPass = op;
   return m;
-}
-
-/** 切断位置を示す矩形フレーム（SectionClipManager の CutPlaneFrame と同じ見た目）。 */
-function CutFrame({ w, h, color }) {
-  const pts = useMemo(() => {
-    const hw = w / 2, hh = h / 2;
-    return [[-hw, -hh, 0], [hw, -hh, 0], [hw, hh, 0], [-hw, hh, 0], [-hw, -hh, 0]];
-  }, [w, h]);
-  return (
-    <>
-      <mesh raycast={() => null} userData={{ ignoreClipping: true }}>
-        <planeGeometry args={[w, h]} />
-        <meshBasicMaterial color={color} transparent opacity={0.07} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-      <Line points={pts} color={color} lineWidth={1.6} transparent opacity={0.85} depthTest={false} />
-    </>
-  );
 }
 
 export default function PaneSectionCap({ axis, pos }) {
@@ -132,23 +112,11 @@ export default function PaneSectionCap({ axis, pos }) {
     }
   });
 
-  // 切断面フレーム（単体ビューの CutPlaneFrame と同じ見た目・軸色）。
-  const frameHalfXZ = Math.max(sceneExtentXZ || 0, sceneMaxY || 0, 3);
-  const frameW = frameHalfXZ * 2.2;
-  const frameTopY = Math.max(sceneMaxY || 0, 3) * 1.05;
-
+  // 切り口の黒ポシェ（rootRef のキャップ群）だけを描く。切断面フレーム（どこを切っているかの枠）は
+  // 2D 作図ビューでは不要なので出さない（単体ビューの SectionClipManager と揃える）。
   return (
     <group userData={{ isSectionRef: true }}>
       <group ref={rootRef} userData={{ isSectionRef: true }} />
-      {axis === "x" ? (
-        <group position={[pos, frameTopY / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <CutFrame w={frameW} h={frameTopY} color={FRAME_COLOR.x} />
-        </group>
-      ) : (
-        <group position={[0, frameTopY / 2, pos]} rotation={[0, 0, 0]}>
-          <CutFrame w={frameW} h={frameTopY} color={FRAME_COLOR.z} />
-        </group>
-      )}
     </group>
   );
 }

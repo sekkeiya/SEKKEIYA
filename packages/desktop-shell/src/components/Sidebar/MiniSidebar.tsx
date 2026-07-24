@@ -7,7 +7,6 @@ import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
-import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import BrushRoundedIcon from '@mui/icons-material/BrushRounded';
@@ -16,13 +15,11 @@ import PresentToAllRoundedIcon from '@mui/icons-material/PresentToAllRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import CollectionsRoundedIcon from '@mui/icons-material/CollectionsRounded';
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
-import WallpaperRoundedIcon from '@mui/icons-material/WallpaperRounded';
 import WbSunnyRoundedIcon from '@mui/icons-material/WbSunnyRounded';
 import SquareFootRoundedIcon from '@mui/icons-material/SquareFootRounded';
 import PhotoLibraryRoundedIcon from '@mui/icons-material/PhotoLibraryRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import LocalLibraryRoundedIcon from '@mui/icons-material/LocalLibraryRounded';
-import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
@@ -157,8 +154,6 @@ const ALL_SUB_APPS: SubAppDef[] = [
   { label: 'S.Material',      scope: '3dsmt', workspaceId: 'material', src: icon3DSMT, Fallback: TextureRoundedIcon },
 ];
 
-const MAX_SIDEBAR_APPS = 5;
-
 // ProjectSidebarと同じカラーロジック
 const projectHue = (name: string) =>
   [...(name || '')].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
@@ -174,22 +169,17 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
   const {
     setCurrentMainView,
     setViewingCreatorId,
-    toggleAIChat,
-    toggleAIDrive,
     isAIDriveOpen,
     isAIChatOpen,
     isAI3DCreateOpen,
     currentMainView,
     setAIDriveOpen,
-    toggleAI3DCreate,
     setAI3DCreateOpen,
     isAIRenderOpen,
-    toggleAIRender,
     setAIRenderOpen,
     activeWorkspaceId,
     setActiveWorkspaceId,
     setLastActiveAppScope,
-    isAIDriveExpanded,
     setActiveProjectId,
     openUserSettings,
     closeUserSettings,
@@ -319,15 +309,6 @@ const MiniSidebar: React.FC<{ open?: boolean; onClose?: () => void }> = ({ open 
   const allPinnedApps = pinnedTabIds
     .map(id => ALL_SUB_APPS.find(a => a.scope === id))
     .filter((a): a is SubAppDef => !!a);
-
-  // サイドバーには上位 MAX_SIDEBAR_APPS 件を表示
-  // ただし現在アクティブなアプリが範囲外なら差し替え
-  const activeIdx = allPinnedApps.findIndex(a => a.workspaceId === activeWorkspaceId);
-  let visibleApps = allPinnedApps.slice(0, MAX_SIDEBAR_APPS);
-  if (activeIdx >= MAX_SIDEBAR_APPS) {
-    visibleApps = [...allPinnedApps.slice(0, MAX_SIDEBAR_APPS - 1), allPinnedApps[activeIdx]];
-  }
-  const hasMoreApps = allPinnedApps.length > MAX_SIDEBAR_APPS;
 
   const handleLogout = () => {
     logout();

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography, Paper, ToggleButtonGroup, ToggleButton, Switch, FormControlLabel } from '@mui/material';
 import TranslateRoundedIcon from '@mui/icons-material/TranslateRounded';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';

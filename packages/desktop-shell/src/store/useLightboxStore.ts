@@ -20,7 +20,7 @@ interface LightboxState {
   setIndex: (i: number) => void;
 }
 
-export const useLightboxStore = create<LightboxState>((set, get) => ({
+export const useLightboxStore = create<LightboxState>((set) => ({
   open: false,
   images: [],
   index: 0,

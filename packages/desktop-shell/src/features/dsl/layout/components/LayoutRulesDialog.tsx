@@ -5,7 +5,6 @@
  * 旧・配置ルール/カテゴリ関係タブは廃止（エンジン側フォールバックはデフォルトルールで動作）。
  */
 
-import React from 'react';
 import {
   Dialog, DialogTitle, DialogContent,
   Box, IconButton, Typography,

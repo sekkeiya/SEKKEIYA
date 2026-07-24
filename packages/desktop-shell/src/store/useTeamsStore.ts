@@ -31,7 +31,7 @@ interface TeamsState {
   exitTeam: (teamId: string, userId: string) => Promise<void>;
 }
 
-export const useTeamsStore = create<TeamsState>((set, get) => ({
+export const useTeamsStore = create<TeamsState>((set) => ({
   teams: [],
   activeTeamId: null,
   isLoading: false,

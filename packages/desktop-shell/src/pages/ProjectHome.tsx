@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Snackbar, Alert, Paper, Tabs, Tab, useMediaQuery } from '@mui/material';
+import { Box, Typography, Snackbar, Alert, Tabs, Tab, useMediaQuery } from '@mui/material';
 import { LayoutTemplate } from 'lucide-react';
 
 import { useAppStore } from '../store/useAppStore';
@@ -12,7 +12,6 @@ import RhinoTemplateDialog from '../components/Projects/RhinoTemplateDialog';
 import { constructLocalDirPath, createNextLocalVersion } from '../features/projects/utils/workFileFsHelpers';
 import { WorkFilesList } from '../components/Projects/WorkFilesList';
 import { AllProjectsFilesList } from '../components/Projects/AllProjectsFilesList';
-import { QuickStartWorkFiles } from '../components/Projects/QuickStartWorkFiles';
 import { SchedulesTasksList } from '../components/Projects/SchedulesTasksList';
 import { ResearchMemoTab } from '../components/Projects/ResearchMemoTab';
 import { ProjectSiteCanvas } from '../features/sites/ProjectSiteCanvas';
@@ -131,47 +130,6 @@ const ProjectHome: React.FC = () => {
       setToastMessage(`起動エラー: ${err.message || err}`);
     } finally {
       setGlobalLaunchingTool(null);
-    }
-  };
-
-  const handleOpenActivity = async (activity: any) => {
-    if (activity.workFileId) {
-      const binding = useWorkFileStore.getState().getBinding(activity.workFileId);
-      if (!binding || !binding.existsLocally) {
-        setToastMessage('ローカルファイルが見つかりません。ダウンロード機能は未実装です。');
-        return;
-      }
-      setToastMessage('Work File を開いています...');
-      setGlobalLaunchingTool('アプリ');
-
-      try {
-        await invoke('launch_rhino', { templatePath: '', targetFilePath: binding.localPath });
-        await new Promise(resolve => setTimeout(resolve, 4500));
-
-        useWorkFileStore.getState().saveBinding(activity.workFileId, {
-          localPath: binding.localPath,
-          existsLocally: true,
-          lastOpenedAt: new Date().toISOString()
-        });
-
-        if (activeProject && currentUser) {
-          await WorkFileRepository.logActivity({
-            projectId: activeProject.id,
-            type: 'work_file_opened',
-            targetType: 'workFile',
-            targetId: activity.workFileId,
-            userId: currentUser.uid,
-          });
-          await WorkFileRepository.updateWorkFileTime(activeProject.id, activity.workFileId, currentUser.uid);
-        }
-        setToastMessage('Work File を開きました');
-      } catch (err: any) {
-        setToastMessage(`起動エラー: ${err}`);
-      } finally {
-        setGlobalLaunchingTool(null);
-      }
-    } else {
-      setToastMessage(`${activity.title} は現在プレビューのみです`);
     }
   };
 

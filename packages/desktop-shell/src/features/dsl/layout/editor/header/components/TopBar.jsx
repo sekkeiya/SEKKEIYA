@@ -26,7 +26,7 @@ import { useWorkspaceStructureStore } from "../../../store/useWorkspaceStructure
 import { useViewportUiStore } from "../../../store/viewportUiStore";
 import { useEditorModeStore } from "../../../store/useEditorModeStore";
 import { useZoningStore } from "../../../store/useZoningStore";
-import { useAutoLayoutStore } from "../../../store/useAutoLayoutStore";
+import { useAutoLayoutStore, resolveAutoLayoutIds } from "../../../store/useAutoLayoutStore";
 import { useLayoutTaskStore } from "../../../store/useLayoutTaskStore";
 import { useSelectionScopeStore, canSelectItem, canSelectZone } from "../../../store/useSelectionScopeStore";
 import { useUiSelectionStore } from "../../../store/uiSelectionStore";
@@ -49,6 +49,7 @@ import ModeToolbar from "./toolbars/ModeToolbar.jsx";
 import SelectionScopeButtons from "./toolbars/SelectionScopeButtons.jsx";
 import SymbolVisibilityToggle from "./toolbars/SymbolVisibilityToggle.jsx";
 import DrawingLightToggle from "./toolbars/DrawingLightToggle.jsx";
+import RoomColorToggle from "./toolbars/RoomColorToggle.jsx";
 import ViewGroupToggle from "./toolbars/ViewGroupToggle.jsx";
 import StructureBreadcrumb from "./StructureBreadcrumb.jsx";
 
@@ -144,13 +145,8 @@ export default function TopBar({
   const closeAlert = () => setAlertInfo({ open: false, message: "" });
 
   const handleAutoLayout = useCallback(() => {
-    const ids = selectedZoneIds.length > 0
-      ? selectedZoneIds
-      : zones.length > 0
-        ? zones.map(z => z.id)
-        : ['__full_room__'];
-    requestAutoLayout(ids);
-  }, [selectedZoneIds, zones, requestAutoLayout]);
+    requestAutoLayout(resolveAutoLayoutIds());
+  }, [requestAutoLayout]);
 
   const requestAlign = useViewportUiStore((s) => s.requestAlign);
   const [rotateMenuAnchor, setRotateMenuAnchor] = useState(null);
@@ -615,6 +611,7 @@ export default function TopBar({
           <SelectionScopeButtons />
           <SymbolVisibilityToggle />
           <DrawingLightToggle />
+          <RoomColorToggle />
           <CommandBar />
         </Box>
 

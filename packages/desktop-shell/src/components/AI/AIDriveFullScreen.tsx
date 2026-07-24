@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, TextField, IconButton, Chip, Paper, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Slider, Button, Menu, MenuItem, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, IconButton, Chip, Paper, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Divider, Button, Menu, MenuItem, CircularProgress } from '@mui/material';
 import { useAppStore } from '../../store/useAppStore';
 import { useTeamsStore } from '../../store/useTeamsStore';
 import { useAIDriveStore, isReusableAsset, type AIDriveAsset } from '../../store/useAIDriveStore';
@@ -29,8 +29,6 @@ import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownR
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import SortRoundedIcon from '@mui/icons-material/SortRounded';
-import ZoomInRoundedIcon from '@mui/icons-material/ZoomInRounded';
-import ZoomOutRoundedIcon from '@mui/icons-material/ZoomOutRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
@@ -60,7 +58,6 @@ import ArticleRoundedIcon from '@mui/icons-material/ArticleRounded';
 // Inspector Icons
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import FileUploadRoundedIcon from '@mui/icons-material/FileUploadRounded';
-import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
 
 // Mock color palette colors for inspector
 const mockPalette = ['#E53935', '#FB8C00', '#FDD835', '#43A047', '#1E88E5', '#8E24AA', '#E0E0E0', '#424242'];
@@ -237,7 +234,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
   const [isAITagging, setIsAITagging] = useState(false);
   const [analyzingAssetId, setAnalyzingAssetId] = useState<string | null>(null);
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null);
-  const [projectMenuAnchor, setProjectMenuAnchor] = useState<null | HTMLElement>(null);
+  const [, setProjectMenuAnchor] = useState<null | HTMLElement>(null);
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -378,7 +375,7 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
     setIsFileDragOver(true);
   };
 
-  const handleFileDragLeave = (e: React.DragEvent) => {
+  const handleFileDragLeave = () => {
     dragCounterRef.current -= 1;
     if (dragCounterRef.current === 0) setIsFileDragOver(false);
   };
@@ -552,11 +549,6 @@ const AIDriveFullScreen: React.FC<AIDriveFullScreenProps> = ({ isPickerMode, onP
       const newTags = [...new Set([...(a.tags || []), tag])];
       await updateAsset(id, a.projectId || '', { tags: newTags });
     }
-  };
-
-  const assignFolderToAssets = async (assetIds: string[], folderId: string) => {
-    console.log(`[Mock] Assigned folder ${folderId} to assets:`, assetIds);
-    // Expand with actual folder linking later
   };
 
   const handleAssetDoubleClick = (id: string) => {

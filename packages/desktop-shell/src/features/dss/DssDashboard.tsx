@@ -9,7 +9,6 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { doc, setDoc, increment } from 'firebase/firestore';
 import { db } from '../../lib/firebase/client';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import CloudOffRoundedIcon from '@mui/icons-material/CloudOffRounded';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 // @ts-ignore
 import UploadModalContent from './upload/modal/UploadModalContent';
@@ -26,7 +25,7 @@ import { UserProfileDialog } from './components/UserProfileDialog';
 import { DssShareDialog } from './components/DssShareDialog';
 import { DssDeleteConfirmDialog } from './components/DssDeleteConfirmDialog';
 import { WorkspaceItemRepository } from '../workspace/WorkspaceItemRepository';
-import { DssModelDetailView } from './components/DssModelDetailView';
+import { DssModelDetailView, DssDetailHeader } from './components/DssModelDetailView';
 // 全幅ヘッダー化レイアウト: 左のモデル一覧サイドバーと右の Search & Filter パネルを
 // このダッシュボード内（ツールバー下の 3 ゾーン行）に埋め込む。デスクトップのみ。
 // モバイルは従来どおり MainLayout / RightPanelHost 側の外部パネル（ドロワー）を使う。
@@ -47,6 +46,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { SEARCH_ENGINES, runProductSearch, getModelQueryImage, type SearchEngine } from './utils/productImageSearch';
 import { runLensSearch, appendRelatedLinks, appendCatalogLinks, bulkRegisterLensLinks, type LensResult, type LensDiag, type BulkRegisterProgress, type CatalogLink } from './utils/lensResultsSearch';
 import { bulkAiAutoFill, type AiAutoFillProgress } from './utils/bulkAiAutoFill';
+import { bulkRegenerateThumbnails, type ThumbRegenProgress } from './utils/bulkRegenerateThumbnails';
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import { DssFurnitureGraph } from './graph/DssFurnitureGraph';
 import { openModelInDcc, canPlaceInDcc, type DccApp } from './utils/dccPlacement';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
@@ -394,6 +395,60 @@ export const DssDashboard: React.FC<{
   const [aiBulkProgress, setAiBulkProgress] = useState<AiAutoFillProgress | null>(null);
   const [aiBulkDone, setAiBulkDone] = useState<{ models: number; rows: { title: string; fields: number; error?: string }[] } | null>(null);
   const aiBulkAbortRef = useRef<AbortController | null>(null);
+
+  // ── サムネイル再生成（既存モデルを現在の生成設定で作り直す） ─────────────
+  const [thumbRegenProgress, setThumbRegenProgress] = useState<ThumbRegenProgress | null>(null);
+  const [thumbRegenBusy, setThumbRegenBusy] = useState(false);
+  const thumbRegenAbortRef = useRef<AbortController | null>(null);
+
+  const handleBulkRegenerateThumbs = useCallback(async () => {
+    const chosen = gridItemsRef.current
+      .filter((m) => selectedIds.includes(m.id))
+      .filter((m) => isAuthorOf(m) && !m.isProjectItem);
+    if (chosen.length === 0) return;
+    const ok = window.confirm(
+      `${chosen.length} 件のサムネイルを作り直します。\n` +
+      'GLB を読み込んで画像を生成し直すため時間がかかります。よろしいですか？'
+    );
+    if (!ok) return;
+
+    const controller = new AbortController();
+    thumbRegenAbortRef.current = controller;
+    setThumbRegenBusy(true);
+    setThumbRegenProgress(null);
+    try {
+      const results = await bulkRegenerateThumbnails(chosen, {
+        signal: controller.signal,
+        onProgress: (p) => setThumbRegenProgress(p),
+      });
+      // グリッドと右パネルへ即時反映（再読み込みなしで新しいサムネが出るように）。
+      results.forEach((r) => {
+        if (!r.thumbnailUrl) return;
+        const it = gridItemsRef.current.find((m) => m.id === r.modelId);
+        if (it) it.thumbnailUrl = r.thumbnailUrl;
+      });
+      if (payload?.workspaceId && selectedItem) {
+        const hit = results.find((r) => r.modelId === selectedItem.id && r.thumbnailUrl);
+        if (hit) setPanelSelection(payload.workspaceId, { ...selectedItem, thumbnailUrl: hit.thumbnailUrl });
+      }
+      const failed = results.filter((r) => r.error).length;
+      const skipped = results.filter((r) => r.skipped).length;
+      const done = results.filter((r) => r.thumbnailUrl).length;
+      setDccToast({
+        sev: failed > 0 ? 'error' : 'success',
+        msg: `サムネイルを再生成しました（成功 ${done} 件`
+          + (skipped ? ` / GLB無しでスキップ ${skipped} 件` : '')
+          + (failed ? ` / 失敗 ${failed} 件` : '') + '）',
+      });
+    } catch (e: any) {
+      console.error('[DssDashboard] bulk thumbnail regeneration failed', e);
+      setDccToast({ sev: 'error', msg: e?.message || 'サムネイルの再生成に失敗しました' });
+    } finally {
+      setThumbRegenBusy(false);
+      setThumbRegenProgress(null);
+      thumbRegenAbortRef.current = null;
+    }
+  }, [selectedIds, isAuthorOf, payload?.workspaceId, selectedItem, setPanelSelection]);
 
   const handleBulkAutoFill = useCallback(async (explicitModels?: any[]) => {
     const chosen = (Array.isArray(explicitModels) ? explicitModels : gridItemsRef.current.filter((m) => selectedIds.includes(m.id)))
@@ -997,12 +1052,8 @@ export const DssDashboard: React.FC<{
     return buildGroupedLayoutUsageView(filteredItems, usageMap);
   }, [isProjectModelsScope, filteredItems, usageMap]);
 
-  console.log('[DEBUG Dashboard Layout View]', {
-    viewMode,
-    isProjectModelsScope,
-    groupedLength: groupedLayoutAssets.length,
-    groups: groupedLayoutAssets.map(g => ({ title: g.pathName, count: g.items.length }))
-  });
+  // 以前ここに毎レンダー実行される console.log があった（groups の map まで毎回走っていた）。
+  // ログ量・処理量ともに無駄なので削除。必要になったら開発時だけ一時的に足すこと。
 
   // ── 全幅ヘッダー化レイアウト用の埋め込みパネル（デスクトップのみ） ──────────────
   // デスクトップでは MainLayout の左サイドバー / RightPanelHost の右パネルを抑止し、
@@ -1018,7 +1069,8 @@ export const DssDashboard: React.FC<{
         display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden',
       }}
     >
-      <Box sx={{ p: 2 }}><DssRightPanel /></Box>
+      {/* 詳細画面表示中はメインビューアが同じモデルを表示するため、右パネルの3Dはサムネイルに切り替える */}
+      <Box sx={{ p: 2 }}><DssRightPanel hideViewer={!!detailModel} /></Box>
     </Box>
   ) : null;
 
@@ -1058,6 +1110,46 @@ export const DssDashboard: React.FC<{
           if (payload?.workspaceId) setPanelSelection(payload.workspaceId, target);
         };
         return (
+          <>
+          {/* 全幅ヘッダー（一覧画面と同じく右サイドバーの上まで届く） */}
+          <Box sx={styles.stickyHeaderWrap} data-no-dismiss="true">
+            <Box component="header" sx={styles.topBar}>
+              <DssDetailHeader
+                onBack={() => setDetailModel(null)}
+                searchQuery={searchFilters.query}
+                onSearchChange={(v) => setSearchFilters({ query: v })}
+                onSearchSubmit={() => setDetailModel(null)}
+                canImageSearch={canImageSearch}
+                imgSearchBusy={imgSearchBusy}
+                onCameraClick={(el) => { setImgSearchError(null); setImgSearchAnchor(el); }}
+                prevModel={prevM}
+                nextModel={nextM}
+                onNavigate={navigateDetail}
+              />
+              {/* 一覧ヘッダーと同じアクション（3Dモデル生成・Upload） */}
+              <Tooltip title="3Dモデルの生成・編集エディターを開く（画像→3D）" placement="bottom">
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={<ViewInArRoundedIcon />}
+                  sx={{ ...styles.actionBtn, flexShrink: 0, bgcolor: '#7c3aed', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#6d28d9' } }}
+                  onClick={openModelGenerator}
+                >
+                  3Dモデル生成/編集
+                </Button>
+              </Tooltip>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<CloudUploadIcon />}
+                sx={{ ...styles.actionBtn, flexShrink: 0, bgcolor: '#29b6f6', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0288d1' } }}
+                onClick={() => setUploadDialogOpen(true)}
+              >
+                Upload
+              </Button>
+            </Box>
+          </Box>
+
           <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <Box sx={{ position: 'relative', flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
             <AnimatePresence mode="wait" custom={detailNavDir} initial={false}>
@@ -1107,8 +1199,10 @@ export const DssDashboard: React.FC<{
               </motion.div>
             </AnimatePresence>
             </Box>
-            {embeddedRightPanel}
+            {/* 詳細画面では Model Info は詳細ペインの「概要」タブに統合済みのため、
+                右カラムは出さない（Item Details を1枚に保ち、ビューアを広く使う）。 */}
           </Box>
+          </>
         );
       })() : (
         <>
@@ -1441,7 +1535,7 @@ export const DssDashboard: React.FC<{
                     color="primary"
                   />
                 </Box>
-                <Tooltip title="AIで3Dモデルを生成（画像→3D。生成画面が開きます）" placement="bottom">
+                <Tooltip title="3Dモデルの生成・編集エディターを開く（画像→3D）" placement="bottom">
                   <Button
                     size="small"
                     variant="contained"
@@ -1449,7 +1543,7 @@ export const DssDashboard: React.FC<{
                     sx={{ ...styles.actionBtn, bgcolor: '#7c3aed', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#6d28d9' } }}
                     onClick={openModelGenerator}
                   >
-                    3Dモデル生成
+                    3Dモデル生成/編集
                   </Button>
                 </Tooltip>
                 <Button
@@ -1886,7 +1980,7 @@ export const DssDashboard: React.FC<{
         const blenderCount = dccEligibleCount('blender');
         const cnt = (n: number) => (n > 0 ? `（${n}）` : '');
         const actionBtnSx = (bg: string, hover: string) => ({
-          textTransform: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+          textTransform: 'none' as const, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' as const, flexShrink: 0,
           minWidth: 0, px: 1.25, py: 0.5, borderRadius: 999, bgcolor: bg, color: 'var(--brand-fg)',
           '& .MuiButton-startIcon': { mr: 0.5, ml: 0 },
           '&:hover': { bgcolor: hover },
@@ -1917,7 +2011,7 @@ export const DssDashboard: React.FC<{
             <span style={{ flexShrink: 0, display: 'inline-flex' }}>
               <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
                 startIcon={<ImageSearchRoundedIcon sx={{ fontSize: 16 }} />}
-                onClick={handleBulkRegister} sx={actionBtnSx('#2563eb', '#1d4ed8')}>
+                onClick={() => handleBulkRegister()} sx={actionBtnSx('#2563eb', '#1d4ed8')}>
                 関連URL{cnt(bulkEligibleCount)}
               </Button>
             </span>
@@ -1926,7 +2020,7 @@ export const DssDashboard: React.FC<{
             <span style={{ flexShrink: 0, display: 'inline-flex' }}>
               <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
                 startIcon={<MenuBookRoundedIcon sx={{ fontSize: 16 }} />}
-                onClick={handleBulkCatalog} sx={actionBtnSx('#16a34a', '#15803d')}>
+                onClick={() => handleBulkCatalog()} sx={actionBtnSx('#16a34a', '#15803d')}>
                 カタログ{cnt(bulkEligibleCount)}
               </Button>
             </span>
@@ -1935,8 +2029,21 @@ export const DssDashboard: React.FC<{
             <span style={{ flexShrink: 0, display: 'inline-flex' }}>
               <Button size="small" variant="contained" disabled={bulkEligibleCount === 0}
                 startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 16 }} />}
-                onClick={handleBulkAutoFill} sx={actionBtnSx('#7c3aed', '#6d28d9')}>
+                onClick={() => handleBulkAutoFill()} sx={actionBtnSx('#7c3aed', '#6d28d9')}>
                 AI入力{cnt(bulkEligibleCount)}
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="GLBから現在の設定でサムネイルを作り直す（構図と解像度が改善）">
+            <span style={{ flexShrink: 0, display: 'inline-flex' }}>
+              <Button size="small" variant="contained" disabled={bulkEligibleCount === 0 || thumbRegenBusy}
+                startIcon={thumbRegenBusy
+                  ? <CircularProgress size={14} sx={{ color: 'var(--brand-fg)' }} />
+                  : <ImageRoundedIcon sx={{ fontSize: 16 }} />}
+                onClick={handleBulkRegenerateThumbs} sx={actionBtnSx('#0891b2', '#0e7490')}>
+                {thumbRegenBusy && thumbRegenProgress
+                  ? `サムネ再生成 ${thumbRegenProgress.index + 1}/${thumbRegenProgress.total}`
+                  : `サムネ再生成${cnt(bulkEligibleCount)}`}
               </Button>
             </span>
           </Tooltip>

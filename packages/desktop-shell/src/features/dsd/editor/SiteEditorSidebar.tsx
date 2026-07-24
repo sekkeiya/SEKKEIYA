@@ -128,7 +128,7 @@ const ContextPanel: React.FC = () => {
   const {
     siteTool, setSiteTool,
     siteElementType, setSiteElementType,
-    siteElements, addSiteElement, updateSiteElement, removeSiteElement, clearSiteElements,
+    siteElements, updateSiteElement, removeSiteElement, clearSiteElements,
     selectedSiteElementId, setSelectedSiteElementId,
   } = useDsdStore();
 

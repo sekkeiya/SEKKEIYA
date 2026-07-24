@@ -15,7 +15,7 @@ import LightbulbOutlinedIcon    from '@mui/icons-material/LightbulbOutlined';
 import PlayArrowRoundedIcon     from '@mui/icons-material/PlayArrowRounded';
 import { useAuthStore }        from '../../../store/useAuthStore';
 import { useConnectorStore }   from '../../connectors/useConnectorStore';
-import { connectGoogleCalendar, refreshGoogleToken } from '../../connectors/google/googleCalendarOAuth';
+import { connectGoogleCalendar } from '../../connectors/google/googleCalendarOAuth';
 import { isBlogAdmin }         from '../../dsb/lib/blogAdmin';
 import { doc, onSnapshot }     from 'firebase/firestore';
 import { db }                  from '../../../lib/firebase/client';

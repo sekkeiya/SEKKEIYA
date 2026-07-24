@@ -586,7 +586,7 @@ export const DevStatusPanel = () => {
       if (insertIdx < 0) insertIdx = targetList.length;
       const newList = [...targetList];
       newList.splice(insertIdx, 0, activeItem);
-      persistOrder(newList, (it, idx) => it.id === activeId ? { sprintId: targetSprintId } : null);
+      persistOrder(newList, (it) => it.id === activeId ? { sprintId: targetSprintId } : null);
     }
   };
   const activeDragItem = activeDragId ? byId.get(activeDragId) : undefined;

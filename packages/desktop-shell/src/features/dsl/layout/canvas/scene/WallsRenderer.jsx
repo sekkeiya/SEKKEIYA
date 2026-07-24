@@ -233,8 +233,12 @@ function PieceMesh({ poly, y0, y1, baseY, k, isTopView, selected, onSelect, fini
       {/* 自動マテリアルの仕上げがあればそれを使う（選択中も素材はそのまま＝見た目を壊さない）。 */}
       {ghost ? (
         // 他階のトレース表示: 薄いグレーの面だけ（断面ポシェも出さない）。
-        <mesh geometry={geo} userData={{ isGhostFloor: true }}>
-          <meshBasicMaterial color={GHOST_COLOR} transparent opacity={0.16} depthWrite={false} side={THREE.DoubleSide} />
+        //   renderOrder/depthTest: アクティブ階の床塗り(9980, depthWrite有)より上に必ず重ねる。
+        //   未指定(=0)＋depthTest有だと、2F表示中に赤枠(2Fの下)の1F壁が2Fの床塗りに覆われて
+        //   消えてしまう。9985 なら床塗り(9980)より上・2F壁ポシェ(9990)より下に薄く重なり、
+        //   2Fの下でも1Fの内壁/外壁がトレースとして見える（2Fの黒壁は上に残る）。
+        <mesh geometry={geo} renderOrder={9985} userData={{ isGhostFloor: true }}>
+          <meshBasicMaterial color={GHOST_COLOR} transparent opacity={0.16} depthWrite={false} depthTest={false} side={THREE.DoubleSide} />
         </mesh>
       ) : (
         <mesh
@@ -256,7 +260,11 @@ function PieceMesh({ poly, y0, y1, baseY, k, isTopView, selected, onSelect, fini
         </mesh>
       )}
       {pocheGeo && !ghost && (
-        <>
+        // ポシェは床レベル(y≈壁の足元)に置くので、天井伏図（下を消すY反転クリップ）では
+        // カット面より下＝断面クリップで消えてしまい、壁の黒塗りが欠ける。ポシェは図面表現なので
+        // 断面クリップの対象外(ignoreClipping)にし、平面図・天井伏図のどちらでも同じ黒塗りを出す
+        // （見上げでも depthTest=false＋高 renderOrder で最前面に描く）。
+        <group userData={{ ignoreClipping: true }}>
           {/* ポシェは図面の要なので黒のまま。選択時は上に薄い選択色を重ねる。
               ⚠️ transparent を必ず立てる（opacity は 1 のまま）。three.js は
               「不透明を全部描いてから半透明を描く」ので、不透明のままだと renderOrder に
@@ -276,7 +284,7 @@ function PieceMesh({ poly, y0, y1, baseY, k, isTopView, selected, onSelect, fini
               />
             </mesh>
           )}
-        </>
+        </group>
       )}
     </group>
   );

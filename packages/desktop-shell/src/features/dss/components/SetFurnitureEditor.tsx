@@ -541,37 +541,6 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
     ));
   }, [selectedIds, rotateStepDeg]);
 
-  /**
-   * Align 純粋関数（単一・複数選択統合）
-   * - ids.length === 1: 選択アイテムを全アイテムのbboxに揃える
-   * - ids.length >= 2: 選択アイテム同士で揃える
-   */
-  const applyAlign = useCallback((key: string, items: PlacedItem[], ids: string[]): PlacedItem[] => {
-    if (ids.length === 0 || items.length < 2) return items;
-    // 基準bbox: 複数選択なら選択だけ、単一選択なら全アイテム
-    const refItems = ids.length >= 2 ? items.filter(i => ids.includes(i.instanceId)) : items;
-    if (refItems.length === 0) return items;
-    const minX = Math.min(...refItems.map(i => i.x - i.w / 2));
-    const maxX = Math.max(...refItems.map(i => i.x + i.w / 2));
-    const minY = Math.min(...refItems.map(i => i.y - i.d / 2));
-    const maxY = Math.max(...refItems.map(i => i.y + i.d / 2));
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-    return items.map(item => {
-      if (!ids.includes(item.instanceId)) return item;
-      let x = item.x, y = item.y;
-      switch (key) {
-        case 'AT': y = maxY - item.d / 2; break;
-        case 'AB': y = minY + item.d / 2; break;
-        case 'AL': x = minX + item.w / 2; break;
-        case 'AR': x = maxX - item.w / 2; break;
-        case 'AH': x = cx;               break;
-        case 'AV': y = cy;               break;
-      }
-      return { ...item, x, y };
-    });
-  }, []);
-
   // ツールバーのAlignボタン → インタラクティブモードを起動
   const handleAlign = useCallback((key: string) => {
     handleAlignActivate(key);

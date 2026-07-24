@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Typography, Chip, IconButton } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
 import ShapeLineRoundedIcon from '@mui/icons-material/ShapeLineRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
-import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 
 interface DslLayoutCardProps {

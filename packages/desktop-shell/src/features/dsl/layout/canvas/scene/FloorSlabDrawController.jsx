@@ -12,6 +12,7 @@
 //   線（通り芯・壁芯・床の辺）→ 50mm グリッドの順に効き、何に吸着したかはマーカーで出る。
 //   Alt 押下中は吸着を外して自由配置。
 import React, { useRef, useCallback, useEffect, useState } from "react";
+import * as THREE from "three";
 import { useThree } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
@@ -19,15 +20,16 @@ import { useUiSelectionStore } from "../../store/uiSelectionStore";
 import { useSlabStore, slabAreaMm2 } from "../../store/useSlabStore";
 import { useWallStore } from "../../store/useWallStore";
 import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
-import { resolveDrawSnap } from "../../utils/drawSnap";
+import { resolveDrawSnap, gridSnap } from "../../utils/drawSnap";
 import DrawSnapMarker from "./DrawSnapMarker.jsx";
 
-const SNAP_MM = 50;        // グリッド刻み（Shift 押下中のみ）
 const PT_SNAP_MM = 250;    // 既存の壁端点／床頂点への吸着距離（Shift 押下中のみ）
 const MIN_SIDE_MM = 100;   // これより細い辺の矩形は確定しない（誤クリック対策）
-const PREVIEW_COLOR = "#0d9488"; // 床ツール = ティール（壁のスレートと区別）
+const FLOOR_COLOR = "#0d9488"; // 床ツール = ティール（壁のスレートと区別）
+const CEIL_COLOR = "#7c3aed";  // 天井ツール = バイオレット（床と区別）
 
-const snap = (v) => Math.round(v / SNAP_MM) * SNAP_MM;
+// グリッド丸めは表示中の床グリッド（gridCellSizeMm）に合わせる（Shift 押下中のみ使用）。
+const snap = gridSnap;
 
 /** 対角の2点 → 矩形の4頂点（world XZ 軸に平行）。 */
 const rectPoints = (a, b) => [
@@ -37,7 +39,9 @@ const rectPoints = (a, b) => [
   { x: a.x, z: b.z },
 ];
 
-export default function FloorSlabDrawController({ enabled = true }) {
+export default function FloorSlabDrawController({ enabled = true, role = "floor" }) {
+  const isCeiling = role === "ceiling";
+  const previewColor = isCeiling ? CEIL_COLOR : FLOOR_COLOR;
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm) || 0;
   const drawActive = useSlabStore((s) => s.drawActive);
   const draftPoints = useSlabStore((s) => s.draftPoints);
@@ -140,12 +144,13 @@ export default function FloorSlabDrawController({ enabled = true }) {
     // 潰れた矩形は無視（開始点は動かさずクリックし直せる）
     if (Math.abs(p.x - a.x) < MIN_SIDE_MM || Math.abs(p.z - a.z) < MIN_SIDE_MM) return;
     const st = useSlabStore.getState();
-    // 作図した時点のアクティブ階を記録する（以後その階の FL に敷かれる）。
-    // addSlab はその床を選択状態にするので、そのまま編集に移れる。
-    st.addSlab(rectPoints(a, p), useBuildingSpecStore.getState().activeFloorIndex || 0);
+    // 作図した時点のアクティブ階を記録する（以後その階の FL / CL に敷かれる）。
+    // 天井ビューでは role="ceiling"（その階の CL に貼る）。addSlab はその面を選択状態にするので、
+    // そのまま編集に移れる。
+    st.addSlab(rectPoints(a, p), useBuildingSpecStore.getState().activeFloorIndex || 0, role);
     st.setDrawActive(false);
     anchorRef.current = null;
-  }, [active, resolvePoint, setDraftPoints, cancelCommand]);
+  }, [active, resolvePoint, setDraftPoints, cancelCommand, role]);
 
   // 開始点が決まっていれば、カーソル位置までの矩形をプレビュー（ボタンは押していなくてよい）
   const handlePointerMove = useCallback((e) => {
@@ -169,8 +174,13 @@ export default function FloorSlabDrawController({ enabled = true }) {
     : null;
 
   return (
-    <>
-      {/* 作図用の透明フロアプレーン（ツール選択中のみ） */}
+    // ignoreClipping: 天井ビューは断面クリップ(下を消すY反転)が効くので、床レベル(y≈0)にある
+    //   作図プレーン／プレビューがカット面より下＝消される。UI なのでクリップ対象外にする
+    //   （SectionClipManager がこの印の枝を飛ばす）。
+    <group userData={{ ignoreClipping: true }}>
+      {/* 作図用の透明フロアプレーン（ツール選択中のみ）。
+          天井ビューは真下から見上げるカメラなので、片面(FrontSide)だと裏面が当たらず
+          クリックが発火しない → DoubleSide にして上下どちらから見ても掴めるようにする。 */}
       {active && (
         <mesh
           rotation={[-Math.PI / 2, 0, 0]}
@@ -179,7 +189,7 @@ export default function FloorSlabDrawController({ enabled = true }) {
           onPointerMove={handlePointerMove}
         >
           <planeGeometry args={[100000, 100000]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} side={THREE.DoubleSide} />
         </mesh>
       )}
 
@@ -191,24 +201,25 @@ export default function FloorSlabDrawController({ enabled = true }) {
         <>
           <Line
             points={[...draftPoints, draftPoints[0]].map((p) => [p.x, y, p.z])}
-            color={PREVIEW_COLOR} lineWidth={2.2} transparent opacity={0.9} depthTest={false}
+            color={previewColor} lineWidth={2.2} transparent opacity={0.9} depthTest={false}
           />
           {centroid && areaM2 > 0.001 && (
             <Html position={[centroid.x, y, centroid.z]} center zIndexRange={[18, 0]} style={{ pointerEvents: "none" }}>
               <div
                 style={{
                   padding: "2px 7px", borderRadius: 4, fontSize: 10.5, fontWeight: 700, whiteSpace: "nowrap",
-                  color: "#f0fdfa", background: "rgba(13,148,136,0.85)",
-                  border: "1px solid rgba(153,246,228,0.35)",
+                  color: isCeiling ? "#f5f3ff" : "#f0fdfa",
+                  background: isCeiling ? "rgba(124,58,237,0.85)" : "rgba(13,148,136,0.85)",
+                  border: `1px solid ${isCeiling ? "rgba(196,181,253,0.4)" : "rgba(153,246,228,0.35)"}`,
                   fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
                 }}
               >
-                床 {areaM2.toFixed(2)}㎡（クリックで確定）
+                {isCeiling ? "天井" : "床"} {areaM2.toFixed(2)}㎡（クリックで確定）
               </div>
             </Html>
           )}
         </>
       )}
-    </>
+    </group>
   );
 }

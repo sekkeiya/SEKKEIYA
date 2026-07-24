@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -66,7 +66,7 @@ export default function SelectWorkFileAsBaseModal({ projectId, projectName, open
   const [activeVersions, setActiveVersions] = useState<Record<string, UnifiedVersion | null>>({});
 
   const [versionsMap, setVersionsMap]       = useState<Record<string, UnifiedVersion[]>>({});
-  const [loadingVersions, setLoadingVersions] = useState<Record<string, boolean>>({});
+  const [, setLoadingVersions] = useState<Record<string, boolean>>({});
   const [resolvedSizes, setResolvedSizes]   = useState<Record<string, number>>({});
 
   // 2D（サムネイル）/ 3D（ライブプレビュー）切り替え。S.Model 詳細と同じ UX。

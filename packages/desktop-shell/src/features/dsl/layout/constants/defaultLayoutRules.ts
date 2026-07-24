@@ -1,4 +1,4 @@
-import type { BuildingType, FurnitureCategoryRelation, LayoutRuleSet } from '../types/layoutRules';
+import type { FurnitureCategoryRelation, LayoutRuleSet } from '../types/layoutRules';
 
 // ─── カテゴリ関係（アンカー → コンパニオン） ───────────────────────────────────
 

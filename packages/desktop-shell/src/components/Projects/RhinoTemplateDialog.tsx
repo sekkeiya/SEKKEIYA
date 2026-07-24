@@ -18,7 +18,6 @@ import {
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import StraightenRoundedIcon from '@mui/icons-material/StraightenRounded';
-import ArchitectureRoundedIcon from '@mui/icons-material/ArchitectureRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';

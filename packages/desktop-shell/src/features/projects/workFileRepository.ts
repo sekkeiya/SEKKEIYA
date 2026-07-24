@@ -1,4 +1,4 @@
-import { doc, setDoc, getDocs, collection, query, orderBy, updateDoc, limit, writeBatch, runTransaction, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, orderBy, limit, writeBatch, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase/client';
 import type { WorkFile, ProjectActivity, WorkFileVersion } from './types';

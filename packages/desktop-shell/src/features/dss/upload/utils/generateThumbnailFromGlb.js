@@ -10,7 +10,10 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
  * @returns {Promise<{ blob: Blob, file: File, width: number, height: number }>}
  */
 export async function generateThumbnailFromGlb(glbFile, options = {}) {
-  const { width = 800, height = 450, quality = 0.9 } = options;
+  // 既定を正方形・高解像度にする。カードもモデル詳細のビューアも正方形〜横長の
+  // 大きな領域で表示するため、従来の 800x450 では詳細画面で 1.7 倍ほど引き伸ばされ
+  // 画質が落ちていた。正方形にすることで正方形カードでの上下の空白帯も無くなる。
+  const { width = 1024, height = 1024, quality = 0.9 } = options;
 
   if (!glbFile || !glbFile.name.toLowerCase().endsWith('.glb')) {
     throw new Error("Invalid file type. Only .glb files are supported.");
@@ -96,19 +99,33 @@ export async function generateThumbnailFromGlb(glbFile, options = {}) {
        center = new THREE.Vector3(0, 0, 0);
     }
 
-    const maxDim = Math.max(size.x, size.y, size.z) || 1;
     // Center the model at 0,0,0
     root.position.sub(center);
 
-    // Camera setup: isometric view (front + slight top angle)
-    const distance = maxDim * 2.8; // Adjusted distance
-    camera.position.set(distance * 0.9, distance * 0.6, distance * 0.9);
-    
+    // Camera setup: isometric view (front + slight top angle).
+    //
+    // 以前は distance = maxDim * 2.8 とし camera.position.set(d*0.9, d*0.6, d*0.9) と
+    // していたが、この位置ベクトルの長さは d*1.407 になるため実際には maxDim の
+    // 約3.94倍まで引いており、被写体が小さく余白だらけのサムネイルになっていた
+    // （その余白をカード側が width:250% で打ち消していた）。
+    //
+    // ここではバウンディングスフィアが画角にちょうど収まる距離を計算し、
+    // 視線方向の単位ベクトルに掛けて配置する。縦横で狭い方の画角に合わせるので
+    // アスペクト比が変わっても破綻しない。
+    const radius = size.length() / 2 || 1;
+    const halfV = ((camera.fov * Math.PI) / 180) / 2;
+    const halfH = Math.atan(Math.tan(halfV) * camera.aspect);
+    const FIT_MARGIN = 1.08; // 端に触れないよう少しだけ余白を残す
+    const distance = (radius / Math.sin(Math.min(halfV, halfH))) * FIT_MARGIN;
+
+    const dir = new THREE.Vector3(0.9, 0.6, 0.9).normalize();
+    camera.position.copy(dir.multiplyScalar(distance));
+
     // Dynamically adjust clipping planes to accommodate huge models
-    camera.near = Math.max(0.1, distance * 0.001);
+    camera.near = Math.max(0.01, distance * 0.001);
     camera.far = Math.max(5000, distance * 10);
     camera.updateProjectionMatrix();
-    
+
     camera.lookAt(0, 0, 0);
 
     // Force shader compilation and texture upload to the GPU

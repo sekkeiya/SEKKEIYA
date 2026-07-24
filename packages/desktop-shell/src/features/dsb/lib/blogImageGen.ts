@@ -64,7 +64,7 @@ export function insertPlaceholdersByHeading(
   const usedHeadingIdx = new Set<number>();
   const placeholders: string[] = [];
 
-  images.forEach((im, i) => {
+  images.forEach((im) => {
     const headings = listHeadings(lines);
     const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
     let target =

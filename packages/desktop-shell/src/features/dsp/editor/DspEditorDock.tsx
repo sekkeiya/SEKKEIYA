@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, IconButton, Tooltip, Divider } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import ViewSidebarRoundedIcon from '@mui/icons-material/ViewSidebarRounded';
 import ViewModuleRoundedIcon from '@mui/icons-material/ViewModuleRounded';
 import FormatListBulletedRoundedIcon from '@mui/icons-material/FormatListBulletedRounded';

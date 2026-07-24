@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -44,7 +43,7 @@ const PURPOSE_OPTIONS: Record<BuildingType, { value: string, label: string }[]> 
   custom: [{ value: 'general', label: '汎用 (General)' }],
 };
 
-export function AutoLayoutConfigDialog({ projectId }: AutoLayoutConfigDialogProps) {
+export function AutoLayoutConfigDialog(_props: AutoLayoutConfigDialogProps) {
   const theme = useTheme();
   
   const configDialogOpen = useAutoLayoutStore((s) => s.configDialogOpen);

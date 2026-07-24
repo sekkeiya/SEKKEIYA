@@ -1,7 +1,6 @@
 // AiResultDialog.tsx
 // 「AI実行（おまかせ）」完了時に、各工程の生成結果・成果物（パース/動画）・
 // 自動レイアウトの評価/採用をまとめて表示するダイアログ。
-import React from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Box, Stack, Typography, IconButton, Divider, Rating, Chip,

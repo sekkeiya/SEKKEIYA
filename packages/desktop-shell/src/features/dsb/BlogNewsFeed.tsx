@@ -7,9 +7,8 @@
  * 記事を読みながらAIと議論 → 議論を踏まえてAIが記事を生成する。
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Chip, CircularProgress, IconButton, Tooltip, Button, Dialog, DialogContent, TextField } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, Tooltip, Button, TextField } from '@mui/material';
 import PersonSearchRoundedIcon from '@mui/icons-material/PersonSearchRounded';
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 import BookmarkAddedRoundedIcon from '@mui/icons-material/BookmarkAddedRounded';

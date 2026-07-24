@@ -13,6 +13,7 @@ import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getModelLocalPathCached } from '../../../lib/modelLocalPathCache';
 import { LoopAnimator } from '../../shared/walkthrough/LoopAnimator';
 import type { LoopAnimSpec } from '../../shared/walkthrough/loopAnim';
+import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
 
 const extractCanonicalId = (url: string) => (url.match(/assets%2F([a-f0-9-]+)%2F/)?.[1] || '');
 const AXIS_VEC: Record<string, THREE.Vector3> = {
@@ -189,13 +190,15 @@ interface Props {
   info?: { description?: string; links?: Array<{ title?: string; url?: string }> } | null;
   /** 家具置き換えの候補（同カテゴリの他モデル）。ボタンで順に差し替え。 */
   swapModels?: Array<{ id?: string; title?: string; glbUrl?: string | null }> | null;
+  /** true で親要素いっぱいに広がる（詳細画面のメインビューア枠に埋め込む用。枠・余白・下部ヒントを省く）。 */
+  fill?: boolean;
 }
 
 /**
  * ウォークスルー閲覧ビュー：3Dモデルをクリックすると操作アイコン群（ⓘ情報・ドア等のギミック）が出る。
  * S.Layout のウォークスルー（ホバー/クリックで操作）と同じ体験を S.Model 上で確認できる。
  */
-export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, info, swapModels }) => {
+export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, info, swapModels, fill }) => {
   // 家具置き換え候補（元モデル＋登録分）。swapIndex で現在表示中を切替。
   const swapOptions = useMemo(() => {
     const list = (Array.isArray(swapModels) ? swapModels : []).filter((m) => m && m.glbUrl);
@@ -208,6 +211,10 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
   const [controls, setControls] = useState<GimmickCtl[]>([]);
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [revealed, setRevealed] = useState(false);
+  // ホイールでのズームはビューアを一度クリックしてから有効にする（開いた直後の
+  // スクロールでページではなく3Dが拡大縮小してしまうのを防ぐ）。
+  const [zoomEnabled, setZoomEnabled] = useState(false);
+  useEffect(() => { setZoomEnabled(false); }, [url]);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
 
   const hasInfo = !!(info && ((info.description && info.description.trim()) || (Array.isArray(info.links) && info.links.filter((l) => l && l.url).length)));
@@ -220,20 +227,24 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
   }
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ position: 'relative', width: '100%', height: 360, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
+    <Box sx={fill ? { width: '100%', height: '100%', display: 'flex', flexDirection: 'column' } : { p: 2 }}>
+      <Box
+        onPointerDown={() => setZoomEnabled(true)}
+        sx={fill
+        ? { position: 'relative', flex: 1, minHeight: 0, width: '100%', bgcolor: 'var(--brand-bg)', overflow: 'hidden' }
+        : { position: 'relative', width: '100%', height: 360, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
         {loading || !url ? (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: 'light-dark(#003cad, #4f8cff)' }} /></Box>
         ) : (
           <Canvas shadows camera={{ position: [4, 3, 5], fov: 45 }} onPointerMissed={() => setRevealed(false)}>
             <Suspense fallback={null}>
-              <Stage environment="city" intensity={0.5} adjustCamera={1.2}>
+              <Stage environment={VIEWER_ENVIRONMENT} intensity={0.5} adjustCamera={1.2}>
                 <MultiGimmickRunner key={url} url={url} gimmicks={gimmicksList} anim={anim}
                   onReady={setControls}
                   onToggle={(id, open) => setOpenMap((m) => ({ ...m, [id]: open }))}
                   onPick={() => setRevealed(true)} />
               </Stage>
-              <OrbitControls enablePan={false} makeDefault />
+              <OrbitControls enablePan={false} enableZoom={zoomEnabled} makeDefault />
             </Suspense>
           </Canvas>
         )}
@@ -324,9 +335,11 @@ export const DssWalkthroughViewer: React.FC<Props> = ({ glbUrl, gimmicks, anim, 
           </Box>
         )}
       </Box>
-      <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>
-        ドラッグで回転・ホイールでズーム。モデルをクリックすると操作アイコンが表示されます。
-      </Typography>
+      {!fill && (
+        <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mt: 1 }}>
+          ドラッグで回転・ホイールでズーム。モデルをクリックすると操作アイコンが表示されます。
+        </Typography>
+      )}
     </Box>
   );
 };

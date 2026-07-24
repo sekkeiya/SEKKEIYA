@@ -83,7 +83,7 @@ const WindowOuter = React.forwardRef<HTMLDivElement, any>(function WindowOuter(p
 });
 
 const Cell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
-  const { entries, columnCount, paddingLeft, pickMode, selectedImageId, selectedIds, onCardClick, onCardDoubleClick, onCardDelete, existingMaterialIds, textureSetMode, textureSetSelection, onMultiSelect, multiDeleteIds } = data;
+  const { entries, columnCount, paddingLeft, pickMode, selectedImageId, selectedIds, onCardClick, onCardDoubleClick, onCardDelete, textureSetMode, textureSetSelection, onMultiSelect, multiDeleteIds } = data;
   const index = rowIndex * columnCount + columnIndex;
   if (index >= entries.length) return null;
   const entry: Entry = entries[index];

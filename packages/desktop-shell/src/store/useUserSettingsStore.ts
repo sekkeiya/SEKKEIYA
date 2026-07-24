@@ -305,7 +305,7 @@ export const useUserSettingsStore = create<UserSettingsState>()(
         if (state.syncUnsubscribe) return; // Already syncing
         
         import('../lib/firebase/client').then(({ db }) => {
-          import('firebase/firestore').then(({ doc, onSnapshot, getDoc, setDoc }) => {
+          import('firebase/firestore').then(({ doc, onSnapshot, setDoc }) => {
             const docRef = doc(db, 'appGlobalConfig', 'systemCategories');
             const unsubscribe = onSnapshot(docRef, async (snap) => {
               if (snap.exists()) {

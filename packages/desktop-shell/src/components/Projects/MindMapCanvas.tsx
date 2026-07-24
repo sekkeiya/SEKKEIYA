@@ -94,6 +94,14 @@ const NODE_BADGE_SIZE = 15;
 const SIBLING_SNAP_DIST = 140;
 
 /**
+ * 子がまだ無いトピックの「枝が伸びる側のすぐ外」＝これから子が並ぶ場所。
+ * ここにポインタを置いたドロップは、兄弟ではなくそのトピックの子にする。
+ * main=枝が伸びる向きにどこまで離れてよいか / cross=兄弟が並ぶ向きのはみ出し許容。
+ */
+const CHILD_ZONE_MAIN = 120;
+const CHILD_ZONE_CROSS = 24;
+
+/**
  * ドラッグ中の移動先。child=重ねたトピックの子（末尾）に付け替え /
  * sibling=refId の前後（同じ親の兄弟）に挿入。並び替え・階層の上げ下げは sibling で表せる。
  */
@@ -109,8 +117,33 @@ function dropPlanEq(a: DropPlan | null, b: DropPlan | null): boolean {
   return false;
 }
 
+/**
+ * React Flow ノードの「こちらが決める内容」が同じか（前回オブジェクトを使い回してよいか）。
+ * data は毎回作り直すのでシャローに全キーを比べる。style は定数（pointerEvents のみ）なので見ない。
+ * measured など React Flow が書き戻すフィールドも見ない（使い回しでそのまま残す）。
+ */
+function rfNodeEq(a: AnyRFNode, b: AnyRFNode): boolean {
+  if (a.type !== b.type
+    || a.position.x !== b.position.x || a.position.y !== b.position.y
+    || a.draggable !== b.draggable || a.selectable !== b.selectable || a.selected !== b.selected) {
+    return false;
+  }
+  const ad = a.data as Record<string, unknown>;
+  const bd = b.data as Record<string, unknown>;
+  const keys = Object.keys(bd);
+  if (Object.keys(ad).length !== keys.length) return false;
+  for (const k of keys) if (ad[k] !== bd[k]) return false;
+  return true;
+}
+
 /** 関係線の色（枝の色と混ざらないよう、テーマから独立させる）。 */
 const RELATION_COLOR = '#a18cd1';
+
+/**
+ * fitView の設定。インラインの {} だと毎レンダー新しい参照になり、React Flow の
+ * <StoreUpdater> が参照比較でストアへ同期し直すため、モジュール定数にして参照を固定する。
+ */
+const FIT_VIEW_OPTIONS = { maxZoom: 1 } as const;
 
 /** まとめ（サマリー）の寸法: 波括弧の奥行き / 括弧とラベルの間 / 部分木との間。 */
 const BRACE_D = 11;
@@ -716,18 +749,26 @@ const MindNode: React.FC<NodeProps> = ({ id, data }) => {
             component="textarea"
             ref={taRef}
             className="nodrag nowheel"
-            value={d.text}
+            // 非制御（defaultValue）にして、値は DOM に持たせる。value を React が握ると、
+            // 入力イベント後の「制御された値の復元」が1つ前の値で走り、IME 変換中はそれが
+            // 変換バッファを巻き戻して表示が1打鍵ぶん遅れる（「は」の途中の h が残る）。
+            // 未確定文字はブラウザが自前で描くので、触らないのが最も確実。
+            // 編集開始のたびにこの textarea は作り直されるので、初期値は毎回正しく入る。
+            defaultValue={d.text}
             rows={lineCount}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.patchText(id, e.target.value)}
             onBlur={() => ctx.endEdit()}
             onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
               e.stopPropagation();
+              // IME 変換確定中（日本語入力の Enter/Tab など）は編集操作を横取りしない。
+              if (e.nativeEvent.isComposing) return;
               if (e.key === 'Escape') { e.preventDefault(); ctx.endEdit(true); }
               // Shift+Enter は textarea の既定で改行が入る。Ctrl/Cmd+Enter は既定では
               // 何も起きないので、同じ「改行」として自前で差し込む。
               else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                if (taRef.current) insertNewlineAtCaret(taRef.current, d.text, next => ctx.patchText(id, next));
+                const ta = taRef.current;
+                if (ta) insertNewlineAtCaret(ta, ta.value, next => { ta.value = next; ctx.patchText(id, next); });
               } else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ctx.endEdit(); }
               else if (e.key === 'Tab') { e.preventDefault(); ctx.endEdit(); ctx.addChild(id); }
             }}
@@ -934,16 +975,19 @@ const SummaryNode: React.FC<NodeProps> = ({ data }) => {
             component="textarea"
             ref={taRef}
             className="nodrag nowheel"
-            value={d.text}
+            // 非制御。理由は MindNode の textarea のコメントを参照（IME で1打鍵遅れるため）。
+            defaultValue={d.text}
             rows={lineCount}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.patchSummaryText(d.summaryId, e.target.value)}
             onBlur={() => ctx.endEditSummary()}
             onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
               e.stopPropagation();
+              if (e.nativeEvent.isComposing) return; // IME 変換確定中は横取りしない
               if (e.key === 'Escape') { e.preventDefault(); ctx.endEditSummary(true); }
               else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
-                if (taRef.current) insertNewlineAtCaret(taRef.current, d.text, next => ctx.patchSummaryText(d.summaryId, next));
+                const ta = taRef.current;
+                if (ta) insertNewlineAtCaret(ta, ta.value, next => { ta.value = next; ctx.patchSummaryText(d.summaryId, next); });
               } else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ctx.endEditSummary(); }
             }}
             sx={{
@@ -1019,7 +1063,6 @@ const RelationEdge: React.FC<EdgeProps> = ({
   const selected = ctx.selectedRelationId === d.relationId;
   const editing = ctx.editingRelationId === d.relationId;
   const taRef = useRef<HTMLTextAreaElement>(null);
-
   const [path, labelX, labelY] = getBezierPath({
     sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition,
   });
@@ -1057,11 +1100,13 @@ const RelationEdge: React.FC<EdgeProps> = ({
               component="textarea"
               ref={taRef}
               rows={1}
-              value={d.text}
+              // 非制御。理由は MindNode の textarea のコメントを参照（IME で1打鍵遅れるため）。
+              defaultValue={d.text}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => ctx.patchRelationText(d.relationId, e.target.value)}
               onBlur={() => ctx.endEditRelation()}
               onKeyDown={(e: React.KeyboardEvent) => {
                 e.stopPropagation();
+                if (e.nativeEvent.isComposing) return; // IME 変換確定中は横取りしない
                 if (e.key === 'Escape') { e.preventDefault(); ctx.endEditRelation(true); }
                 else if (e.key === 'Enter') { e.preventDefault(); ctx.endEditRelation(); }
               }}
@@ -1706,7 +1751,15 @@ const MindMapInner: React.FC<Props> = ({
   const rootId = useMemo(() => mmNodes.find(n => n.parentId == null)?.id ?? null, [mmNodes]);
 
   const patchNode = useCallback((id: string, patch: Partial<MindMapNode>) => {
-    setMmNodes(nds => nds.map(n => n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n));
+    setMmNodes(nds => {
+      const cur = nds.find(n => n.id === id);
+      if (!cur) return nds;
+      // 無変化なら配列ごと据え置く（updatedAt だけが動く更新でレイアウト→ノード再構築の
+      // 一連を空回りさせない。IME 入力中の同値 onChange などで効く）。
+      const keys = Object.keys(patch) as Array<keyof MindMapNode>;
+      if (keys.every(k => cur[k] === patch[k])) return nds;
+      return nds.map(n => n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n);
+    });
   }, []);
 
   const editOriginRef = useRef<{ id: string; text: string } | null>(null);
@@ -1800,6 +1853,67 @@ const MindMapInner: React.FC<Props> = ({
     setSelectedIds(parentOfFirst ? [parentOfFirst] : []);
     setEditingId(null);
   }, [selectedIds, rootId, collectSubtree]);
+
+  /**
+   * コピーした枝（選択トピックとその子孫）の控え。ボードをまたいでも貼れるよう、
+   * 元のトピックへの参照ではなく切り離した実体を持つ。
+   */
+  const clipboardRef = useRef<MindMapNode[]>([]);
+
+  /** 選択中のトピックを枝ごとコピー（削除と同じく「枝ごと」が既定の単位）。 */
+  const copySelected = useCallback(() => {
+    if (!selectedIds.length) return;
+    const nds = mmRef.current;
+    // 祖先と子孫を同時に選んでいても、枝は重複させず一度だけ入れる
+    const ids = new Set<string>();
+    for (const t of selectedIds) for (const i of collectSubtree(t, nds)) ids.add(i);
+    const picked = nds.filter(n => ids.has(n.id));
+    if (!picked.length) return;
+    clipboardRef.current = picked.map(n => ({ ...n }));
+  }, [selectedIds, collectSubtree]);
+
+  /**
+   * コピーした枝を、選択中のトピックの末尾の子として貼り付ける（未選択なら中心トピックへ）。
+   * id は振り直し、枝の中の親子関係だけを写して元の木とは切り離す。
+   */
+  const pasteClipboard = useCallback(() => {
+    const clip = clipboardRef.current;
+    if (!clip.length) return;
+    const targetId = primaryId ?? rootId;
+    if (!targetId) return;
+
+    const now = new Date().toISOString();
+    const clipIds = new Set(clip.map(n => n.id));
+    const idMap = new Map(clip.map(n => [n.id, newId('m')]));
+    // コピー元で親が控えに含まれないものが、貼り付け先へぶら下がる枝の根
+    const isRoot = (n: MindMapNode) => n.parentId == null || !clipIds.has(n.parentId);
+
+    setMmNodes(nds => {
+      const siblings = nds.filter(n => n.parentId === targetId);
+      let rank = siblings.length ? Math.max(...siblings.map(s => s.rank)) + 1 : 0;
+      const added = clip.map(n => {
+        const copy: MindMapNode = {
+          ...n,
+          id: idMap.get(n.id)!,
+          parentId: isRoot(n) ? targetId : idMap.get(n.parentId!)!,
+          rank: isRoot(n) ? rank++ : n.rank,
+          createdAt: now, updatedAt: now,
+        };
+        // 子ボード・移動元の参照は引き継がない（1つの子ボードを2つのトピックが指すと
+        // 名前の連動や削除の後始末が壊れるため、貼り付けた側はただのトピックにする）。
+        delete copy.childBoardId;
+        delete copy.originBoardId;
+        return copy;
+      });
+      // 貼り付け先が折りたたまれていたら開いて、増えた枝が見えるようにする
+      return nds
+        .map(n => (n.id === targetId && n.collapsed ? { ...n, collapsed: false, updatedAt: now } : n))
+        .concat(added);
+    });
+    // 貼った枝を選択状態にして、続けて貼る・動かすをそのまま行えるようにする
+    setSelectedIds(clip.filter(isRoot).map(n => idMap.get(n.id)!));
+    setEditingId(null);
+  }, [primaryId, rootId]);
 
   const toggleCollapse = useCallback((id: string) => {
     const n = mmRef.current.find(x => x.id === id);
@@ -2324,7 +2438,28 @@ const MindMapInner: React.FC<Props> = ({
         style: { pointerEvents: 'all' },
       });
     }
-    setRfNodes(next);
+    // 参照の保存: 内容が変わらないノードは前回のオブジェクトを、全ノード不変なら前回の
+    // 配列そのものを返す。React Flow は nodes prop の「参照」が変わるたびストアへ同期する
+    // （<StoreUpdater> の effect）ので、毎回作り直した参照を渡すと、こちらの再構築と
+    // React Flow 側の変更適用（onNodesChange → applyChanges も毎回新配列）が互いを再起動し合い、
+    // 「Maximum update depth exceeded」まで走り得る。内容が同じなら参照を変えないことで、
+    // どんな経路でもカスケードが必ず止まる。前回のオブジェクトを使い回すのは、React Flow が
+    // 書き戻す採寸（measured）を捨てず、不要な再採寸ディスパッチを起こさないためでもある。
+    setRfNodes(prev => {
+      const prevById = new Map(prev.map(n => [n.id, n]));
+      let changed = prev.length !== next.length;
+      const merged = next.map((n, i) => {
+        const p = prevById.get(n.id);
+        if (p && rfNodeEq(p, n)) {
+          if (prev[i] !== p) changed = true; // 並びだけ変わった
+          return p;
+        }
+        changed = true;
+        // measured 等の React Flow 管理フィールドは前回から引き継ぎ、こちらの分を上書き
+        return p ? { ...p, ...n } : n;
+      });
+      return changed ? merged : prev;
+    });
   }, [layout, mmNodes, summaryGeoms, editingId, selectedIds, layoutNonce, setRfNodes]);
 
   /**
@@ -2439,11 +2574,21 @@ const MindMapInner: React.FC<Props> = ({
     dropPlanRef.current = null;
   }, [collectSubtree, selectedIds, layout]);
 
-  const onNodeDrag = useCallback((_: MouseEvent | TouchEvent, node: AnyRFNode) => {
+  const onNodeDrag = useCallback((e: MouseEvent | TouchEvent, node: AnyRFNode) => {
     if (node.type !== 'mind') return;
-    const cx = node.position.x + node.data.w / 2;
-    const cy = node.position.y + node.data.h / 2;
+    // 判定はドラッグ中トピックの中心ではなくマウスポインタで行う。中心だと、横に長い
+    // トピックほど中心が本体の端から遠くなり、狙ったトピックへ重ねるには本体を大きく
+    // ずらす必要があって事実上ドロップできない。ポインタなら幅に関係なく「指した所」が効く。
+    const touch = 'touches' in e ? (e.touches[0] ?? e.changedTouches?.[0]) : null;
+    const client = touch ?? (e as MouseEvent);
+    const p = typeof client?.clientX === 'number'
+      ? screenToFlowPosition({ x: client.clientX, y: client.clientY })
+      : { x: node.position.x + node.data.w / 2, y: node.position.y + node.data.h / 2 };
+    const cx = p.x;
+    const cy = p.y;
     const rootId0 = mmRef.current.find(n => n.parentId == null)?.id ?? null;
+    /** 画面に出ている子を持つか（折りたたみ中は子が無いのと同じ扱いになる）。 */
+    const hasVisibleKids = (id: string) => (childrenOf.get(id) ?? []).some(c => layout.rects.has(c));
 
     let plan: DropPlan | null = null;
     // 1) トピックに重ねている → そのトピックの子にする
@@ -2454,7 +2599,26 @@ const MindMapInner: React.FC<Props> = ({
         break;
       }
     }
-    // 2) トピックの外だが近くにいる → 最寄りトピックの兄弟として挿入
+    // 2) 子がまだ無いトピックの「枝が伸びる側のすぐ外」＝子が並ぶはずの場所 → そのトピックの子にする。
+    //    子を持つトピックはその場所に既に子が居るので、1) か 3)（子たちの兄弟＝結局この親の子）で
+    //    正しく決まる。ここを見るのは、子が無くて兄弟として解釈するしかなかった場合だけ。
+    if (!plan) {
+      for (const [id, r] of layout.rects) {
+        if (dragSubtreeRef.current.has(id) || hasVisibleKids(id)) continue;
+        const inCross = r.axis === 'h'
+          ? cy >= r.y - CHILD_ZONE_CROSS && cy <= r.y + r.h + CHILD_ZONE_CROSS
+          : cx >= r.x - CHILD_ZONE_CROSS && cx <= r.x + r.w + CHILD_ZONE_CROSS;
+        if (!inCross) continue;
+        const beyond = r.axis === 'h'
+          ? (r.side === 1 ? cx - (r.x + r.w) : r.x - cx)
+          : (r.side === 1 ? cy - (r.y + r.h) : r.y - cy);
+        if (beyond >= 0 && beyond <= CHILD_ZONE_MAIN) {
+          plan = { type: 'child', parentId: id };
+          break;
+        }
+      }
+    }
+    // 3) トピックの外だが近くにいる → 最寄りトピックの兄弟として挿入
     //    （前/後は交差軸＝兄弟が並ぶ方向のどちら側かで決める）。ルートは兄弟を持てないので除外。
     if (!plan) {
       let best: { id: string; dist: number } | null = null;
@@ -2476,7 +2640,7 @@ const MindMapInner: React.FC<Props> = ({
     setDropPlanState(p => (dropPlanEq(p, plan) ? p : plan));
     const childTarget = plan?.type === 'child' ? plan.parentId : null;
     setDropTargetId(t => (t === childTarget ? t : childTarget));
-  }, [layout]);
+  }, [layout, childrenOf, screenToFlowPosition]);
 
   /**
    * ドロップの受け口。落とした位置のトピックに、Drive 画像は「貼る」、
@@ -2600,6 +2764,10 @@ const MindMapInner: React.FC<Props> = ({
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedRelationId) {
         e.preventDefault(); deleteRelation(selectedRelationId); return;
       }
+      // コピー・貼り付け（枝ごと）。貼り付けは未選択でも中心トピックへ落とせるので
+      // primaryId の有無より前に見る。編集中・入力欄では上のガードで素通りする。
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copySelected(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') { e.preventDefault(); pasteClipboard(); return; }
       if (!primaryId) return;
       if (e.key === 'Tab') { e.preventDefault(); addChild(primaryId); }
       // Enter=同じ階層 / Tab=子トピック（GitMind と同じ割り当て）。
@@ -2613,6 +2781,7 @@ const MindMapInner: React.FC<Props> = ({
   }, [
     primaryId, editingId, editingSummaryId, editingRelationId, linkingFrom, selectedRelationId,
     addChild, addSibling, deleteSelected, deleteRelation, beginEdit, undo, redo,
+    copySelected, pasteClipboard,
   ]);
 
   // ─── コンテキスト ────────────────────────────────────────────────────────────
@@ -2711,7 +2880,7 @@ const MindMapInner: React.FC<Props> = ({
           zoomOnDoubleClick={false}
           deleteKeyCode={null}
           fitView
-          fitViewOptions={{ maxZoom: 1 }}
+          fitViewOptions={FIT_VIEW_OPTIONS}
           minZoom={0.1}
           maxZoom={2.5}
           proOptions={{ hideAttribution: true }}
@@ -2877,7 +3046,7 @@ const MindMapInner: React.FC<Props> = ({
               </Typography>
             ) : (
               <Typography sx={{ mt: 0.75, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
-                クリックで選択・Ctrl+クリックで複数選択・左ドラッグで範囲選択 / Enter: 同じ階層 / Tab: 子トピック / ダブルクリック: 編集（編集中は Shift+Enter・Ctrl+Enter で改行） / Delete: 枝ごと削除 / トピックをドラッグ: 移動（重ねて子に・隙間に入れて並び替え。複数選択中はまとめて移動） / 右ドラッグで画面移動 / Ctrl+Zで戻す
+                クリックで選択・Ctrl+クリックで複数選択・左ドラッグで範囲選択 / Enter: 同じ階層 / Tab: 子トピック / ダブルクリック: 編集（編集中は Shift+Enter・Ctrl+Enter で改行） / Ctrl+C・Ctrl+V: 枝ごとコピー・貼り付け / Delete: 枝ごと削除 / トピックをドラッグ: 移動（重ねて子に・隙間に入れて並び替え。複数選択中はまとめて移動） / 右ドラッグで画面移動 / Ctrl+Zで戻す
               </Typography>
             )}
             {saveError && (

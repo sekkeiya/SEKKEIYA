@@ -5,7 +5,7 @@
  *   左: セット一覧 / 中央: 3D パースビュー / 右: 家具カテゴリ追加
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Box, IconButton, Typography, Button, TextField,
   Tooltip, Avatar, CircularProgress, Chip, InputAdornment,

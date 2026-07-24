@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Box, Typography, Snackbar, Alert, Button, TextField, Collapse, CircularProgress, Rating, Paper, useMediaQuery } from "@mui/material";
+import { Box, Typography, Snackbar, Alert, Button, TextField, CircularProgress, Rating, Paper, useMediaQuery } from "@mui/material";
 
 // @ts-ignore
 import Header from "./header/Header";
@@ -30,7 +30,7 @@ import ViewportShortcutsOverlay from "./overlays/ViewportShortcutsOverlay";
 import VideoRenderIndicator from "./overlays/VideoRenderIndicator";
 import PlanCompassOverlay from "./overlays/PlanCompassOverlay";
 
-import { serverTimestamp, updateDoc, getDoc, doc, collectionGroup, query, where, limit, getDocs, collection, or, and, increment, onSnapshot } from "firebase/firestore";
+import { serverTimestamp, updateDoc, getDoc, doc, collectionGroup, query, where, limit, getDocs, increment, onSnapshot } from "firebase/firestore";
 import { db, storage } from "../../../../lib/firebase/client";
 import { useAuth } from "../hooks/useAuthProxy";
 import { useOptionDoc } from "../hooks/useOptionDoc";
@@ -65,6 +65,8 @@ import { useSlabStore } from "../store/useSlabStore";
 import { useManualDimensionStore } from "../store/useManualDimensionStore";
 import { useGridAxisStore } from "../store/useGridAxisStore";
 import { useDimChainStore } from "../store/useDimChainStore";
+import { useStructureHistoryStore, type StructureSnapshot } from "../store/useStructureHistoryStore";
+import { isBaseEditMode } from "../utils/baseEditMode";
 import { useDrawnFinishStore } from "../store/useDrawnFinishStore";
 import { useSurfaceFinishStore } from "../store/useSurfaceFinishStore";
 import { useSurfacePatternStore } from "../store/useSurfacePatternStore";
@@ -106,7 +108,6 @@ import { useLayoutTaskStore } from "../store/useLayoutTaskStore";
 import { useAutoLayoutStore } from "../store/useAutoLayoutStore";
 import { extractZoneData, runAutoLayout } from "../services/autoLayoutService";
 import { useZoningStore } from "../store/useZoningStore";
-import type { ZoneRect } from "../store/useLayoutTaskStore";
 // @ts-ignore
 import ZoneCreateDialog from "./overlays/ZoneCreateDialog";
 import { AutoLayoutConfigDialog } from "../components/AutoLayoutConfigDialog";
@@ -377,7 +378,6 @@ export default function LayoutShell({
   const setPanelSelection = useAppStore(s => s.setPanelSelection);
   const activeProjectName = useAppStore(s => s.projects.find(p => p.id === projectId)?.name ?? undefined);
 
-  const activeGlobalPanel = null;
   const globalPanelWidth = 0;
   
   const editorMode = useEditorModeStore((s) => s.editorMode);
@@ -409,24 +409,12 @@ export default function LayoutShell({
   const rawRightSections = useUiRightSidebarStore((s) => s.visibleSections || []);
   const hasRightSidebar = rawRightSections.length > 0;
 
-  const rawLeftSections = useUiLeftSidebarStore((s) => s.visibleSections || []);
-  const isLibraryDetached = useUiLeftSidebarStore((s) => s.isLibraryDetached);
-
-  const actualLeftSections = isLibraryDetached
-    ? rawLeftSections.filter(k => k !== "library")
-    : rawLeftSections;
-
-  const leftSidebarVisible = actualLeftSections.length > 0;
-  const dslLeftSidebarWidth = leftSidebarVisible ? 320 : 0;
-
-
   const portalTarget = useUiRightSidebarStore(s => s.portalElement);
 
   // ============================================================
   // ✅ toolsStore（TopBar/Buttonsのpropsバケツリレー削減）
   // ============================================================
   const materialPicking = useToolsStore((s) => s.materialPicking);
-  const toggleMaterialPicker = useToolsStore((s) => s.toggleMaterialPicker);
 
   const gizmoMode = useToolsStore((s) => s.mode);
   const gizmoSpace = useToolsStore((s) => s.space);
@@ -448,7 +436,7 @@ export default function LayoutShell({
   const setCommands = useToolsStore((s) => s.setCommands);
 
   // ✅ LeftSidebar に拾った情報を渡す（そのままでOK）
-  const [pickedMaterialInfo, setPickedMaterialInfo] = useState(null);
+  const [, setPickedMaterialInfo] = useState(null);
 
   // ✅ RightSidebar(=Properties) に渡す “確定した materialSelection” を持つ
   const [materialSelection, setMaterialSelection] = useState<any>(null);
@@ -954,12 +942,60 @@ export default function LayoutShell({
     }
   }, [lastAutoLayoutConfig]);
 
+  // 躯体（床/壁/部屋/通り芯/寸法）の Undo/Redo で選んだスナップショットを反映する。
+  //   ・現在のライブなストア値と違うキーだけを、ストア更新＋Firestore へ書き戻す。
+  //   ・ストア更新は即時反映（体感を軽く）。Firestore 往復後も baseDoc→ストアの sync effect が
+  //     同じ値で再反映するだけ（冪等）。書き戻し結果は present と一致するので二重記録もされない。
+  const applyStructureSnapshot = useCallback(async (snap: StructureSnapshot) => {
+    if (!baseRef || !snap) return;
+    const patch: Record<string, any> = {};
+    const apply = (val: any, getCur: () => any, setStore: (v: any) => void, spKey: string) => {
+      if (JSON.stringify(val) !== JSON.stringify(getCur())) {
+        setStore(val);
+        patch["spaceProgram." + spKey] = val;
+      }
+    };
+    apply(snap.zones, () => useLayoutTaskStore.getState().zones, (v) => useLayoutTaskStore.getState().setZones(v), "zones");
+    apply(snap.rooms, () => useLayoutTaskStore.getState().rooms, (v) => useLayoutTaskStore.getState().setRooms(v), "rooms");
+    apply(snap.walls, () => useWallStore.getState().walls, (v) => useWallStore.getState().setWalls(v), "walls");
+    apply(snap.slabs, () => useSlabStore.getState().slabs, (v) => useSlabStore.getState().setSlabs(v), "slabs");
+    apply(snap.gridAxes, () => useGridAxisStore.getState().axes, (v) => useGridAxisStore.getState().setAxes(v), "gridAxes");
+    apply(snap.manualDims, () => useManualDimensionStore.getState().dims, (v) => useManualDimensionStore.getState().setDims(v), "manualDims");
+    apply(snap.dimChains, () => useDimChainStore.getState().configs, (v) => useDimChainStore.getState().setConfigs(v), "dimChains");
+    apply(snap.dimChainMarks, () => useDimChainStore.getState().removedMarks, (v) => useDimChainStore.getState().setRemovedMarks(v), "dimChainMarks");
+    if (Object.keys(patch).length) {
+      // 躯体データは他の Base 変更と同じく updateDoc で即保存（dirty にはしない）。
+      try { await updateDoc(baseRef, patch); } catch (err) { console.error("[LayoutShell] structure undo/redo persist failed", err); }
+    }
+  }, [baseRef]);
+
+  const handleStructureUndo = useCallback((): boolean => {
+    const snap = useStructureHistoryStore.getState().undo();
+    if (!snap) return false;
+    void applyStructureSnapshot(snap);
+    return true;
+  }, [applyStructureSnapshot]);
+
+  const handleStructureRedo = useCallback((): boolean => {
+    const snap = useStructureHistoryStore.getState().redo();
+    if (!snap) return false;
+    void applyStructureSnapshot(snap);
+    return true;
+  }, [applyStructureSnapshot]);
+
   const handleUndo = useCallback(() => {
     // 展開図の寸法編集（手入力上書き・区切り削除）は独立ストア。展開図表示中で
     // その履歴があれば、家具レイアウトの undo より先にこちらを戻す。
     const dim = useElevationDimOverridesStore.getState();
     if (useElevationMarkerStore.getState().viewActive && dim.canUndo()) {
       dim.undo();
+      return;
+    }
+    // 躯体編集中（Base を開いている）は 床/壁/部屋/通り芯/寸法 の undo に限定する。
+    // 家具レイアウトは Plan/Option 側の編集なので、躯体モードでは巻き込まない
+    // （躯体で戻せるものが無ければ何もしない）。
+    if (isBaseEditMode()) {
+      handleStructureUndo();
       return;
     }
     coreHandleUndo();
@@ -973,7 +1009,7 @@ export default function LayoutShell({
         source: 'user'
       }
     });
-  }, [coreHandleUndo, logSaveDataEvent, uid, projectId, workspaceId]);
+  }, [coreHandleUndo, handleStructureUndo, logSaveDataEvent, uid, projectId, workspaceId]);
 
   const handleRedoWithDim = useCallback(() => {
     const dim = useElevationDimOverridesStore.getState();
@@ -981,8 +1017,12 @@ export default function LayoutShell({
       dim.redo();
       return;
     }
+    if (isBaseEditMode()) {
+      handleStructureRedo();
+      return;
+    }
     handleRedo();
-  }, [handleRedo]);
+  }, [handleRedo, handleStructureRedo]);
 
   // ✅ Ctrl/Cmd + Z/Y（hookへ移動）
   useUndoRedoShortcuts({
@@ -1083,10 +1123,7 @@ export default function LayoutShell({
   // =========================
   // ✅ Phase 1: Layout Task Actuals Aggregation & Active Zone Badge
   // =========================
-  const activeZoneId = useLayoutTaskStore((s) => s.activeZoneId);
   const zones = useLayoutTaskStore((s) => s.zones);
-  const circulationPatterns = useLayoutTaskStore((s) => s.circulationPatterns);
-  const activeCirculationPatternId = useLayoutTaskStore((s) => s.activeCirculationPatternId);
 
   const setZones = useLayoutTaskStore((s) => s.setZones);
   const setCirculations = useLayoutTaskStore((s) => s.setCirculations);
@@ -1144,6 +1181,47 @@ export default function LayoutShell({
     if (baseDocLoading) return;
     useDimChainStore.getState().setRemovedMarks((baseDoc as any)?.spaceProgram?.dimChainMarks || {});
   }, [(baseDoc as any)?.spaceProgram?.dimChainMarks, baseDocLoading]);
+
+  // 躯体（床/壁/部屋/通り芯/寸法）の Undo/Redo 用スナップショット記録 ------------
+  //   これらの構造データは commit のたびに baseDoc.spaceProgram へ着地する（経路は
+  //   イベント経由・直接 updateDoc とバラバラでも着地点は同じ）。その baseDoc の変化を
+  //   1本のタイムラインに積む＝あらゆる commit を漏れなく拾える。Undo は 1つ前を
+  //   Firestore へ書き戻すだけ（上の各 sync effect が画面を戻す）。
+  //   往復ズレは useStructureHistoryStore 側の presentKey 一致で弾く。
+  const structHistBasePathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (baseDocLoading || !baseRef) return;
+    const sp = (baseDoc as any)?.spaceProgram || {};
+    const snap: StructureSnapshot = {
+      zones: sp.zones || [],
+      rooms: sp.rooms || [],
+      walls: sp.walls || [],
+      slabs: sp.slabs || [],
+      gridAxes: sp.gridAxes || [],
+      manualDims: sp.manualDims || [],
+      dimChains: sp.dimChains || {},
+      dimChainMarks: sp.dimChainMarks || {},
+    };
+    const hist = useStructureHistoryStore.getState();
+    if (structHistBasePathRef.current !== baseRef.path) {
+      // 別の Base を開いた: この状態を履歴の起点にする（前の Base の履歴は破棄）。
+      structHistBasePathRef.current = baseRef.path;
+      hist.seed(snap);
+    } else {
+      hist.record(snap);
+    }
+  }, [
+    baseRef,
+    baseDocLoading,
+    (baseDoc as any)?.spaceProgram?.zones,
+    (baseDoc as any)?.spaceProgram?.rooms,
+    (baseDoc as any)?.spaceProgram?.walls,
+    (baseDoc as any)?.spaceProgram?.slabs,
+    (baseDoc as any)?.spaceProgram?.gridAxes,
+    (baseDoc as any)?.spaceProgram?.manualDims,
+    (baseDoc as any)?.spaceProgram?.dimChains,
+    (baseDoc as any)?.spaceProgram?.dimChainMarks,
+  ]);
 
   // 下絵（継承＋上書き）------------------------------------------------------
   // Option 選択中は Plan ドキュメントが購読されない（optionDoc は Option 自身を指す）ため、
@@ -1203,6 +1281,19 @@ export default function LayoutShell({
     useSlabStore.getState().setDrawActive(false);
     useSlabStore.getState().setSelectedSlabId(null);
   }, [baseDocId]);
+
+  // Plan/Option を開いている間は Base（躯体：壁/床/通り芯）の選択を残さない。
+  //   躯体は全プラン共通データなので、Plan で選択ギズモが出て編集/削除できると
+  //   全プランを巻き込む事故になる。選択の入口自体も click / 範囲選択の両方で躯体編集
+  //   モードに限定済みだが、これは「Base で選択したまま Plan へ切り替えた」取りこぼしを
+  //   確実に消すための保険。
+  useEffect(() => {
+    const isBaseOnly = !!selectedBaseId && !selectedPlanId && !selectedOptionId;
+    if (isBaseOnly) return;
+    useWallStore.getState().setSelectedWallId(null);
+    useSlabStore.getState().setSelectedSlabId(null);
+    useGridAxisStore.getState().setSelectedId(null);
+  }, [selectedBaseId, selectedPlanId, selectedOptionId]);
 
   // 下絵の作図中状態（基準線）はノードを移ったら捨てる。
   // hydrate ではなくここで落とす：hydrate は自分の書き込みのエコーでも走るため、
@@ -1739,8 +1830,6 @@ export default function LayoutShell({
       window.removeEventListener("LayoutShell:DeleteZoneVersion", deleteZoneVersionHandler);
     };
   }, [baseRef, optionRef, baseDoc, applyLayoutDraft, projectId, workspaceId]);
-
-  const activeZone = useMemo(() => zones.find((z) => z.id === activeZoneId), [zones, activeZoneId]);
 
   // =========================
   // ✅ ZoneCreateDialog 制御
@@ -2518,10 +2607,6 @@ export default function LayoutShell({
     ]
   );
 
-  const handleDropAsset = useCallback(async (payload) => {
-    await handleAddToLayout(payload);
-  }, [handleAddToLayout]);
-
   // ✅ 関連：Libraryからの「再度クリック」配置に対応するためのカスタムイベント
   useEffect(() => {
     const handleGlobalAdd = (e: CustomEvent) => {
@@ -2710,7 +2795,6 @@ export default function LayoutShell({
         return;
       }
 
-      const name = safeString(model?.name || model?.title || "Base");
       const thumbUrl = model?.thumbUrl || model?.thumbnailUrl || model?.coverUrl || null;
 
       try {
@@ -3236,80 +3320,6 @@ export default function LayoutShell({
     return buildLayoutShareUrl(shareId);
   }, [projectId, workspaceId, selectedBaseId, selectedPlanId, selectedOptionId, baseGlbUrlResolved, baseDoc, layoutDraft, optionDoc, meta, uid]);
 
-  // =========================
-  // ✅ Preview（Viewer を別タブで開く）— 旧実装、共有リンク生成に使用
-  // =========================
-  const handleCopyShareLink = useCallback(async () => {
-    if (!uid) {
-      alert("共有リンク作成にはログインが必要です");
-      return;
-    }
-    if (!selectedBaseId || !selectedPlanId || !selectedOptionId) {
-      alert("Base / Plan / Option を選択してください");
-      return;
-    }
-    if (!baseGlbUrlResolved) {
-      alert("Base GLB が解決できていません");
-      return;
-    }
-    const layout0 = layoutDraft ?? optionDoc?.layout ?? null;
-    if (!layout0) {
-      alert("layout がありません");
-      return;
-    }
-
-    const boardName = meta?.boardName || meta?.name || "";
-    const baseName = (bases || []).find((b) => b.id === selectedBaseId)?.name || "";
-    const planName = (plansOfSelectedBase || []).find((p) => p.id === selectedPlanId)?.name || "";
-    const optionName = (options || []).find((o) => o.id === selectedOptionId)?.name || "";
-
-    const shareId = await createLayoutShare({
-      ownerUid: uid,
-      source: {
-        projectId,
-        workspaceId,
-        baseId: selectedBaseId,
-        planId: selectedPlanId,
-        optionId: selectedOptionId,
-      },
-      snapshot: {
-        boardName,
-        baseName,
-        planName,
-        optionName,
-        baseGlbUrl: baseGlbUrlResolved,
-        layout: layout0,
-      },
-      viewerConfig: { allowBrowseAll: true, playlist: [] },
-      visibility: "public",
-      catalogScope: "allBases",
-    });
-
-    const url = new URL(window.location.origin);
-    url.pathname = `/layout/share/${shareId}`;
-    url.searchParams.set("base", selectedBaseId);
-    url.searchParams.set("plan", selectedPlanId);
-    url.searchParams.set("option", selectedOptionId);
-
-    await navigator.clipboard.writeText(url.toString());
-    window.open(url.toString(), "_blank", "noopener,noreferrer");
-    alert("共有リンクをコピーして、別タブで開きました");
-  }, [
-    uid,
-    projectId,
-    workspaceId,
-    selectedBaseId,
-    selectedPlanId,
-    selectedOptionId,
-    baseGlbUrlResolved,
-    layoutDraft,
-    optionDoc?.layout,
-    meta,
-    bases,
-    plansOfSelectedBase,
-    options,
-  ]);
-
   // 全幅ヘッダー化: ツールバー(Header)下の中央行構成（S.Model と同構成）。
   // 非編集（Layout Dashboard）中は LayoutDashboard 自身が全幅ヘッダー＋3ゾーン行を持つ。
   const isEditing = !!(effectiveLayoutId || selectedOptionId);
@@ -3685,7 +3695,7 @@ export default function LayoutShell({
 
           <Rating
             value={feedbackRating}
-            onChange={(event, newValue) => {
+            onChange={(_event, newValue) => {
               setFeedbackRating(newValue);
             }}
             size="small"

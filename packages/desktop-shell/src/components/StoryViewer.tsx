@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import { Box, Typography, Avatar, CircularProgress } from '@mui/material';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X, Heart, MessageCircle, ChevronLeft } from 'lucide-react';
-import { BRAND } from '../styles/theme';
 import { getFieldPhotos, toggleLike, type FieldPhoto } from '../features/projects/fieldPhotosApi';
 import { useAuthStore } from '../store/useAuthStore';
 

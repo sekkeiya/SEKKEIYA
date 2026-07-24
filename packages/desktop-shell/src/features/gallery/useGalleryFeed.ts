@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  collection, collectionGroup, query, where, or, and, limit, getDocs, documentId,
+  collection, collectionGroup, query, where, limit, getDocs, documentId,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase/client';
 import { useAuthStore } from '../../store/useAuthStore';

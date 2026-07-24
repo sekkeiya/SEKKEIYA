@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import ShapeLineRoundedIcon from '@mui/icons-material/ShapeLineRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { DslLayoutCard } from './DslLayoutCard';
 

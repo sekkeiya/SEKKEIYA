@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Button, Tooltip, Breadcrumbs, Link,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip, Slider, useMediaQuery,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Slider, useMediaQuery,
 } from '@mui/material';
 import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';

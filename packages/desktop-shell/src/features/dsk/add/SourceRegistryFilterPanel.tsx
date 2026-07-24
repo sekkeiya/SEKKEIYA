@@ -3,7 +3,7 @@
 // 仕様: docs/16_sekkeiya_search_spec.md
 
 import React from 'react';
-import { Box, Typography, Chip, TextField, InputAdornment } from '@mui/material';
+import { Box, Typography, TextField, InputAdornment } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import FilterAltRoundedIcon from '@mui/icons-material/FilterAltRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';

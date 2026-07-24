@@ -21,7 +21,6 @@ import { useAiProfileStore } from '../../store/useAiProfileStore';
 import { ExpandedJournalCard } from './ExpandedJournalCard';
 import { JournalRepository } from '../../features/projects/repositories/JournalRepository';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { JournalEntry } from '../../features/projects/types';
 
 export type ProjectActivityType =
   | "workfile_updated"

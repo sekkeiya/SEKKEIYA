@@ -4,7 +4,6 @@
 // ★メニューの「自動家具選定」で範囲（ゾーン/部屋/住宅）を選ぶと、用途別プログラムから
 // ゾーンごとの「役割×個数」が選定され useFurnitureSelectionStore に入る。ここで内容を確認・
 // 微調整し、「この選定で配置」で②自動レイアウトへ渡す（プログラム充足率でセットを選ぶ）。
-import React from "react";
 import { Box, Stack, Typography, Chip, IconButton, Button, Divider, Tooltip } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";

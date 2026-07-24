@@ -79,7 +79,6 @@ const visibilityOf = (site: ProjectSite | null): { label: string; icon: 'public'
 type FilterKey = 'all' | Status;
 type SortKey = 'name' | 'updated';
 type SortDir = 'asc' | 'desc';
-const STATUS_ORDER: Record<Status, number> = { published: 0, draft: 1, none: 2 };
 const PAGE_SIZE = 20;
 // テーブルの列グリッド（チェック / 名前 / 状況 / 公開範囲 / URL / 更新日時 / 操作）
 const COLS = '34px minmax(150px, 1.8fr) 80px 92px minmax(110px, 1.4fr) 130px 128px';

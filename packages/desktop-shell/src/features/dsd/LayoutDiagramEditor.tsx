@@ -54,7 +54,7 @@ export const LayoutDiagramEditor: React.FC = () => {
   const {
     style, setStyle,
     layoutEditorTab, setLayoutEditorTab,
-    layoutMode, zones, flows,
+    zones,
     flowDraftFromId,
   } = useDsdStore();
 

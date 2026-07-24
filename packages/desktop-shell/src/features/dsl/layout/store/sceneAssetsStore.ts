@@ -39,7 +39,7 @@ function collectMaterialsFromObject(root?: Object3D): Material[] {
   return out;
 }
 
-export const useSceneAssetsStore = create<SceneAssetsState>((set, get) => ({
+export const useSceneAssetsStore = create<SceneAssetsState>(() => ({
   getUniqueMaterialsFromObjects: (objects = []) => {
     const map = new Map<string, Material>();
 

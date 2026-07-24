@@ -225,7 +225,6 @@ export const TeamHomePage: React.FC = () => {
   }
 
   const color = teamColor(team.name);
-  const isOwner = team.ownerId === currentUser?.uid;
 
   const handleAddProject = async () => {
     if (!currentUser || !newProjectName.trim()) return;

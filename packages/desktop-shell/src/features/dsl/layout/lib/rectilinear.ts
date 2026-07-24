@@ -183,7 +183,7 @@ export function dragVertex(ring: Pt[], i: number, u: number, v: number): Pt[] {
   if (n < 4) return ring;
   const out = ring.map((p) => ({ ...p }));
   const prev = (i - 1 + n) % n, next = (i + 1) % n;
-  const oPrev = ring[prev], o = ring[i], oNext = ring[next];
+  const oPrev = ring[prev], o = ring[i];
   out[i].u = u; out[i].v = v;
   // prev–i 辺が垂直（u共有）か水平（v共有）かで、隣接頂点の共有座標を更新する
   if (Math.abs(R(oPrev.u) - R(o.u)) < Math.abs(R(oPrev.v) - R(o.v))) {

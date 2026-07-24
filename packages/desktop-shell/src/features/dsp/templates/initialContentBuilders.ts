@@ -23,7 +23,6 @@ const WARM_BG  = '#faf8f5';
 const GRAY_BG  = '#f5f5f7';
 const TEXT_DK  = '#1d1d1f';
 const TEXT_MD  = '#3a3a3c';
-const TEXT_LT  = 'rgba(255,255,255,0.75)';
 const TEXT_DIM = 'rgba(255,255,255,0.45)';
 const LINE_LT  = 'rgba(255,255,255,0.18)';
 const LINE_DK  = '#d2d2d7';
@@ -444,7 +443,7 @@ function buildDiagram(cW = DEFAULT_CANVAS.width, cH = DEFAULT_CANVAS.height): Pr
 function buildSpecSheet(cW = DEFAULT_CANVAS.width, cH = DEFAULT_CANVAS.height): PresentationContent {
   const headers = ['品名', 'メーカー', '品番', 'サイズ', '数量', '単価', '備考'];
   const colRatios = [0.18, 0.12, 0.12, 0.12, 0.06, 0.1, 0.2];
-  const colX = colRatios.reduce<number[]>((acc, r, i) => [...acc, (acc[i - 1] ?? 0) + (colRatios[i - 1] ?? 0)], []);
+  const colX = colRatios.reduce<number[]>((acc, _r, i) => [...acc, (acc[i - 1] ?? 0) + (colRatios[i - 1] ?? 0)], []);
 
   return {
     canvasSize: DEFAULT_CANVAS,
@@ -488,7 +487,7 @@ function buildSpecSheet(cW = DEFAULT_CANVAS.width, cH = DEFAULT_CANVAS.height): 
         rct(cW * 0.02, cH * 0.12, cW * 0.96, cH * 0.07, '#1a1a1a'),
         ...(['部位', 'メーカー', '品番・品名', '仕上げ色', '施工範囲', '備考'].map((h, i) => {
           const ratios = [0.1, 0.14, 0.22, 0.14, 0.14, 0.22];
-          const xs = ratios.reduce<number[]>((acc, r, idx) => [...acc, (acc[idx-1] ?? 0) + (ratios[idx-1] ?? 0)], []);
+          const xs = ratios.reduce<number[]>((acc, _r, idx) => [...acc, (acc[idx-1] ?? 0) + (ratios[idx-1] ?? 0)], []);
           return txt(cW * (0.03 + xs[i] * 0.96), cH * 0.135, cW * (ratios[i] * 0.96 - 0.01), cH * 0.05,
             h, '17px', '#fff', { fontWeight: '700' });
         })),

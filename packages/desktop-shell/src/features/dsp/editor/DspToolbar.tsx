@@ -65,7 +65,7 @@ export function DspToolbar() {
   const [showRightScroll, setShowRightScroll] = useState(false);
 
   // Store access
-  const { undo, redo, past, future, addElement, addElements, selectedPageId, selectedElementIds, deleteElements, presentation, updateElements, isSnapEnabled, setIsSnapEnabled, isGridEnabled, setIsGridEnabled, gridSize, setGridSize, activeTool, setActiveTool, setModelPickerOpen, setInspectorActiveTopTab } = useDspStore();
+  const { undo, redo, past, future, addElement, addElements, selectedPageId, selectedElementIds, deleteElements, presentation, updateElements, isSnapEnabled, setIsSnapEnabled, isGridEnabled, setIsGridEnabled, gridSize, setGridSize, activeTool, setActiveTool, setModelPickerOpen } = useDspStore();
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
   const hasSelection = selectedElementIds.length > 0;

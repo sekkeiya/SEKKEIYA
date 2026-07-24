@@ -10,6 +10,8 @@ import ZoneActiveGizmo from "./ZoneActiveGizmo.jsx";
 import CirculationVisualizer from "./CirculationVisualizer.jsx";
 import { useZoningStore } from "../../store/useZoningStore";
 import { useSelectionScopeStore, canSelectZone } from "../../store/useSelectionScopeStore";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
+import { roomAutoColor } from "../../constants/roomCategories";
 
 const BOX_H = 10; // Make thick enough for mm scale
 const LABEL_Y = 200; // Hover nicely above the box
@@ -25,6 +27,8 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
   const zones = useLayoutTaskStore((s) => s.zones);
   const activeZoneId = useLayoutTaskStore((s) => s.activeZoneId);
   const setActiveZoneId = useLayoutTaskStore((s) => s.setActiveZoneId);
+  // ツリーで選択中の部屋。その部屋に属する全ゾーンを（アクティブと同じく）ハイライトする。
+  const selectedRoomId = useLayoutTaskStore((s) => s.selectedRoomId);
   const editorMode = useEditorModeStore((s) => s.editorMode);
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm);
   // 平面図では「アクティブ階」のゾーンだけ実体表示し、他階は「他階トレース」トグルで薄く出す
@@ -42,6 +46,9 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
   const zoningSubMode = useZoningStore((s) => s.zoningSubMode);
   const isZoningActionSelect = useZoningStore((s) => s.isZoningActionSelect);
   const selectedCirculationId = useZoningStore((s) => s.selectedCirculationId);
+
+  // 部屋色トグル（部屋の範囲を部屋ごとに異なる色で塗る）。
+  const showRoomColors = useViewportDisplayStore((s) => s.showRoomColors);
 
   const hiddenZoneIds = useZoningStore((s) => s.hiddenZoneIds);
   const hiddenPatternIds = useZoningStore((s) => s.hiddenPatternIds);
@@ -88,7 +95,7 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
         depth = Math.max(1, maxZ - minZ);
       }
 
-      const isActive = activeZoneId === zone.id;
+      const isActive = activeZoneId === zone.id || (!!selectedRoomId && zone.roomId === selectedRoomId);
       const color = zone.color || "#cccccc";
 
       const sortedVersions = [...(zone.versions || [])].sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
@@ -96,15 +103,20 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
       const activeVersionIndex = sortedVersions.findIndex(v => v.id === effectiveActiveVersionId);
       const versionLabel = activeVersionIndex !== -1 ? ` / v${sortedVersions.length - activeVersionIndex}` : "";
 
-      return { zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder: idx, ghost };
+      // 部屋ごとの自動配色（部屋色トグル ON のとき塗りに使う）。zones 配列上の位置で安定。
+      const autoColor = roomAutoColor(idx);
+
+      return { zone, cx, cz, width, depth, isActive, color, autoColor, versionLabel, renderOrder: idx, ghost };
     }).filter(Boolean);
-  }, [items, zones, activeZoneId, isVisibleMode, showZones, hiddenZoneIds, isTopView, activeFloorIndex, showOtherFloorsGhost, ghostFloors]);
+  }, [items, zones, activeZoneId, selectedRoomId, isVisibleMode, showZones, hiddenZoneIds, isTopView, activeFloorIndex, showOtherFloorsGhost, ghostFloors]);
 
   if (!isVisibleMode) return null;
 
   return (
     <group userData={{ isEditorOverlay: true }}>
-      {zoneMeshes.map(({ zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder, ghost }) => {
+      {zoneMeshes.map(({ zone, cx, cz, width, depth, isActive, color, autoColor, versionLabel, renderOrder, ghost }) => {
+        // 部屋色トグル ON かつ実体（他階トレースではない）のときだけ自動配色を適用する。
+        const roomColorOn = showRoomColors && !ghost;
         // rect があるゾーンは選択状態によらず常に ZoneActiveGizmo を使う。
         // これにより非選択時でも辺ホバーでリサイズカーソルが出る。
         // 他階（ghost）は薄いトレース＝編集・選択させない（editable を落とす）。
@@ -120,6 +132,8 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
               editable={editable && !ghost}
               ghost={ghost}
               roomBounds={roomBounds}
+              roomColorOn={roomColorOn}
+              autoColor={autoColor}
             />
           );
         }
@@ -129,7 +143,8 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
           <group key={zone.id}>
             <mesh
               position={[cx, BOX_H / 2 + gridHeightMm, cz]}
-              renderOrder={renderOrder}
+              // 部屋色 ON では床塗り(9980)より上・壁ポシェ(9990)より下に乗せて確実に見せる。
+              renderOrder={roomColorOn ? 9986 : renderOrder}
               onClick={(e) => {
                 e.stopPropagation();
                 if (editorMode === "zoning") {
@@ -141,9 +156,9 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
             >
               <boxGeometry args={[width, BOX_H, depth]} />
               <meshBasicMaterial
-                color={color}
+                color={roomColorOn ? autoColor : color}
                 transparent
-                opacity={ghost ? 0.08 : isActive ? 0.35 : 0.20}
+                opacity={ghost ? 0.08 : roomColorOn ? (isActive ? 0.45 : 0.32) : isActive ? 0.35 : 0.20}
                 depthTest={false}
                 depthWrite={false}
               />

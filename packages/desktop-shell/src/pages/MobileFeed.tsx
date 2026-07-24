@@ -220,7 +220,7 @@ const EmptyFeed: React.FC<{ onCameraOpen: () => void }> = ({ onCameraOpen }) => 
 // Main feed
 // ────────────────────────────────────────────
 const MobileFeed: React.FC<Props> = ({ onCameraOpen, onRetry }) => {
-  const { projects, setActiveProjectId, setCurrentMainView } = useAppStore();
+  const { projects } = useAppStore();
   const { currentUser } = useAuthStore();
 
   const [photos, setPhotos] = useState<FieldPhoto[]>([]);

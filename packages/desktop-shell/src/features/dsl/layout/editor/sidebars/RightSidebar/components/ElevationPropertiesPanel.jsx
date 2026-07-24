@@ -21,6 +21,7 @@ import { useElevationMarkerStore } from "../../../../store/useElevationMarkerSto
 import { useRoomElevationsStore } from "../../../../store/useRoomElevationsStore";
 import { useLayoutTaskStore } from "../../../../store/useLayoutTaskStore";
 import { openRoomElevation, computeElevationRooms } from "../../../../utils/openElevationView";
+import ElevationPlanMiniMap from "./ElevationPlanMiniMap.jsx";
 
 const DIR_JP = { A: "上", B: "右", C: "下", D: "左" };
 
@@ -191,7 +192,15 @@ export default function ElevationPropertiesPanel() {
   }, [rooms, selectedRoomId]);
 
   return (
-    <Box sx={{ p: 1.5, height: "100%", overflowY: "auto" }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
+      {/* 平面ミニマップ（記号クリックで展開切替。スクロールしても上部に固定） */}
+      {rooms.length > 0 && (
+        <Box sx={{ p: 1.5, pb: 1.25, flexShrink: 0, borderBottom: `1px solid ${alpha("#fff", 0.08)}` }}>
+          <ElevationPlanMiniMap />
+        </Box>
+      )}
+
+      <Box sx={{ p: 1.5, flex: 1, minHeight: 0, overflowY: "auto" }}>
       <Stack spacing={1.25}>
         <Typography sx={{ fontSize: 11, fontWeight: 700, color: "color-mix(in srgb, var(--brand-fg) 80%, transparent)" }}>
           展開図
@@ -238,6 +247,7 @@ export default function ElevationPropertiesPanel() {
           </Box>
         )}
       </Stack>
+      </Box>
     </Box>
   );
 }

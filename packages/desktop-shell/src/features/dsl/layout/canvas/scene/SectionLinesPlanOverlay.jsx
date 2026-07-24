@@ -13,6 +13,7 @@ import { useViewportUiStore } from "../../store/viewportUiStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useWallStore } from "../../store/useWallStore";
 import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStore";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import LineEndHandle from "./LineEndHandle.jsx";
 import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
 import { measureXZBounds, defaultSectionSpan } from "../../utils/planBounds";
@@ -26,6 +27,8 @@ const snap50 = (v, isMm) => (isMm ? Math.round(v / 50) * 50 : Math.round(v / 0.0
 function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, active, arrowStyle }) {
   // 作図中は DOM のラベルがクリックを吸わないようにする。
   const drawing = useDrawToolActive();
+  // 記号ロック中（断面線）は選択・移動・伸縮を止める（表示は残す）。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.section);
   const { camera, gl } = useThree();
   const [dragging, setDragging] = useState(false);
   const lineRef = useRef(line);
@@ -154,7 +157,7 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
     background: active ? "#1e293b" : "rgba(255,255,255,0.92)",
     border: `1px solid ${active ? "#1e293b" : "rgba(30,41,59,0.4)"}`,
     boxShadow: "0 1px 3px rgba(15,23,42,0.2)",
-    pointerEvents: drawing ? "none" : "auto", cursor: "pointer", userSelect: "none",
+    pointerEvents: (drawing || locked) ? "none" : "auto", cursor: "pointer", userSelect: "none",
   };
 
   // ドラッグ用の透明ヒット帯（線に沿って細長く）
@@ -166,6 +169,7 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
     if (e && e.button != null && e.button !== 0) return;
     // 作図中は断面線を選ばず、奥の作図プレーンへイベントを通す。
     if (isDrawToolActive()) return;
+    if (locked) return; // ロック中は選択・移動させない
     e?.stopPropagation?.();
     useSectionLinesStore.getState().setActiveLine(lineRef.current.id);
     useUiRightSidebarStore.getState().setRightPanel("properties", true);
@@ -213,8 +217,8 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
 
   return (
     <group renderOrder={9996}>
-      {/* 中間の切断線＋ドラッグ帯は選択中のみ（非選択時は両端の記号だけ＝図面の作法） */}
-      {active && (
+      {/* 中間の切断線＋ドラッグ帯は選択中のみ（非選択時は両端の記号だけ＝図面の作法）。ロック中は出さない。 */}
+      {active && !locked && (
         <mesh
           position={isZ ? [spanMid, y, line.pos] : [line.pos, y, spanMid]}
           rotation={[-Math.PI / 2, 0, isZ ? 0 : Math.PI / 2]}
@@ -229,8 +233,8 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
         <Line points={[p1, p2]} color={col} lineWidth={width} transparent opacity={opacity}
           depthTest={false} dashed dashSize={half * 0.06} gapSize={half * 0.014} />
       )}
-      {/* 選択中: 端部ドラッグで切断線そのものの長さを伸縮（通り芯と同じ操作） */}
-      {active && (
+      {/* 選択中: 端部ドラッグで切断線そのものの長さを伸縮（通り芯と同じ操作）。ロック中は出さない。 */}
+      {active && !locked && (
         <>
           <LineEndHandle
             position={p1} dirAxis={dirAxis} planeY={y}
@@ -280,8 +284,8 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
         <div style={labelStyle} onClick={selectLine}>{n2}</div>
       </Html>
 
-      {/* ── アクティブな断面線のギズモ（移動＝垂直方向 / Y回転で90°軸スワップ）── */}
-      {active && (
+      {/* ── アクティブな断面線のギズモ（移動＝垂直方向 / Y回転で90°軸スワップ）。ロック中は出さない。── */}
+      {active && !locked && (
         <group
           key={`giz-${line.id}-${line.axis}-${gizmoKey}`}
           position={gizDraggingRef.current && gizBaseRef.current
@@ -337,8 +341,8 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
       )}
 
       {/* ── アクティブ断面線の操作ボタン（回転・反転）。トップビューでは回転リングが
-            扱いにくいため、確実に押せる HTML ボタンとしてギズモの上に出す。 ── */}
-      {active && (
+            扱いにくいため、確実に押せる HTML ボタンとしてギズモの上に出す。ロック中は出さない。 ── */}
+      {active && !locked && (
         <Html
           position={isZ ? [spanMid, y, line.pos] : [line.pos, y, spanMid]}
           center
@@ -413,9 +417,16 @@ export default function SectionLinesPlanOverlay() {
   const arrowLen = Math.min(Math.max(half * 0.07, w(550)), w(700));
   const labelGap = arrowLen * 0.6;  // 線端 → ラベル（A / A'）中心の距離
   // 既定の長さは「ラベルが1列目の寸法線に被らない位置」から逆算。寸法列と同じ基準（planBounds）。
+  // ⚠️ 断面記号は「実際の躯体」を基準に建物へ寄せたい。baseColliders には自動床スキャンで
+  //    生成した不可視の床板(isScannedFloor)が混ざり、これが建物より大きい/片側に寄っていると
+  //    A/A'/B/B' の一端だけが遠くへ飛ぶ。注記の範囲計算からはスキャン板を除外して実躯体だけ測る。
+  const structureColliders = useMemo(
+    () => (baseColliders || []).filter((o) => !o?.userData?.isScannedFloor),
+    [baseColliders],
+  );
   const bounds = useMemo(
-    () => measureXZBounds(baseColliders, walls, w),
-    [baseColliders, walls, isMm],
+    () => measureXZBounds(structureColliders, walls, w),
+    [structureColliders, walls, isMm],
   );
   const autoSpan = useMemo(() => ({
     // axis="z"（横断面線）は X 方向に伸びる／axis="x"（縦断面線）は Z 方向。

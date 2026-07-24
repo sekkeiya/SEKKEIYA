@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box, Typography, CardActionArea, IconButton, InputBase,
-  Tooltip, Divider, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Button, Menu, MenuItem, Collapse, CircularProgress,
+  Divider, Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, Menu, MenuItem, Collapse,
 } from '@mui/material';
 import WbSunnyRoundedIcon from '@mui/icons-material/WbSunnyRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -454,7 +454,7 @@ export const DsdSidebar: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createProjectType, setCreateProjectType] = useState<'my' | 'team'>('my');
+  const [createProjectType] = useState<'my' | 'team'>('my');
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 

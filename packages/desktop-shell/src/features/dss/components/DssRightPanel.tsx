@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, Slider, ToggleButton, ToggleButtonGroup, Divider, InputAdornment, Chip, IconButton, Autocomplete, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, List, ListItem, ListItemButton, ListItemText, ListItemIcon } from '@mui/material';
+import type { SvgIconProps } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CategoryIcon from '@mui/icons-material/Category';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
-import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import { useAppStore } from '../../../store/useAppStore';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -47,7 +47,13 @@ import CheckroomIcon from '@mui/icons-material/Checkroom';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import ImageIcon from '@mui/icons-material/Image';
-export const DssRightPanel: React.FC = () => {
+interface DssRightPanelProps {
+  /** true なら3Dプレビューの代わりにサムネイル画像を表示する。
+      詳細画面ではメインビューアが同じモデルを表示しており、WebGLキャンバスの重複を避けるため。 */
+  hideViewer?: boolean;
+}
+
+export const DssRightPanel: React.FC<DssRightPanelProps> = ({ hideViewer }) => {
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
   const selectedItem = useAppStore(s => activeWorkspaceId ? s.panelSelections[activeWorkspaceId] : null);
   const dssSearchFilters = useAppStore(s => s.dssSearchFilters);
@@ -58,7 +64,7 @@ export const DssRightPanel: React.FC = () => {
     if (selectedItem.isProjectItem) {
       return <DssProjectInfoPanel selectedItem={selectedItem} />;
     }
-    return <DssModelInfoPanel selectedItem={selectedItem} />;
+    return <DssModelInfoPanel selectedItem={selectedItem} hideViewer={hideViewer} />;
   }
 
   return <DssFilterPanel filters={dssSearchFilters} setFilters={setDssSearchFilters} resetFilters={resetDssSearchFilters} />;
@@ -114,9 +120,10 @@ const DssProjectInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) 
   );
 };
 
-const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: propSelectedItem }) => {
-  const getMergedCategoryMap = useUserSettingsStore(s => s.getMergedCategoryMap);
-  const mergedCategoryMap = getMergedCategoryMap();
+/** モデル情報（台帳）パネル。詳細画面では「概要」タブの中身として直接利用する。 */
+export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boolean }> = ({ selectedItem: propSelectedItem, hideViewer }) => {
+  // カテゴリの一覧は描画時に useUserSettingsStore.getState() から直接引いているため、
+  // ここで保持する必要はない。
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
   const activeProjectId = useAppStore(s => s.activeProjectId);
   const setPanelSelection = useAppStore(s => s.setPanelSelection);
@@ -437,11 +444,6 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
       '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.2)' }
     };
   };
-  const getToggleSx = (fieldName: string) => {
-    const isHighlighted = autoFilledFields.includes(fieldName);
-    return { width: '100%', '& .MuiToggleButton-root': { transition: 'all 0.3s', flex: 1, py: 0.5, fontSize: 11, fontWeight: 500, color: 'text.secondary', borderColor: isHighlighted ? '#facc15' : 'rgb(var(--brand-fg-rgb) / 0.1)', bgcolor: isHighlighted ? 'rgba(250, 204, 21, 0.05)' : 'transparent', textTransform: 'none', '&.Mui-selected': { bgcolor: 'rgba(79, 195, 247, 0.15)', color: 'light-dark(#0875a6, #4fc3f7)', borderColor: 'rgba(79, 195, 247, 0.3)', '&:hover': { bgcolor: 'rgba(79, 195, 247, 0.2)' } } } };
-  };
-
   const inputSx = getInputSx(''); // Fallback
   const selectSx = getSelectSx(''); // Fallback
   const selectMenuProps = { PaperProps: { sx: { bgcolor: 'var(--brand-surface2)', backgroundImage: 'none', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)' } } };
@@ -483,6 +485,10 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
     visibility: 'public',
     character: null as any,
     gimmick: null as any,
+    // AI自動入力が書き戻すアセット種別（'3d-model' など）。
+    type: '',
+    // セット家具として紐づける他モデル。
+    companionModels: [] as { id: string; title: string; thumbnailUrl: string }[],
   });
   // 編集中の寸法を 3Dビューワ（プレビュー/詳細画面）へ即時共有する
   const setLiveDimensions = useDssLiveDimensionsStore(s => s.setLiveDimensions);
@@ -557,6 +563,7 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         relatedLinks: parseRelatedLinks(selectedItem),
         catalogLinks: parseCatalogLinks(selectedItem),
         companionModels: Array.isArray(selectedItem.companionModels) ? [...selectedItem.companionModels] : [],
+        type: selectedItem.type || '',
         visibility: selectedItem.visibility || 'public',
         character: selectedItem.extendedMetadata?.character || null,
         gimmick: selectedItem.extendedMetadata?.gimmick || null,
@@ -786,12 +793,16 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
         useAiProfileStore.getState().logSaveDataEvent({
           userId: currentUser?.uid || 'unknown',
           actionType: 'METADATA_CORRECTED',
-          content: `User corrected metadata for "${dataToSave.title}": ${contentStr.trim()}`,
           context: {
             targetId: selectedItem.id,
             targetType: 'asset',
             source: 'user',
-            payload: { before: originalData, after: dataToSave }
+            // SaveDataEvent に content フィールドは無いため、説明文も payload に載せる。
+            payload: {
+              summary: `User corrected metadata for "${dataToSave.title}": ${contentStr.trim()}`,
+              before: originalData,
+              after: dataToSave,
+            },
           }
         });
       }
@@ -1003,11 +1014,15 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
 
       {/* Model Preview */}
       <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        {((versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || (selectedVersionId === latestVersion && effectiveLocalGlbUrl)) ? (
+        {!hideViewer && ((versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || (selectedVersionId === latestVersion && effectiveLocalGlbUrl)) ? (
           <RightPanelModelViewer
             modelUrl={(versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || effectiveLocalGlbUrl}
             versionId={selectedVersionId}
             targetDimensions={editData.id === selectedItem.id ? liveTargetDimensions : null}
+            // 一覧をクリックで見て回るとき、選択が変わるたびに GLB を取りに行くと重くなる。
+            // 少し待ってから取得し、その間はサムネイルを見せる（選択の反応自体は即座）。
+            loadDelayMs={250}
+            placeholderImageUrl={selectedItem?.thumbnailUrl || selectedItem?.thumbnail || undefined}
           />
         ) : convertingPreview ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
@@ -1374,6 +1389,35 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
                 PaperComponent={props => <Box {...props} sx={autocompletePaperProps.sx} />}
                 renderInput={(params) => <TextField {...params} placeholder={editData.companionClasses.length === 0 ? "ダイニングセット..." : ""} />}
               />
+            </Box>
+            <Box>
+              {/* セット家具（具体的なモデルの紐づけ）。ピッカーは実装済みだったが開く導線が
+                  無く到達できなかったため、ここから開けるようにした。 */}
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 9, mb: 0.5, display: 'block' }}>
+                COMPANION MODELS (セットにする他モデル)
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.5 }}>
+                {(editData.companionModels || []).map((c) => (
+                  <Chip
+                    key={c.id}
+                    size="small"
+                    label={c.title}
+                    onDelete={() => setEditData({
+                      ...editData,
+                      companionModels: (editData.companionModels || []).filter((x) => x.id !== c.id),
+                    })}
+                    sx={{ height: 22, fontSize: 10.5 }}
+                  />
+                ))}
+              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleOpenCompanionDialog}
+                sx={{ textTransform: 'none', fontSize: 11, py: 0.25 }}
+              >
+                ＋ モデルを選ぶ
+              </Button>
             </Box>
           </>
         ) : (
@@ -1849,7 +1893,9 @@ const DssModelInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem: prop
   );
 };
 
-const getCategoryIcon = (catName: string): React.ElementType => {
+// 返すのは常に MUI のアイコンなので ComponentType<SvgIconProps> で型付けする。
+// React.ElementType にすると sx などの props が never に潰れて渡せなくなる。
+const getCategoryIcon = (catName: string): React.ComponentType<SvgIconProps> => {
   if (catName === 'すべて' || catName === 'ALL') return AppsIcon;
   if (catName.includes('ソファ')) return WeekendIcon;
   if (catName.includes('チェア') || catName.includes('椅子')) return ChairIcon;

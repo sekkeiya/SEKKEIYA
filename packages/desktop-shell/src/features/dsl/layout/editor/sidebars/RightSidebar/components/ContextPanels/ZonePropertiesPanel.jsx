@@ -137,9 +137,10 @@ export default function ZonePropertiesPanel({ zone }) {
         </Tooltip>
       </Box>
 
-      {/* カテゴリ（部屋） */}
+      {/* 機能（ゾーン内）＝室内の機能サブ分割（LDK 内のリビング/ダイニング/キッチン等）。
+          室の用途カテゴリは「部屋」側（OptionDetailPanel の部屋ヘッダ）で設定する。 */}
       <Box>
-        <Typography sx={LABEL_SX}>カテゴリ（部屋）</Typography>
+        <Typography sx={LABEL_SX}>機能（ゾーン）</Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4 }}>
           {categories.map(cat => {
             const active = zone.category === cat.key;
@@ -164,7 +165,7 @@ export default function ZonePropertiesPanel({ zone }) {
           })}
         </Box>
         <Typography sx={{ fontSize: 9, color: "color-mix(in srgb, var(--brand-fg) 25%, transparent)", mt: 0.4 }}>
-          Auto Layout はカテゴリに対応する用途のセット家具を選択します
+          室内を機能で分ける場合に指定（未指定なら部屋の用途を継承）。Auto Layout はこの用途のセット家具を選びます
         </Typography>
       </Box>
 

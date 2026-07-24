@@ -30,6 +30,12 @@ export const SYMBOL_LABEL: Record<SymbolKind, string> = {
 /** 項目の並び順（メニューの表示順）。 */
 export const SYMBOL_KINDS: SymbolKind[] = ["section", "elevation", "grid", "zone", "dimension", "sceneGrid"];
 
+/**
+ * ロック対象（選択・移動・編集の操作系を持つ記号）。
+ * 床グリッド(sceneGrid)は線を敷くだけで操作が無いのでロック対象外。
+ */
+export const LOCKABLE_SYMBOL_KINDS: SymbolKind[] = SYMBOL_KINDS.filter((k) => k !== "sceneGrid");
+
 export type SymbolFlags = Record<SymbolKind, boolean>;
 
 const ALL_ON: SymbolFlags = {
@@ -53,9 +59,27 @@ interface ViewportDisplayStore {
   /** その項目を図面に出すか（マスターとの AND）。 */
   isSymbolOn: (kind: SymbolKind) => boolean;
 
+  /** 記号のロック（表示はするが選択・移動・編集を不可にする）。項目別。 */
+  symbolLocks: SymbolFlags;
+  setSymbolLock: (kind: SymbolKind, v: boolean) => void;
+  toggleSymbolLock: (kind: SymbolKind) => void;
+  /** ロック対象すべてをまとめてロック/解除する（記号ボタンの3状態トグル用）。 */
+  setAllSymbolLocks: (v: boolean) => void;
+  /** その記号がロックされているか（表示ON/OFFとは独立）。 */
+  isSymbolLocked: (kind: SymbolKind) => boolean;
+
   drawingLight: boolean;
   setDrawingLight: (v: boolean) => void;
   toggleDrawingLight: () => void;
+
+  /**
+   * showRoomColors: 平面図で部屋（ゾーン）の範囲を「部屋ごとに異なる色」で塗り分ける。
+   * 既定 OFF（従来どおり淡い既定色）。ON で各部屋に自動配色したカラーを乗せ、
+   * 部屋の範囲・区分けをひと目で把握できるようにする（ツールバーの「部屋色」トグル）。
+   */
+  showRoomColors: boolean;
+  setShowRoomColors: (v: boolean) => void;
+  toggleShowRoomColors: () => void;
 }
 
 export const useViewportDisplayStore = create<ViewportDisplayStore>((set, get) => ({
@@ -67,7 +91,9 @@ export const useViewportDisplayStore = create<ViewportDisplayStore>((set, get) =
   setShowSymbols: (showSymbols) => set({ showSymbols }),
   toggleShowSymbols: () => set((s) => ({ showSymbols: !s.showSymbols })),
 
-  symbolFlags: { ...ALL_ON },
+  // 床グリッド(sceneGrid)は既定 OFF。通り芯＋寸法がある図面では重複しノイズになりやすいため。
+  // 必要なときは「記号」メニュー →「グリッド」で ON にできる（スナップは isGridVisible 側なので影響なし）。
+  symbolFlags: { ...ALL_ON, sceneGrid: false },
   setSymbolFlag: (kind, v) =>
     set((s) => ({ symbolFlags: { ...s.symbolFlags, [kind]: !!v } })),
   toggleSymbolFlag: (kind) =>
@@ -81,7 +107,26 @@ export const useViewportDisplayStore = create<ViewportDisplayStore>((set, get) =
     return !!s.showSymbols && !!s.symbolFlags[kind];
   },
 
+  symbolLocks: SYMBOL_KINDS.reduce((acc, k) => { acc[k] = false; return acc; }, {} as SymbolFlags),
+  setSymbolLock: (kind, v) =>
+    set((s) => ({ symbolLocks: { ...s.symbolLocks, [kind]: !!v } })),
+  toggleSymbolLock: (kind) =>
+    set((s) => ({ symbolLocks: { ...s.symbolLocks, [kind]: !s.symbolLocks[kind] } })),
+  setAllSymbolLocks: (v) =>
+    set(() => ({
+      // 表示のみ切替える sceneGrid はロック対象外なので常に false のまま。
+      symbolLocks: SYMBOL_KINDS.reduce((acc, k) => {
+        acc[k] = LOCKABLE_SYMBOL_KINDS.includes(k) ? !!v : false;
+        return acc;
+      }, {} as SymbolFlags),
+    })),
+  isSymbolLocked: (kind) => !!get().symbolLocks[kind],
+
   drawingLight: true,
   setDrawingLight: (drawingLight) => set({ drawingLight }),
   toggleDrawingLight: () => set((s) => ({ drawingLight: !s.drawingLight })),
+
+  showRoomColors: false,
+  setShowRoomColors: (showRoomColors) => set({ showRoomColors }),
+  toggleShowRoomColors: () => set((s) => ({ showRoomColors: !s.showRoomColors })),
 }));

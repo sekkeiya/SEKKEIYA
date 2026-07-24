@@ -183,7 +183,6 @@ const EnvPanel: React.FC = () => {
     { key: 'thermal', label: '温熱', icon: <DeviceThermostatRoundedIcon sx={{ fontSize: 14 }} /> },
   ];
 
-  const MONTHS_JP = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
   const LOCATIONS = [
     { label: '東京 (35.7°N)', lat: 35.7 },
     { label: '大阪 (34.7°N)', lat: 34.7 },

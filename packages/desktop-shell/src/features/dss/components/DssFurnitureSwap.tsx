@@ -45,6 +45,10 @@ interface Props {
   model: any;
   isAuthor: boolean;
   mode?: 'edit' | 'preview';
+  /** true なら自前の3Dプレビューを持たず、選択モデルを親（メインビューア）へ通知する（詳細画面のCanvas集約用）。 */
+  externalViewer?: boolean;
+  /** externalViewer 時、選択された差し替え先を親へ通知。元モデル選択時は null。 */
+  onSelectSwap?: (sel: { url: string; dims: any } | null) => void;
 }
 
 /**
@@ -52,7 +56,7 @@ interface Props {
  * 閲覧/プレビューでは候補サムネをクリックして3Dプレビューのモデルを差し替える。
  * 保存先: asset.extendedMetadata.swapModels = SwapModelRef[]。
  */
-export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edit' }) => {
+export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edit', externalViewer, onSelectSwap }) => {
   const currentUser = useAuthStore((s) => s.currentUser);
   const canonicalId = useMemo(() => getCanonicalModelId(model) || model?.id, [model]);
   const selfRef: SwapModelRef = useMemo(() => ({
@@ -75,6 +79,19 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
   const selected = options.find((o) => o.id === selectedId) || selfRef;
 
   const isEditing = isAuthor && mode === 'edit';
+
+  // externalViewer 時：選択中モデルを親（メインビューア）へ通知。元モデルなら null。
+  useEffect(() => {
+    if (!externalViewer || !onSelectSwap) return;
+    if (!selectedId || selectedId === model?.id) { onSelectSwap(null); return; }
+    const sel = options.find((o) => o.id === selectedId);
+    onSelectSwap(sel?.glbUrl ? { url: sel.glbUrl, dims: sel.dimensions || null } : null);
+  }, [externalViewer, onSelectSwap, selectedId, options, model?.id]);
+  // タブ離脱時は元モデルへ戻す
+  useEffect(() => {
+    if (!externalViewer || !onSelectSwap) return;
+    return () => onSelectSwap(null);
+  }, [externalViewer, onSelectSwap]);
 
   const persist = async (next: SwapModelRef[]) => {
     if (!isAuthor || !canonicalId) return;
@@ -131,7 +148,8 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
 
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 2 }}>
-      {/* プレビュー */}
+      {/* プレビュー（externalViewer 時はメインビューアへ委譲し、Canvas を持たない） */}
+      {!externalViewer && (
       <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 340, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', overflow: 'hidden' }}>
         {selected.glbUrl ? (
           <RightPanelModelViewer modelUrl={selected.glbUrl} />
@@ -141,6 +159,7 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
           </Box>
         )}
       </Box>
+      )}
 
       {/* 右ペイン */}
       <Box sx={{ flex: '1 1 320px', minWidth: 300 }}>

@@ -26,7 +26,7 @@ interface ItemSwapRegistryState {
   has: (itemId: string) => boolean;
 }
 
-export const useItemSwapRegistryStore = create<ItemSwapRegistryState>((set, get) => ({
+export const useItemSwapRegistryStore = create<ItemSwapRegistryState>((_set, get) => ({
   map: new Map(),
   register: (entry) => { if (entry?.itemId) get().map.set(entry.itemId, entry); },
   unregister: (itemId) => { if (itemId) get().map.delete(itemId); },

@@ -1,10 +1,9 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Box, Typography, TextField } from '@mui/material';
+import React, { useRef, useState, useCallback } from 'react';
+import { Box, Typography } from '@mui/material';
 import NotesRoundedIcon from '@mui/icons-material/NotesRounded';
 import DragHandleRoundedIcon from '@mui/icons-material/DragHandleRounded';
 import { useDspStore } from '../store/useDspStore';
 
-const ACCENT = '#29b6f6';
 const MIN_HEIGHT = 60;
 const MAX_HEIGHT = 480;
 const DEFAULT_HEIGHT = 140;

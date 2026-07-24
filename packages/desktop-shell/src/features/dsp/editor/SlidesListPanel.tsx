@@ -13,7 +13,6 @@ const THUMB_W = 196;
 const MiniElement: React.FC<{ el: PresentationElement; scale: number }> = ({ el, scale }) => {
   const data = el.data as any;
   if (el.type === 'line') {
-    const angle = Math.atan2(el.h * scale, el.w * scale) * (180 / Math.PI);
     return (
       <svg width={1} height={1} style={{ position: 'absolute', left: el.x * scale, top: el.y * scale, overflow: 'visible', pointerEvents: 'none' }}>
         <line x1={0} y1={0} x2={el.w * scale} y2={el.h * scale} stroke={data.stroke || '#86868b'} strokeWidth={Math.max(1, (parseInt(data.strokeWidth || '3')) * scale)} strokeLinecap="round" />

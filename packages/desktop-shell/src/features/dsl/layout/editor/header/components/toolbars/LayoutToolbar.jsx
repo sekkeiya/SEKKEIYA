@@ -65,6 +65,14 @@ export default function LayoutToolbar({ layoutItems = [] }) {
   const wallDrawKind   = useWallStore((s) => s.drawKind);
   const toggleDrawKind = useWallStore((s) => s.toggleDrawKind);
   const slabDrawActive = useSlabStore((s) => s.drawActive);
+  // 天井ビュー中か（SingleViewportCanvas の effectiveSubMode==="ceiling_top" と同じ導出）。
+  //   ceiling ビューでは床ツールが「天井」を作図するので、ボタン表示も切り替える。
+  const layoutSubMode = useEditorModeStore((s) => s.layoutSubMode);
+  const layoutCameraTilt = useEditorModeStore((s) => s.layoutCameraTilt);
+  const isCeilingView =
+    layoutSubMode === "ceiling_top" ||
+    (layoutSubMode === "furniture_iso" && layoutCameraTilt === "ceiling");
+  const slabAccent = isCeilingView ? "#7c3aed" : "#14b8a6";
   const dimDrawActive  = useManualDimensionStore((s) => s.drawActive);
   const gridPanelOpen  = useGridAxisStore((s) => s.panelOpen);
   const chainPanelOpen = useDimChainStore((s) => s.panelOpen);
@@ -257,7 +265,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
           壁・床・通り芯・寸法・寸法列は Base の spaceProgram に保存され全プラン共通。
           Plan/Option を開いている間に出すと「プランを編集しているつもりで全プランを
           変えてしまう」ため、Base を開いているときだけ出す。 */}
-      {isBaseOnly && isPlanView && (
+      {isBaseOnly && (isPlanView || isCeilingView) && (
         <>
           {[
             { kind: "exterior", label: "外壁", color: "#0ea5e9", tip: "外壁を描く（左クリックで連続作図）／既定 t=200mm・高さ=階高" },
@@ -284,20 +292,22 @@ export default function LayoutToolbar({ layoutItems = [] }) {
               </Tooltip>
             );
           })}
-          {/* 床（スラブ）: 2クリックの矩形（開始点→終点）で確定 */}
-          <Tooltip title="床を描く（クリックで開始点→クリックで終点＝矩形）／既定 t=150mm・上面=床レベル／スナップは既定ON（通り芯・壁芯・端点・床の辺→50mmグリッド）、Altで解除・右クリック（またはEsc）で取消／作成後はクリックで選択・頂点ドラッグや辺の＋で自由な形に編集" arrow>
+          {/* 床（スラブ）: 2クリックの矩形（開始点→終点）で確定。天井ビューでは「天井」を作図。 */}
+          <Tooltip title={isCeilingView
+            ? "天井を描く（クリックで開始点→クリックで終点＝矩形）／その階の天井高(CL)に貼る／スナップは既定ON（通り芯・壁芯・端点・床の辺→グリッド）、Altで解除・右クリック（またはEsc）で取消／作成後はクリックで選択・頂点ドラッグや辺の＋で自由な形に編集"
+            : "床を描く（クリックで開始点→クリックで終点＝矩形）／既定 t=150mm・上面=床レベル／スナップは既定ON（通り芯・壁芯・端点・床の辺→グリッド）、Altで解除・右クリック（またはEsc）で取消／作成後はクリックで選択・頂点ドラッグや辺の＋で自由な形に編集"} arrow>
             <Chip
               size="small"
               clickable
               onClick={handleSlabTool}
               icon={<SquareFootRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
-              label="床"
+              label={isCeilingView ? "天井" : "床"}
               sx={{
                 height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
-                background: alpha("#14b8a6", slabDrawActive ? 0.42 : 0.15),
-                border: `1px solid ${alpha("#14b8a6", slabDrawActive ? 0.9 : 0.4)}`,
-                color: slabDrawActive ? "#fff" : `light-dark(${alpha("#14b8a6", 0.95)}, ${alpha("#14b8a6", 0.95)})`,
-                "&:hover": { background: alpha("#14b8a6", slabDrawActive ? 0.5 : 0.28) },
+                background: alpha(slabAccent, slabDrawActive ? 0.42 : 0.15),
+                border: `1px solid ${alpha(slabAccent, slabDrawActive ? 0.9 : 0.4)}`,
+                color: slabDrawActive ? "#fff" : `light-dark(${alpha(slabAccent, 0.95)}, ${alpha(slabAccent, 0.95)})`,
+                "&:hover": { background: alpha(slabAccent, slabDrawActive ? 0.5 : 0.28) },
                 transition: "all 0.15s ease",
               }}
             />

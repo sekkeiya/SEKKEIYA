@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Typography, Paper, TextField, Button, IconButton, CircularProgress, FormControl, InputLabel, Select, MenuItem, Dialog } from '@mui/material';
+import { Box, Typography, Paper, Button, IconButton, CircularProgress, Dialog } from '@mui/material';
 import { useAppStore } from '../../store/useAppStore';
 import { useAI3DCreateStore } from '../../store/useAI3DCreateStore';
 import { BRAND } from '../../styles/theme';
@@ -20,7 +20,6 @@ import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
-import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import AddToPhotosRoundedIcon from '@mui/icons-material/AddToPhotosRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 
@@ -158,10 +157,6 @@ const AI3DCreatePanel: React.FC = () => {
     a.href = glbUrl;
     a.download = `triposr_${taskId}.glb`;
     a.click();
-  };
-
-  const handleAddToWorkspace = () => {
-    alert('現在のワークスペースに追加しました（SEKKEIYA Drive連携モック）');
   };
 
   const handleSaveToDrive = async () => {

@@ -314,7 +314,7 @@ export const useAiProfileStore = create<AiProfileState>()(
         }
       },
 
-      removeKnowledgeSource: async (uid, id) => {
+      removeKnowledgeSource: async (_uid, id) => {
         // テンポラリ/失敗ソースはローカル削除のみ
         if (id.startsWith('tmp-')) {
           set((state) => ({ knowledgeSources: state.knowledgeSources.filter((k) => k.id !== id) }));

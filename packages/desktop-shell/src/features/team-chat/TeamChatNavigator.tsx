@@ -3,7 +3,7 @@
 // タブ: すべて / プロジェクト / チーム / ダイレクト
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Avatar, AvatarGroup, CircularProgress } from '@mui/material';
+import { Box, Typography, Avatar, CircularProgress } from '@mui/material';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import PersonAddAltRoundedIcon from '@mui/icons-material/PersonAddAltRounded';

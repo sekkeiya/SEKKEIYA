@@ -1,5 +1,23 @@
 import { create } from 'zustand';
 import type { BuildingType } from '../types/layoutRules';
+import { useLayoutTaskStore } from './useLayoutTaskStore';
+
+/** 自動レイアウトの対象 ID を解決する（各起動ボタン共通）。
+ *  優先: 選択ゾーン → 選択部屋（その部屋のゾーン、無ければゾーンレス部屋IDそのもの）
+ *        → 全ゾーン → __full_room__。
+ *  ゾーンレス部屋IDは extractZoneData が Room.rect＋部屋の用途で扱う。 */
+export function resolveAutoLayoutIds(): string[] {
+  const { zones, selectedZoneIds, selectedRoomId, rooms } = useLayoutTaskStore.getState();
+  if (selectedZoneIds && selectedZoneIds.length > 0) return selectedZoneIds;
+  if (selectedRoomId) {
+    const roomZones = (zones || []).filter((z: any) => z.roomId === selectedRoomId).map((z: any) => z.id);
+    if (roomZones.length) return roomZones;
+    const rm = (rooms || []).find((r: any) => r.id === selectedRoomId);
+    if (rm?.rect) return [selectedRoomId];
+  }
+  if ((zones || []).length > 0) return (zones as any[]).map((z) => z.id);
+  return ['__full_room__'];
+}
 
 export interface AutoLayoutResult {
   id: string;

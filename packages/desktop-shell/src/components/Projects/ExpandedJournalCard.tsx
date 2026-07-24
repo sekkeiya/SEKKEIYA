@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, IconButton, InputBase, Chip, Button, Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, IconButton, InputBase, Chip, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ImageIcon from '@mui/icons-material/Image';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TitleIcon from '@mui/icons-material/Title';
 import { JournalBlockEditor } from './JournalBlockEditor';
@@ -80,33 +78,6 @@ export const ExpandedJournalCard: React.FC<ExpandedJournalCardProps> = ({
   const handleImageUpload = async (file: File): Promise<string> => {
     if (!entry?.projectId) throw new Error("No project ID");
     return await JournalRepository.uploadAttachment(entry.projectId, file);
-  };
-
-  const renderContextChips = () => {
-    if (!entry.aiContextSnapshot) return null;
-    const { contextLevel, watchedScopes } = entry.aiContextSnapshot;
-    
-    const tooltipContent = (
-      <Box sx={{ p: 0.5, maxWidth: 300 }}>
-        <Typography variant="caption" sx={{ display: 'block', mb: 1, color: 'var(--brand-fg)', fontWeight: 'bold' }}>
-          AI Context Snapshot
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-          <Chip size="small" label={`Level: ${contextLevel}`} sx={{ bgcolor: 'rgb(var(--brand-fg-rgb) / 0.2)', color: 'var(--brand-fg)', fontSize: '0.7rem', height: 20 }} />
-          {watchedScopes && watchedScopes.map(scope => (
-            <Chip key={scope} size="small" label={scope} sx={{ bgcolor: 'rgba(138, 180, 248, 0.2)', color: 'light-dark(#0a45a4, #8ab4f8)', fontSize: '0.7rem', height: 20 }} />
-          ))}
-        </Box>
-      </Box>
-    );
-
-    return (
-      <Tooltip title={tooltipContent} placement="bottom-start" arrow componentsProps={{ tooltip: { sx: { bgcolor: '#303134', border: '1px solid #5f6368', p: 1 } }, arrow: { sx: { color: '#303134', '&::before': { border: '1px solid #5f6368' } } } }}>
-        <IconButton size="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.65)', p: 0.5, ml: 1 }}>
-          <InfoOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    );
   };
 
   return (

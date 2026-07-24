@@ -7,6 +7,7 @@ import { useUiSelectionStore } from "../../store/uiSelectionStore";
 import { useStructureLabelStore } from "../../store/useStructureLabelStore";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
+import { useElevationMarkerStore } from "../../store/useElevationMarkerStore";
 
 /**
  * ✅ フォーカス/フレーム制御（Canvas内）
@@ -83,6 +84,25 @@ export default function ViewportFramingController({
   }, [selectedObject, objectsRef]);
 
   const buildBoxForAll = useCallback(() => {
+    // 展開図ビュー中の対象ペイン（A/C→FRONT, B/D→RIGHT）は、シーン全体ではなく
+    // 部屋の表示範囲(roomBox)でフレーミングする。全体ボックスで組むと
+    // 部屋が建物の端にある場合にカメラが建物中心を向き、展開面が中央に来ない。
+    const elev = useElevationMarkerStore.getState();
+    if (elev.viewActive && elev.roomBox && elev.activeDir) {
+      const axis = elev.activeDir === "A" || elev.activeDir === "C" ? "z" : "x";
+      const isElevPane =
+        (axis === "z" && type === VIEW_TYPES.FRONT) ||
+        (axis === "x" && type === VIEW_TYPES.RIGHT);
+      if (isElevPane) {
+        const b = elev.roomBox;
+        const roomBox3 = new THREE.Box3(
+          new THREE.Vector3(b.minX, b.yMin, b.minZ),
+          new THREE.Vector3(b.maxX, b.yMax, b.maxZ)
+        );
+        if (!roomBox3.isEmpty()) return roomBox3;
+      }
+    }
+
     const box = new THREE.Box3();
     let hasAny = false;
 

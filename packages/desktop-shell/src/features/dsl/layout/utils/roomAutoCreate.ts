@@ -221,7 +221,11 @@ export function createRoomAtPoint(ptMm: Pt): RoomCreateResult {
   });
 }
 
-/** bbox(mm) から Room＋Zone を作る。既にその中心を含むゾーンがあれば作らない。 */
+/** bbox(mm) から Room を作る。既に同じ位置に部屋（Room.rect or 既存ゾーン）があれば作らない。
+ *
+ *  Phase A（2026-07-21）: 部屋作成時のゾーン自動生成は廃止。
+ *  ゾーン＝室内の機能マーカー（この辺がリビング…）であって室の輪郭ではないので、
+ *  室の範囲は Room 自身が持つ（Room.rect）。ゾーンは必要なとき手動で足す。 */
 export function createRoomFromRectMm(r: { minX: number; maxX: number; minZ: number; maxZ: number }): RoomCreateResult {
   const isMm = (useEditorModeStore.getState().sceneMaxY || 0) > 100;
   const k = isMm ? 1 : 0.001;
@@ -232,40 +236,32 @@ export function createRoomFromRectMm(r: { minX: number; maxX: number; minZ: numb
   if (!(width > 0) || !(depth > 0)) return { ok: false, message: "範囲を検出できませんでした" };
 
   const st = useLayoutTaskStore.getState();
-  // 作成した部屋・ゾーンは「今アクティブな階」に属す（壁・床と同じ規約）。
+  // 作成した部屋は「今アクティブな階」に属す（壁・床と同じ規約）。
   const floorIndex = useBuildingSpecStore.getState().activeFloorIndex || 0;
-  // 二重作成の判定は同じ階のゾーンだけを見る（別の階なら同じ位置でも作ってよい）。
-  const covered = (st.zones || []).some((z: any) => {
-    if ((z.floorIndex || 0) !== floorIndex) return false;
-    const zr = z?.rect;
-    if (!zr) return false;
-    return (
-      Math.abs(cx - zr.x) <= (zr.width || 0) / 2 &&
-      Math.abs(cz - zr.z) <= (zr.depth || 0) / 2
-    );
-  });
-  if (covered) return { ok: false, message: "この階のここには、すでに部屋（ゾーン）があります" };
+  const insideRect = (rect: any) =>
+    rect &&
+    Math.abs(cx - rect.x) <= (rect.width || 0) / 2 &&
+    Math.abs(cz - rect.z) <= (rect.depth || 0) / 2;
+  // 二重作成の判定は同じ階のみ。既存の Room.rect と（後方互換で）既存ゾーン rect の両方を見る。
+  const coveredByRoom = (st.rooms || []).some(
+    (rm: any) => (rm.floorIndex || 0) === floorIndex && insideRect(rm.rect),
+  );
+  const coveredByZone = (st.zones || []).some(
+    (z: any) => (z.floorIndex || 0) === floorIndex && insideRect(z?.rect),
+  );
+  if (coveredByRoom || coveredByZone) {
+    return { ok: false, message: "この階のここには、すでに部屋があります" };
+  }
 
   const name = nextRoomName(st.rooms || []);
   const roomId = `room-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
 
-  const rooms = [...(st.rooms || []), { id: roomId, name, floorIndex, createdAtMs: Date.now() }];
+  // Room 自身に範囲（rect）を持たせる。ゾーンは作らない。
+  const rooms = [
+    ...(st.rooms || []),
+    { id: roomId, name, floorIndex, createdAtMs: Date.now(), rect: { x: cx, z: cz, width, depth } },
+  ];
   window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms } }));
-
-  window.dispatchEvent(new CustomEvent("LayoutShell:AddZone", {
-    detail: {
-      id: `zone-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
-      roomId,
-      name,
-      targetSeats: 0,
-      category: null,
-      color: "rgb(var(--brand-fg-rgb) / 0.65)",
-      rect: { x: cx, z: cz, width, depth },
-      floorIndex,
-      createdBy: "user",
-      createdAtMs: Date.now(),
-    },
-  }));
 
   return { ok: true, name };
 }

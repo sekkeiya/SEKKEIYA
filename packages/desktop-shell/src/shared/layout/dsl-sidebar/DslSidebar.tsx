@@ -17,11 +17,10 @@ import { useAppStore, type DslScope } from '../../../store/useAppStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { createProject } from '../../../features/projects/api/createProject';
 import { fetchUserProjects } from '../../../features/projects/api/fetchProjects';
-import { renameProject } from '../../../features/projects/api/updateProject';
 import { deleteProject } from '../../../features/projects/api/deleteProject';
 import { BRAND } from '../../../styles/theme';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { Menu, MenuItem, Collapse, CircularProgress } from '@mui/material';
+import { Menu, MenuItem, Collapse } from '@mui/material';
 import { useWorkspaceLayouts } from '../../../features/dsl/layout/hooks/useWorkspaces';
 import { useDslFilterStore } from '../../../features/dsl/store/useDslFilterStore';
 import { useDslWorkspaceContextStore, dslWorkspaceContextKey } from '../../../features/dsl/layout/store/useDslWorkspaceContextStore';
@@ -789,7 +788,7 @@ function ProjectLayoutAccordion({
   );
 }
 
-export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = false }) => {
+export const DslSidebar: React.FC<{ hideHeader?: boolean }> = () => {
   const { currentUser } = useAuthStore();
   const { 
     projects, 
@@ -805,28 +804,14 @@ export const DslSidebar: React.FC<{ hideHeader?: boolean }> = ({ hideHeader = fa
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createProjectType, setCreateProjectType] = useState<'my' | 'team'>('my');
+  const [createProjectType] = useState<'my' | 'team'>('my');
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  const [activeRenameProject, setActiveRenameProject] = useState<any>(null);
+  const [, setActiveRenameProject] = useState<any>(null);
   const [activeDeleteProject, setActiveDeleteProject] = useState<any>(null);
-  const [renameValue, setRenameValue] = useState("");
+  const [, setRenameValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleRenameSubmit = async () => {
-    if (!activeRenameProject || !renameValue.trim()) return;
-    try {
-      setIsProcessing(true);
-      await renameProject(activeRenameProject.id, renameValue);
-      setProjects(projects.map(p => p.id === activeRenameProject.id ? { ...p, name: renameValue.trim() } : p));
-      setActiveRenameProject(null);
-    } catch (e) {
-      console.error("Failed to rename project:", e);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleDeleteSubmit = async () => {
     if (!activeDeleteProject) return;

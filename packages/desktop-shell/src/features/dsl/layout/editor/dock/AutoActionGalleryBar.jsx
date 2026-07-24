@@ -7,7 +7,7 @@
 //   - カードクリックでも実行
 import React, { useEffect, useRef, useState } from "react";
 import { useAutoActionStore } from "../../store/useAutoActionStore";
-import { useAutoLayoutStore } from "../../store/useAutoLayoutStore";
+import { useAutoLayoutStore, resolveAutoLayoutIds } from "../../store/useAutoLayoutStore";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
 import { useAutoActions, AUTO_ACTION_OPTIONS } from "./useAutoActions";
 import { runAiPipeline } from "../../services/aiOrchestrator";
@@ -49,11 +49,7 @@ const LAYOUT_PURPOSE_OPTIONS = {
 function runAutoLayout(purposeValue) {
   const { setZonePurpose, requestAutoLayout } = useAutoLayoutStore.getState();
   setZonePurpose(purposeValue);
-  const { zones, selectedZoneIds } = useLayoutTaskStore.getState();
-  const ids = selectedZoneIds.length > 0
-    ? selectedZoneIds
-    : zones.length > 0 ? zones.map((z) => z.id) : ["__full_room__"];
-  requestAutoLayout(ids);
+  requestAutoLayout(resolveAutoLayoutIds());
 }
 
 let styleInjected = false;

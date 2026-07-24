@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Button, MenuItem, LinearProgress, Chip,
+  TextField, Button, MenuItem, LinearProgress,
 } from '@mui/material';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded';

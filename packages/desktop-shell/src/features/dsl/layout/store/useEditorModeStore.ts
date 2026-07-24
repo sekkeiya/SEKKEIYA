@@ -127,6 +127,16 @@ interface EditorModeState {
   gridCellSizeMm: number; // in mm
   setGridCellSizeMm: (size: number) => void;
 
+  /** グリッド線の線種（実線 / 破線 / 点線）。 */
+  gridLineStyle: "solid" | "dashed" | "dotted";
+  setGridLineStyle: (v: "solid" | "dashed" | "dotted") => void;
+  /** グリッド線の色（hex）。 */
+  gridLineColor: string;
+  setGridLineColor: (v: string) => void;
+  /** グリッド線の不透明度（0〜1）。 */
+  gridLineOpacity: number;
+  setGridLineOpacity: (v: number) => void;
+
   isGridPickingMode: boolean;
   setIsGridPickingMode: (active: boolean) => void;
 
@@ -289,6 +299,13 @@ export const useEditorModeStore = create<EditorModeState>((set) => ({
 
   gridCellSizeMm: 1000,
   setGridCellSizeMm: (s) => set({ gridCellSizeMm: Math.round(s) }),
+
+  gridLineStyle: "solid",
+  setGridLineStyle: (gridLineStyle) => set({ gridLineStyle }),
+  gridLineColor: "#6c6c6c",
+  setGridLineColor: (gridLineColor) => set({ gridLineColor }),
+  gridLineOpacity: 0.6,
+  setGridLineOpacity: (v) => set({ gridLineOpacity: Math.max(0, Math.min(1, v)) }),
 
   isGridPickingMode: false,
   setIsGridPickingMode: (isGridPickingMode) => set({ isGridPickingMode }),

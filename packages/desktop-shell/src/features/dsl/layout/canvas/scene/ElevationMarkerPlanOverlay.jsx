@@ -14,6 +14,7 @@ import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useRoomElevationsStore } from "../../store/useRoomElevationsStore";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import {
   openRoomElevation,
   defaultElevationPos,
@@ -39,8 +40,6 @@ export default function ElevationMarkerPlanOverlay() {
 
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const sectionClipHeight = useEditorModeStore((s) => s.sectionClipHeight);
-  const rotIndex = useEditorModeStore((s) => s.layoutCameraRotationIndex) || 0;
-  const viewDeg = rotIndex * -90;
   // 展開記号はアクティブ階の部屋のぶんだけ出す（矢印＋目＋バッジで大きく、他階に薄く
   // 重ねると読めないので、ゾーンのトレースとは違い他階は非表示にする）。
   const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
@@ -89,7 +88,6 @@ export default function ElevationMarkerPlanOverlay() {
             pos={pos}
             y={y}
             isMm={isMm}
-            viewDeg={viewDeg}
             roomSelected={selectedRoomId === room.id}
             isActive={activeElevationId === elev.id}
           />
@@ -99,7 +97,7 @@ export default function ElevationMarkerPlanOverlay() {
   );
 }
 
-function ElevationMarker({ elev, room, pos, y, isMm, viewDeg, roomSelected, isActive }) {
+function ElevationMarker({ elev, room, pos, y, isMm, roomSelected, isActive }) {
   const { camera, gl } = useThree();
   const setMarkerPos = useRoomElevationsStore((s) => s.setMarkerPos);
   const selectRoom = useRoomElevationsStore((s) => s.selectRoom);
@@ -108,6 +106,9 @@ function ElevationMarker({ elev, room, pos, y, isMm, viewDeg, roomSelected, isAc
   const [dragging, setDragging] = useState(false);
   // ドラッグ扱いした後の click で部屋選択を発火させないためのフラグ
   const movedRef = useRef(false);
+  // 記号ロック中（展開記号）は移動（ドラッグ）を止める。矢印/バッジのクリック（展開図を開く）や
+  // 中心クリック（部屋の Properties）は閲覧操作なので残す。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.elevation);
 
   // 中心ドラッグ（平面 y に投影 → 50mm 刻み）。この記号だけ動く。
   useEffect(() => {
@@ -138,7 +139,9 @@ function ElevationMarker({ elev, room, pos, y, isMm, viewDeg, roomSelected, isAc
 
   const on = isActive || hover;
   const c = on ? INK_ACTIVE : INK;
-  const deg = DIR_DEG[elev.dir] + viewDeg;
+  // 記号の矢印/文字は画面固定の規約（A↑ / B→ / C↓ / D←）。
+  // 平面回転(viewDeg)には追従させない（ユーザー要望: 常にこの並び）。
+  const deg = DIR_DEG[elev.dir];
 
   // バッジは矢印の先（中心(60,60)から上向き R_BADGE の点を deg 回転）。文字は正立のまま。
   const R_BADGE = 52;
@@ -168,7 +171,7 @@ function ElevationMarker({ elev, room, pos, y, isMm, viewDeg, roomSelected, isAc
           {/* ヒット領域（透明・太め） */}
           <line
             x1="60" y1="49" x2="60" y2="18" stroke="transparent" strokeWidth="18"
-            style={{ pointerEvents: "stroke", cursor: "pointer" }}
+            style={{ pointerEvents: locked ? "none" : "stroke", cursor: "pointer" }}
             onPointerEnter={() => setHover(true)}
             onPointerLeave={() => setHover(false)}
             onClick={(ev) => { ev.stopPropagation(); openRoomElevation(elev.id); }}
@@ -177,7 +180,7 @@ function ElevationMarker({ elev, room, pos, y, isMm, viewDeg, roomSelected, isAc
 
         {/* ── 展開名バッジ（正立・白地に細枠、アクティブ/ホバーで反転）── */}
         <g
-          style={{ pointerEvents: "auto", cursor: "pointer", transition: "opacity 120ms" }}
+          style={{ pointerEvents: locked ? "none" : "auto", cursor: "pointer", transition: "opacity 120ms" }}
           onPointerEnter={() => setHover(true)}
           onPointerLeave={() => setHover(false)}
           onClick={(ev) => { ev.stopPropagation(); openRoomElevation(elev.id); }}
@@ -195,9 +198,10 @@ function ElevationMarker({ elev, room, pos, y, isMm, viewDeg, roomSelected, isAc
 
         {/* ── 中心＝視点（目）。クリックで部屋を選択 / ドラッグで移動 ── */}
         <g
-          style={{ pointerEvents: "auto", cursor: "move" }} // 手（grab）は使わない
-          onPointerDown={(ev) => { ev.stopPropagation(); movedRef.current = false; setDragging(true); }}
+          style={{ pointerEvents: locked ? "none" : "auto", cursor: "move" }} // 手（grab）は使わない。ロック中は非操作。
+          onPointerDown={(ev) => { if (locked) return; ev.stopPropagation(); movedRef.current = false; setDragging(true); }}
           onClick={(ev) => {
+            if (locked) return; // ロック中は選択させない
             ev.stopPropagation();
             if (movedRef.current) return; // 移動しただけならクリック扱いしない
             openProps();

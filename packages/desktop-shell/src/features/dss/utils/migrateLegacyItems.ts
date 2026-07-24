@@ -1,4 +1,4 @@
-import { getDocs, query, collection, collectionGroup, writeBatch, doc } from 'firebase/firestore';
+import { getDocs, query, collectionGroup, writeBatch } from 'firebase/firestore';
 import { db } from '../../../lib/firebase/client';
 
 /**

@@ -15,6 +15,13 @@ export default function GridSettingsDock() {
   const gridCellSizeMm = useEditorModeStore((s) => s.gridCellSizeMm);
   const setGridCellSizeMm = useEditorModeStore((s) => s.setGridCellSizeMm);
 
+  const gridLineStyle = useEditorModeStore((s) => s.gridLineStyle);
+  const setGridLineStyle = useEditorModeStore((s) => s.setGridLineStyle);
+  const gridLineColor = useEditorModeStore((s) => s.gridLineColor);
+  const setGridLineColor = useEditorModeStore((s) => s.setGridLineColor);
+  const gridLineOpacity = useEditorModeStore((s) => s.gridLineOpacity);
+  const setGridLineOpacity = useEditorModeStore((s) => s.setGridLineOpacity);
+
   const isGridPickingMode = useEditorModeStore((s) => s.isGridPickingMode);
   const setIsGridPickingMode = useEditorModeStore((s) => s.setIsGridPickingMode);
 
@@ -108,6 +115,118 @@ export default function GridSettingsDock() {
             </Box>
           </Box>
           
+          {/* よく使うグリッド寸法のプリセット（455=半間 / 910=1間 / 1000=メートル）。 */}
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            {[455, 910, 1000].map((v) => {
+              const active = gridCellSizeMm === v;
+              return (
+                <Button
+                  key={v}
+                  size="small"
+                  onClick={() => setGridCellSizeMm(v)}
+                  variant={active ? "contained" : "outlined"}
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    px: 0.5,
+                    py: 0.25,
+                    fontSize: "0.68rem",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    lineHeight: 1.2,
+                    color: active ? "#fff" : alpha("#fff", 0.8),
+                    borderColor: active ? "transparent" : alpha("#fff", 0.2),
+                    bgcolor: active ? alpha("#2080ff", 0.6) : "transparent",
+                    "&:hover": { bgcolor: active ? alpha("#2080ff", 0.7) : alpha("#fff", 0.12) },
+                  }}
+                >
+                  {v}
+                </Button>
+              );
+            })}
+          </Box>
+
+          {/* 線種（実線 / 破線 / 点線） */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+            <Typography variant="caption" sx={{ color: alpha("#fff", 0.6) }}>
+              Line
+            </Typography>
+            <Box sx={{ display: "flex", gap: 0.5, flex: 1, justifyContent: "flex-end" }}>
+              {[["solid", "実線"], ["dashed", "破線"], ["dotted", "点線"]].map(([val, label]) => {
+                const active = gridLineStyle === val;
+                return (
+                  <Button
+                    key={val}
+                    size="small"
+                    onClick={() => setGridLineStyle(val)}
+                    variant={active ? "contained" : "outlined"}
+                    sx={{
+                      minWidth: 0,
+                      px: 1,
+                      py: 0.25,
+                      fontSize: "0.68rem",
+                      fontWeight: 600,
+                      textTransform: "none",
+                      lineHeight: 1.2,
+                      color: active ? "#fff" : alpha("#fff", 0.8),
+                      borderColor: active ? "transparent" : alpha("#fff", 0.2),
+                      bgcolor: active ? alpha("#2080ff", 0.6) : "transparent",
+                      "&:hover": { bgcolor: active ? alpha("#2080ff", 0.7) : alpha("#fff", 0.12) },
+                    }}
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </Box>
+          </Box>
+
+          {/* 線の色 */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+            <Typography variant="caption" sx={{ color: alpha("#fff", 0.6) }}>
+              Color
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+              <Typography variant="caption" sx={{ color: alpha("#fff", 0.5), fontFamily: "monospace", fontSize: "0.7rem" }}>
+                {gridLineColor}
+              </Typography>
+              <Box
+                component="input"
+                type="color"
+                value={gridLineColor}
+                onChange={(e) => setGridLineColor(e.target.value)}
+                sx={{
+                  width: 26,
+                  height: 22,
+                  p: 0,
+                  border: `1px solid ${alpha("#fff", 0.2)}`,
+                  borderRadius: 1,
+                  bgcolor: "transparent",
+                  cursor: "pointer",
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* 透明度 */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="caption" sx={{ color: alpha("#fff", 0.6), minWidth: 52 }}>
+              Opacity
+            </Typography>
+            <Slider
+              size="small"
+              min={0}
+              max={1}
+              step={0.05}
+              value={gridLineOpacity}
+              onChange={(_, v) => setGridLineOpacity(Array.isArray(v) ? v[0] : v)}
+              sx={{ color: "#2080ff", flex: 1 }}
+            />
+            <Typography variant="caption" sx={{ color: alpha("#fff", 0.6), minWidth: 30, textAlign: "right", fontFamily: "monospace", fontSize: "0.7rem" }}>
+              {Math.round(gridLineOpacity * 100)}%
+            </Typography>
+          </Box>
+
           <Box sx={{ display: "flex", gap: 0.5 }}>
             <Button
               fullWidth

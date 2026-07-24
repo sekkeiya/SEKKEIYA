@@ -29,7 +29,7 @@ function CutPlaneFrame({ w, h, color }) {
 //   複製しない）ため、両ペインが別々の面を書くと毎フレーム奪い合い、needsUpdate による
 //   シェーダ再コンパイルが多発する。そこで書き込み役は図面ペイン（右）に一本化し、
 //   平面ペイン（左）は passive にする。
-export default function SectionClipManager({ isTopView = false, passive = false }) {
+export default function SectionClipManager({ isTopView = false, passive = false, is2DView = false }) {
   const { gl, scene, invalidate } = useThree();
 
   const sectionClipEnabledRaw = useEditorModeStore((s) => s.isSectionClipEnabled);
@@ -66,8 +66,11 @@ export default function SectionClipManager({ isTopView = false, passive = false 
   // Z plane (front-back): show z ≤ sectionClipZ   → normal=(0,0,-1),  const=sectionClipZ
   const clipPlaneZ = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, -1), sectionClipZ), []);
 
-  // 展開図ビュー: 表示範囲を「部屋の内側ボックス」に制限する（断面図との違い）。
-  //   視線軸の手前=マーカー位置 / 奥・左右=ゾーン境界＋壁厚 / 上下=床〜天井。
+  // 展開図ビュー: 「記号位置で切った断面」を部屋の範囲（左右・上下）でクロップする。
+  //   断面（A-A' 等）との違いはクロップの有無だけ。奥（far）は切らない——
+  //   断面と同じく、見ている壁が不透明なので奥の部屋は自然に隠れる。
+  //   far で切ると、そのクリップ面が奥の部屋の壁を輪切りにして黒い断口
+  //   （SectionCapFill のポシェ）を作ってしまう＝「表示されるべきでない黒い壁」の正体。
   const elevViewActive = useElevationMarkerStore((s) => s.viewActive);
   const elevRoomBox = useElevationMarkerStore((s) => s.roomBox);
   const elevationPlanes = useMemo(() => {
@@ -78,11 +81,8 @@ export default function SectionClipManager({ isTopView = false, passive = false 
     const m = axis === "x" ? sectionClipX : sectionClipZ; // マーカー（視点）位置
     const ax = axis === "x" ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
     const planes = [];
-    // near: 視点の背面側を消す → keep s*(p−m) ≥ 0
+    // near: 視点の背面側を消す → keep s*(p−m) ≥ 0（断面の切断面と同じ）
     planes.push(new THREE.Plane(ax.clone().multiplyScalar(s), -s * m));
-    // far: 対象壁の外側で切る → keep s*p ≤ s*edge
-    const farEdge = axis === "x" ? (s > 0 ? b.maxX : b.minX) : (s > 0 ? b.maxZ : b.minZ);
-    planes.push(new THREE.Plane(ax.clone().multiplyScalar(-s), s * farEdge));
     // 横方向: 部屋の左右端で切る（隣室を消す）
     const o = axis === "x" ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
     const oMin = axis === "x" ? b.minZ : b.minX;
@@ -211,15 +211,28 @@ export default function SectionClipManager({ isTopView = false, passive = false 
   //   （軸フラグが同じで上のリセット effect では検知できないケース: 展開A→展開C、
   //    展開→同軸の断面 等）。ビュー切替ディゾルブの不透明保持内に収めるため今適用する。
   //   ※ applyClipToSubtree 定義後に置く（TDZ 回避）。
+  // このビューが「今は切る面を持たない」＝ activePlanes 空のときは、マテリアルへ書き込まない
+  // （＝ passive 相当に振る舞う）。
+  //   SINGLE レイアウトでは top/persp/front/right の4 Canvas が常時マウントされ、GLB の
+  //   マテリアルは clone 間で共有される（gltf.scene.clone() はマテリアルを複製しない）。
+  //   断面(X/Z)表示中、Top ビューは高さ(Y)断面しか扱わないので activePlanes が空になり、
+  //   その空面を共有マテリアルへ焼くと、断面ペインが設定したクリップ面を消してしまう。
+  //   クリップが消えると切り口の黒ポシェ(SectionCapFill のステンシル)は front/back が相殺して
+  //   カウント0＝黒く塗られなくなる。これが effect の実行順しだいで起きるため、A-A'/B-B' 切替で
+  //   黒塗りが出たり出なかったりしていた（本修正で空面書き込みを止めて安定させる）。
+  //   ※ 断面を完全に無効化(!isSectionClipEnabled)したときの掃除は上の別 effect が担うので、
+  //     ここで空面を書く必要はない。
+  const shouldWrite = isSectionClipEnabled && !passive && activePlanes.length > 0;
+
   useEffect(() => {
-    if (!isSectionClipEnabled || passive) return;
+    if (!shouldWrite) return;
     lastUpdateRef.current = -Infinity;
     try { applyClipToSubtree(scene); } catch { /* noop */ }
     invalidate();
-  }, [activePlanes, isSectionClipEnabled, passive, applyClipToSubtree, scene, invalidate]);
+  }, [activePlanes, shouldWrite, applyClipToSubtree, scene, invalidate]);
 
   useFrame((state) => {
-    if (!isSectionClipEnabled || passive) return;
+    if (!shouldWrite) return;
 
     const now = state.clock.elapsedTime;
     if (now - lastUpdateRef.current < 0.25) return;
@@ -229,6 +242,10 @@ export default function SectionClipManager({ isTopView = false, passive = false 
   });
 
   if (!isSectionClipEnabled) return null;
+  // 2D 作図ビュー（平面/天井/断面/立面）では切断面フレームを出さない。クリップ自体（materialへの
+  // 焼き込み）と切り口の黒ポシェ(SectionCapFill)は上のフック/別コンポーネントで効いているので、
+  // ここで消すのは「どこを切っているか示す枠」だけ。枠は 3D（パース）でのみ表示する。
+  if (is2DView) return null;
 
   return (
     <group userData={{ isSectionRef: true }}>

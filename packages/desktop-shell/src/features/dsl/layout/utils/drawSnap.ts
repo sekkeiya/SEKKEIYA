@@ -10,9 +10,21 @@
 import { useWallStore } from "../store/useWallStore";
 import { useSlabStore } from "../store/useSlabStore";
 import { useGridAxisStore } from "../store/useGridAxisStore";
+import { useEditorModeStore } from "../store/useEditorModeStore";
 
-/** グリッド刻み(mm)。壁・床・通り芯で共通。 */
+/** グリッド刻み(mm)の下限フォールバック（設定が無い/0 のとき）。 */
 export const DRAW_GRID_MM = 50;
+
+/**
+ * Shift スナップ時のグリッド刻み。表示中の床グリッド（gridCellSizeMm=910/1000 など）に合わせて
+ * 丸める。SceneGrid はワールド原点中心・セル整数枚で敷くので、原点基準の丸めで格子線に一致する。
+ * 設定が無い/不正なときだけ従来の 50mm へフォールバック。壁・床・ゾーンなど全スナップで共通。
+ */
+export const gridSnap = (v: number): number => {
+  const g = useEditorModeStore.getState().gridCellSizeMm;
+  const step = g && g > 0 ? g : DRAW_GRID_MM;
+  return Math.round(v / step) * step;
+};
 /** 点（端点・交点）への吸着距離(mm)。 */
 const PT_TOL_MM = 250;
 /** 線（通り芯・壁芯・床の辺）への吸着距離(mm)。 */
@@ -31,7 +43,10 @@ export interface DrawSnapResult extends Pt {
   label: string | null;
 }
 
-const grid = (v: number) => Math.round(v / DRAW_GRID_MM) * DRAW_GRID_MM;
+// 通常の吸着フォールバック＝表示中の床グリッド（gridCellSizeMm）へ丸める。
+const grid = (v: number) => gridSnap(v);
+// Alt（吸着解除）時の微調整用の細かい丸め。粗い床グリッドに乗せず、ほぼ自由に置ける。
+const gridFine = (v: number) => Math.round(v / DRAW_GRID_MM) * DRAW_GRID_MM;
 
 /** 始点からの直交スナップ（水平／垂直へ寄せる）。 */
 export function applyOrtho(anchor: Pt, p: Pt): Pt {
@@ -80,7 +95,7 @@ export function resolveDrawSnap(
   free = false,
   exclude: DrawSnapExclude | null = null,
 ): DrawSnapResult {
-  if (free) return { x: grid(raw.x), z: grid(raw.z), kind: null, label: null };
+  if (free) return { x: gridFine(raw.x), z: gridFine(raw.z), kind: null, label: null };
 
   const exWallIds = exclude?.wallIds;
   const exWallEnds = exclude?.wallEnds;
@@ -163,4 +178,54 @@ export function resolveDrawSnap(
 
   // ── 4) グリッド ───────────────────────────────────────────────
   return { x: grid(q.x), z: grid(q.z), kind: null, label: null };
+}
+
+// ── ゾーン(部屋)ドラッグ用スナップ ───────────────────────────────
+//   部屋(ゾーン)の移動/リサイズで Shift 押下中だけ効かせる吸着。作図と同じ
+//   resolveDrawSnap（端点・通り芯・壁芯・床辺・グリッド）を土台にする。
+
+export interface ZoneRect { x: number; z: number; width: number; depth: number }
+
+/** 1座標(X)を通り芯/壁/端点/グリッドへ吸着（リサイズの辺スナップ用）。 */
+export function snapZoneCoordX(x: number, zRef: number): number {
+  return resolveDrawSnap({ x, z: zRef }).x;
+}
+/** 1座標(Z)を通り芯/壁/端点/グリッドへ吸着（リサイズの辺スナップ用）。 */
+export function snapZoneCoordZ(z: number, xRef: number): number {
+  return resolveDrawSnap({ x: xRef, z }).z;
+}
+
+/**
+ * ゾーン矩形の移動スナップ。サイズは変えず、矩形の左右/上下の辺を通り芯・壁・
+ * 端点・グリッドへ寄せるための平行移動量 (dx, dz) を返す。
+ *   軸ごと（X と Z を独立に）に「実ガイド(通り芯/壁/端点) > グリッド」の優先で
+ *   いちばん近い辺を選んで寄せる。どの辺も実ガイドに届かなければグリッド丸め。
+ */
+export function snapZoneRectMove(rect: ZoneRect): { dx: number; dz: number } {
+  const leftX = rect.x - rect.width / 2;
+  const rightX = rect.x + rect.width / 2;
+  const topZ = rect.z - rect.depth / 2;
+  const botZ = rect.z + rect.depth / 2;
+
+  // coord 軸について、候補となる各辺 v を吸着し、いちばん良い寄せ量を返す。
+  const pick = (cands: number[], axis: "x" | "z", ref: number): number => {
+    let best: { off: number; prio: number; mag: number } | null = null;
+    for (const v of cands) {
+      const s = axis === "x" ? resolveDrawSnap({ x: v, z: ref }) : resolveDrawSnap({ x: ref, z: v });
+      const sv = axis === "x" ? s.x : s.z;
+      const off = sv - v;
+      const real = s.kind !== null;      // 通り芯/壁/端点/床辺に吸着した
+      const prio = real ? 2 : 1;         // 実ガイド優先、無ければグリッド
+      const mag = Math.abs(off);
+      // すでにグリッドに乗っている辺（寄せ量ゼロ）は、反対の辺の実スナップを潰さないよう捨てる
+      if (!real && mag < 0.5) continue;
+      if (!best || prio > best.prio || (prio === best.prio && mag < best.mag)) best = { off, prio, mag };
+    }
+    return best ? best.off : 0;
+  };
+
+  return {
+    dx: pick([leftX, rightX], "x", rect.z),
+    dz: pick([topZ, botZ], "z", rect.x),
+  };
 }

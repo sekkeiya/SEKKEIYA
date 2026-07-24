@@ -12,7 +12,7 @@ import {
   Box, Tabs, Tab, Typography, IconButton, Tooltip,
   Select, MenuItem, FormControl,
   Table, TableHead, TableRow, TableCell, TableBody,
-  TextField, Switch, Button, Chip, Avatar,
+  TextField, Switch, Button, Chip,
   CircularProgress,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
@@ -20,7 +20,6 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
 
 import { layoutRulesApi } from '../../../../services/layoutRulesApi';
 import { DEFAULT_LAYOUT_RULES, DEFAULT_RESIDENTIAL_RELATIONS, DEFAULT_CAFE_RELATIONS, DEFAULT_OFFICE_RELATIONS } from '../../../../constants/defaultLayoutRules';
@@ -30,11 +29,9 @@ import type {
 } from '../../../../types/layoutRules';
 import { useAutoLayoutStore } from '../../../../store/useAutoLayoutStore';
 import {
-  getUniqueLayoutCategories,
   LAYOUT_CATEGORIES, type LayoutCategoryMeta,
 } from '../../../../constants/furnitureCategoryDefaults';
 import { DssSetFurnitureGrid } from '../../../../../../dss/components/DssSetFurnitureGrid';
-import { useAuthStore } from '../../../../../../../store/useAuthStore';
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
 
@@ -204,7 +201,6 @@ export interface LayoutRulesPanelProps {
 export default function LayoutRulesPanel({ projectId, onTabChange }: LayoutRulesPanelProps) {
   const storeBuildingType = useAutoLayoutStore((s) => s.buildingType);
   const setStoreBuildingType = useAutoLayoutStore((s) => s.setBuildingType);
-  const uid = useAuthStore((s) => s.currentUser?.uid);
 
   const [tab, setTab] = useState(0);
   const [buildingType, setBuildingType] = useState<BuildingType>(storeBuildingType ?? 'residential');

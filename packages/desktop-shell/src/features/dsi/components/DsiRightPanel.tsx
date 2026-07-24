@@ -68,10 +68,6 @@ interface DsiRightPanelProps {
 
 export const DsiRightPanel: React.FC<DsiRightPanelProps> = ({ item, textureGroup, onUngroupTexture, onSetApplications, sets = [], allImages = [], allTextureGroups = [], onMove, onSetVisibility, onUpdateMeta, onAiEdit }) => {
   const [tagInput, setTagInput] = useState('');
-  const categoryFilter = useDsiStore((s) => s.categoryFilter);
-  const setCategoryFilter = useDsiStore((s) => s.setCategoryFilter);
-  const tagFilter = useDsiStore((s) => s.tagFilter);
-  const setTagFilter = useDsiStore((s) => s.setTagFilter);
 
   // 未選択時: フィルタパネルを表示
   if (!item) {

@@ -520,7 +520,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return { workingFiles: next };
   }),
   setGlobalLaunchingTool: (tool) => set({ globalLaunchingTool: tool }),
-  setGlobalModelsHub: (scope) => set((state) => ({
+  setGlobalModelsHub: (scope) => set(() => ({
     activeProjectId: null,
     currentMainView: 'workspace',
     activeWorkspaceId: 'models',

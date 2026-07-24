@@ -66,6 +66,8 @@ export interface MaterialVariant {
   selection: Record<string, string>;
   /** 既定で適用するパターン。 */
   isDefault?: boolean;
+  /** 保存時に3Dビューアから取得したサムネイル画像のURL（素材バリエーション・ギャラリー用）。 */
+  thumbUrl?: string | null;
 }
 
 export const presetSlotKey = (s: { meshName?: string; materialIndex?: number }) =>

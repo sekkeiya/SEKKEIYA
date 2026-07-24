@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography, Paper, Select, MenuItem, Chip, Tooltip } from '@mui/material';
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';

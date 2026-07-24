@@ -28,7 +28,7 @@ interface ItemMaterialRegistryState {
   has: (itemId: string) => boolean;
 }
 
-export const useItemMaterialRegistryStore = create<ItemMaterialRegistryState>((set, get) => ({
+export const useItemMaterialRegistryStore = create<ItemMaterialRegistryState>((_set, get) => ({
   map: new Map(),
   register: (entry) => { if (entry?.itemId) get().map.set(entry.itemId, entry); },
   unregister: (itemId) => { if (itemId) get().map.delete(itemId); },

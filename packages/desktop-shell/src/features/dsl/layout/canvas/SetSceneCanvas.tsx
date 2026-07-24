@@ -5,7 +5,7 @@
  * S.Layout の重いストア群に依存せず単独で動作する。
  */
 
-import React, { Suspense, useCallback, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, useGLTF, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import * as THREE from 'three';

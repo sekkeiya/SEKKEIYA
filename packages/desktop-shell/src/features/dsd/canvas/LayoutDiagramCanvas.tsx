@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
-import { useDsdStore, type Annotation, type LayoutZone, type LayoutFlow, type LayoutMode } from '../store/useDsdStore';
+import { useDsdStore, type Annotation, type LayoutZone, type LayoutMode } from '../store/useDsdStore';
 import { logicalToCanvas, canvasToLogical, type Point2D } from './shapeUtils';
 import { categoryDef } from './layoutPalette';
 
@@ -179,17 +179,6 @@ function zoneEdgePoint(z: LayoutZone, targetX: number, targetY: number, cx: numb
   return [zx + ux * t, zy + uy * t];
 }
 
-function pointInZone(z: LayoutZone, lx: number, ly: number, mode: LayoutMode): boolean {
-  if (mode === 'bubble') {
-    const r = Math.min(z.w, z.h) / 2;
-    return Math.hypot(lx - z.cx, ly - z.cy) <= r;
-  }
-  return (
-    lx >= z.cx - z.w / 2 && lx <= z.cx + z.w / 2 &&
-    ly >= z.cy - z.h / 2 && ly <= z.cy + z.h / 2
-  );
-}
-
 // Slightly expanded hit box for drag/click – adds padding in logical units
 function pointNearZone(z: LayoutZone, lx: number, ly: number, mode: LayoutMode, padMeters: number): boolean {
   if (mode === 'bubble') {
@@ -285,9 +274,7 @@ export const LayoutDiagramCanvas = forwardRef<LayoutDiagramCanvasHandle, Props>(
   const getLogical = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
-    const px = (e.clientX - rect.left) * (canvas.width / (rect.width * (window.devicePixelRatio || 1)));
-    const py = (e.clientY - rect.top) * (canvas.height / (rect.height * (window.devicePixelRatio || 1)));
-    // correct: use CSS pixels for logical, matching draw() which uses W/H as CSS dims
+    // use CSS pixels for logical, matching draw() which uses W/H as CSS dims
     const cssPx = e.clientX - rect.left;
     const cssPy = e.clientY - rect.top;
     const scale = getScale();

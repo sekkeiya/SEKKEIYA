@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardMedia, CardContent, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Card, CardMedia, Chip, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { collection, query, orderBy, limit, onSnapshot, where, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase/client';
 import { useAuth } from '../../features/dsl/layout/hooks/useAuthProxy';

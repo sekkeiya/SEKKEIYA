@@ -2,10 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, IconButton, Tooltip, TextField, Chip, Button } from '@mui/material';
 import { keyframes } from '@emotion/react';
 import { motion } from 'framer-motion';
-import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
-import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 
@@ -271,7 +267,7 @@ function effectiveVariant(section: SiteSection): SiteSectionVariant {
 
 export const SiteSectionView: React.FC<Props> = ({
   section, mode, selected, theme, projectName, projectId,
-  onSelect, onUpdate, onRemove, onRemoveAsset, onFillSample, dragHandleProps, scrollRootRef,
+  onSelect, onUpdate, onRemoveAsset, onFillSample, scrollRootRef,
   motion: motionCfg, bannerUrl,
 }) => {
   // 解決済みモーション（未指定時は静的扱い）

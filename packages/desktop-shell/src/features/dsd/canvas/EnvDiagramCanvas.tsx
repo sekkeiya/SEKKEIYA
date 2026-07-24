@@ -152,7 +152,7 @@ function convexHullSimple(pts: Point2D[]): Point2D[] {
   return [...lower, ...upper];
 }
 
-function drawNorthArrow(ctx: CanvasRenderingContext2D, W: number, H: number, color: string, textColor: string) {
+function drawNorthArrow(ctx: CanvasRenderingContext2D, color: string, textColor: string) {
   const cx = 28, cy = 32, r = 14;
   ctx.save();
   ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx + 5, cy + r * 0.3); ctx.lineTo(cx, cy); ctx.closePath();
@@ -219,7 +219,7 @@ function renderToCanvas(canvas: HTMLCanvasElement, t: number, params: RenderPara
   } else if (params.envLayer === 'noise') {
     renderNoiseLayer(ctx, W, H, scale, L2C, t, pal, params);
   } else {
-    renderThermalLayer(ctx, W, H, scale, L2C, t, pal, params);
+    renderThermalLayer(ctx, W, H, L2C, t, pal, params);
   }
 
   // Building (drawn on top of environment layers)
@@ -265,7 +265,7 @@ function renderToCanvas(canvas: HTMLCanvasElement, t: number, params: RenderPara
   }
 
   // North arrow
-  drawNorthArrow(ctx, W, H, pal.northArrow, pal.text);
+  drawNorthArrow(ctx, pal.northArrow, pal.text);
 
   // Title
   const titleSize = Math.max(11, Math.min(16, W / 40));
@@ -559,10 +559,10 @@ function renderNoiseLayer(
     ctx.restore();
   }
 
-  drawNoiseLegend(ctx, W, H, pal);
+  drawNoiseLegend(ctx, H, pal);
 }
 
-function drawNoiseLegend(ctx: CanvasRenderingContext2D, W: number, H: number, pal: Palette) {
+function drawNoiseLegend(ctx: CanvasRenderingContext2D, H: number, pal: Palette) {
   const labels = ['70dB+', '60dB', '50dB', '40dB以下'];
   const colors = pal.noiseColors.slice(0, 4);
   ctx.save();
@@ -584,7 +584,7 @@ function drawNoiseLegend(ctx: CanvasRenderingContext2D, W: number, H: number, pa
 
 function renderThermalLayer(
   ctx: CanvasRenderingContext2D,
-  W: number, H: number, scale: number,
+  W: number, H: number,
   L2C: (lx: number, ly: number) => Point2D,
   t: number,
   pal: Palette,

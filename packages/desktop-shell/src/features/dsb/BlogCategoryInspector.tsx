@@ -14,7 +14,6 @@ import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import { useDsbStore } from './store/useDsbStore';
-import { useAuthStore } from '../../store/useAuthStore';
 import { BRAND } from '../../styles/theme';
 
 const ACCENT = '#e57373';

@@ -6,7 +6,7 @@ import { useWorkspaceSync } from '../../../features/dsl/layout/hooks/useWorkspac
 import { useOptionRealtime } from '../../../features/dsl/layout/hooks/useOptionRealtime';
 import { useOptionDoc } from '../../../features/dsl/layout/hooks/useOptionDoc';
 import { db } from '../../../lib/firebase/client';
-import { doc, updateDoc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { useAuthStore } from '../../../store/useAuthStore';
 
 interface OverviewSpaceProgramProps {

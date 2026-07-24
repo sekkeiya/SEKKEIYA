@@ -32,7 +32,7 @@ interface AutoActionState {
   clearToast: () => void;
 }
 
-export const useAutoActionStore = create<AutoActionState>((set, get) => ({
+export const useAutoActionStore = create<AutoActionState>((set) => ({
   activeSide: null,
   setActiveSide: (kind) => set({ activeSide: kind }),
 

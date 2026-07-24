@@ -26,7 +26,7 @@ import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
 import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 import {
-  collection, doc, getDoc, query, where, getDocs, orderBy, limit, updateDoc, and, or,
+  collection, doc, getDoc, query, where, getDocs, limit, updateDoc, and, or,
   writeBatch, serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase/client';

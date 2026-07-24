@@ -416,10 +416,10 @@ const SiteBlogCategoryBar: React.FC<{
 
 export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, project, accountProjects, onCreateProject, tabsSlot }) => {
   const {
-    site, activePageId, loading, saving, saveError, dirty, mode, selectedSectionId,
+    site, activePageId, loading, saving, saveError, mode, selectedSectionId,
     load, setMode, selectSection, createFromTemplate, applyAssembledSite, clearSaveError,
     selectPage, addPage, removePage, renamePage,
-    addSection, insertSection, removeSection, updateSection, changeSectionType, reorderSections,
+    insertSection, removeSection, updateSection, changeSectionType, reorderSections,
     addAssetToSection, addSectionWithAsset, removeAssetFromSection, setPersonality, setMotionOverride, fillSampleAssets, save,
     setLayoutMode, applyLayoutPreset, applyMotionPreset, applyBundle,
   } = useProjectSiteStore();
@@ -1124,7 +1124,7 @@ export const ProjectSiteCanvas: React.FC<Props> = ({ source, displayName, projec
                   {pageSections.length > 0 && (
                     <SectionInsertZone afterSectionId={null} onInsert={insertSection} accentColor={accent} />
                   )}
-                  {pageSections.map((section, idx) => (
+                  {pageSections.map((section) => (
                     <React.Fragment key={section.id}>
                       <SortableSection sectionId={section.id}>
                         {(dragHandleProps) => (

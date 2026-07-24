@@ -21,7 +21,7 @@ import { DsmtMaterialDetail } from './components/DsmtMaterialDetail';
 import { dsmtUploadService } from './api/dsmtUploadService';
 import { seedStarterMaterials } from './data/starterCatalog';
 import { FINISH_SUBTYPES } from './data/finishTaxonomy';
-import { generateMaterialsFromSelectedImages, baseNameOf, safeIdPart } from './data/imageMaterialGen';
+import { generateMaterialsFromSelectedImages } from './data/imageMaterialGen';
 import { useMaterialGenStore } from './store/useMaterialGenStore';
 import { DssProjectsGrid } from '../dss/DssProjectsGrid';
 import { DSMT_CATEGORY_META, type DsmtMaterial, type DsmtCategory } from './types';
@@ -325,7 +325,6 @@ export const DsmtDashboard: React.FC<DsmtDashboardProps> = ({ payload, materials
   }, [materials, search, categoryFilter, dsmtScope]);
 
   const categories = Object.keys(DSMT_CATEGORY_META) as DsmtCategory[];
-  const hasSeeds = materials.some((m) => m.id?.startsWith('dsmt_seed_') && m.projectId);
   // 管理操作は「自分のプロジェクト由来 or プロジェクトスコープ」で可能。グローバル閲覧では読み取りのみ。
   const canManage = (m: DsmtMaterial) => !!(m.projectId || projectId);
 

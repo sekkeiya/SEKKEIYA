@@ -11,7 +11,6 @@ import { updateLayoutInfo } from '../../../features/dsl/layout/utils/workspaceSt
 import { updateRenderDoc } from '../../../features/dsl/layout/api/layoutRendersApi';
 
 import { useUiRightSidebarStore } from '../../../features/dsl/layout/store/uiRightSidebarStore';
-import { useEditorModeStore } from '../../../features/dsl/layout/store/useEditorModeStore';
 import { useDspStore } from '../../../features/dsp/store/useDspStore';
 import { DslFilterPanel } from '../../../features/dsl/DslFilterPanel';
 import { useDslFilterStore } from '../../../features/dsl/store/useDslFilterStore';
@@ -119,8 +118,6 @@ export const RightPanelHost: React.FC = () => {
   else if (activeWorkspaceId === 'movie') computedScope = '3dsm';
 
   const scope = String(computedScope).toLowerCase();
-
-  const editorMode = useEditorModeStore((s: any) => s.editorMode);
 
   const dslVisibleSections = useUiRightSidebarStore((s: any) => s.visibleSections);
   const hasDslPanels = dslVisibleSections && dslVisibleSections.length > 0;

@@ -21,6 +21,7 @@ import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useDimChainStore, defaultChainsFor, markKey } from "../../store/useDimChainStore";
 import { useDrawToolActive } from "../../utils/drawToolActive";
 import { useBaseEditMode } from "../../utils/baseEditMode";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import { measureXZBounds, DIM_COL_OFFSET_MM, DIM_COL_GAP_MM } from "../../utils/planBounds";
 
 const INK = "#475569";      // 寸法線
@@ -51,6 +52,8 @@ function ChainTag({ position, valueMm, strong, title, onDelete }) {
   const baseEdit = useBaseEditMode();
   const drawTool = useDrawToolActive();
   const drawing = !baseEdit || drawTool;
+  // 記号ロック中（寸法列）は区切りの削除（編集）を止める。設定パネルを開くだけの閲覧は残す。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.dimension);
   // 寸法をクリック = その図面の寸法列の設定を右サイドバーに出す。
   const openPanel = (e) => {
     e?.stopPropagation?.();
@@ -76,7 +79,7 @@ function ChainTag({ position, valueMm, strong, title, onDelete }) {
         >
           {Math.round(valueMm)}
         </div>
-        {onDelete && hover && (
+        {onDelete && hover && !locked && (
           <div
             onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); onDelete(); }}
             title="この寸法の区切りを消す（隣の寸法に統合）"
@@ -107,7 +110,9 @@ function MarkDragHandle({ position, view, planeY, along, cursor, onMove, onCommi
   // ⚠️ フックは必ず両方・無条件に呼ぶ（短絡評価で条件呼び出しにしない。Rules of Hooks）。
   const baseEdit = useBaseEditMode();
   const drawTool = useDrawToolActive();
-  const drawing = !baseEdit || drawTool;
+  // 記号ロック中（寸法列）は区切りハンドルのドラッグ（＝通り芯/階レベルの移動）を止める。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.dimension);
+  const drawing = !baseEdit || drawTool || locked;
   const [dragging, setDragging] = useState(false);
   // ドラッグ中に親が再レンダーされてもコールバックは最新を使う（依存には入れない）。
   const cb = useRef({ onMove, onCommit });

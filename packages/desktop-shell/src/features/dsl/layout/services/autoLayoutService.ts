@@ -27,7 +27,8 @@ import type { BuildingType, LayoutRuleSet, FurniturePlacementRule, PlacementRela
 import type { FurnitureSlot, PlacedSlot } from '../types/furnitureSlot';
 import type { SetPlacementRule } from '../types/furnitureSet';
 import { DEFAULT_SET_PLACEMENT_RULE } from '../types/furnitureSet';
-import { getRoomCategoryMeta } from '../constants/roomCategories';
+import { getRoomCategoryMeta, resolveCategoryKey } from '../constants/roomCategories';
+import { useLayoutTaskStore } from '../store/useLayoutTaskStore';
 import { getLayoutCategoryLabel, getCategoryMeta } from '../constants/furnitureCategoryDefaults';
 import { layoutRulesApi } from './layoutRulesApi';
 import { useFurnitureSelectionStore } from '../store/useFurnitureSelectionStore';
@@ -80,12 +81,15 @@ const MOCK_SETS = [
  * rect がない場合は items の位置から境界を計算する（後方互換）。
  */
 export function extractZoneData(zoneId: string, items: any[], zones: any[] = []): ZoneData {
-  // rect ベースのゾーン定義を優先
+  // rect ベースのゾーン定義を優先。
   const zone = zones.find((z) => z.id === zoneId);
+  // ゾーンが無ければ「部屋（Room.rect）」として扱う＝ゾーンレスの部屋の自動レイアウト。
+  const roomAsZone = zone ? null : (useLayoutTaskStore.getState().rooms || []).find((r: any) => r.id === zoneId);
+  const rect = zone?.rect || roomAsZone?.rect;
   let minX: number, minZ: number, maxX: number, maxZ: number;
 
-  if (zone?.rect) {
-    const r = zone.rect;
+  if (rect) {
+    const r = rect;
     minX = r.x - r.width / 2;
     maxX = r.x + r.width / 2;
     minZ = r.z - r.depth / 2;
@@ -117,8 +121,15 @@ export function extractZoneData(zoneId: string, items: any[], zones: any[] = [])
     { x: minX, z: maxZ },
   ];
 
-  // ゾーンのカテゴリ（部屋）→ Auto Layout 用途を導出
-  const catMeta = getRoomCategoryMeta(zone?.category, zone?.buildingType);
+  // カテゴリ（用途）→ Auto Layout 用途を導出。
+  // 「用途は部屋（室）が持つ」モデル: ゾーンが機能サブカテゴリを持てばそれを、
+  // 無ければ所属する部屋（室）の用途を使う（zone.category ?? room.category）。
+  // 用途は「ゾーンの機能サブ ?? 所属部屋の用途」。ゾーンレス部屋なら部屋自身の用途。
+  const roomOfZone = roomAsZone
+    ? roomAsZone
+    : (zone?.roomId ? (useLayoutTaskStore.getState().rooms || []).find((r) => r.id === zone.roomId) : null);
+  const categoryKey = resolveCategoryKey(zone, roomOfZone);
+  const catMeta = getRoomCategoryMeta(categoryKey, zone?.buildingType);
 
   const result: ZoneData = {
     zoneId,
@@ -174,28 +185,6 @@ interface PlacedBounds {
   maxX: number;
   minZ: number;
   maxZ: number;
-}
-
-function checkOverlap(
-  newX: number, newZ: number,
-  newW: number, newD: number,
-  placedItems: PlacedBounds[],
-  margin: number = 100
-): boolean {
-  const half_w = newW / 2;
-  const half_d = newD / 2;
-  const newBounds = {
-    minX: newX - half_w - margin,
-    maxX: newX + half_w + margin,
-    minZ: newZ - half_d - margin,
-    maxZ: newZ + half_d + margin,
-  };
-  return placedItems.some(b =>
-    newBounds.minX < b.maxX &&
-    newBounds.maxX > b.minX &&
-    newBounds.minZ < b.maxZ &&
-    newBounds.maxZ > b.minZ
-  );
 }
 
 /** カテゴリ名から典型寸法(mm)を推定する。dimensions が未設定の場合のフォールバック用 */

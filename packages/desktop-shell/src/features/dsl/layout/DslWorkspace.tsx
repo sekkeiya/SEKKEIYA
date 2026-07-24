@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 
 // @ts-ignore
@@ -21,7 +21,7 @@ export interface DslWorkspaceProps {
   appScope?: string;
 }
 
-export default function DslWorkspace({ projectId, workspaceId, workspaceName, appScope }: DslWorkspaceProps) {
+export default function DslWorkspace({ projectId, workspaceId, workspaceName }: DslWorkspaceProps) {
   // 作業中コンテキスト（ワークスペース単位）／panelSelection から初期選択を「マウント時に一度だけ」確定する。
   // ⚠️ これらをリアクティブに購読すると、LayoutShell 側の setContext(selected→workCtx) と
   //    useWorkspaceStructure の initial→selected 同期が双方向ループになり Maximum update depth に陥る。

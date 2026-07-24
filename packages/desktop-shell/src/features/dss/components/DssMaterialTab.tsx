@@ -13,6 +13,7 @@ import { useModelBinding, upsertBindingSlot, removeBindingSlot } from '../../sha
 import { subscribeProjectMaterials } from '../../dsmt/api/dsmtQueries';
 import { dsmtUploadService } from '../../dsmt/api/dsmtUploadService';
 import { DSMT_CATEGORY_META, type DsmtMaterial, type MaterialBinding } from '../../dsmt/types';
+import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
 
 const ACCENT = '#ec407a';
 const extractCanonicalId = (url: string) => (url.match(/assets%2F([a-f0-9-]+)%2F/)?.[1] || '');
@@ -156,7 +157,7 @@ export const DssMaterialTab: React.FC<Props> = ({ model, projectId }) => {
         ) : (
           <Canvas shadows camera={{ position: [4, 4, 4], fov: 45 }}>
             <Suspense fallback={null}>
-              <Stage environment="city" intensity={0.5} adjustCamera={1.3}>
+              <Stage environment={VIEWER_ENVIRONMENT} intensity={0.5} adjustCamera={1.3}>
                 <BindingModel key={bindingHash} url={resolvedUrl} binding={binding} onSlots={setSlots} />
               </Stage>
               <OrbitControls enablePan={false} makeDefault />

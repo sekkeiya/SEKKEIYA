@@ -1,4 +1,4 @@
-import { join, documentDir, basename } from '@tauri-apps/api/path';
+import { join, documentDir } from '@tauri-apps/api/path';
 import { writeFile, mkdir, readDir, copyFile, stat, rename, remove } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -52,7 +52,7 @@ export type WorkRootFolder = 'WorkFiles' | 'CADFiles';
  */
 export async function constructLocalDirPath(
   projectId: string,
-  workFileId: string,
+  _workFileId: string,
   projectName: string = 'UnnamedProject',
   workFileName: string = 'UnnamedWorkFile',
   toolType?: string,

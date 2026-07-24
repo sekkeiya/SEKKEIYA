@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, TextField, CircularProgress, IconButton } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { db } from '../../lib/firebase/client';
@@ -137,7 +137,7 @@ export const SystemCategoryAdminPanel: React.FC = () => {
                   <Box key={sub} sx={{ pl: 2, borderLeft: '2px solid rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="body2" fontWeight={600} sx={{ flex: 1, color: 'primary.light' }}>{sub}</Typography>
-                      <IconButton size="small" onClick={(e) => { removeSubCategory(main, sub); }}>
+                      <IconButton size="small" onClick={() => { removeSubCategory(main, sub); }}>
                         <DeleteIcon fontSize="small" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.3)' }} />
                       </IconButton>
                     </Box>

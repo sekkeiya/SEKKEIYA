@@ -92,15 +92,25 @@ export default function SectionCapFill({ mirrored = false }) {
     const group = rootRef.current;
     if (!group) return;
     if (!enabled) {
-      if (group.children.length) { group.clear(); builtRef.current = { key: "", items: [] }; }
+      if (group.children.length) { group.clear(); builtRef.current = { key: "", items: [], center: null }; }
       return;
     }
     const srcs = collectSrcs();
     const half = capExtent();
-    const capW = half * 2;
-    const key = capW.toFixed(0) + "|" + (mirrored ? "m" : "n") + "|" + srcs.map((s) => s.uuid).join(",");
+    const key = (half * 2).toFixed(0) + "|" + (mirrored ? "m" : "n") + "|" + srcs.map((s) => s.uuid).join(",");
     if (key === builtRef.current.key && group.children.length) return; // 既にビルド済み
     if (!srcs.length) return; // 躯体未ロード（後で buildTick で再試行）
+
+    // キャップ板は実際の躯体（collectSrcs の bounding box）の中心・大きさに合わせる。
+    //   従来はワールド原点中心＋sceneExtentXZ(≈GLB/テンプレ基準) 依存だったため、原点から
+    //   外れて広がる作図壁/床（例: 右ウイング）がキャップ板の外に出て切り口が黒く塗られなかった。
+    const box = new THREE.Box3();
+    for (const s of srcs) { try { s.updateMatrixWorld(true); box.expandByObject(s); } catch { /* noop */ } }
+    const boxEmpty = box.isEmpty();
+    const center = boxEmpty ? new THREE.Vector3(0, half, 0) : box.getCenter(new THREE.Vector3());
+    const bsz = boxEmpty ? new THREE.Vector3() : box.getSize(new THREE.Vector3());
+    // 正方形キャップ。面内どの2軸でも覆えるよう最大辺＋余裕（従来値も下限に）。
+    const capW = Math.max(bsz.x, bsz.y, bsz.z, half * 2) * 1.3;
 
     const t0 = DEBUG ? performance.now() : 0;
     group.clear();
@@ -125,9 +135,9 @@ export default function SectionCapFill({ mirrored = false }) {
       cap.renderOrder = order + 1; cap.userData.isSectionFill = true; cap.matrixAutoUpdate = false;
       cap.onAfterRender = (renderer) => renderer.clearStencil();
       group.add(cap);
-      items.push({ axis, stencil, cap, half });
+      items.push({ axis, stencil, cap });
     });
-    builtRef.current = { key, items };
+    builtRef.current = { key, items, center };
 
     // このコンテキストでキャップ用シェーダを事前コンパイル（display:none でも明示GL呼び出しは実行される）。
     // コンパイル対象に含めるため一旦すべて可視にしてからコンパイルし、可視/不可視は useFrame に委ねる。
@@ -176,14 +186,18 @@ export default function SectionCapFill({ mirrored = false }) {
     const enabledOf = (a) => (a === "y" ? yEn : a === "x" ? xEn : zEn);
     const posOf = (a) => (a === "y" ? hPos : a === "x" ? xPos : zPos);
 
+    // キャップ板の面内中心は実躯体の bbox 中心に合わせる（切る軸だけ切断位置 c を使う）。
+    const ctr = builtRef.current.center;
+    const cx = ctr ? ctr.x : 0;
+    const cy = ctr ? ctr.y : (sceneMaxY || 0) * 0.5;
+    const cz = ctr ? ctr.z : 0;
     for (const it of items) {
       const on = !!enabledOf(it.axis);
       const c = posOf(it.axis);
-      const half = it.half;
-      // キャップ位置/向き
-      if (it.axis === "y") { it.cap.position.set(0, c, 0); it.cap.rotation.set(-Math.PI / 2, 0, 0); }
-      else if (it.axis === "x") { it.cap.position.set(c, half * 0.5, 0); it.cap.rotation.set(0, Math.PI / 2, 0); }
-      else { it.cap.position.set(0, half * 0.5, c); it.cap.rotation.set(0, 0, 0); }
+      // キャップ位置/向き（切断軸は c、他2軸は躯体中心）
+      if (it.axis === "y") { it.cap.position.set(cx, c, cz); it.cap.rotation.set(-Math.PI / 2, 0, 0); }
+      else if (it.axis === "x") { it.cap.position.set(c, cy, cz); it.cap.rotation.set(0, Math.PI / 2, 0); }
+      else { it.cap.position.set(cx, cy, c); it.cap.rotation.set(0, 0, 0); }
       it.cap.updateMatrix();
       it.cap.visible = on;
       for (const sm of it.stencil) {
@@ -200,5 +214,8 @@ export default function SectionCapFill({ mirrored = false }) {
     gl.localClippingEnabled = true;
   });
 
+  // ⚠️ ここに ignoreClipping を付けないこと。ステンシルのキャップは「断面クリップで片側を
+  //    消して、切り口の front/back カウントを非ゼロにする」方式。クリップを外すと閉じた立体は
+  //    front/back が相殺してカウント 0 ＝ どこも塗られなくなる（黒塗りが全消しになる）。
   return <group ref={rootRef} userData={{ isSectionRef: true }} />;
 }

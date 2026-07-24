@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Button, Paper, Chip, CircularProgress, Tooltip,
+  Box, Typography, Button, Chip, CircularProgress, Tooltip,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Divider, InputAdornment
 } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
@@ -45,11 +45,15 @@ import { PreviewDialog } from './PreviewDialog';
 interface WorkFilesListProps {
   project: DesktopProject;
   filterMode?: 'all' | 'cad' | 'other';
+  /** 外部（左サイドバーのツリー）からファイル選択を指定する */
+  externalSelectedFileId?: string | null;
+  /** 内部でファイル選択が変わったとき外部（ツリー）へ通知する */
+  onSelectedFileChange?: (fileId: string | null) => void;
 }
 
 const isCADFile = (file: WorkFile) => !file.appScope && !!file.toolType && file.toolType !== 'other';
 
-export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMode = 'all' }) => {
+export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMode = 'all', externalSelectedFileId, onSelectedFileChange }) => {
   const [workFiles, setWorkFiles] = useState<WorkFile[]>([]);
   const [versionsMap, setVersionsMap] = useState<Record<string, LocalVersionInfo[]>>({});
   const [loading, setLoading] = useState(true);
@@ -72,7 +76,6 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
   const [editVersionName, setEditVersionName] = useState('');
   const [versionToEdit, setVersionToEdit] = useState<{ fileId: string; path: string; originalName: string } | null>(null);
 
-  const [show3DPreview, setShow3DPreview] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState<{ name: string; version?: string; tool?: string; fileId: string; localPath?: string } | null>(null);
 
@@ -104,6 +107,20 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
     setSelectedFileId(null);
   }, [filterMode]);
 
+  // 外部（ツリー）からの選択指定。filterMode リセットより後に定義して優先させる。
+  useEffect(() => {
+    if (externalSelectedFileId) setSelectedFileId(externalSelectedFileId);
+  }, [externalSelectedFileId]);
+
+  // 内部の選択変更をツリーへ通知（同値なら親側の setState は no-op）。
+  // 初回マウント時は通知しない（外部指定の選択を null で潰さないため）。
+  const selectionNotifyReadyRef = React.useRef(false);
+  useEffect(() => {
+    if (!selectionNotifyReadyRef.current) { selectionNotifyReadyRef.current = true; return; }
+    onSelectedFileChange?.(selectedFileId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFileId]);
+
   const selectedFile = workFiles.find(f => f.id === selectedFileId) ?? null;
 
   useEffect(() => {
@@ -122,31 +139,6 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
     if (saved) setCustomBaseDir(saved);
     getDefaultBaseDirPath(project.id).then(setDefaultBaseDir).catch(console.error);
   }, [project.id]);
-
-  const handleOpenFolderInExplorer = async () => {
-    try {
-      const { openPath } = await import('@tauri-apps/plugin-opener');
-      await openPath(customBaseDir || defaultBaseDir);
-    } catch (err) { console.error(err); }
-  };
-
-  const handleSelectFolder = async () => {
-    try {
-      const { open: openDialog } = await import('@tauri-apps/plugin-dialog');
-      const selected = await openDialog({ directory: true, multiple: false });
-      if (selected && typeof selected === 'string') {
-        setCustomBaseDir(selected);
-        localStorage.setItem(`sekkeiya_project_${project.id}_workfiles_dir`, selected);
-        await fetchFiles();
-      }
-    } catch (err) { console.error(err); }
-  };
-
-  const handleResetDefaultFolder = async () => {
-    setCustomBaseDir('');
-    localStorage.removeItem(`sekkeiya_project_${project.id}_workfiles_dir`);
-    await fetchFiles();
-  };
 
   const fetchFiles = async () => {
     setLoading(true);
@@ -186,8 +178,6 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
       });
     }
   }, [selectedFile, project.id, project.name]);
-
-  useEffect(() => { setShow3DPreview(false); }, [selectedFileId]);
 
   const toggleExpand = async (fileId: string) => {
     const isExpanded = expandedFiles[fileId];
@@ -676,7 +666,28 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
         </Box>
       )}
 
-      {/* Card Grid */}
+      {selectedFile ? (
+        /* ── 詳細ビュー: メインエリアは一覧ではなく3Dビューワー ── */
+        <Box sx={{ flex: 1, minHeight: 0, borderRadius: 2, overflow: 'hidden', border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', position: 'relative', bgcolor: 'rgba(0,0,0,0.3)' }}>
+          {(selectedFile.name.toLowerCase().endsWith('.3dm') || (selectedFile.toolType || '').toLowerCase().includes('rhino')) ? (
+            <InlineWorkFilePreview
+              key={selectedFile.id}
+              fileId={selectedFile.id}
+              storagePath={selectedFile.storagePath}
+              fileName={selectedFile.name}
+              toolType={selectedFile.toolType || 'rhino'}
+              localPath={selectedBinding?.localPath}
+            />
+          ) : selectedFile.thumbnailUrl ? (
+            <Box component="img" src={selectedFile.thumbnailUrl} sx={{ width: '100%', height: '100%', objectFit: 'contain', bgcolor: 'var(--brand-bg)' }} />
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgb(var(--brand-fg-rgb) / 0.25)', gap: 1 }}>
+              <AutoAwesomeRoundedIcon sx={{ fontSize: 40, opacity: 0.4 }} />
+              <Typography sx={{ fontSize: '0.75rem' }}>このファイル形式の3Dプレビューには未対応です</Typography>
+            </Box>
+          )}
+        </Box>
+      ) : (
       <Box sx={{ flex: 1, overflowY: 'auto', pr: 0.5 }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}><CircularProgress size={32} sx={{ color: '#00BFFF' }} /></Box>
@@ -846,6 +857,7 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
             ))
           )}
         </Box>
+      )}
 
       </Box>
 
@@ -908,30 +920,6 @@ export const WorkFilesList: React.FC<WorkFilesListProps> = ({ project, filterMod
                     const si = getStatusInfo(selectedFile.id);
                     return <Chip size="small" label={si.label} sx={{ bgcolor: si.bg, color: si.color, border: `1px solid color-mix(in srgb, ${si.color} 30%, transparent)` }} />;
                   })()}
-                </Box>
-              </Box>
-
-              {/* Preview */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Typography sx={{ fontSize: '0.72rem', color: 'rgb(var(--brand-fg-rgb) / 0.4)', fontWeight: 600, letterSpacing: 0.3 }}>プレビュー</Typography>
-                <Box sx={{ aspectRatio: '16/9', bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 1.5, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', position: 'relative', overflow: 'hidden' }}>
-                  {show3DPreview ? (
-                    <InlineWorkFilePreview fileId={selectedFile.id} storagePath={selectedFile.storagePath} fileName={selectedFile.name} toolType={selectedFile.toolType || 'rhino'} localPath={selectedBinding?.localPath} onClose={() => setShow3DPreview(false)} />
-                  ) : (
-                    <>
-                      {selectedFile.thumbnailUrl
-                        ? <Box component="img" src={selectedFile.thumbnailUrl} sx={{ width: '100%', height: '100%', objectFit: 'contain', bgcolor: 'var(--brand-bg)' }} />
-                        : <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgb(var(--brand-fg-rgb) / 0.2)' }}>
-                            <AutoAwesomeRoundedIcon sx={{ fontSize: 28, mb: 0.5, opacity: 0.4 }} />
-                            <Typography sx={{ fontSize: '0.6rem', textAlign: 'center', px: 2, lineHeight: 1.6, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>次回アップロード時に更新されます</Typography>
-                          </Box>
-                      }
-                      <Button variant="contained" onClick={() => setShow3DPreview(true)} startIcon={<VisibilityRoundedIcon />} size="small"
-                        sx={{ position: 'absolute', bottom: 6, right: 6, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', fontSize: '0.65rem', textTransform: 'none', '&:hover': { bgcolor: 'rgba(0,191,255,0.4)', borderColor: 'rgba(0,191,255,0.8)' } }}>
-                        3Dビューワー
-                      </Button>
-                    </>
-                  )}
                 </Box>
               </Box>
 

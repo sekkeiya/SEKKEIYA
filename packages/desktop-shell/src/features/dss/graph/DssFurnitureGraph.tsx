@@ -33,7 +33,6 @@ const EDGE_STYLES: Record<FurnitureGraphKind, { label: string; color: string; da
 const SEG_PALETTE = ['#26a69a', '#4facfe', '#a18cd1', '#ffb74d', '#f06292', '#66bb6a', '#ff8a65', '#9575cd', '#4db6ac', '#ba68c8', '#4dd0e1', '#aed581'];
 
 const NODE_W = 150;
-const NODE_H = 96;
 const COL_GAP = 210;   // 列（subCategory）間の水平間隔
 const ROW_GAP = 118;   // 列内ノードの垂直間隔
 const HEADER_Y = -46;  // 列見出しの y

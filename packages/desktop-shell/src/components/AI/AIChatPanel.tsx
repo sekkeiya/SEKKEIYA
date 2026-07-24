@@ -3,7 +3,6 @@ import { Box, Typography, Paper, Button, TextField, IconButton, Select, MenuItem
 import sekkeiyaLogo from '../../../src-tauri/src/assets/icons/sekkeiya-s-trans.png';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { BRAND } from '../../styles/theme';
 import { launchWorkspace } from '../../features/launcher/launchWorkspace';
 import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
@@ -41,7 +40,6 @@ import { DeliverablesSidebar } from './DeliverablesSidebar';
 import CollectionsRoundedIcon from '@mui/icons-material/CollectionsRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import ViewSidebarRoundedIcon from '@mui/icons-material/ViewSidebarRounded';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ReplayRoundedIcon from '@mui/icons-material/ReplayRounded';
 import OpenInFullRoundedIcon from '@mui/icons-material/OpenInFullRounded';
 import CloseFullscreenRoundedIcon from '@mui/icons-material/CloseFullscreenRounded';
@@ -371,8 +369,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
   }, [pendingDropAsset]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { isProcessing, currentToolLabel, toolProgress, sendMessageToOrchestrator, stopProcessing } = useCoreOrchestrator();
-  const { activeSessionId, createSession, sessions, getSessionsForProject, setActiveSession, createScopedSession, getSessionsForScope, deleteSession, rewindToMessage } = useAIChatStore();
-  const allSessions = useAIChatStore(s => s.sessions);
+  const { activeSessionId, createSession, sessions, getSessionsForProject, setActiveSession, createScopedSession, getSessionsForScope, rewindToMessage } = useAIChatStore();
   // 表示・送信対象のセッション。fixedSessionId 指定時（子アプリ埋め込み）はそれを優先し、
   // グローバルの activeSessionId には一切追従しない。
   const effectiveSessionId = fixedSessionId ?? activeSessionId;
@@ -689,7 +686,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
       setDebugPromptContent("Loading system prompt...");
       buildCompleteSystemPrompt(activeProfile.id).then(content => {
         if (active) setDebugPromptContent(content);
-      }).catch(err => {
+      }).catch(() => {
         if (active) setDebugPromptContent("Error loading prompt.");
       });
     }

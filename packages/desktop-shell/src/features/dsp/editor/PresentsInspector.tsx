@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Box, Typography, TextField, Slider, Divider, IconButton, Switch, MenuItem, Collapse, Tab, Tabs } from '@mui/material';
+import { Box, Typography, TextField, Slider, Divider, IconButton, Switch, MenuItem, Tab, Tabs } from '@mui/material';
 import { useDspStore } from '../store/useDspStore';
 import { resolveAssetPreviewUrl } from '../../../store/useAIDriveStore';
 import { useDriveAssets, PICKER_LAYERS } from '../../drive/driveAccess';
 import { BRAND } from '../../../styles/theme';
-import type { PresentationElement, PresentationPage, TemplateSlot } from '../types/dsp.types';
+import type { PresentationElement, TemplateSlot } from '../types/dsp.types';
 import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
 import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
-import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import ViewQuiltRoundedIcon from '@mui/icons-material/ViewQuiltRounded';
 import TextFieldsRoundedIcon from '@mui/icons-material/TextFieldsRounded';
@@ -245,7 +243,7 @@ const TEXT_TEMPLATES: DesignTemplate[] = [
   {
     id: 'section_header',
     label: 'セクションヘッダー',
-    build: (cW, cH) => [
+    build: (cW) => [
       { type: 'line', x: cW * 0.05, y: 110, w: 40, h: 0, zIndex: 9, rotation: 0, opacity: 100, data: { fill: ACCENT, stroke: ACCENT, strokeWidth: '5' } },
       { type: 'text', x: cW * 0.05 + 56, y: 90, w: cW * 0.8, h: 70, zIndex: 10, rotation: 0, opacity: 100, data: { text: 'セクションタイトル', fontSize: '40px', color: '#1d1d1f', textAlign: 'left', fontWeight: '700' } },
     ],
@@ -351,10 +349,8 @@ const AssetThumb: React.FC<{ asset: any; onAdd: () => void }> = ({ asset, onAdd 
 
 // ─── Main Inspector Component ──────────────────────────────────────────────────
 
-type TopTabType = 'properties' | 'deck' | 'parts' | 'layers';
-
 export const PresentsInspector: React.FC = () => {
-  const { presentation, selectedPageId, selectedElementIds, updateElements, addElement, addElements, projectId, inspectorActiveTopTab, setInspectorActiveTopTab, showRightSidebar, replacePresentation, appendPages } = useDspStore();
+  const { presentation, selectedPageId, selectedElementIds, updateElements, addElement, addElements, projectId, inspectorActiveTopTab, showRightSidebar, replacePresentation, appendPages } = useDspStore();
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
   const [templateTab, setTemplateTab] = useState<TemplateTabType>('layouts');
 

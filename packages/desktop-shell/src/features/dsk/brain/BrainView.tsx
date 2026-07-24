@@ -3,7 +3,7 @@
 // 実体は S.Library の LibraryEntry のうち RAG 取り込み済みのもの。追加はライブラリで
 // 「RAGソースを選択」、ここでは状態の可視化と追加導線を担う。
 import React, { useEffect, useMemo } from 'react';
-import { Box, Typography, Button, CircularProgress, Chip } from '@mui/material';
+import { Box, Typography, Button, Chip } from '@mui/material';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
