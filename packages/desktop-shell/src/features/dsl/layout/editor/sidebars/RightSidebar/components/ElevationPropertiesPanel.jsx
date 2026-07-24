@@ -232,7 +232,8 @@ export default function ElevationPropertiesPanel() {
             </Stack>
             <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.5, mt: 0.75 }}>
               展開図では天井高（CL）のみを扱います。GL・階高・FL は断面図で調整してください。
-              ビュー上では CL の寸法ラベルをダブルクリック、または上下端のドラッグでも調整できます。
+              ビュー上では左の全高ラベル（例:「2400」）をダブルクリックしても調整できます。
+              他の寸法もダブルクリックで手入力に上書きできます（mm 単位）。
             </Typography>
           </Box>
         )}

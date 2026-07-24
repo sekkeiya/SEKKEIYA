@@ -35,9 +35,10 @@ export const researchVerbs: VerbDef[] = [
     risk: 'low',
     label: 'リサーチボードを確認しています…',
     handler: async (ctx) => {
-      // 画面に出ているボードを最優先で対象にする（個人ボード'account'は projectId から解決できない）
-      const { getActiveBoardId } = await import('./researchBoardBridge');
-      const projectId = getActiveBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      // （個人ボード'account'は projectId から解決できないため、表示中フォールバックも残す）
+      const { resolveTargetBoardKey } = await import('./researchBoardBridge');
+      const projectId = resolveTargetBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!projectId) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       try {
         const { listBoardItems, listBoardEdges } = await import('./researchBoardBridge');
@@ -110,16 +111,20 @@ export const researchVerbs: VerbDef[] = [
       if (!title) return JSON.stringify({ ok: false, error: 'title が必要です' });
       try {
         const { getActiveBoardManager, getActiveBoardId, setHeadlessActiveBoard } = await import('./researchBoardBridge');
+        const sessionScope = ctx.resolveProjectId(ctx.input.projectId);
         const mgr = getActiveBoardManager();
-        if (mgr) {
+        // チャットが正: 表示中のワークスペースがセッションと同じスコープのときだけ
+        // manager（画面のボード切替つき作成）を使う。別プロジェクトを表示中なら
+        // セッション側のスコープへヘッドレスで作成する。
+        if (mgr && (!sessionScope || mgr.scope === sessionScope)) {
           const key = await mgr.createBoard(title);
           return JSON.stringify({ ok: true, boardKey: key, note: `新しいボード「${title}」を作成して切り替えました。以降のカードはこのボードに置かれます。` });
         }
-        // ヘッドレス（ボード未表示）: スコープを解決して作成のみ（画面切替はできない）。
-        // 明示 projectId を最優先し、無ければ直近アクティブボードのスコープを使う。
+        // ヘッドレス（ボード未表示 or 別スコープを表示中）: スコープを解決して作成のみ。
+        // セッション（チャット）のスコープを最優先し、無ければ直近アクティブボードのスコープ。
         const { ResearchCanvasRepository, makeBoardKey, parseBoardKey } = await import('../repositories/ResearchCanvasRepository');
         const activeId = getActiveBoardId();
-        const scopeId = ctx.resolveProjectId(ctx.input.projectId)
+        const scopeId = sessionScope
           ?? (activeId ? parseBoardKey(activeId).scope : undefined);
         if (!scopeId) return JSON.stringify({ ok: false, error: '対象スコープが不明です' });
         const id = await ResearchCanvasRepository.createBoard(scopeId, title);
@@ -189,9 +194,10 @@ export const researchVerbs: VerbDef[] = [
     risk: 'low',
     label: 'リサーチボードにカードを置いています…',
     handler: async (ctx) => {
-      // 画面に出ているボードを最優先で対象にする（個人ボード'account'は projectId から解決できない）
-      const { getActiveBoardId } = await import('./researchBoardBridge');
-      const projectId = getActiveBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      // （個人ボード'account'は projectId から解決できないため、表示中フォールバックも残す）
+      const { resolveTargetBoardKey } = await import('./researchBoardBridge');
+      const projectId = resolveTargetBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!projectId) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const raw = Array.isArray(ctx.input.items) ? ctx.input.items : [];
       if (raw.length === 0) return JSON.stringify({ ok: false, error: 'items が空です' });
@@ -301,9 +307,10 @@ export const researchVerbs: VerbDef[] = [
     risk: 'low',
     label: 'カードを接続しています…',
     handler: async (ctx) => {
-      // 画面に出ているボードを最優先で対象にする（個人ボード'account'は projectId から解決できない）
-      const { getActiveBoardId } = await import('./researchBoardBridge');
-      const projectId = getActiveBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      // （個人ボード'account'は projectId から解決できないため、表示中フォールバックも残す）
+      const { resolveTargetBoardKey } = await import('./researchBoardBridge');
+      const projectId = resolveTargetBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!projectId) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const rawEdges = Array.isArray(ctx.input.edges) ? ctx.input.edges : [];
       const removeIds = Array.isArray(ctx.input.removeEdgeIds) ? ctx.input.removeEdgeIds.map(String) : [];
@@ -372,9 +379,10 @@ export const researchVerbs: VerbDef[] = [
     risk: 'medium',
     label: 'コンセプトイメージを生成しています…（完成次第ボードに配置）',
     handler: async (ctx) => {
-      // 画面に出ているボードを最優先で対象にする（個人ボード'account'は projectId から解決できない）
-      const { getActiveBoardId } = await import('./researchBoardBridge');
-      const projectId = getActiveBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      // （個人ボード'account'は projectId から解決できないため、表示中フォールバックも残す）
+      const { resolveTargetBoardKey } = await import('./researchBoardBridge');
+      const projectId = resolveTargetBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!projectId) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
 
       // 単発 prompt / 複数 prompts[] を正規化（最大4件）
@@ -488,9 +496,10 @@ export const researchVerbs: VerbDef[] = [
     risk: 'low',
     label: 'カードを更新しています…',
     handler: async (ctx) => {
-      // 画面に出ているボードを最優先で対象にする（個人ボード'account'は projectId から解決できない）
-      const { getActiveBoardId } = await import('./researchBoardBridge');
-      const projectId = getActiveBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      // （個人ボード'account'は projectId から解決できないため、表示中フォールバックも残す）
+      const { resolveTargetBoardKey } = await import('./researchBoardBridge');
+      const projectId = resolveTargetBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!projectId) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       if (!ctx.input.id) return JSON.stringify({ ok: false, error: 'id が必要です' });
       const patch: Record<string, any> = {};
@@ -526,9 +535,10 @@ export const researchVerbs: VerbDef[] = [
     risk: 'medium',
     label: 'カードを削除しています…',
     handler: async (ctx) => {
-      // 画面に出ているボードを最優先で対象にする（個人ボード'account'は projectId から解決できない）
-      const { getActiveBoardId } = await import('./researchBoardBridge');
-      const projectId = getActiveBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      // （個人ボード'account'は projectId から解決できないため、表示中フォールバックも残す）
+      const { resolveTargetBoardKey } = await import('./researchBoardBridge');
+      const projectId = resolveTargetBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!projectId) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const ids = Array.isArray(ctx.input.ids) ? ctx.input.ids.map(String) : [];
       if (ids.length === 0) return JSON.stringify({ ok: false, error: 'ids が空です' });

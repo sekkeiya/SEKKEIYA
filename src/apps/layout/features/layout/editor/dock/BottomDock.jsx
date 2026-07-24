@@ -4,12 +4,8 @@ import { Box, Stack, IconButton, Typography, Tooltip, Divider } from "@mui/mater
 import { alpha, useTheme } from "@mui/material/styles";
 
 import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
-import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import TextureRoundedIcon from "@mui/icons-material/TextureRounded";
-import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
-import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import MovieCreationRoundedIcon from "@mui/icons-material/MovieCreationRounded";
 import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
 
@@ -20,21 +16,18 @@ import DashboardCustomizeRoundedIcon from "@mui/icons-material/DashboardCustomiz
 
 // ✅ NEW: Zustand
 import { useUiRightSidebarStore } from "@layout/features/layout/store/uiRightSidebarStore";
+import { useToolsStore } from "@layout/features/layout/store/toolsStore/useToolsStore";
+import { useEditorModeStore, EDITOR_MODES } from "@layout/features/layout/store/useEditorModeStore";
 
 // ✅ Bottom Panel のモード
-const MODES = [
+// - 2D 配置: モデル/一括配置/マテリアル等は左ドックへ移動したので下部モードは出さない
+// - 3D 演出: 出力系（Import/Media/Export）のみ。Materials/Texturesは左ドックへ
+const MODES_3D = [
   { key: "import", label: "Import", icon: <DownloadRoundedIcon fontSize="small" /> },
-
-  // ✅ NEW: textures（Texture Library）
-  { key: "textures", label: "Textures", icon: <ImageRoundedIcon fontSize="small" /> },
-
-  // ✅ materials（Material Library）
-  { key: "materials", label: "Materials", icon: <TextureRoundedIcon fontSize="small" /> },
-
-  { key: "populate", label: "Populate", icon: <GroupsRoundedIcon fontSize="small" /> },
   { key: "media", label: "Media", icon: <MovieCreationRoundedIcon fontSize="small" /> },
   { key: "export", label: "Export", icon: <IosShareRoundedIcon fontSize="small" /> },
 ];
+const MODES_2D = [];
 
 export default function BottomDock({
   mode = "media",
@@ -49,6 +42,14 @@ export default function BottomDock({
   // ✅ RightSidebar表示状態（Zustandから直読み）
   const rightPanels = useUiRightSidebarStore((s) => s.rightPanels);
   const toggleRightPanel = useUiRightSidebarStore((s) => s.toggleRightPanel);
+
+  // ✅ 2D/3D モード
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const is2DMode = editorMode === EDITOR_MODES.LAYOUT_2D;
+  const MODES = is2DMode ? MODES_2D : MODES_3D;
+
+  // ✅ 2D ステータス表示用
+  const snapEnabled = useToolsStore((s) => s.snapEnabled);
 
   const rootSx = useMemo(
     () => ({
@@ -108,8 +109,24 @@ export default function BottomDock({
 
   return (
     <Box sx={rootSx}>
-      {/* Left */}
-      <Stack direction="row" spacing={1} alignItems="center">
+      {/* Left（2D: ステータス表示） */}
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        {is2DMode ? (
+          <>
+            <Typography sx={{ fontSize: 11, fontWeight: 800, color: alpha("#fff", 0.55) }}>
+              2D 配置モード — TOPビュー
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: snapEnabled ? alpha("#ffb74d", 0.9) : alpha("#fff", 0.4),
+              }}
+            >
+              スナップ {snapEnabled ? "ON" : "OFF"}
+            </Typography>
+          </>
+        ) : null}
       </Stack>
 
       {/* Center */}

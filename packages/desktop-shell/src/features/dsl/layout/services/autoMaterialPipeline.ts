@@ -19,7 +19,7 @@ import { layoutSceneRef } from "./layoutSceneRef";
 import { structureFaceKeyOf, classifySurface, type SurfaceType } from "../store/useMaterialFaceStore";
 import { useSurfaceFinishStore, type FinishRegion } from "../store/useSurfaceFinishStore";
 import { normalizeRects } from "../lib/rectilinear";
-import { extractSurfaceRect, extractConnectedFaceRect } from "../canvas/viewports/controllers/FacePickController";
+import { extractSurfaceRect, extractConnectedFaceRect, clampWallSurfaceToCeiling } from "../canvas/viewports/controllers/FacePickController";
 import { materialToSnapshot } from "../../../shared/material/useMaterialBinding";
 import { buildThreeMaterial } from "../../../shared/material/applyMaterial";
 import { useMaterialSweepStore } from "./materialSweep";
@@ -436,7 +436,9 @@ export async function autoApplyMaterials(
     }
 
     const r = resolved[rule ? rule : surfaceType];
-    pending.push({ key, surface: rect, materialId: r.materialId, material: r.material });
+    // 内装壁は FL〜CL に切り詰める（手動クリック時と同じ）。key はクランプ前の面で
+    // 計算済みなので、過去に貼った同じ面の仕上げをそのまま上書きできる。
+    pending.push({ key, surface: clampWallSurfaceToCeiling(rect), materialId: r.materialId, material: r.material });
     counts[surfaceType]++;
     planes++;
   }

@@ -13,9 +13,14 @@
 
 const crypto = require("crypto");
 const admin = require("firebase-admin");
+const { recordUsage } = require("../usage/recordUsage");
 
 // TTSモデル候補（先頭から順に試す。preview→GAの改名に耐える）
 const TTS_MODELS = ["gemini-2.5-flash-preview-tts", "gemini-2.5-flash-tts", "gemini-2.5-pro-preview-tts"];
+
+// 管理者APIモニター（機能別/モデル別）への概算原価計上レート。
+// Gemini TTS: 音声出力 $10/100万トークン × 約25トークン/秒 ≒ $0.00025/秒（テキスト入力分は誤差として無視）
+const TTS_AUDIO_USD_PER_SEC = (10 / 1_000_000) * 25;
 
 // トーン → 読み上げスタイル指示（TTSモデルはインライン指示でスタイル制御できる）
 const STYLE_PROMPTS = {
@@ -65,6 +70,7 @@ async function synthesizePcm(text, voiceName, style) {
 
   let json = null;
   let lastStatus = 0;
+  let usedModel = TTS_MODELS[0];
   for (const model of TTS_MODELS) {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -80,7 +86,7 @@ async function synthesizePcm(text, voiceName, style) {
         }),
       },
     );
-    if (res.ok) { json = await res.json(); break; }
+    if (res.ok) { json = await res.json(); usedModel = model; break; }
     lastStatus = res.status;
     const body = await res.text().catch(() => "");
     console.warn(`[ttsSynthesize] ${model} HTTP ${res.status}: ${body.slice(0, 200)}`);
@@ -95,6 +101,7 @@ async function synthesizePcm(text, voiceName, style) {
   return {
     pcm: Buffer.from(part.inlineData.data, "base64"),
     sampleRate: rateMatch ? Number(rateMatch[1]) : 24000,
+    model: usedModel,
   };
 }
 
@@ -167,6 +174,7 @@ exports.synthesizePcm = synthesizePcm;
 exports.pcmToWav = pcmToWav;
 exports.isPaidUser = isPaidUser;
 exports.recordTtsUsage = recordTtsUsage;
+exports.TTS_AUDIO_USD_PER_SEC = TTS_AUDIO_USD_PER_SEC;
 
 exports.ttsSynthesize = async (data = {}, context = {}) => {
   if (!admin.apps.length) admin.initializeApp();
@@ -211,19 +219,32 @@ exports.ttsSynthesize = async (data = {}, context = {}) => {
     console.warn(`[ttsSynthesize] usage check failed (fail-open): ${e.message}`);
   }
 
-  let pcm, sampleRate;
+  let pcm, sampleRate, ttsModel;
   try {
-    ({ pcm, sampleRate } = await synthesizePcm(text, voiceName, style));
+    ({ pcm, sampleRate, model: ttsModel } = await synthesizePcm(text, voiceName, style));
   } catch (e) {
     return { success: false, reason: e.message };
   }
 
   // 合成秒数を利用枠に記録（PCM長から正確に算出。best-effort）
+  const seconds = Math.max(1, Math.round(pcm.length / (sampleRate * 2)));
   try {
-    await recordTtsUsage(db, uid, Math.max(1, Math.round(pcm.length / (sampleRate * 2))));
+    await recordTtsUsage(db, uid, seconds);
   } catch (e) {
     console.warn(`[ttsSynthesize] usage record failed: ${e.message}`);
   }
+
+  // 管理者APIモニター（機能別/モデル別/ユーザー別）へ概算原価を計上。
+  // await 必須: CF v2 はレスポンス後にCPUがスロットリングされ fire-and-forget 書込が落ちる
+  // （recordUsage は内部で例外を握るため await しても本体を巻き込まない）
+  await recordUsage({
+    uid,
+    email: context.auth?.token?.email || null,
+    feature: "tts-read",
+    provider: "gemini",
+    model: ttsModel,
+    costUsd: seconds * TTS_AUDIO_USD_PER_SEC,
+  });
 
   // 録音保存（ベストエフォート。失敗しても今回の再生は base64 で成立）
   let audioUrl = "";

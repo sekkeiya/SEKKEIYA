@@ -7,9 +7,11 @@ import {
   ResearchCanvasRepository,
   compactCanvasItem,
   compactCanvasEdge,
+  parseBoardKey,
   type ResearchCanvasItem,
   type ResearchCanvasEdge,
 } from '../repositories/ResearchCanvasRepository';
+import { getBoardContext, requestShowBoard } from './boardContextBus';
 
 /** マウント中の ResearchCanvas が登録するライブ操作面。 */
 export interface ResearchBoardHost {
@@ -70,6 +72,24 @@ export function getActiveBoardId(): string | null {
   // マウント中のキャンバス（＝画面に出ているボード）を最優先。
   // 無ければ、ヘッドレスで直近に作成/対象化したボードキーにフォールバックする。
   return activeHost?.projectId ?? headlessBoardKey;
+}
+
+/**
+ * verb の書き込み先ボードキーを解決する。**チャットが正**:
+ * セッションの属するスコープ（sessionScope）を最優先し、表示中のボードは
+ * 「同じスコープのものを見ているとき」だけ docId まで採用する。
+ * 別プロジェクトのボードを表示中でも、チャットのプロジェクト側（既定ボード）へ書く。
+ * sessionScope が無いとき（グローバルチャット等）だけ表示中のボードに従う。
+ */
+export function resolveTargetBoardKey(sessionScope: string | null | undefined): string | null {
+  // 候補: このウィンドウのマウント中ボード → 本体から配信された表示中ボード → ヘッドレスの直近対象
+  const candidates = [activeHost?.projectId, getBoardContext().boardKey, headlessBoardKey]
+    .filter((k): k is string => !!k);
+  if (sessionScope) {
+    const match = candidates.find(k => parseBoardKey(k).scope === sessionScope);
+    return match ?? sessionScope; // 表示中に同スコープが無ければ、そのスコープの既定ボードへ
+  }
+  return candidates[0] ?? null;
 }
 
 // ─── ボードマネージャ（複数ボードの新規作成＋切替。ワークスペースが登録）─────────
@@ -162,6 +182,8 @@ export async function addBoardItems(projectId: string, partials: NewBoardItem[])
     await ResearchCanvasRepository.save(projectId, { items: [...existing, ...created] });
     notifyBoardChanged(projectId);
   }
+  // チャットが正: 書き込みが始まったら、そのボードを本体ウィンドウに表示する
+  requestShowBoard({ boardKey: projectId, view: 'canvas' });
   return created;
 }
 
@@ -174,6 +196,7 @@ export async function updateBoardItem(
   if (host) {
     if (!host.getItems().some(i => i.id === id)) return false;
     host.patchItem(id, patch);
+    requestShowBoard({ boardKey: projectId, view: 'canvas' });
     return true;
   }
   const { items } = await ResearchCanvasRepository.load(projectId);
@@ -182,6 +205,7 @@ export async function updateBoardItem(
   items[idx] = compactCanvasItem({ ...items[idx], ...patch, updatedAt: new Date().toISOString() });
   await ResearchCanvasRepository.save(projectId, { items });
   notifyBoardChanged(projectId);
+  requestShowBoard({ boardKey: projectId, view: 'canvas' });
   return true;
 }
 
@@ -190,7 +214,7 @@ export async function removeBoardItems(projectId: string, ids: string[]): Promis
   const idSet = new Set(ids);
   if (host) {
     const hit = host.getItems().filter(i => idSet.has(i.id)).length;
-    if (hit > 0) host.removeItems(ids);
+    if (hit > 0) { host.removeItems(ids); requestShowBoard({ boardKey: projectId, view: 'canvas' }); }
     return hit;
   }
   const { items, edges } = await ResearchCanvasRepository.load(projectId);
@@ -202,6 +226,7 @@ export async function removeBoardItems(projectId: string, ids: string[]): Promis
     const remainEdges = edges.filter(e => remainIds.has(e.source) && remainIds.has(e.target));
     await ResearchCanvasRepository.save(projectId, { items: remain, edges: remainEdges });
     notifyBoardChanged(projectId);
+    requestShowBoard({ boardKey: projectId, view: 'canvas' });
   }
   return removed;
 }
@@ -249,6 +274,7 @@ export async function addBoardEdges(projectId: string, partials: NewBoardEdge[])
       await ResearchCanvasRepository.save(projectId, { edges: [...doc.edges, ...created] });
       notifyBoardChanged(projectId);
     }
+    requestShowBoard({ boardKey: projectId, view: 'canvas' });
   }
   return { created, skipped };
 }
@@ -262,6 +288,7 @@ export async function updateBoardEdge(
   if (host) {
     if (!host.getEdges().some(e => e.id === id)) return false;
     host.patchEdge(id, patch);
+    requestShowBoard({ boardKey: projectId, view: 'canvas' });
     return true;
   }
   const { edges } = await ResearchCanvasRepository.load(projectId);
@@ -270,6 +297,7 @@ export async function updateBoardEdge(
   edges[idx] = compactCanvasEdge({ ...edges[idx], ...patch, updatedAt: new Date().toISOString() });
   await ResearchCanvasRepository.save(projectId, { edges });
   notifyBoardChanged(projectId);
+  requestShowBoard({ boardKey: projectId, view: 'canvas' });
   return true;
 }
 
@@ -278,7 +306,7 @@ export async function removeBoardEdges(projectId: string, ids: string[]): Promis
   const idSet = new Set(ids);
   if (host) {
     const hit = host.getEdges().filter(e => idSet.has(e.id)).length;
-    if (hit > 0) host.removeEdges(ids);
+    if (hit > 0) { host.removeEdges(ids); requestShowBoard({ boardKey: projectId, view: 'canvas' }); }
     return hit;
   }
   const { edges } = await ResearchCanvasRepository.load(projectId);
@@ -287,6 +315,7 @@ export async function removeBoardEdges(projectId: string, ids: string[]): Promis
   if (removed > 0) {
     await ResearchCanvasRepository.save(projectId, { edges: remain });
     notifyBoardChanged(projectId);
+    requestShowBoard({ boardKey: projectId, view: 'canvas' });
   }
   return removed;
 }

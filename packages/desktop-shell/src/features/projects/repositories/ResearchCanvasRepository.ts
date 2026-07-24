@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, deleteField, collection, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase/client';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -32,6 +32,16 @@ export interface ResearchBoardMeta {
   id: string;          // doc id（'canvas' は既定ボード）
   title: string;
   updatedAtMs: number; // 並べ替え用（無ければ0）
+  /**
+   * 親ボードの doc id（ドリルダウンで作られた子ボード）。未設定＝トップレベル。
+   * サイドバーのツリー表示と、親削除時の繰り上げに使う。
+   */
+  parentBoardId?: string;
+  /**
+   * このボードを切り出した親トピックの id（親ボード内）。戻る導線・掘り下げ元の特定に使う。
+   * 親ボード側では、そのトピックが childBoardId でこのボードを指す（相互参照）。
+   */
+  parentTopicId?: string;
 }
 
 function boardIdGen(): string {
@@ -142,6 +152,17 @@ export interface MindMapNode {
   refId?: string;
   /** 出典タイトルのキャッシュ（表示・トレーサビリティ用）。 */
   refTitle?: string;
+  /**
+   * このトピックを掘り下げた子ボードの doc id（ドリルダウン）。
+   * 設定されているとトピックに潜行バッジが出て、クリックで子ボードへ遷移する。
+   * 子ボード側は parentBoardId/parentTopicId でこのボード・トピックを指す（相互参照）。
+   */
+  childBoardId?: string;
+  /**
+   * 「別のボードへ移動」で移してきたときの、移動元ボードの doc id。
+   * 「元のボードへ戻す」で戻す先。戻したら消す。
+   */
+  originBoardId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -316,6 +337,8 @@ export class ResearchCanvasRepository {
           ? data.title
           : (d.id === DEFAULT_BOARD_DOC_ID ? 'メインボード' : '無題のボード'),
         updatedAtMs: ts,
+        parentBoardId: typeof data?.parentBoardId === 'string' ? data.parentBoardId : undefined,
+        parentTopicId: typeof data?.parentTopicId === 'string' ? data.parentTopicId : undefined,
       };
     });
     // 既定ボードが無ければ仮想的に先頭へ（初回で未保存でも切替UIに出す）
@@ -328,14 +351,31 @@ export class ResearchCanvasRepository {
     );
   }
 
-  /** 新規ボードを作成して doc id を返す。 */
-  static async createBoard(scope: string, title: string): Promise<string> {
+  /**
+   * 新規ボードを作成して doc id を返す。
+   * nest を渡すと子ボード（ドリルダウン）として作る。
+   * seedMindmap を渡すと、その木を初期マインドマップとして入れておく
+   * （ドリルダウンで掘り下げ元のトピックとその配下を丸ごと引き継ぐ）。
+   */
+  static async createBoard(
+    scope: string,
+    title: string,
+    opts?: { nest?: { parentBoardId: string; parentTopicId: string }; seedMindmap?: MindMapNode[] },
+  ): Promise<string> {
     const id = boardIdGen();
-    await setDoc(doc(this.boardsCol(scope), id), {
+    const payload: Record<string, unknown> = {
       title: title.trim() || '無題のボード',
       items: [], edges: [],
       createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    });
+    };
+    if (opts?.nest) {
+      payload.parentBoardId = opts.nest.parentBoardId;
+      payload.parentTopicId = opts.nest.parentTopicId;
+    }
+    if (opts?.seedMindmap?.length) {
+      payload.mindmap = opts.seedMindmap.map(compactMindNode);
+    }
+    await setDoc(doc(this.boardsCol(scope), id), payload);
     return id;
   }
 
@@ -343,13 +383,90 @@ export class ResearchCanvasRepository {
     await setDoc(doc(this.boardsCol(scope), docId), { title: title.trim() || '無題のボード', updatedAt: serverTimestamp() }, { merge: true });
   }
 
+  /** ボードの親を付け替える（サイドバーのネスト先を変える）。 */
+  static async reparentBoard(scope: string, docId: string, parentBoardId: string): Promise<void> {
+    await setDoc(doc(this.boardsCol(scope), docId), { parentBoardId, updatedAt: serverTimestamp() }, { merge: true });
+  }
+
+  /**
+   * トピックの部分木を別ボードへ移す（「別のボードへ移動」）。
+   * 移動元（fromDocId）からは呼び出し側（ライブなコンポーネント）が取り除く前提で、
+   * ここでは移動先（toDocId）doc への追記と、随伴する子ボードの親付け替えだけを担う。
+   * @param subtree 移動する部分木（root が先頭想定。id は保持）
+   * @param rootId 部分木の根トピック id
+   * @param newOrigin 根に記録する移動元ボード id（戻せるように）。null で origin を消す（＝元へ戻す時）。
+   */
+  static async moveTopicToBoard(
+    scope: string,
+    fromDocId: string,
+    toDocId: string,
+    subtree: MindMapNode[],
+    rootId: string,
+    newOrigin: string | null,
+  ): Promise<void> {
+    const col = this.boardsCol(scope);
+    const target = await getDoc(doc(col, toDocId));
+    const tdata = target.data() as Partial<ResearchCanvasDoc> | undefined;
+    const tMind: MindMapNode[] = Array.isArray(tdata?.mindmap) ? [...tdata!.mindmap] : [];
+    const now = new Date().toISOString();
+
+    // 移動先に中心トピックが無ければ用意（空ボードへの移動でも木が壊れない）
+    let center = tMind.find(n => n.parentId == null);
+    if (!center) {
+      center = { id: 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+        parentId: null, rank: 0, text: '中心トピック', createdAt: now, updatedAt: now };
+      tMind.push(center);
+    }
+    const centerKids = tMind.filter(n => n.parentId === center!.id);
+    const rank = centerKids.length ? Math.max(...centerKids.map(k => k.rank)) + 1 : 0;
+
+    // 根は移動先の中心トピック直下へ。origin を記録（戻せるように）。子孫は元の親子関係のまま。
+    for (const n of subtree) {
+      const moved: MindMapNode = n.id === rootId
+        ? { ...n, parentId: center.id, rank, originBoardId: newOrigin ?? undefined, updatedAt: now }
+        : { ...n, updatedAt: now };
+      tMind.push(compactMindNode(moved));
+    }
+    await setDoc(doc(col, toDocId), { mindmap: tMind, updatedAt: serverTimestamp() }, { merge: true });
+
+    // 随伴する子ボード（移動した部分木のトピックを親に持つボード）は、移動先へ付け替える
+    const movedIds = new Set(subtree.map(n => n.id));
+    const all = await getDocs(col);
+    for (const d of all.docs) {
+      const data = d.data() as { parentBoardId?: unknown; parentTopicId?: unknown };
+      if (data.parentBoardId !== fromDocId) continue;
+      if (typeof data.parentTopicId !== 'string' || !movedIds.has(data.parentTopicId)) continue;
+      await setDoc(doc(col, d.id), { parentBoardId: toDocId, updatedAt: serverTimestamp() }, { merge: true });
+    }
+  }
+
   static async deleteBoard(scope: string, docId: string): Promise<void> {
+    // 削除するボードの子ボードは、1階層上（削除するボードの親）へ繰り上げる。
+    // 思考の痕跡（子ボード群）を巻き添えで失わないための安全側の挙動。
+    const col = this.boardsCol(scope);
+    const self = await getDoc(doc(col, docId));
+    const parentOf = (v: unknown): string | undefined => {
+      const p = (v as { parentBoardId?: unknown } | undefined)?.parentBoardId;
+      return typeof p === 'string' ? p : undefined;
+    };
+    const grandparentId = parentOf(self.data());
+    const all = await getDocs(col);
+    for (const d of all.docs) {
+      if (parentOf(d.data()) !== docId) continue;
+      // 親トピックは削除で消えるので参照を切り、親を祖父へ（祖父が無ければトップレベルへ）
+      await setDoc(doc(col, d.id), {
+        parentBoardId: grandparentId ?? deleteField(),
+        parentTopicId: deleteField(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+
     // 既定ボードは中身を空にするだけ（一覧から消すと概念上おかしいので削除不可）
     if (docId === DEFAULT_BOARD_DOC_ID) {
-      await setDoc(doc(this.boardsCol(scope), docId), { items: [], edges: [], updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(doc(col, docId), { items: [], edges: [], updatedAt: serverTimestamp() }, { merge: true });
       return;
     }
-    await deleteDoc(doc(this.boardsCol(scope), docId));
+    await deleteDoc(doc(col, docId));
   }
 
   /** キャンバス貼り付け画像を Storage にアップロードして公開URLを返す */

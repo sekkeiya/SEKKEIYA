@@ -9,6 +9,9 @@ import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
 import FileOpenRoundedIcon from "@mui/icons-material/FileOpenRounded";
 import ViewInArRoundedIcon from "@mui/icons-material/ViewInArRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
+import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
+import { isTauri } from "@tauri-apps/api/core";
+import { useRhinoLayoutSyncStore } from "../../../store/useRhinoLayoutSyncStore";
 
 import VerticalAlignBottomRoundedIcon from "@mui/icons-material/VerticalAlignBottomRounded";
 import VerticalAlignTopRoundedIcon from "@mui/icons-material/VerticalAlignTopRounded";
@@ -45,6 +48,7 @@ import CommandBar from "../../../canvas/toolbar/CommandBar.jsx";
 import ModeToolbar from "./toolbars/ModeToolbar.jsx";
 import SelectionScopeButtons from "./toolbars/SelectionScopeButtons.jsx";
 import SymbolVisibilityToggle from "./toolbars/SymbolVisibilityToggle.jsx";
+import DrawingLightToggle from "./toolbars/DrawingLightToggle.jsx";
 import ViewGroupToggle from "./toolbars/ViewGroupToggle.jsx";
 import StructureBreadcrumb from "./StructureBreadcrumb.jsx";
 
@@ -166,6 +170,21 @@ export default function TopBar({
   const canImportUnderlay = useWorkspaceStructureStore(
     (s) => !!s.selectedBaseId && !s.selectedOptionId
   );
+
+  // Rhino ライブ同期（Datasmith 風・デスクトップ版のみ）。
+  const rhinoSyncActive = useRhinoLayoutSyncStore((s) => s.active);
+  const rhinoSyncing = useRhinoLayoutSyncStore((s) => s.syncing);
+  const rhinoDocName = useRhinoLayoutSyncStore((s) => s.docName);
+  const handleRhinoSyncToggle = useCallback(async () => {
+    const store = useRhinoLayoutSyncStore.getState();
+    if (store.active) {
+      store.stopLink();
+      return;
+    }
+    await store.startLink();
+    const err = useRhinoLayoutSyncStore.getState().error;
+    if (err) window.alert(`Rhino 同期を開始できませんでした:\n${err}`);
+  }, []);
 
   // Removed mode-based right panel switching to allow consistent dock layout across all modes
 
@@ -394,6 +413,31 @@ export default function TopBar({
             <Box sx={{ display: "flex", alignItems: "center" }}>{rightActions}</Box>
           ) : null}
 
+          {/* Rhino 同期ステータス（リンク中のみ）。クリックで解除。 */}
+          {rhinoSyncActive && (
+            <Tooltip
+              title={`Rhino「${rhinoDocName || "3dm"}」と同期中 — Rhino で保存すると躯体に自動反映されます（クリックで解除）`}
+            >
+              <Box
+                onClick={handleRhinoSyncToggle}
+                sx={{
+                  height: 28, px: 1.2, display: "flex", alignItems: "center", gap: 0.6,
+                  borderRadius: 999, cursor: "pointer", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap",
+                  color: "#06210f",
+                  background: `linear-gradient(180deg, ${alpha("#34d399", 0.95)} 0%, ${alpha("#059669", 0.9)} 100%)`,
+                  "&:hover": { background: `linear-gradient(180deg, ${alpha("#34d399", 1)} 0%, ${alpha("#047857", 1)} 100%)` },
+                }}
+              >
+                {rhinoSyncing ? (
+                  <CircularProgress size={13} sx={{ color: "#06210f" }} />
+                ) : (
+                  <SyncRoundedIcon sx={{ fontSize: 15 }} />
+                )}
+                Rhino同期中
+              </Box>
+            </Tooltip>
+          )}
+
           {/* Import Button — 躯体（GLB）と下絵（PDF/画像）をメニューで選ぶ */}
           {(typeof onClickImportBase === "function" ||
             typeof onClickImportUnderlay === "function") && (
@@ -465,6 +509,28 @@ export default function TopBar({
                         下絵（PDF・画像）
                       </MenuItem>
                     </span>
+                  </Tooltip>
+                )}
+                {/* Rhino ライブ同期（デスクトップ版のみ）。開いている 3dm を保存のたびに躯体へ反映。 */}
+                {isTauri() && (
+                  <Tooltip
+                    title={
+                      rhinoSyncActive
+                        ? "Rhino との同期を解除してクラウドの躯体に戻す"
+                        : "Rhino で開いている 3dm とリンクし、保存のたびに躯体へ自動反映する（ローカル同期。確定保存は従来どおり CAD Files へ）"
+                    }
+                    placement="left"
+                  >
+                    <MenuItem
+                      onClick={() => {
+                        setImportMenuAnchor(null);
+                        handleRhinoSyncToggle();
+                      }}
+                      sx={{ gap: 1, fontSize: 13 }}
+                    >
+                      <SyncRoundedIcon sx={{ fontSize: 18, opacity: 0.8, color: rhinoSyncActive ? "#34d399" : undefined }} />
+                      {rhinoSyncActive ? "Rhino同期を解除" : "Rhinoと同期（躯体）"}
+                    </MenuItem>
                   </Tooltip>
                 )}
               </Menu>
@@ -548,6 +614,7 @@ export default function TopBar({
           <ViewGroupToggle />
           <SelectionScopeButtons />
           <SymbolVisibilityToggle />
+          <DrawingLightToggle />
           <CommandBar />
         </Box>
 

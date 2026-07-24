@@ -28,6 +28,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { useAIChatStore } from '../../store/useAIChatStore';
 import { useChatComposerStore } from '../../store/useChatComposerStore';
+import { APP_DIRECTIVES, type AppDirective, type ProjectDirective } from '../../store/chatDirectives';
 import { useProjectSiteStore } from '../../store/useProjectSiteStore';
 import { ProjectViewStrip } from '../../shared/navigation/ProjectViewStrip';
 import ChatHistoryDialog from './ChatHistoryDialog';
@@ -218,6 +219,11 @@ interface AIChatPanelProps {
 
 const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDetached, onDragHandleMouseDown, pinned = false, onTogglePinned, hideWindowControls = false, hideHeader = false, onPopOut, hideHeaderTitle = false, fixedSessionId }) => {
   const [chatText, setChatText] = useState("");
+  // 明示指定（/=アプリ、@=プロジェクト）。補助機能: 付けなければ従来どおり文脈推測で動く。
+  // 入力中に「/」「@」で始まる語を打つとパレットが開き、選ぶとチップとして付く（1メッセージ限り）。
+  const [directiveApp, setDirectiveApp] = useState<AppDirective | null>(null);
+  const [directiveProject, setDirectiveProject] = useState<ProjectDirective | null>(null);
+  const [directivePalette, setDirectivePalette] = useState<null | { type: 'app' | 'project'; query: string }>(null);
   const [showDebugPrompt, setShowDebugPrompt] = useState(false);
   const [debugPromptContent, setDebugPromptContent] = useState<string>("");
   const { contextLevel, watchedScopes, setContextLevel, toggleWatchedScope } = useJournalAiStore();
@@ -690,6 +696,51 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
     return () => { active = false; };
   }, [showDebugPrompt, activeProfile, buildCompleteSystemPrompt, contextLevel, watchedScopes]);
 
+  // ─── 明示指定パレット（/=アプリ、@=プロジェクト）──────────────────────────
+  // 入力末尾の語が「/」「@」で始まっていたらパレットを開く（語の途中の / や URL は拾わない
+  // よう、直前が行頭か空白のときだけ）。選択したらその語を入力から取り除いてチップにする。
+  const detectDirectiveTrigger = (value: string) => {
+    const m = value.match(/(^|\s)([/@])(\S*)$/);
+    if (!m) { setDirectivePalette(null); return; }
+    setDirectivePalette({ type: m[2] === '/' ? 'app' : 'project', query: m[3] });
+  };
+
+  const handleChatTextChange = (value: string) => {
+    setChatText(value);
+    detectDirectiveTrigger(value);
+  };
+
+  const stripDirectiveToken = (value: string) => value.replace(/(^|\s)[/@]\S*$/, '$1');
+
+  const directiveAppMatches = React.useMemo(() => {
+    if (directivePalette?.type !== 'app') return [];
+    const q = directivePalette.query.toLowerCase();
+    return APP_DIRECTIVES.filter(d =>
+      !q || d.key.includes(q) || d.label.toLowerCase().includes(q) || d.description.includes(q));
+  }, [directivePalette]);
+
+  const directiveProjectMatches = React.useMemo<ProjectDirective[]>(() => {
+    if (directivePalette?.type !== 'project') return [];
+    const q = directivePalette.query.toLowerCase();
+    return (projects as Array<{ id: string; name?: string | null }>)
+      .filter(p => !q || String(p.name ?? '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
+      .slice(0, 8)
+      .map(p => ({ id: p.id, name: String(p.name ?? p.id) }));
+  }, [directivePalette, projects]);
+
+  const pickDirectiveApp = (d: AppDirective) => {
+    setDirectiveApp(d);
+    setDirectivePalette(null);
+    setChatText(t => stripDirectiveToken(t));
+    chatInputRef.current?.focus();
+  };
+  const pickDirectiveProject = (p: ProjectDirective) => {
+    setDirectiveProject(p);
+    setDirectivePalette(null);
+    setChatText(t => stripDirectiveToken(t));
+    chatInputRef.current?.focus();
+  };
+
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!chatText.trim() && attachments.length === 0) || isProcessing) return;
@@ -726,13 +777,31 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
     if (fileLines.length > 0) noteParts.push(`[添付ファイル]\n${fileLines.join('\n')}`);
     if (noteParts.length > 0) text = [text, ...noteParts].filter(Boolean).join('\n\n');
 
+    // 明示指定は1メッセージ限り（補助機能）。送ったらチップを外す。
+    const directives = (directiveApp || directiveProject)
+      ? { app: directiveApp?.key, project: directiveProject ?? undefined }
+      : undefined;
     setChatText("");
     setAttachments([]);
+    setDirectiveApp(null);
+    setDirectiveProject(null);
+    setDirectivePalette(null);
     // Phase B: ループ・ツール実行・保存はすべてオーケストレーター内で完結する。
-    await sendMessageToOrchestrator(text, { source: 'sidebar_chat', sessionId: effectiveSessionId || undefined, images, docs });
+    await sendMessageToOrchestrator(text, { source: 'sidebar_chat', sessionId: effectiveSessionId || undefined, images, docs, directives });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // パレット表示中: Enter は先頭候補の選択、Escape は閉じる（送信はしない）
+    if (directivePalette) {
+      if (e.key === 'Escape') { e.preventDefault(); setDirectivePalette(null); return; }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (directivePalette.type === 'app' && directiveAppMatches[0]) pickDirectiveApp(directiveAppMatches[0]);
+        else if (directivePalette.type === 'project' && directiveProjectMatches[0]) pickDirectiveProject(directiveProjectMatches[0]);
+        else setDirectivePalette(null);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleChatSubmit(e as unknown as React.FormEvent);
@@ -1461,6 +1530,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
           component="form"
           onSubmit={handleChatSubmit}
           sx={{
+            position: 'relative',
             bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))',
             border: `1px solid rgb(var(--brand-fg-rgb) / 0.1)`,
             borderRadius: 3,
@@ -1469,6 +1539,79 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
             '&:focus-within': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.3)' },
           }}
         >
+          {/* 明示指定パレット（/=アプリ、@=プロジェクト）。入力欄の上に浮く */}
+          {directivePalette && (
+            <Box sx={{
+              position: 'absolute', left: 8, right: 8, bottom: 'calc(100% + 6px)', zIndex: 30,
+              bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)',
+              border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)', borderRadius: 2,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.35)', overflow: 'hidden',
+              maxHeight: 260, overflowY: 'auto',
+            }}>
+              <Typography sx={{ px: 1.25, pt: 0.75, pb: 0.25, fontSize: '0.6rem', fontWeight: 800, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
+                {directivePalette.type === 'app' ? 'アプリへの指示（/）' : 'プロジェクトを指定（@）'} — Enterで先頭を選択 / Escで閉じる
+              </Typography>
+              {(directivePalette.type === 'app' ? directiveAppMatches : directiveProjectMatches).length === 0 && (
+                <Typography sx={{ px: 1.25, py: 1, fontSize: '0.68rem', color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
+                  該当なし
+                </Typography>
+              )}
+              {directivePalette.type === 'app' && directiveAppMatches.map((d, i) => (
+                <Box key={d.key} onClick={() => pickDirectiveApp(d)}
+                  sx={{
+                    px: 1.25, py: 0.7, cursor: 'pointer',
+                    bgcolor: i === 0 ? 'rgba(0,191,255,0.08)' : 'transparent',
+                    '&:hover': { bgcolor: 'rgba(0,191,255,0.14)' },
+                  }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700 }}>/{d.key} <Box component="span" sx={{ fontWeight: 800 }}>{d.label}</Box></Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: 'rgb(var(--brand-fg-rgb) / 0.5)' }}>{d.description}</Typography>
+                </Box>
+              ))}
+              {directivePalette.type === 'project' && directiveProjectMatches.map((p, i) => (
+                <Box key={p.id} onClick={() => pickDirectiveProject(p)}
+                  sx={{
+                    px: 1.25, py: 0.7, cursor: 'pointer',
+                    bgcolor: i === 0 ? 'rgba(0,191,255,0.08)' : 'transparent',
+                    '&:hover': { bgcolor: 'rgba(0,191,255,0.14)' },
+                  }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700 }}>@{p.name}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* 明示指定チップ（1メッセージ限り。×で外せる） */}
+          {(directiveApp || directiveProject) && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, px: 0.5, pb: 0.75 }}>
+              {directiveApp && (
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', gap: 0.4,
+                  fontSize: '0.62rem', fontWeight: 700, color: '#00BFFF',
+                  bgcolor: 'rgba(0,191,255,0.1)', border: '1px solid rgba(0,191,255,0.35)',
+                  borderRadius: 5, pl: 1, pr: 0.4, py: 0.2,
+                }}>
+                  /{directiveApp.label}
+                  <IconButton size="small" onClick={() => setDirectiveApp(null)} sx={{ p: 0.1, color: 'inherit' }}>
+                    <CloseRoundedIcon sx={{ fontSize: '0.75rem' }} />
+                  </IconButton>
+                </Box>
+              )}
+              {directiveProject && (
+                <Box sx={{
+                  display: 'flex', alignItems: 'center', gap: 0.4,
+                  fontSize: '0.62rem', fontWeight: 700, color: '#a18cd1',
+                  bgcolor: 'rgba(161,140,209,0.12)', border: '1px solid rgba(161,140,209,0.4)',
+                  borderRadius: 5, pl: 1, pr: 0.4, py: 0.2,
+                }}>
+                  @{directiveProject.name}
+                  <IconButton size="small" onClick={() => setDirectiveProject(null)} sx={{ p: 0.1, color: 'inherit' }}>
+                    <CloseRoundedIcon sx={{ fontSize: '0.75rem' }} />
+                  </IconButton>
+                </Box>
+              )}
+            </Box>
+          )}
+
           {/* 添付プレビュー */}
           {attachments.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 0.5, pb: 1 }}>
@@ -1492,10 +1635,10 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({ detached = false, onToggleDet
             multiline
             maxRows={6}
             value={chatText}
-            onChange={(e) => setChatText(e.target.value)}
+            onChange={(e) => handleChatTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
             inputRef={chatInputRef}
-            placeholder={isMobile ? "SEKKEIYAとチャット" : "何でもできます"}
+            placeholder={isMobile ? "SEKKEIYAとチャット" : "何でもできます（/でアプリ・@でプロジェクト指定）"}
             variant="standard"
             InputProps={{ disableUnderline: true, sx: { p: 0.5, px: 1 } }}
             inputProps={{

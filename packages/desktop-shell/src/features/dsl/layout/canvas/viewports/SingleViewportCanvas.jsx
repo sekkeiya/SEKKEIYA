@@ -31,7 +31,24 @@ import StructureTagOverlay from "../tools/structure/StructureTagOverlay.jsx";
 import LevelLinesOverlay from "../scene/LevelLinesOverlay.jsx";
 import SectionLinesPlanOverlay from "../scene/SectionLinesPlanOverlay.jsx";
 import ElevationMarkerPlanOverlay from "../scene/ElevationMarkerPlanOverlay.jsx";
+import ElevationDimensionsOverlay from "../scene/ElevationDimensionsOverlay.jsx";
 import { useElevationMarkerStore } from "../../store/useElevationMarkerStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
+import { useRoomElevationsStore } from "../../store/useRoomElevationsStore";
+import ManualDimensionController from "../scene/ManualDimensionController.jsx";
+import GridAxisOverlay from "../scene/GridAxisOverlay.jsx";
+import { useGridAxisStore } from "../../store/useGridAxisStore";
+import { useDimChainStore } from "../../store/useDimChainStore";
+import DimensionChainsOverlay from "../scene/DimensionChainsOverlay.jsx";
+
+/** アクティブなビューポートの viewKey を寸法列パネルへ伝える（パネルはこれを編集対象にする）。 */
+function DimViewKeyReporter({ viewKey, active }) {
+  React.useEffect(() => {
+    if (!active || !viewKey) return;
+    useViewportUiStore.getState().setActiveDimViewKey?.(viewKey);
+  }, [viewKey, active]);
+  return null;
+}
 import { buildLabelColliders } from "../tools/structure/structureColliders";
 import { useStructureLabelStore } from "../../store/useStructureLabelStore";
 import { useBaseUnionStore } from "../../store/useBaseUnionStore";
@@ -47,6 +64,7 @@ import WallDrawController from "../scene/WallDrawController.jsx";
 import WallEditController from "../scene/WallEditController.jsx";
 import FloorSlabsRenderer from "../scene/FloorSlabsRenderer.jsx";
 import FloorSlabDrawController from "../scene/FloorSlabDrawController.jsx";
+import RoomCreateController from "../scene/RoomCreateController.jsx";
 import SlabEditController from "../scene/SlabEditController.jsx";
 import ZoneCirculationController from "../scene/ZoneCirculationController.jsx";
 
@@ -147,6 +165,60 @@ import SectionCapFill from "../scene/SectionCapFill.jsx";
 import SectionWarmup from "../scene/SectionWarmup.jsx";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
 import GridPickController from "./controllers/GridPickController.jsx";
+
+/**
+ * このクリックのレイ上に「作図した壁・床（およびその編集ハンドル）」が含まれるか。
+ *
+ * 躯体(BaseGlb)や背景キャッチャーの onClick は「余白を押した＝選択解除」を担うが、
+ * 上から見ると躯体の屋根などが壁より手前にあるため、R3F の交差順で
+ *   壁の pointerdown（選択） → 躯体の click（解除） → 壁の click（stopPropagation）
+ * となり、壁側の stopPropagation が間に合わずに選択が即解除されてしまう。
+ * そこで解除側がこの判定を見て、作図躯体に当たっているクリックでは解除をスキップする。
+ */
+const hitsDrawnStructure = (e) => {
+  for (const hit of e?.intersections || []) {
+    for (let o = hit.object; o; o = o.parent) {
+      if (o.userData?.isDrawnStructure) return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * 天井伏図（反射天井伏図）用: 直交投影の X を反転して、平面図と同じ向きで描く。
+ *
+ * 天井は下から見上げるので、そのままだと左右が鏡像になる。建築図面の天井伏図は
+ * 「床に鏡を置いて見下ろした図」＝平面図と同じ向きで描くのが規約なので、投影行列で反転する。
+ *
+ * カメラの投影だけを反転する（シーンやワールド座標は触らない）理由:
+ *   ・クリック判定は projectionMatrixInverse 経由なので反転が自動で反映され、正しく当たる
+ *   ・寸法/ゾーンのラベル(Html)は投影で位置が決まるので位置は反転・文字は正立のまま
+ *   ・壁/床の編集ハンドルのワールド座標計算（床平面へのレイキャスト）もそのまま成立する
+ * 反面、three.js は「オブジェクト行列」の反転しか面の裏表を自動補正しないため、
+ * 画面上の巻き方向が反転する。影響を受けるステンシル（断面の黒塗り）は SectionCapFill 側で
+ * mirrored を見て表裏を入れ替えている。
+ */
+function MirrorXProjection({ active }) {
+  const camera = useThree((s) => s.camera);
+  useEffect(() => {
+    if (!active || !camera) return;
+    const orig = camera.updateProjectionMatrix.bind(camera);
+    const patched = () => {
+      orig();
+      const e = camera.projectionMatrix.elements;
+      e[0] = -e[0];   // X スケール
+      e[12] = -e[12]; // 左右非対称フラスタム時の平行移動分
+      camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    };
+    camera.updateProjectionMatrix = patched;
+    patched();
+    return () => {
+      camera.updateProjectionMatrix = orig;
+      orig();
+    };
+  }, [camera, active]);
+  return null;
+}
 
 function ContextDisposer() {
   const { gl } = useThree();
@@ -502,7 +574,25 @@ export default function SingleViewportCanvas({
   // 図面記号（断面線 / ゾーン / 展開記号）の一括表示トグル（TopBar の「記号」ボタン）。
   // ゾーン編集中は、描いている当人が見えないと作業にならないので記号 OFF でも出す。
   const showSymbols = useViewportDisplayStore((s) => s.showSymbols);
-  const showZoneSymbols = showSymbols || isZoning;
+  // 記号は「マスター × 項目別」の AND。項目は TopBar の記号ボタンの ▾ から切替える。
+  const symbolFlags = useViewportDisplayStore((s) => s.symbolFlags);
+  const symOn = (kind) => showSymbols && !!symbolFlags?.[kind];
+  const showZoneSymbols = symOn("zone") || isZoning;
+
+  // 余白クリック／Esc で、図面注記（通り芯・寸法列）の選択とパネルを畳む。
+  //   通り芯は線・記号側で stopPropagation しているので、ここに来るのは本当の余白だけ。
+  const clearDrawingAnnotationSelection = React.useCallback(() => {
+    const gx = useGridAxisStore.getState();
+    if (gx.selectedId || gx.panelOpen) { gx.setSelectedId(null); gx.setPanelOpen(false); }
+    const dc = useDimChainStore.getState();
+    if (dc.panelOpen) dc.setPanelOpen(false);
+    // 展開記号（目のマーク）の部屋選択も、余白クリック / ESC で解除する。
+    const re = useRoomElevationsStore.getState();
+    if (re.selectedRoomId) re.selectRoom(null);
+  }, []);
+
+  // 図面ビューの補助光トグル（TopBar の「ライト」ボタン）。
+  const drawingLight = useViewportDisplayStore((s) => s.drawingLight);
 
   // ウォークスルーはパース viewport のみ。OrbitControls/Gizmo を無効化する。
   const isWalkthrough = editorMode === "walkthrough" && effectiveType === VIEW_TYPES.PERSPECTIVE;
@@ -856,6 +946,29 @@ export default function SingleViewportCanvas({
       }
       controls.update();
     };
+    // 平面図で矩形が収まるようにパン＋ズーム（部屋ラベルのダブルクリック＝フォーカス用）。
+    //   平面(Top)は正射カメラ。drei の OrthographicCamera は既定でキャンバスの CSS ピクセルを
+    //   フラスタムに使う（zoom=1 で 1px=1world）。可視幅 = canvasW/zoom なので、
+    //   矩形(mm)＋余白が収まる zoom を採る。正射でないビュー（パース/立面）では何もしない。
+    layoutSceneRef.focusRect = (cx, cz, width, depth, pad = 1.3) => {
+      const controls = orbitRef.current;
+      if (!controls) return;
+      const cam = controls.object;
+      if (!cam || !cam.isOrthographicCamera) return;
+      const ty = controls.target.y;
+      const dy = cam.position.y - ty;
+      controls.target.set(cx, ty, cz);
+      cam.position.set(cx, ty + dy, cz); // 真上から見る（高さ・向きは保つ）
+      const size = glRef.current?.getSize?.(new THREE.Vector2());
+      const dom = glRef.current?.domElement;
+      const cw = size?.x || dom?.clientWidth || 1000;
+      const ch = size?.y || dom?.clientHeight || 800;
+      const zx = cw / (Math.max(1, width) * pad);
+      const zz = ch / (Math.max(1, depth) * pad);
+      cam.zoom = Math.max(1e-4, Math.min(zx, zz));
+      cam.updateProjectionMatrix();
+      controls.update();
+    };
     if (glRef.current)    layoutSceneRef.gl    = glRef.current;
     if (sceneRef.current) layoutSceneRef.scene = sceneRef.current;
   }, [active]);
@@ -908,7 +1021,9 @@ export default function SingleViewportCanvas({
       const hsActive = useHeightSetupStore.getState().active;
       const orthoDist = Math.max(20, maxDim * (hsActive ? 1.8 : 1.2));
       if (effectiveType === VIEW_TYPES.TOP) {
-        cam.position.set(center.x, center.y + orthoDist, center.z);
+        // 天井伏図（ceiling_top）は建物の下から見上げる。up は同じ（北=画面上、左右は鏡像）。
+        const lookFromBelow = effectiveSubMode === "ceiling_top";
+        cam.position.set(center.x, center.y + (lookFromBelow ? -orthoDist : orthoDist), center.z);
         cam.up.set(0, 0, -1);
       } else if (effectiveType === VIEW_TYPES.FRONT) {
         // 向き反転時は背面（−Z）側から見る（断面 A-A' の矢印向きに追従）
@@ -936,7 +1051,7 @@ export default function SingleViewportCanvas({
       controls.update();
       didInitCameraRef.current = true;
     },
-    [effectiveType, sectionViewFlip, paneFrameBox]
+    [effectiveType, effectiveSubMode, sectionViewFlip, paneFrameBox]
   );
 
   const previousEffectiveTypeRef = useRef(effectiveType);
@@ -2150,6 +2265,22 @@ export default function SingleViewportCanvas({
         useLayoutTaskStore.getState().setActiveZoneId(null);
         return;
       }
+
+      // ここまでで何も消すものが無ければ、図面注記（通り芯・寸法列・断面線）の
+      // 選択とパネルを畳む。作図中の Esc は各コントローラが先に処理する。
+      {
+        const gx = useGridAxisStore.getState();
+        const dc = useDimChainStore.getState();
+        const sl = useSectionLinesStore.getState();
+        const had = gx.selectedId || gx.panelOpen || dc.panelOpen || sl.activeLineId;
+        if (had) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (gx.selectedId || gx.panelOpen) { gx.setSelectedId(null); gx.setPanelOpen(false); }
+          if (dc.panelOpen) dc.setPanelOpen(false);
+          if (sl.activeLineId) sl.setActiveLine(null);
+        }
+      }
     };
 
     window.addEventListener("keydown", onKeyDown, true);
@@ -2199,6 +2330,10 @@ export default function SingleViewportCanvas({
   const activeSectionAxis = useSectionLinesStore(
     (s) => s.lines.find((l) => l.id === s.activeLineId)?.axis || null
   );
+  // 手動寸法（ヘッダー「寸法」ツール）の viewKey 用: どのビューで作図した寸法かを一意にする。
+  const manualDimFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
+  const manualDimSectionId = useSectionLinesStore((s) => s.activeLineId);
+  const manualDimElevationId = useRoomElevationsStore((s) => s.activeElevationId);
 
   const chipLabel = useMemo(() => {
     let label = String(type).charAt(0).toUpperCase() + String(type).slice(1);
@@ -3380,6 +3515,10 @@ return (
         if (e.type === "pointerdown" && e.button !== 0) return;
         if (e.type === "click" && e.button !== 0) return;
         if (!active) return;
+        // 寸法・記号などの DOM 注記（drei の Html オーバーレイ）の上でのクリックは
+        // 「余白クリック」ではない。R3F は 3D オブジェクトに当たらなかった時点で
+        // onPointerMissed を投げるので、当たり先がキャンバス自身かどうかで見分ける。
+        if (e.target && !(e.target instanceof HTMLCanvasElement)) return;
         if (!pointerMissedEnabled) return;
         if (isMarqueeActive) return;
         if (alignMode) return;
@@ -3388,6 +3527,7 @@ return (
         useLayoutTaskStore.getState().setActiveZoneId(null);
         // 余白クリックで断面線の選択も解除する（ギズモを閉じる）。
         useSectionLinesStore.getState().setActiveLine(null);
+        clearDrawingAnnotationSelection();
         useWallStore.getState().setSelectedWallId(null);
         useSlabStore.getState().setSelectedSlabId(null);
         
@@ -3410,7 +3550,10 @@ return (
       {paneDrawing && <PaneClipPlanes planes={paneDrawing.clipPlanes || null} />}
       {/* 断面ペインは切り口の黒塗り（ポシェ）＋切断面フレームを単体ビューと同様に出す */}
       {paneDrawing?.cap && <PaneSectionCap axis={paneDrawing.cap.axis} pos={paneDrawing.cap.pos} />}
-      <SectionCapFill />
+      {/* 天井伏図は投影を X 反転しているので、画面上の巻き方向が逆になる。
+          ステンシルの表裏を入れ替えるため mirrored を渡す。 */}
+      <MirrorXProjection active={effectiveSubMode === "ceiling_top"} />
+      <SectionCapFill mirrored={effectiveSubMode === "ceiling_top"} />
       <SectionWarmup />
 
       <SmoothAlignFollower
@@ -3473,6 +3616,10 @@ return (
         // 依らず断面図として扱う（FL/GL レベル線を単体断面ビューと同様に出す）。
         const isSectionView = isSideOrtho &&
           (paneDrawing ? !!paneDrawing.cap : (sectionClipEnabledForLight && !sectionClipYEnabledForLight));
+        // 展開図ビューでは GL/FL 線・紫の CL 寸法とも出さない。
+        // 寸法は ElevationDimensionsOverlay（スレート基調）に統一し、CL はそのラベルの
+        // ダブルクリックか右パネルで編集する（GL・階高・FL は断面図で扱う）。
+        if (elevChipOn && isSideOrtho) return null;
         return (
           <LevelLinesOverlay
             overviewSuppressed={isWalkthrough || isMaterialMode || isMapMode || effectiveType === VIEW_TYPES.TOP || (isSideOrtho && !isSectionView)}
@@ -3485,14 +3632,25 @@ return (
       })()}
       {/* 断面線（A-A' / B-B'…）: 平面図(Top)に切断線＋矢印＋ラベルで表示。
           線ドラッグで位置移動、ラベルクリックで選択。 */}
-      {showSymbols && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
+      {symOn("section") && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
         <SectionLinesPlanOverlay />
+      )}
+      {/* 通り芯（構造グリッド）: 平面では両方向を編集可能に、断面/立面では画面横方向の通りを縦線で。
+          寸法列の刻み元になる基準線なので、記号トグル ON のときに図面へ重ねる。 */}
+      {symOn("grid") && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
+        <GridAxisOverlay mode="plan" />
+      )}
+      {symOn("grid") && isSideOrtho && !isMaterialMode && !isMapMode && !isWalkthrough && (
+        <GridAxisOverlay mode="side" hAxis={effectiveType === VIEW_TYPES.FRONT ? "x" : "z"} />
       )}
       {/* 展開記号: どこから見た展開図かを図示（中心=目 / 四方=展開A〜D）。
           矢印クリックでその向きの展開図（Material 一人称）を開く。中心ドラッグで移動。 */}
-      {showSymbols && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
+      {symOn("elevation") && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
         <ElevationMarkerPlanOverlay />
       )}
+      {/* 展開図の図面注記: セグメント寸法列・全幅・高さ寸法/レベル・断面ポシェ。
+          表示条件（展開ビュー中か）はコンポーネント内で判定する。 */}
+      {isSideOrtho && <ElevationDimensionsOverlay />}
       {/* 躯体面に貼った仕上げ（オーバーレイ板）。マテリアルはどのモードでも常に反映（統一）。 */}
       <SurfaceFinishOverlays />
       {/* 自動付与時の青いスキャンライン演出 */}
@@ -3529,6 +3687,16 @@ return (
       {/* 太陽（SUN）ギズモは 3D 向けの内容。Perspective のみ表示し、平面図（Top＝2D配置/1F 等）
           や立面図・断面図（側面正射）などの図面表示では出さない。 */}
       <Lights hasBase={!!displayBaseUrl || !!roomSpec} hideGizmo={effectiveType !== VIEW_TYPES.PERSPECTIVE} />
+      {/* 図面ライト（TopBar「ライト」トグル・既定ON）：展開/立面/断面の側面正射ビューでは
+          シーンの太陽光がカメラ正対の壁面をほぼ照らさず、貼ったマテリアルが黒く沈む。
+          カメラと同じ方向からのフィルライト＋無指向の環境光で図面として見やすい明るさにする。
+          陰影（日当たり）を確認したいときはトグルで OFF。影は落とさない（既存の影表現を壊さない）。 */}
+      {isSideOrtho && drawingLight && ortho && (
+        <>
+          <ambientLight intensity={0.9} color={"#ffffff"} />
+          <directionalLight position={ortho.position} intensity={1.6} color={"#ffffff"} />
+        </>
+      )}
       {/* 天井カット時の採光：抜けた天井から太陽光が差し込むイメージの補助光。
           室内が真っ暗になるのを防ぐ。オクルージョンの無い hemisphere で確実に床まで届かせる。 */}
       {sectionClipEnabledForLight && sectionClipYEnabledForLight && editorMode !== "walkthrough" && (
@@ -3537,7 +3705,10 @@ return (
           <directionalLight position={[0.2, 1, 0.15]} intensity={0.9} />
         </>
       )}
-      <SceneGrid />
+      {/* グリッドは水平の板ヘルパーなので、側面正射（展開/立面/断面）では
+          真横から見た1本の灰色線として写ってしまう。図面ビューでは出さない。 */}
+      {/* 床グリッド。記号メニューの「グリッド」で表示だけ切れる（スナップには影響しない）。 */}
+      {!isSideOrtho && symOn("sceneGrid") && <SceneGrid />}
       <MapGroundPlane />
       {isMapMode && <MapDrawController />}
       {isMapMode && active && <MapZoomController orbitRef={orbitRef} />}
@@ -3619,8 +3790,14 @@ return (
           useLayoutTaskStore.getState().setActiveZoneId(null);
           // 余白（床/背景）クリックで断面線の選択も解除する。
           useSectionLinesStore.getState().setActiveLine(null);
-          useWallStore.getState().setSelectedWallId(null);
-          useSlabStore.getState().setSelectedSlabId(null);
+          // 通り芯・寸法列は常に畳む。通り芯そのものをクリックした場合は
+          // 通り芯側が stopPropagation するのでここには届かない。
+          clearDrawingAnnotationSelection();
+          // 作図した壁・床に当たっているクリックでは、それらの選択は解除しない
+          if (!hitsDrawnStructure(e)) {
+            useWallStore.getState().setSelectedWallId(null);
+            useSlabStore.getState().setSelectedSlabId(null);
+          }
 
           if (useEditorModeStore.getState().editorMode === "zoning" && useZoningStore.getState().zoningSubMode === "circulation" && useZoningStore.getState().isZoningActionSelect) {
             useZoningStore.getState().setSelectedCirculationId(null);
@@ -3643,8 +3820,14 @@ return (
           useLayoutTaskStore.getState().setActiveZoneId(null);
           // 余白（床/壁）クリックで断面線の選択も解除する。
           useSectionLinesStore.getState().setActiveLine(null);
-          useWallStore.getState().setSelectedWallId(null);
-          useSlabStore.getState().setSelectedSlabId(null);
+          // 通り芯・寸法列は常に畳む。通り芯そのものをクリックした場合は
+          // 通り芯側が stopPropagation するのでここには届かない。
+          clearDrawingAnnotationSelection();
+          // 作図した壁・床に当たっているクリックでは、それらの選択は解除しない
+          if (!hitsDrawnStructure(e)) {
+            useWallStore.getState().setSelectedWallId(null);
+            useSlabStore.getState().setSelectedSlabId(null);
+          }
 
           if (useEditorModeStore.getState().editorMode === "zoning" && useZoningStore.getState().zoningSubMode === "circulation" && useZoningStore.getState().isZoningActionSelect) {
             useZoningStore.getState().setSelectedCirculationId(null);
@@ -3702,6 +3885,7 @@ return (
                 orbitRef={orbitRef}
                 editable={isZoning}
                 roomBounds={zoneRoomBounds}
+                isTopView={effectiveType === VIEW_TYPES.TOP}
               />
             )}
             <ZoneDrawController enabled={isZoning} roomSpec={roomSpec} />
@@ -3710,20 +3894,78 @@ return (
         )}
 
         {/* 作図した壁（内壁/外壁）・床（スラブ）。躯体なのでパース/平面/断面/立面すべてで表示する。 */}
-        <FloorSlabsRenderer isTopView={effectiveType === VIEW_TYPES.TOP} />
+        <FloorSlabsRenderer
+          isTopView={effectiveType === VIEW_TYPES.TOP}
+          isCeilingView={effectiveSubMode === "ceiling_top"}
+        />
         <WallsRenderer isTopView={effectiveType === VIEW_TYPES.TOP} />
 
-        {/* 壁・床の作図/編集は平面(Top)とパースで有効（床平面へのレイキャストなのでどちらでも動く）。
-            立面/断面（側面正射）・マップ・ウォークスルー・マテリアルでは出さない。 */}
-        {(effectiveType === VIEW_TYPES.TOP || effectiveType === VIEW_TYPES.PERSPECTIVE) &&
+        {/* 壁・床の作図/編集。マップ・ウォークスルー・マテリアルでは出さない。
+            平面(Top)/パース: 作図とハンドル操作（床平面へのレイキャストが成立する）。
+            立面/断面（側面正射）: 視線が水平で床平面と交わらないためハンドル操作は不可。
+              移動ギズモ（PivotControls）は床平面に依存しないので、画面に見えている2軸
+              （横＝視線に直交する水平軸 / 縦＝上下）に絞って表示だけ出す（sideAxis）。
+              FRONT は Z 方向を見るので横＝X、RIGHT は X 方向を見るので横＝Z。 */}
+        {(effectiveType === VIEW_TYPES.TOP || effectiveType === VIEW_TYPES.PERSPECTIVE || isSideOrtho) &&
           !isMapMode && !isWalkthrough && !isMaterialMode && (
           <>
-            <WallDrawController enabled />
+            {!isSideOrtho && <WallDrawController enabled />}
             {/* 選択中の壁の編集ハンドル（端点/中点。クリックで選択＝移動ギズモ、ドラッグで直接移動） */}
-            <WallEditController enabled orbitRef={orbitRef} />
-            <FloorSlabDrawController enabled />
+            <WallEditController
+              enabled
+              orbitRef={orbitRef}
+              sideAxis={isSideOrtho ? (effectiveType === VIEW_TYPES.FRONT ? "x" : "z") : null}
+            />
+            {!isSideOrtho && <FloorSlabDrawController enabled />}
+            {/* 自動部屋作成: クリック地点から壁で囲われた範囲を検出して部屋を作る
+                （床スラブの有無・GLB躯体かどうかに依存しない。ツールを構えたときだけ出る） */}
+            {!isSideOrtho && <RoomCreateController enabled />}
             {/* 選択中の床の編集ハンドル（頂点／辺に頂点挿入／全体移動。頂点クリックで移動ギズモ） */}
-            <SlabEditController enabled orbitRef={orbitRef} />
+            <SlabEditController
+              enabled
+              orbitRef={orbitRef}
+              sideAxis={isSideOrtho ? (effectiveType === VIEW_TYPES.FRONT ? "x" : "z") : null}
+            />
+            {/* 手動寸法（ヘッダー「寸法」ツール）: 2点クリックで作図し、
+                作図したビュー（平面/天井/断面/立面/展開）でのみ表示・編集する。 */}
+            {(() => {
+              const isSectView = isSideOrtho &&
+                (paneDrawing ? !!paneDrawing.cap : (sectionClipEnabledForLight && !sectionClipYEnabledForLight));
+              let dimViewKey = null;
+              if (effectiveType === VIEW_TYPES.TOP) {
+                dimViewKey = `${effectiveSubMode === "ceiling_top" ? "ceil" : "plan"}:${manualDimFloorIndex || 0}`;
+              } else if (isSideOrtho) {
+                if (elevChipOn) dimViewKey = `elev:${manualDimElevationId || elevChipDir || "elev"}`;
+                // 図面グリッドの断面ペインはラベル（"断面 A-A'" 等）から断面ラインを引き当てる
+                // （グローバルの activeLineId は全ペイン共通なので使えない）。単体断面ビューと
+                // 同じ sect:{lineId} キーに揃え、どちらで作図しても同じ断面に表示されるようにする。
+                else if (paneDrawing?.cap) {
+                  const paneLine = useSectionLinesStore.getState().lines.find((l) => (paneDrawing.label || "").includes(l.name));
+                  dimViewKey = `sect:${paneLine?.id || paneDrawing.label || "pane"}`;
+                }
+                else if (isSectView) dimViewKey = `sect:${manualDimSectionId || (effectiveType === VIEW_TYPES.FRONT ? "z" : "x")}`;
+                else dimViewKey = `facade:${effectiveType === VIEW_TYPES.FRONT ? "front" : "right"}`;
+              }
+              return (
+                <>
+                  <ManualDimensionController
+                    enabled
+                    viewKey={dimViewKey}
+                    hAxis={isSideOrtho ? (effectiveType === VIEW_TYPES.FRONT ? "x" : "z") : null}
+                  />
+                  {/* 図面の4辺の寸法列（通り芯間・壁面・階レベル・総寸法）。
+                      展開図は既存の ElevationDimensionsOverlay が担当するので出さない。 */}
+                  {dimViewKey && !elevChipOn && symOn("dimension") && (
+                    <DimensionChainsOverlay
+                      viewKey={dimViewKey}
+                      view={effectiveType === VIEW_TYPES.TOP ? "plan"
+                        : effectiveType === VIEW_TYPES.FRONT ? "front" : "right"}
+                    />
+                  )}
+                  <DimViewKeyReporter viewKey={dimViewKey} active={!!active} />
+                </>
+              );
+            })()}
           </>
         )}
 
@@ -3732,7 +3974,14 @@ return (
             orbitRef={orbitRef}
             selectedObject={selectedObject}
             mode={gizmoMode}
-            space={gizmoSpace}
+            // 側面正射（立面/断面/展開）では画面に平行な2軸だけを world 基準で動かす。
+            //   FRONT（Z を見る）→ 画面横=X・縦=Y / RIGHT（X を見る）→ 画面横=Z・縦=Y
+            space={isSideOrtho ? "world" : gizmoSpace}
+            axes={isSideOrtho
+              ? (effectiveType === VIEW_TYPES.FRONT ? [true, true, false] : [false, true, true])
+              : null}
+            disableRotations={isSideOrtho}
+            disableScaling={isSideOrtho}
             snapEnabled={snapEnabled}
             isTopView={effectiveSubMode === "furniture_top" || effectiveSubMode === "ceiling_top"}
             onChangeTransform={handleGizmoPreview}

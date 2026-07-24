@@ -99,6 +99,11 @@ export interface ViewportUiState {
     requestFocus: () => void;
     requestFrameAll: () => void;
 
+    // ビュー切替（平面/立面/断面/展開）時の一瞬のカクつき（クリップ即適用→リフレーム遅延）を
+    // 覆い隠すディゾルブ用のシグナル。切替の起点で bump する。
+    viewTransitionTick: number;
+    beginViewTransition: () => void;
+
     lockToGround: boolean;
     axisConstraint: string;
     setLockToGround: (v: boolean) => void;
@@ -157,10 +162,13 @@ export interface ViewportUiState {
     cancelCommand: () => void;
 
     gizmoDragging: boolean;
+    /** 寸法列パネルが編集対象にするビュー（最後に描画された図面ビューの viewKey）。 */
+    activeDimViewKey: string | null;
     gizmoHotAxis: string | null;
     gizmoInteracting: boolean;
 
     setGizmoDragging: (v: boolean) => void;
+    setActiveDimViewKey: (v: string | null) => void;
     setGizmoHotAxis: (axis: string | null) => void;
     setGizmoInteracting: (v: boolean) => void;
     isGizmoActive: () => boolean;
@@ -211,6 +219,9 @@ export const useViewportUiStore = create<ViewportUiState>((set, get) => ({
     frameAllTick: 0,
     requestFocus: () => set((s) => ({ focusTick: s.focusTick + 1 })),
     requestFrameAll: () => set((s) => ({ frameAllTick: s.frameAllTick + 1 })),
+
+    viewTransitionTick: 0,
+    beginViewTransition: () => set((s) => ({ viewTransitionTick: s.viewTransitionTick + 1 })),
 
     // ============================================================
     // movement / constraints
@@ -494,10 +505,12 @@ export const useViewportUiStore = create<ViewportUiState>((set, get) => ({
     // Gizmo priority flags
     // ============================================================
     gizmoDragging: false,
+    activeDimViewKey: null,
     gizmoHotAxis: null,
     gizmoInteracting: false,
 
     setGizmoDragging: (v) => set({ gizmoDragging: !!v }),
+    setActiveDimViewKey: (v) => set((s) => (s.activeDimViewKey === v ? {} : { activeDimViewKey: v })),
     setGizmoHotAxis: (axis) => set({ gizmoHotAxis: axis ?? null }),
     setGizmoInteracting: (v) => set({ gizmoInteracting: !!v }),
 

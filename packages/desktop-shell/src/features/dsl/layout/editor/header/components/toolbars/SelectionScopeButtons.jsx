@@ -19,7 +19,8 @@ const OPTIONS = [
   { value: "label",    label: "Label",    icon: <LabelRoundedIcon sx={{ fontSize: 13 }} />,     tooltip: "面ラベルを確認（ゴースト表示＋断面無視で全体を見やすく）" },
   { value: "item",     label: "Item",     icon: <ChairRoundedIcon sx={{ fontSize: 13 }} />,     tooltip: "家具（Item）のみ選択", disabledOnBase: true },
   { value: "lighting", label: "Lighting", icon: <LightbulbRoundedIcon sx={{ fontSize: 13 }} />, tooltip: "照明（Lighting）のみ選択" },
-  { value: "zone",     label: "Zone",     icon: <CropFreeRoundedIcon sx={{ fontSize: 13 }} />,  tooltip: "ゾーン（Zone）のみ選択" },
+  // value は "zone" のまま（保存済みデータ・既存コードとの互換のため表示名だけ変更）
+  { value: "zone",     label: "Room/Zone", icon: <CropFreeRoundedIcon sx={{ fontSize: 13 }} />,  tooltip: "部屋（Room）とゾーン（Zone）を作成・選択" },
   { value: "material", label: "Material", icon: <TextureRoundedIcon sx={{ fontSize: 13 }} />,   tooltip: "躯体（床・壁・天井）にマテリアル設定。家具は非表示" },
   { value: "map",      label: "Map",      icon: <MapRoundedIcon sx={{ fontSize: 13 }} />,       tooltip: "敷地に航空写真を貼り、Base（建物）に位置・縮尺を合わせる。照明/ゾーン等は非表示" },
 ];

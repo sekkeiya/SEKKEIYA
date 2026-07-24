@@ -11,7 +11,35 @@ export interface FloorSlab {
   points: SlabPoint[];
   /** スラブ厚(mm)。上面が床レベル(FL)に揃い、下へ厚みが付く。 */
   thicknessMm: number;
+  /**
+   * その階の床レベル(FL)からの上下オフセット(mm)。+ で上、− で下。
+   * 未設定/0 なら FL ちょうど（従来どおり）。段差床・スキップフロアに使う。
+   * 断面ビューのギズモを上下にドラッグするとここが変わる。
+   */
+  offsetYMm?: number;
+  /**
+   * どの階の床か（0=1F）。未設定は 1F 扱い（既存データはそのまま使える）。
+   * 作図した時点のアクティブ階が入り、以後その階の FL に敷かれる。
+   */
+  floorIndex?: number;
+  /**
+   * この面をどの図面で使うか。未設定は "floor"（従来どおり床だけ）。
+   *   floor   … 平面図（床伏図）に床として出す。FL に敷く。
+   *   ceiling … 天井伏図に天井として出す。その階の CL（天井高）に貼る。
+   *   both    … 同じ輪郭を床と天井の両方に使う（部屋の輪郭を1回描けば済む）。
+   * 天井は「その階の CL」に貼る（1F に描いた both は 平面1F と 天井1F に出る）。
+   */
+  role?: SlabRole;
 }
+
+export type SlabRole = "floor" | "ceiling" | "both";
+/** その面を床として描くか。 */
+export const slabIsFloor = (s: { role?: SlabRole }) => (s.role || "floor") !== "ceiling";
+/** その面を天井として描くか。 */
+export const slabIsCeiling = (s: { role?: SlabRole }) => {
+  const r = s.role || "floor";
+  return r === "ceiling" || r === "both";
+};
 
 export const SLAB_DEFAULT_THICKNESS = 150;
 /** 多角形を閉じたとみなす最小頂点数 */
@@ -60,7 +88,7 @@ interface SlabState {
   toggleEdgeIndex: (i: number) => void;
   clearEdgeSelection: () => void;
 
-  addSlab: (points: SlabPoint[]) => void;
+  addSlab: (points: SlabPoint[], floorIndex?: number) => void;
   updateSlab: (id: string, patch: Partial<Omit<FloorSlab, "id">>) => void;
   /** ドラッグ中の高頻度更新用（永続化しない）。確定時に persistSlabs() を呼ぶ。 */
   updateSlabLocal: (id: string, patch: Partial<Omit<FloorSlab, "id">>) => void;
@@ -107,13 +135,14 @@ export const useSlabStore = create<SlabState>((set, get) => ({
     })),
   clearEdgeSelection: () => set({ selectedEdgeIndices: [] }),
 
-  addSlab: (points) =>
+  addSlab: (points, floorIndex = 0) =>
     set((s) => {
       if (!points || points.length < SLAB_MIN_POINTS) return {};
       const slab: FloorSlab = {
         id: nextId(),
         points: points.map((p) => ({ x: Math.round(p.x), z: Math.round(p.z) })),
         thicknessMm: SLAB_DEFAULT_THICKNESS,
+        floorIndex,
       };
       const slabs = [...s.slabs, slab];
       persist(slabs);

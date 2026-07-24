@@ -2,7 +2,10 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Html, Edges } from "@react-three/drei";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
+import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
+import { layoutSceneRef } from "../../services/layoutSceneRef";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import ZoneActiveGizmo from "./ZoneActiveGizmo.jsx";
 import CirculationVisualizer from "./CirculationVisualizer.jsx";
 import { useZoningStore } from "../../store/useZoningStore";
@@ -11,17 +14,24 @@ import { useSelectionScopeStore, canSelectZone } from "../../store/useSelectionS
 const BOX_H = 10; // Make thick enough for mm scale
 const LABEL_Y = 200; // Hover nicely above the box
 const PADDING = 100.0; // padding in mm
+// ラベルの自前ダブルクリック判定用（zone.id → 前回クリック時刻）。map 内なので module スコープに置く。
+const labelClickAt = {};
 
 /**
  * zone.rect が存在するゾーン → rect から直接描画（正確な空間境界）
  * zone.rect がないゾーン → 旧来の items ベースバウンディングボックス（後方互換）
  */
-export default function ZoneVisualizer({ items, orbitRef, editable = false, roomBounds = null }) {
+export default function ZoneVisualizer({ items, orbitRef, editable = false, roomBounds = null, isTopView = false }) {
   const zones = useLayoutTaskStore((s) => s.zones);
   const activeZoneId = useLayoutTaskStore((s) => s.activeZoneId);
   const setActiveZoneId = useLayoutTaskStore((s) => s.setActiveZoneId);
   const editorMode = useEditorModeStore((s) => s.editorMode);
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm);
+  // 平面図では「アクティブ階」のゾーンだけ実体表示し、他階は「他階トレース」トグルで薄く出す
+  // （壁・床と同じ規約）。真上ビュー以外（パース等）では従来どおり全ゾーンを出す。
+  const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
+  const showOtherFloorsGhost = useEditorModeStore((s) => s.showOtherFloorsGhost);
+  const ghostFloors = useEditorModeStore((s) => s.ghostFloors);
 
   const isVisibleMode = editorMode === "layout" || editorMode === "zoning";
 
@@ -44,7 +54,11 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
 
     return zones.map((zone, idx) => {
       if (hiddenZoneIds[zone.id]) return null;
-      
+      // 平面図での階フィルタ。ghost = 他階（薄いトレース）。トグルOFFなら他階は非表示。
+      const ghost = isTopView && (zone.floorIndex || 0) !== (activeFloorIndex || 0);
+      // 他階は既定で非表示。マスターON かつ その階の目アイコンONのときだけ透過表示する。
+      if (ghost && (!showOtherFloorsGhost || !ghostFloors.includes(zone.floorIndex || 0))) return null;
+
       let cx, cz, width, depth;
 
       if (zone.rect) {
@@ -82,17 +96,18 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
       const activeVersionIndex = sortedVersions.findIndex(v => v.id === effectiveActiveVersionId);
       const versionLabel = activeVersionIndex !== -1 ? ` / v${sortedVersions.length - activeVersionIndex}` : "";
 
-      return { zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder: idx };
+      return { zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder: idx, ghost };
     }).filter(Boolean);
-  }, [items, zones, activeZoneId, isVisibleMode, showZones, hiddenZoneIds]);
+  }, [items, zones, activeZoneId, isVisibleMode, showZones, hiddenZoneIds, isTopView, activeFloorIndex, showOtherFloorsGhost, ghostFloors]);
 
   if (!isVisibleMode) return null;
 
   return (
     <group userData={{ isEditorOverlay: true }}>
-      {zoneMeshes.map(({ zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder }) => {
+      {zoneMeshes.map(({ zone, cx, cz, width, depth, isActive, color, versionLabel, renderOrder, ghost }) => {
         // rect があるゾーンは選択状態によらず常に ZoneActiveGizmo を使う。
         // これにより非選択時でも辺ホバーでリサイズカーソルが出る。
+        // 他階（ghost）は薄いトレース＝編集・選択させない（editable を落とす）。
         if (zone.rect) {
           return (
             <ZoneActiveGizmo
@@ -102,7 +117,8 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
               renderOrder={renderOrder}
               versionLabel={versionLabel}
               isActive={isActive}
-              editable={editable}
+              editable={editable && !ghost}
+              ghost={ghost}
               roomBounds={roomBounds}
             />
           );
@@ -127,7 +143,7 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
               <meshBasicMaterial
                 color={color}
                 transparent
-                opacity={isActive ? 0.35 : 0.20}
+                opacity={ghost ? 0.08 : isActive ? 0.35 : 0.20}
                 depthTest={false}
                 depthWrite={false}
               />
@@ -136,21 +152,45 @@ export default function ZoneVisualizer({ items, orbitRef, editable = false, room
             <Html
               position={[cx, LABEL_Y + gridHeightMm, cz]}
               center
-              style={{ pointerEvents: "none", opacity: isActive ? 1 : 0.4, transition: "opacity 0.2s ease-in-out" }}
+              style={{ pointerEvents: "none", opacity: isActive ? 1 : 0.72, transition: "opacity 0.2s ease-in-out" }}
             >
-              <div style={{
-                background: color,
-                color: "#fff",
+              {/* 白基調チップ＋ゾーン色ドット（ZoneActiveGizmo と統一。淡いゾーン色でも読める）。
+                  シングルクリック＝Properties、ダブルクリック＝フォーカス。 */}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  useLayoutTaskStore.getState().setActiveZoneId(zone.id);
+                  useUiRightSidebarStore.getState().setRightPanel?.("properties", true);
+                  // 自前ダブルクリック判定（drei Html+R3F はネイティブ dblclick を取りこぼす）
+                  const now = e.timeStamp || Date.now();
+                  if (now - (labelClickAt[zone.id] || 0) < 350) {
+                    layoutSceneRef.focusRect?.(cx, cz, width, depth);
+                    labelClickAt[zone.id] = 0;
+                  } else {
+                    labelClickAt[zone.id] = now;
+                  }
+                }}
+                title={`${zone.name || "ゾーン"}（クリックで設定 / ダブルクリックでフォーカス）`}
+                style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(255,255,255,0.96)",
+                color: "#1e293b",
                 padding: "3px 9px",
                 borderRadius: 8,
                 fontSize: 12,
-                fontWeight: 600,
-                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                fontWeight: 700,
                 whiteSpace: "nowrap",
-                boxShadow: isActive ? `0 0 10px ${color}` : "none",
+                border: `1.5px solid ${color}`,
+                boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.28)" : "0 1px 3px rgba(0,0,0,0.2)",
                 fontFamily: "Inter, sans-serif",
+                pointerEvents: "auto",
+                cursor: "pointer",
+                userSelect: "none",
               }}>
-                {zone.name || "Unnamed Zone"}{versionLabel}
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: color, flex: "0 0 auto" }} />
+                <span>{zone.name || "Unnamed Zone"}{versionLabel}</span>
               </div>
             </Html>
           </group>

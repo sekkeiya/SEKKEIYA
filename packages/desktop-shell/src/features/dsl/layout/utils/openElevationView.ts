@@ -9,7 +9,10 @@
 import {
   applyElevationView,
   computeRoomBoxFromRects,
+  ELEV_ROOM_PAD_MM,
 } from "../store/useElevationMarkerStore";
+import { measureBaseInterior } from "./baseFootprint";
+import { useEditorModeStore } from "../store/useEditorModeStore";
 import {
   useRoomElevationsStore,
   type RoomElevation,
@@ -70,8 +73,9 @@ function mainZoneOf(room: ElevationRoom): any | null {
 }
 
 /** 記号の既定位置。
- *  代表ゾーン中心から「見る向きと反対側」へ少し引いた点（壁から離れて立って見る格好）。
- *  同じ向きの2本目（展開A'…）はさらに引いて重なりを避ける。 */
+ *  代表ゾーン中心から「見る壁の側」へ寄せた点（A=上を見る→部屋の上寄り / B=右→右寄り…）。
+ *  4記号が中心から十字に散らばり、どの壁の展開かが一目で分かる。
+ *  同じ向きの2本目（展開A'…）は中心寄りにずらして重なりを避ける。 */
 export function defaultElevationPos(elev: RoomElevation): { x: number; z: number } | null {
   const room = getElevationRoomById(elev.roomId);
   const r = room ? mainZoneOf(room)?.rect : null;
@@ -79,9 +83,10 @@ export function defaultElevationPos(elev: RoomElevation): { x: number; z: number
   const store = useRoomElevationsStore.getState();
   const sameDir = store.elevations.filter((e) => e.roomId === elev.roomId && e.dir === elev.dir);
   const i = Math.max(0, sameDir.findIndex((e) => e.id === elev.id));
-  const d = (Math.min(r.width || 0, r.depth || 0) / 6) * (1 + 0.6 * i);
-  // dir A=−Z を見る → 記号は +Z 側へ / B=+X → −X 側 / C=+Z → −Z 側 / D=−X → +X 側
-  const off = { A: [0, d], B: [-d, 0], C: [0, -d], D: [d, 0] }[elev.dir];
+  // 中心と壁の中間あたり（短辺の 1/5 ≒ 半径の約40%）。2本目以降は中心側へ。
+  const d = (Math.min(r.width || 0, r.depth || 0) / 5) * Math.max(0.25, 1 - 0.5 * i);
+  // dir A=−Z（上）を見る → 記号も −Z 側へ / B=+X → +X 側 / C=+Z → +Z 側 / D=−X → −X 側
+  const off = { A: [0, -d], B: [d, 0], C: [0, d], D: [-d, 0] }[elev.dir];
   return { x: r.x + off[0], z: r.z + off[1] };
 }
 
@@ -104,10 +109,27 @@ export function openRoomElevation(elevationId: string): void {
   store.selectRoom(elev.roomId);
   store.setActiveElevation(elev.id);
 
+  // 表示範囲 = ゾーン矩形ベースの roomBox を、実躯体の内法（＋壁厚パディング）で絞る。
+  // ゾーンが実躯体より大きいと、横のクリップが部屋の外まで届かず
+  // 外に置いた家具・壁が展開図に映り込んでしまうため（寸法オーバーレイと同じ実測を使う）。
+  let roomBox = computeRoomBoxFromRects(room.zones.map((z) => z.rect));
+  const interior = measureBaseInterior();
+  if (roomBox && interior) {
+    const isMm = ((useEditorModeStore.getState() as any).sceneMaxY || 0) > 100;
+    const pad = isMm ? ELEV_ROOM_PAD_MM : ELEV_ROOM_PAD_MM / 1000;
+    roomBox = {
+      ...roomBox,
+      minX: Math.max(roomBox.minX, interior.minX - pad),
+      maxX: Math.min(roomBox.maxX, interior.maxX + pad),
+      minZ: Math.max(roomBox.minZ, interior.minZ - pad),
+      maxZ: Math.min(roomBox.maxZ, interior.maxZ + pad),
+    };
+  }
+
   applyElevationView({
     pos,
     dir: elev.dir,
-    roomBox: computeRoomBoxFromRects(room.zones.map((z) => z.rect)),
+    roomBox,
     roomName: room.name || null,
   });
 }

@@ -3,6 +3,8 @@
 //   ・辺: ホバーで「辺に直交する向き」の resize カーソル。ドラッグで辺を法線方向へ移動
 //        （＝その辺を伸縮）。軸に平行な辺は他頂点との整列スナップ＋ガイド線あり。
 //   ・辺の中点の小ハンドル: ドラッグでその辺に頂点を挿入して動かす（辺を折る）
+//   ・床を選択すると中心（重心）に移動ギズモが常時出る（Item・壁と同じ）。X/Z 軸で
+//     床全体を正確に平行移動できる。頂点を選択している間はそちらのギズモを優先する。
 //   ・各頂点の丸ハンドル: ホバーは既定カーソルのまま（クリックして選択する対象のため）。
 //       ドラッグで直接移動（離して確定。ドラッグ中は右クリック / Escape で取消＝元位置へ戻す）。
 //       クリック（動かさず離す）はその頂点の「選択」で、Item と同じ移動ギズモ（VertexGizmo）
@@ -22,6 +24,7 @@ import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useSlabStore, SLAB_MIN_POINTS } from "../../store/useSlabStore";
 import { useWallStore } from "../../store/useWallStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
+import { wallTopLiftMm } from "../../utils/handleLift";
 import { useHoverCursor } from "./useHoverCursor";
 import VertexGizmo from "./VertexGizmo.jsx";
 
@@ -70,7 +73,12 @@ function edgeResizeCursor(dx, dz, rotIndex) {
   return "nesw-resize";
 }
 
-export default function SlabEditController({ enabled = true, orbitRef = null }) {
+// gizmoOnly: 立面/断面（側面正射）用。視線が水平で床平面と交わらず toFloor が成立しないため、
+//   面/辺/頂点ハンドルのドラッグは使えない。移動ギズモ（床平面に依存しない）だけを出す。
+export default function SlabEditController({ enabled = true, orbitRef = null, sideAxis = null }) {
+  // sideAxis: 立面/断面（側面正射）で「画面の横方向」に当たる世界軸（FRONT="x" / RIGHT="z"）。
+  //   null = 平面図（従来どおりハンドル操作あり）。
+  const gizmoOnly = !!sideAxis;
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm) || 0;
   const sceneExtentXZ = useEditorModeStore((s) => s.sceneExtentXZ);
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
@@ -83,16 +91,26 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
   const walls = useWallStore((s) => s.walls);
   const floorHeightMm = useBuildingSpecStore((s) => s.floorHeightMm);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
+  const fl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
+  const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
+  const floors = useBuildingSpecStore((s) => s.floors);
 
-  // ハンドルを浮かせる高さ(mm)。いちばん高い壁より上に置く（下の yEdge/y の説明を参照）。
-  const handleLiftMm = useMemo(() => {
-    let maxH = 0;
-    for (const w of walls) {
-      const h = w.heightMm ?? (w.kind === "exterior" ? floorHeightMm : ceilingHeightMm);
-      if (h > maxH) maxH = h;
-    }
-    return maxH + 200;
-  }, [walls, floorHeightMm, ceilingHeightMm]);
+  // 床が載るレベル(mm)。FloorSlabsRenderer と同じ規約（オフセット 0 の床の上面）。
+  //   選択中の床がある階に合わせる（3D/断面で他階の床を選んでもハンドルがその階に出る）。
+  const floorBaseYMm = useMemo(() => {
+    const sel = slabs.find((x) => x.id === selectedSlabId);
+    const idx = sel ? (sel.floorIndex || 0) : (activeFloorIndex || 0);
+    const i = Math.max(0, Math.min(idx, (floors?.length || 1) - 1));
+    return (fl0Mm || 0) + (floors?.[i]?.flMm || 0);
+  }, [fl0Mm, floors, activeFloorIndex, slabs, selectedSlabId]);
+
+  // ハンドルを浮かせる高さ(mm)。いちばん高い壁の「頭」より上に置く（下の yEdge/y の説明を参照）。
+  //   ⚠️ 壁の高さだけで計算しないこと。壁は各階の FL に建ち上下オフセットも載るので、
+  //      高さだけだと壁の頭より下に潜り、壁と重なった頂点が掴めなくなる（utils/handleLift）。
+  const handleLiftMm = useMemo(
+    () => wallTopLiftMm(walls, useBuildingSpecStore.getState()),
+    [walls, floorHeightMm, ceilingHeightMm, fl0Mm, floors],
+  );
 
   const rotIndex = useEditorModeStore((s) => s.layoutCameraRotationIndex) || 0;
   // カーソルは canvas に当てる（body だと他コントローラの canvas 指定に負けて効かなくなる）
@@ -109,6 +127,23 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
   const gizmoOrigRef = useRef(null);
   // 整列スナップ中のガイド線（揃えた基準の X / Z）
   const [guides, setGuides] = useState({ x: null, z: null });
+  // ギズモ（PivotControls）は onMove で修飾キーを渡してくれないので、Shift の押下状態を
+  // 自前で持つ。ハンドルの直接ドラッグは pointer イベントの ev.shiftKey を使うが、
+  // 「頂点を選択 → ギズモで動かす」経路はこちらを見る。
+  const shiftRef = useRef(false);
+  useEffect(() => {
+    const onKey = (e) => { shiftRef.current = !!e.shiftKey; };
+    // ウィンドウがフォーカスを失うと keyup を取りこぼす（押しっぱなし扱いのまま固まる）。
+    const onBlur = () => { shiftRef.current = false; };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
   // ＋ハンドルのホバー（強調表示用）
   const [hoverMid, setHoverMid] = useState(null);
   // 頂点ハンドルのホバー（拡大して掴みやすさを示す）
@@ -117,7 +152,9 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
   const isMm = (sceneMaxY || 0) > 100;
   const k = isMm ? 1 : 0.001;
   // ハンドル面の高さ（world単位）。useFrame（パースの距離計算）からも参照するので ref に流す。
-  const liftY = (gridHeightMm + handleLiftMm) * k;
+  // handleLiftMm は world 絶対値（壁の頭 + 余裕）なので gridHeightMm を足さない。
+  // 作図グリッドを高く上げている場合はそちらより上に来るよう大きい方を採る。
+  const liftY = Math.max(handleLiftMm, gridHeightMm + 200) * k;
   const handleYRef = useRef(liftY);
   handleYRef.current = liftY;
 
@@ -232,7 +269,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
   }, []);
 
   useEffect(() => {
-    if (!drag) return;
+    if (!drag || gizmoOnly) return; // 立面/断面ではハンドル操作不可（ギズモのみ）
     const st = useSlabStore.getState();
 
     const onMove = (ev) => {
@@ -359,7 +396,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
       window.removeEventListener("pointerdown", onDown, true);
       window.removeEventListener("keydown", onKey, true);
     };
-  }, [drag, toFloor, snapVertex, axisCandidates, cursorApi]);
+  }, [drag, toFloor, snapVertex, axisCandidates, cursorApi, gizmoOnly]);
 
   // 別の床を選び直したら頂点選択は解除（前の床の index が残らないように）
   useEffect(() => { setActiveVertex(null); }, [selectedSlabId]);
@@ -409,10 +446,12 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
   // 辺・中点・頂点は「壁の立体より上」へ逃がす。壁は床から階高（〜3000mm）まで立っており、
   // 床すぐ上に置くとトップビューで壁が手前に来て、壁の内側（黒いポシェ）からは
   // レイキャストが壁に先に当たって掴めない（depthTest=false は描画のみで交差判定には効かない）。
+  // （立面/断面ではハンドルを出さないので、この高さはギズモには使わない。
+  //   ギズモの高さは下の gizmoYMm で実際の床の上面に合わせる。）
   const yLift = liftY;
   const yEdge = yLift;
   const yMid = yLift + 2 * k;
-  const y = yLift + 4 * k; // 頂点ハンドル
+  const y = yLift + 4 * k; // 頂点ハンドル（gizmoOnly ではギズモの取り付け高さとして使う）
   // ハンドル寸法はワールド単位（＝ px × pxWorld）。位置は mm 空間なので * k で world にする。
   const handleR = HANDLE_PX * pxWorld;
   const midR = MID_PX * pxWorld;
@@ -470,33 +509,90 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
     st.setSelectedSlabIds([id, ...st.selectedSlabIds.filter((x) => x !== id)]);
   };
 
-  // ── 選択中頂点の移動ギズモ（Item と同じ PivotControls）──────────────
-  //   クリックで選んだ頂点に取り付け、X/Z の矢印・平面スライダーで正確に動かせる。
+  // ── 移動ギズモ（Item と同じ PivotControls）──────────────────────────
+  //   ・頂点を選択中（activeVertex）はその頂点に取り付けて、X/Z の矢印・平面スライダーで
+  //     正確に動かせる。
+  //   ・頂点未選択なら、床を選択した時点で「床の中心（重心）」に常時出す（壁と同じ）。
+  //     ギズモを掴めば床全体を平行移動できる（面ドラッグと同じ結果を正確な軸移動で）。
   const gizmoVertex =
     activeVertex != null && activeVertex < pts.length ? pts[activeVertex] : null;
+  // 床の中心（頂点の重心）。頂点未選択時のギズモ取り付け位置。
+  // ここは早期 return より後（＝毎回同じ実行経路）なので、フックではなく素の計算で出す。
+  let slabMid = null;
+  if (pts.length) {
+    let sx = 0, sz = 0;
+    for (const p of pts) { sx += p.x; sz += p.z; }
+    slabMid = { x: sx / pts.length, z: sz / pts.length };
+  }
+  // 立面/断面では頂点ハンドルが無く頂点を選べないので、常に「床全体」を動かす。
+  // 上下オフセットも床単位のプロパティなので、単位としてもこれが正しい。
+  const gizmoPos = gizmoOnly ? slabMid : (gizmoVertex || slabMid);
+  const gizmoKind = !gizmoOnly && gizmoVertex ? "vertex" : "move";
+  // ギズモの取り付け高さ(mm)。
+  //   平面図: ハンドル面（壁より上へ逃がした高さ）。
+  //   立面/断面: 実際の床の上面（床レベル＋その床の上下オフセット）。
+  const slabOffsetMm = slab?.offsetYMm || 0;
+  const gizmoYMm = gizmoOnly ? floorBaseYMm + slabOffsetMm : y / k;
+  // 立面/断面は画面に見えている2軸だけ（横＝視線に直交する水平軸／縦＝上下）。
+  const gizmoAxes = gizmoOnly
+    ? (sideAxis === "x" ? [true, true, false] : [false, true, true])
+    : [true, false, true];
 
   const onGizmoBegin = () => {
-    if (activeVertex == null) return;
-    gizmoOrigRef.current = { index: activeVertex, points: pts.map((p) => ({ ...p })) };
+    if (gizmoKind === "vertex") {
+      gizmoOrigRef.current = { kind: "vertex", index: activeVertex, points: pts.map((p) => ({ ...p })) };
+    } else {
+      // 床全体を平行移動: 元の頂点列と重心（差分の基準）＋上下オフセットを控える
+      gizmoOrigRef.current = {
+        kind: "move",
+        points: pts.map((p) => ({ ...p })),
+        mid: { ...slabMid },
+        midY: gizmoYMm,        // 縦ドラッグの基準（ギズモの開始高さ）
+        origOffsetY: slabOffsetMm,
+      };
+    }
   };
-  const onGizmoMove = ({ xMm, zMm }) => {
+  const onGizmoMove = ({ xMm, yMm, zMm }) => {
     const g = gizmoOrigRef.current;
     if (!g) return;
-    const p = { x: Math.round(xMm), z: Math.round(zMm) };
-    useSlabStore.getState().updateSlabLocal(slab.id, {
-      points: g.points.map((q, i) => (i === g.index ? p : q)),
-    });
+    if (g.kind === "vertex") {
+      const orig = g.points[g.index] || { x: xMm, z: zMm };
+      // ギズモは軸拘束（X矢印なら X だけ動く）。スナップで拘束していない軸まで動かすと
+      // 「X に沿って動かしたつもりが Z もずれる」ので、実際に動いた軸だけ採用する。
+      const movedX = Math.abs(xMm - orig.x) > 0.5;
+      const movedZ = Math.abs(zMm - orig.z) > 0.5;
+      const r = snapVertex({ x: xMm, z: zMm }, slab.id, g.index, shiftRef.current);
+      setGuides(shiftRef.current ? r.guides : { x: null, z: null });
+      const p = {
+        x: movedX ? r.p.x : orig.x,
+        z: movedZ ? r.p.z : orig.z,
+      };
+      useSlabStore.getState().updateSlabLocal(slab.id, {
+        points: g.points.map((q, i) => (i === g.index ? p : q)),
+      });
+      return;
+    }
+    // move: 重心からの差分を全頂点へ適用（Shift 中は移動量を 50mm 刻みに）
+    const rd = shiftRef.current ? snap : Math.round;
+    const dx = rd(xMm - g.mid.x);
+    const dz = rd(zMm - g.mid.z);
+    // 立面/断面の縦ドラッグ: 床レベル(FL)からの上下オフセットを変える
+    const dy = g.midY != null && Number.isFinite(yMm) ? Math.round(yMm - g.midY) : 0;
+    const patch = { points: g.points.map((q) => ({ x: q.x + dx, z: q.z + dz })) };
+    if (dy) patch.offsetYMm = g.origOffsetY + dy;
+    useSlabStore.getState().updateSlabLocal(slab.id, patch);
   };
   const onGizmoCommit = () => {
     if (gizmoOrigRef.current) useSlabStore.getState().persistSlabs();
     gizmoOrigRef.current = null;
+    setGuides({ x: null, z: null }); // スナップのガイド線を消す
   };
 
   return (
     // ignoreClipping: ハンドル（頂点・辺・中点）は壁の立体より上へ浮かせてあるので、断面クリップの
     // 対象にすると平面図のカット高さで切られて消える。UI ギズモは断面表現の対象外
     // （SectionClipManager がこの印の付いた枝を飛ばす）。
-    <group userData={{ ignoreClipping: true }}>
+    <group userData={{ ignoreClipping: true, isDrawnStructure: true }}>
       {/* 整列スナップのガイド線（同じ X / Z に揃っていることを示す） */}
       {guides.x != null && (
         <Line
@@ -514,20 +610,22 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
       )}
 
       {/* 面: ホバーで move カーソル、ドラッグで全体移動（透明ヒット領域） */}
-      <mesh
-        geometry={faceGeo}
-        position={[0, yFace, 0]}
-        onPointerDown={begin("move", null)}
-        onClick={(e) => e.stopPropagation()}
-        onPointerOver={() => { if (!dragRef.current) cursorApi.set("move"); }}
-        onPointerOut={() => { if (!dragRef.current) cursorApi.clear(); }}
-      >
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} side={THREE.DoubleSide} />
-      </mesh>
+      {!gizmoOnly && (
+        <mesh
+          geometry={faceGeo}
+          position={[0, yFace, 0]}
+          onPointerDown={begin("move", null)}
+          onClick={(e) => e.stopPropagation()}
+          onPointerOver={() => { if (!dragRef.current) cursorApi.set("move"); }}
+          onPointerOut={() => { if (!dragRef.current) cursorApi.clear(); }}
+        >
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      )}
 
       {/* 辺: ホバーで直交方向の resize カーソル。ドラッグで辺を伸縮、
           動かさずクリックで選択トグル（選択した辺は Properties の「外壁/内壁を作成」で壁になる）。 */}
-      {pts.map((p, i) => {
+      {!gizmoOnly && pts.map((p, i) => {
         const q = pts[(i + 1) % pts.length];
         const dx = q.x - p.x, dz = q.z - p.z;
         const len = Math.hypot(dx, dz);
@@ -559,7 +657,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
 
       {/* 頂点ハンドル: 見た目は小さく、当たり判定は大きく（透明）。
           クリックで選択（Delete で削除できる）、ドラッグで移動。 */}
-      {pts.map((p, i) => {
+      {!gizmoOnly && pts.map((p, i) => {
         const on = activeVertex === i;
         const hovered = hoverVertex === i;
         // 選択中 > ホバー > 通常 の順に大きく（ホバーで掴みやすさを示す）
@@ -607,7 +705,7 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
 
       {/* 辺の中点ハンドル: ＋記号で「頂点を追加できる」ことを示す（ドラッグで挿入して移動）。
           ホバーで拡大＋濃くして、掴めることを分かりやすくする。 */}
-      {pts.map((p, i) => {
+      {!gizmoOnly && pts.map((p, i) => {
         const q = pts[(i + 1) % pts.length];
         const mid = { x: (p.x + q.x) / 2, z: (p.z + q.z) / 2 };
         const on = hoverMid === i;
@@ -650,17 +748,19 @@ export default function SlabEditController({ enabled = true, orbitRef = null }) 
         );
       })}
 
-      {/* 選択中の頂点の移動ギズモ（Item と同じ操作感）。直接ドラッグ中は隠す */}
-      {!drag && gizmoVertex && (
+      {/* 移動ギズモ（Item と同じ操作感）: 頂点選択中はその頂点、通常は床の中心（重心）。
+          直接ドラッグ中は隠す */}
+      {!drag && gizmoPos && (
         <VertexGizmo
           orbitRef={orbitRef}
-          xMm={gizmoVertex.x} zMm={gizmoVertex.z} y={y} k={k}
+          xMm={gizmoPos.x} zMm={gizmoPos.z} yMm={gizmoYMm} k={k}
+          axes={gizmoAxes}
           onBegin={onGizmoBegin} onMove={onGizmoMove} onCommit={onGizmoCommit}
         />
       )}
 
       {/* 主選択以外の選択中スラブの頂点（選択状態なら常に表示）。クリックで主選択へ昇格。 */}
-      {otherSelected.map((s) =>
+      {!gizmoOnly && otherSelected.map((s) =>
         s.points.map((p, i) => (
           <group key={`${s.id}_ov${i}`} position={[p.x * k, y, p.z * k]}>
             <mesh

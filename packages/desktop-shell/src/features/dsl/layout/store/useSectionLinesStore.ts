@@ -8,6 +8,12 @@ export interface SectionLine {
   axis: "x" | "z";
   pos: number;      // world 座標（sectionClipX/Z と同スケール）
   flip: boolean;    // 向き反転（矢印を＋軸向きに＝pos 以上側を見る）
+  /**
+   * 線そのものの長さ（world 座標）。線が伸びている方向の座標で持つ:
+   *   axis="z"（線は X 方向に伸びる）→ from/to は X ／ axis="x" → from/to は Z。
+   * 未設定なら建物幅に合わせて自動。平面図で端部をドラッグすると設定される。
+   */
+  span?: { from: number; to: number };
 }
 
 /** 断面線の矢印スタイル（全断面線で共通のドキュメント設定）。
@@ -22,8 +28,8 @@ interface SectionLinesState {
   addLine: (axis?: "x" | "z", pos?: number) => SectionLine;
   removeLine: (id: string) => void;
   setActiveLine: (id: string | null) => void;
-  updateActive: (patch: Partial<Pick<SectionLine, "axis" | "pos" | "flip">>) => void;
-  updateLine: (id: string, patch: Partial<Pick<SectionLine, "axis" | "pos" | "flip" | "name">>) => void;
+  updateActive: (patch: Partial<Pick<SectionLine, "axis" | "pos" | "flip" | "span">>) => void;
+  updateLine: (id: string, patch: Partial<Pick<SectionLine, "axis" | "pos" | "flip" | "name" | "span">>) => void;
   renameLine: (id: string, name: string) => void;
 }
 

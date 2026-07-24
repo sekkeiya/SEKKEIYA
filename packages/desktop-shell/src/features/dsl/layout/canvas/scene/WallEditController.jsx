@@ -4,9 +4,12 @@
 //     「選択」で、Item と同じ移動ギズモ（VertexGizmo）が出て X/Z 軸で正確に動かせる。
 //     連結点は1つの頂点として扱う: 掴んだ端点と同一座標にある他の壁の端点も一緒に動く
 //     （データは壁ごとの端点のまま。編集時にだけ束ねる）。
-//     スナップは Shift 押下中のみ。他の壁の端点＋床（スラブ）の頂点へ完全吸着 → 反対側の
-//     端点基準の直交 → 他の壁端点/床頂点と同じX/Zへ整列（ガイド線表示）→ 50mmグリッド。
-//     Shift を押していなければ自由配置（1mm 丸めのみ）。
+//     スナップの中身は「壁を作図するとき」と同じ（utils/drawSnap を共用）:
+//     点（壁端点・床頂点・通り芯の交点）→ 直交 → 線（壁芯・床の辺・通り芯）→ 50mmグリッド。
+//     何に吸ったかは DrawSnapMarker の印＋ラベルで示す。
+//     ⚠️ 発動条件は経路で違う（ユーザー指定の経緯による）:
+//       ・ハンドルを直接ドラッグ … 既定 ON（Alt 押下中だけ切る）＝作図と同じ操作感
+//       ・端点を選択してギズモで動かす … Shift 押下中だけ ON（床の頂点編集と同じ）
 //     端点ハンドルは「選択中の壁すべて」に出す（複数選択でも頂点は見えたまま個別に編集できる）。
 //     連結点で重なる端点は1つだけ描く。
 //   ・壁を選択すると中心（複数選択は重心）に移動ギズモが常時出る（Item と同じ）。
@@ -14,9 +17,10 @@
 //   ・壁本体（足元の透明ヒット面。平面図のみ）: ドラッグで壁全体を平行移動
 //     （複数選択中はまとめて移動。Shift 中は 50mm 刻み。Ctrl/Shift+クリックの
 //     選択トグルは素通しして WallsRenderer に任せる）。
-//   ・頂点の範囲選択: 余白から Alt+左ドラッグ で矩形選択 → 枠内の壁端点をまとめて選択。
-//     選択された頂点はリング表示され、どれかをドラッグすると全頂点が一緒に動く
-//     （右クリック/Esc取消。Esc で選択解除）。
+//   ・頂点の範囲選択: 壁を選択中に、空き領域から普通の左ドラッグ で矩形選択 → 枠内の壁端点を
+//     まとめて選択（壁未選択のときは従来の家具/壁まるごとマーキーに譲る）。選択された頂点は
+//     リング表示され、その群の重心に移動ギズモが出てまとめて動かせる（どれかを直接ドラッグしても
+//     全頂点が一緒に動く）。右クリック/Esc取消。余白クリック（または Esc）で選択解除。
 //   操作中はローカル更新のみ（updateWallLocal）、確定時に Base へ永続化する。
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import * as THREE from "three";
@@ -27,13 +31,14 @@ import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useWallStore, WALL_MIN_LENGTH } from "../../store/useWallStore";
 import { useSlabStore } from "../../store/useSlabStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
+import { resolveDrawSnap, DRAW_GRID_MM } from "../../utils/drawSnap";
+import { wallTopLiftMm } from "../../utils/handleLift";
 import { useHoverCursor } from "./useHoverCursor";
+import DrawSnapMarker from "./DrawSnapMarker.jsx";
 import VertexGizmo from "./VertexGizmo.jsx";
 
-const SNAP_MM = 50;
-const END_SNAP_MM = 250;   // 他の壁端点／床頂点への完全吸着の距離
-const ALIGN_MM = 120;      // 「同じX/Z」に揃える整列吸着の距離（通り芯合わせ）
-const ORTHO_TOL = 0.28;
+// 端点の吸着そのものは utils/drawSnap（作図と共通）に集約。ここに個別の閾値は持たない。
+const SNAP_MM = DRAW_GRID_MM; // 壁本体/頂点群の平行移動で使う刻み（Shift 中）
 const JOINT_TOL = 1;          // 連結点（同一座標の端点）とみなす距離(mm)
 const HANDLE_COLOR = "#38bdf8";
 const SELECT_COLOR = "#fff";  // 掴んでいる端点の強調色
@@ -97,10 +102,14 @@ function Handle({ x, z, y, k, r, hitR, outlineW, active, hovered, onBegin, onOve
   );
 }
 
-export default function WallEditController({ enabled = true, orbitRef = null }) {
+// gizmoOnly: 立面/断面（側面正射）用。視線が水平で床平面と交わらず toFloor が成立しないため、
+//   ハンドルのドラッグ・範囲選択は使えない。移動ギズモ（床平面に依存しない）だけを出す。
+export default function WallEditController({ enabled = true, orbitRef = null, sideAxis = null }) {
+  // sideAxis: 立面/断面（側面正射）で「画面の横方向」に当たる世界軸（FRONT="x" / RIGHT="z"）。
+  //   null = 平面/パース（従来どおりハンドル操作あり）。
+  const gizmoOnly = !!sideAxis;
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm) || 0;
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
-  const sceneExtentXZ = useEditorModeStore((s) => s.sceneExtentXZ);
   const walls = useWallStore((s) => s.walls);
   const selectedWallId = useWallStore((s) => s.selectedWallId);
   const selectedWallIds = useWallStore((s) => s.selectedWallIds);
@@ -108,16 +117,26 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
   const slabDrawActive = useSlabStore((s) => s.drawActive);
   const floorHeightMm = useBuildingSpecStore((s) => s.floorHeightMm);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
+  const fl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
+  const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
+  const floors = useBuildingSpecStore((s) => s.floors);
 
-  // ハンドルを浮かせる高さ(mm)。いちばん高い壁より上に置く（下の yEnd/yMove の説明を参照）。
-  const handleLiftMm = useMemo(() => {
-    let maxH = 0;
-    for (const w of walls) {
-      const h = w.heightMm ?? (w.kind === "exterior" ? floorHeightMm : ceilingHeightMm);
-      if (h > maxH) maxH = h;
-    }
-    return maxH + 200;
-  }, [walls, floorHeightMm, ceilingHeightMm]);
+  // 壁が立つ床レベル(mm)。WallsRenderer と同じ規約（オフセット 0 の壁の足元）。
+  //   選択中の壁がある階に合わせる（3D/断面で他階の壁を選んでもハンドルがその階に出る）。
+  const floorBaseYMm = useMemo(() => {
+    const sel = walls.find((w) => w.id === selectedWallId);
+    const idx = sel ? (sel.floorIndex || 0) : (activeFloorIndex || 0);
+    const i = Math.max(0, Math.min(idx, (floors?.length || 1) - 1));
+    return (fl0Mm || 0) + (floors?.[i]?.flMm || 0);
+  }, [fl0Mm, floors, activeFloorIndex, walls, selectedWallId]);
+
+  // ハンドルを浮かせる高さ(mm)。いちばん高い壁の「頭」より上に置く（下の yEnd/yMove の説明を参照）。
+  //   ⚠️ 壁の高さだけで計算しないこと。壁は各階の FL に建ち上下オフセットも載るので、
+  //      高さだけだと壁の頭より下に潜り、端点ハンドルが掴めなくなる（utils/handleLift）。
+  const handleLiftMm = useMemo(
+    () => wallTopLiftMm(walls, useBuildingSpecStore.getState()),
+    [walls, floorHeightMm, ceilingHeightMm, fl0Mm, floors],
+  );
 
   const { camera, gl } = useThree();
   // カーソルは canvas に当てる（body だと他コントローラの canvas 指定に負けて効かなくなる）
@@ -138,8 +157,25 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
   pickedRef.current = picked;
   // ギズモのドラッグ開始時に元位置を控える（差分適用と潰れ防止に使う）
   const gizmoOrigRef = useRef(null);
-  // 整列スナップ中のガイド線（揃えた基準の X / Z）
-  const [guides, setGuides] = useState({ x: null, z: null });
+  // 吸着中のヒント（resolveDrawSnap の戻り値。DrawSnapMarker に渡す）
+  const [snapHint, setSnapHint] = useState(null);
+  // ギズモ（PivotControls）は onMove で修飾キーを渡してくれないので、Shift の押下状態を
+  // 自前で持つ。ハンドルの直接ドラッグは pointer イベントの修飾キーを使うが、
+  // 「端点を選択 → ギズモで動かす」経路はこちらを見る。
+  const shiftRef = useRef(false);
+  useEffect(() => {
+    const onKey = (e) => { shiftRef.current = !!e.shiftKey; };
+    // ウィンドウがフォーカスを失うと keyup を取りこぼす（押しっぱなし扱いで固まる）。
+    const onBlur = () => { shiftRef.current = false; };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKey);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKey);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
   // 範囲選択された頂点（[{wallId, end}]）と、選択中の矩形
   const [vertSel, setVertSel] = useState([]);
   const vertSelRef = useRef([]);
@@ -147,11 +183,17 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
   const [marquee, setMarquee] = useState(null); // { a:{x,z}, b:{x,z} }
   const marqueeRef = useRef(null);
   marqueeRef.current = marquee;
+  // マーキー開始前の「待機中ドラッグ候補」。しきい値(数px)を超えたら実際に開始する。
+  //   ここで待つことで、ただのクリックでは gizmoDragging を立てず、余白クリックの選択解除を邪魔しない。
+  const pendingMarqueeRef = useRef(null);
 
   const isMm = (sceneMaxY || 0) > 100;
   const k = isMm ? 1 : 0.001;
   // ハンドル面の高さ（world単位）。useFrame（パースの距離計算）からも参照するので ref に流す。
-  const handleBaseY = (gridHeightMm + handleLiftMm) * k;
+  // handleLiftMm は world 絶対値（壁の頭 + 余裕）なので gridHeightMm を足さない。
+  // 作図グリッドを高く上げている場合はそちらより上に来るよう大きい方を採る。
+  const handleBaseYMm = Math.max(handleLiftMm, gridHeightMm + 200);
+  const handleBaseY = handleBaseYMm * k;
   const handleYRef = useRef(handleBaseY);
   handleYRef.current = handleBaseY;
 
@@ -202,7 +244,8 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
     }
     return out;
   }, [selectedWalls]);
-  const showHandles = toolIdle && endpointHandles.length > 0;
+  // 立面/断面（gizmoOnly）ではハンドルを出さない（掴んでも床平面レイキャストが成立せず動かせない）
+  const showHandles = toolIdle && !gizmoOnly && endpointHandles.length > 0;
   // 複数選択中のギズモ位置（選択群の重心）
   const multiMid = useMemo(() => {
     if (selectedWalls.length <= 1) return null;
@@ -231,57 +274,17 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
   }, [camera, gl, gridHeightMm, k]);
 
   /**
-   * 端点のスナップ（Shift 押下中のみ）。床の頂点編集と同じ水準に揃えている。
-   *   1) 他の壁の端点／床（スラブ）の頂点へ完全吸着（END_SNAP_MM）
-   *   2) 反対側の端点に対する直交（角度判定。長い壁でも効く）＝壁を水平/垂直に保つ
-   *   3) 他の壁端点・床頂点と同じ X / Z へ揃える（整列。通り芯合わせ）
-   *   4) 揃わなかった軸だけ 50mm グリッド
-   * Shift を押していないときは自由配置（1mm 丸めのみ）。
-   * excludeKeys: 一緒に動いている端点（自分＋連結点）は候補から外す（自分に吸着して固まるため）。
-   * 揃えた基準値は guides として返し、ガイド線の描画に使う。
+   * 端点のスナップ。壁を「作図するとき」と同じ resolveDrawSnap を使う（挙動を1つに統一）。
+   *   点（壁端点・床頂点・通り芯の交点）→ 直交（反対側の端点基準）→ 線（壁芯・床の辺・通り芯）→ 50mmグリッド
+   * 既定 ON。Alt 押下中だけ吸着を切る（作図と同じ）。
+   * exclude: 一緒に動いている端点（自分＋連結点）と、その壁の壁芯を候補から外す。
+   *          外さないと自分自身に吸着して動かなくなる。
+   * 何に吸ったかは DrawSnapMarker（印＋「通り芯 X1」等のラベル）で示す。作図と同じ見せ方。
    */
-  const snapEndpoint = useCallback((pt, fixed, excludeKeys, snapOn) => {
-    if (!snapOn) return { p: { x: Math.round(pt.x), z: Math.round(pt.z) }, guides: { x: null, z: null } };
-
-    // 候補点: 他の壁の端点（連動中は除外）＋ 床（スラブ）の頂点
-    const cands = [];
-    for (const o of useWallStore.getState().walls) {
-      for (const end of ["start", "end"]) {
-        if (excludeKeys.has(vKey(o.id, end))) continue;
-        cands.push(o[end]);
-      }
-    }
-    for (const s of useSlabStore.getState().slabs) for (const p of s.points || []) cands.push(p);
-
-    // 1) 完全吸着（点そのものに乗せる）
-    let best = null, bestD = END_SNAP_MM;
-    for (const c of cands) {
-      const d = Math.hypot(c.x - pt.x, c.z - pt.z);
-      if (d < bestD) { bestD = d; best = c; }
-    }
-    if (best) return { p: { x: best.x, z: best.z }, guides: { x: best.x, z: best.z } };
-
-    let x = pt.x, z = pt.z, gx = null, gz = null;
-    // 2) 反対側の端点に対する直交（角度判定なので長い壁でも吸い付く）
-    if (fixed) {
-      const dx = x - fixed.x, dz = z - fixed.z;
-      if (dx !== 0 || dz !== 0) {
-        const ang = Math.atan2(Math.abs(dz), Math.abs(dx));
-        if (ang < ORTHO_TOL) { z = fixed.z; gz = fixed.z; }
-        else if (ang > Math.PI / 2 - ORTHO_TOL) { x = fixed.x; gx = fixed.x; }
-      }
-    }
-    // 3) 他の壁端点・床頂点と同じ X / Z へ整列
-    for (const c of cands) {
-      if (gx === null && Math.abs(c.x - x) <= ALIGN_MM) { x = c.x; gx = c.x; }
-      if (gz === null && Math.abs(c.z - z) <= ALIGN_MM) { z = c.z; gz = c.z; }
-      if (gx !== null && gz !== null) break;
-    }
-    // 4) 揃わなかった軸だけグリッドに乗せる
-    return {
-      p: { x: gx !== null ? x : snap(x), z: gz !== null ? z : snap(z) },
-      guides: { x: gx, z: gz },
-    };
+  const snapEndpoint = useCallback((pt, fixed, excludeKeys, free) => {
+    const wallIds = new Set();
+    for (const key of excludeKeys) wallIds.add(key.split(":")[0]);
+    return resolveDrawSnap(pt, fixed || null, free, { wallIds, wallEnds: excludeKeys });
   }, []);
 
   // ── ドラッグ／配置処理（window で追従） ─────────────────────
@@ -355,8 +358,10 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
       }
       const fixed = d.mode === "start" ? d.orig.end : d.orig.start;
       const exclude = new Set([vKey(d.wallId, d.mode), ...(d.mates || []).map((m) => vKey(m.wallId, m.end))]);
-      const { p, guides: g } = snapEndpoint(pt, fixed, exclude, ev.shiftKey);
-      setGuides(g);
+      // 作図と同じ: 吸着は既定 ON、Alt 押下中だけ切る
+      const r = snapEndpoint(pt, fixed, exclude, !!ev.altKey);
+      const p = { x: r.x, z: r.z };
+      setSnapHint(r.kind ? r : null);
       // 最小長を割る位置は無視（潰れ防止）
       if (Math.hypot(p.x - fixed.x, p.z - fixed.z) < WALL_MIN_LENGTH) return;
       st.updateWallLocal(d.wallId, d.mode === "start" ? { start: p } : { end: p });
@@ -367,7 +372,7 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
     /** 操作を終える（確定 or 取消の後始末）。 */
     const finish = () => {
       setDrag(null);
-      setGuides({ x: null, z: null });
+      setSnapHint(null);
       cursorApi.clear();
       useViewportUiStore.getState().setGizmoDragging?.(false);
     };
@@ -415,33 +420,53 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
     };
   }, [drag, toFloor, snapEndpoint, cursorApi]);
 
-  // ── 頂点の範囲選択（余白から Shift+左ドラッグ） ─────────────────
+  // ── 頂点の範囲選択（壁を選択中に、空き領域から普通の左ドラッグ） ───────────
+  //   ・壁が未選択のときは何もしない → 従来の家具/壁まるごとマーキー選択（左ドラッグ）に譲る。
+  //   ・ハンドル/ギズモ/壁本体を掴んでいる間（gizmoDragging）は開始しない。
+  //   ・しきい値(6px)を超えて初めて開始し、そのとき gizmoDragging を立てて家具マーキーを抑止する。
+  //     クリック（動かさず離す）では立てないので、余白クリックの選択解除を邪魔しない。
   useEffect(() => {
-    if (!toolIdle) return;
+    if (!toolIdle || gizmoOnly) return; // 立面/断面ではハンドル操作不可（ギズモのみ）
     const el = gl.domElement;
+    const vp = useViewportUiStore;
 
     const onDown = (ev) => {
-      // Shift はスナップ修飾キーなので、頂点の範囲選択は Alt+ドラッグに割り当てる
-      if (ev.button !== 0 || !ev.altKey) return;
-      if (dragRef.current || marqueeRef.current) return;
+      if (ev.button !== 0) return;
+      if (!useWallStore.getState().selectedWallIds.length) return; // 壁選択中のみ
+      if (dragRef.current || marqueeRef.current || pendingMarqueeRef.current) return;
+      if (vp.getState().gizmoDragging) return; // ハンドル/ギズモ/壁本体を掴んでいる
       const pt = toFloor(ev.clientX, ev.clientY);
       if (!pt) return;
-      // 家具マーキー等の誤発火を抑止
-      useViewportUiStore.getState().setGizmoDragging?.(true);
-      setMarquee({ a: pt, b: pt });
+      pendingMarqueeRef.current = { a: pt }; // まだ開始しない（動き出したら開始）
     };
+
     const onMove = (ev) => {
-      if (!marqueeRef.current) return;
+      // 実行中: 矩形の終端を更新
+      if (marqueeRef.current) {
+        const pt = toFloor(ev.clientX, ev.clientY);
+        if (pt) setMarquee((m) => (m ? { a: m.a, b: pt } : m));
+        return;
+      }
+      const pend = pendingMarqueeRef.current;
+      if (!pend) return;
+      // 途中でハンドル/ギズモ/壁本体の操作が始まったら中止
+      if (dragRef.current || vp.getState().gizmoDragging) { pendingMarqueeRef.current = null; return; }
       const pt = toFloor(ev.clientX, ev.clientY);
       if (!pt) return;
-      setMarquee((m) => (m ? { a: m.a, b: pt } : m));
+      const threshold = 6 * pxWorldRef.current;
+      if (Math.hypot(pt.x - pend.a.x, pt.z - pend.a.z) < threshold) return;
+      // しきい値超え → ここで初めて開始（家具マーキーを抑止）
+      pendingMarqueeRef.current = null;
+      vp.getState().setGizmoDragging?.(true);
+      setMarquee({ a: pend.a, b: pt });
     };
+
     const onUp = () => {
+      pendingMarqueeRef.current = null;
       const m = marqueeRef.current;
       if (!m) return;
       setMarquee(null);
-      useViewportUiStore.getState().setGizmoDragging?.(false);
-      // ほぼ動いていない＝Shift+クリック（壁の複数選択トグル）なので何もしない
+      vp.getState().setGizmoDragging?.(false);
       const minPx = 6 * pxWorldRef.current;
       if (Math.hypot(m.b.x - m.a.x, m.b.z - m.a.z) < minPx) return;
       const minX = Math.min(m.a.x, m.b.x), maxX = Math.max(m.a.x, m.b.x);
@@ -455,11 +480,14 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
       }
       setVertSel(sel);
     };
-    // 範囲選択の解除（配置中でなければ Esc でクリア）。頂点選択（ギズモ）も Esc で畳む。
+    // Esc: マーキー/待機中を中止 → 頂点選択を解除 → 端点ギズモを畳む（段階的に）
     const onKey = (ev) => {
       if (ev.key !== "Escape") return;
       if (dragRef.current) return;
-      if (marqueeRef.current) { setMarquee(null); useViewportUiStore.getState().setGizmoDragging?.(false); return; }
+      if (marqueeRef.current || pendingMarqueeRef.current) {
+        pendingMarqueeRef.current = null;
+        setMarquee(null); vp.getState().setGizmoDragging?.(false); return;
+      }
       if (vertSelRef.current.length) { setVertSel([]); return; }
       if (pickedRef.current) setPicked(null);
     };
@@ -474,7 +502,7 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("keydown", onKey);
     };
-  }, [toolIdle, gl, toFloor]);
+  }, [toolIdle, gl, toFloor, gizmoOnly]);
 
   // 壁が消えたら選択中の頂点も掃除
   useEffect(() => {
@@ -484,15 +512,28 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
     if (next.length !== vertSel.length) setVertSel(next);
   }, [walls, vertSel]);
 
+  // ドラッグが終わったら吸着ヒントを必ず消す。
+  //   finish() でも消しているが、pointerup を取りこぼす／掴んだ壁が消える等で
+  //   マーカーとラベルだけ画面に残ってしまうことがあるため、状態からも落とす。
+  useEffect(() => {
+    if (!drag) setSnapHint(null);
+  }, [drag]);
+
   // ハンドルが消えるときにカーソル／ホバー状態を戻す（pointerOut が来ないケースの保険）
   const anyHandle = showHandles;
   useEffect(() => {
     if (!anyHandle) { cursorApi.clear(); setHoverMode(null); setPicked(null); }
   }, [anyHandle, cursorApi]);
 
-  // 選択が変わったら、選択から外れた端点の「ギズモ対象」も畳む
-  // （描画側でも pickedValid で無効な picked は無視するので、これは掃除だけの役割）
+  // 選択が変わったとき:
+  //   ・壁が全て解除された（余白クリック等）→ 頂点の範囲選択も端点ギズモも畳む（＝完全に解除）
+  //   ・一部だけ変わった → 選択から外れた端点のギズモ対象だけ畳む
   useEffect(() => {
+    if (!selectedWallIds.length) {
+      if (vertSelRef.current.length) setVertSel([]);
+      setPicked(null);
+      return;
+    }
     setPicked((p) => (p && !selectedWallIds.includes(p.wallId) ? null : p));
   }, [selectedWallIds]);
 
@@ -509,7 +550,9 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
 
   /** 端点ハンドルを掴む（mode: "start" | "end"）。クリック＝選択（ギズモ）、ドラッグ＝直接移動。 */
   const begin = (mode, w) => (e) => {
-    if (e.button !== 0) return; // Shift はスナップ修飾キー（掴む操作は妨げない）
+    if (e.button !== 0) return;
+    // Alt は「吸着を切る」修飾キー（作図と同じ）なので、ここで弾かない。
+    // 頂点の範囲選択は空き領域からの左ドラッグで始められる。
     e.stopPropagation();
     useViewportUiStore.getState().setGizmoDragging?.(true); // マーキー等の誤発火を抑止
     // クリック＝その端点を「選択」（移動ギズモの取り付け先）。そのままドラッグすれば直接移動。
@@ -536,6 +579,7 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
   /** 壁本体（足元の透明ヒット面）を掴む: 選択中の壁（複数なら全部）を平行移動する。 */
   const beginBody = (w) => (e) => {
     if (e.button !== 0) return;
+    if (e.altKey) return; // Alt+ドラッグは頂点の範囲選択に予約（マーキーへ譲る）
     // Ctrl/⌘/Shift+クリックは複数選択のトグルに使うので素通し（WallsRenderer 側が受ける）
     if (e.ctrlKey || e.metaKey || e.shiftKey) return;
     e.stopPropagation();
@@ -569,15 +613,44 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
     setDrag({ mode: "group", grab: { x: e.point.x / k, z: e.point.z / k }, items });
   };
 
+  // 範囲選択された頂点の現在位置（壁からライブに引く）
+  const vertMarkers = vertSel
+    .map((v) => {
+      const w = walls.find((x) => x.id === v.wallId);
+      return w ? { ...v, p: w[v.end] } : null;
+    })
+    .filter(Boolean);
+  // 範囲選択した頂点群の重心（まとめて動かすギズモの取り付け位置）
+  let vertGroupMid = null;
+  if (vertMarkers.length) {
+    let sx = 0, sz = 0;
+    for (const v of vertMarkers) { sx += v.p.x; sz += v.p.z; }
+    vertGroupMid = { x: sx / vertMarkers.length, z: sz / vertMarkers.length };
+  }
+
   // ── 移動ギズモ（Item と同じ PivotControls）──────────────────────────
+  //   ・頂点を範囲選択中（vertMarkers）は、その群の重心に取り付けてまとめて移動
   //   ・端点を選択中（picked）はその端点に取り付ける（連結点ごと移動）
   //   ・そうでなければ、選択中の壁の中心（複数選択なら重心）に常時出す（Item と同じ）
   //   picked の有効性は描画時に毎回確認する（stale な picked が残っても壊れない）。
   const pickedWall = picked ? walls.find((x) => x.id === picked.wallId) : null;
   const pickedValid = !!(pickedWall && selectedWallIds.includes(picked.wallId));
   let gizmoPos = null;
-  let gizmoKind = null; // 'vertex'（端点） | 'walls'（壁全体/複数）
-  if (pickedValid) {
+  let gizmoKind = null; // 'vgroup'（範囲選択頂点群） | 'vertex'（端点） | 'walls'（壁全体/複数）
+  if (gizmoOnly) {
+    // 立面/断面: 端点ハンドルが無く頂点は選べないので、常に「壁全体」を動かす。
+    // 上下オフセットも壁単位のプロパティなので、単位としてもこれが正しい。
+    if (selectedWallIds.length === 1 && wall) {
+      gizmoPos = { x: (wall.start.x + wall.end.x) / 2, z: (wall.start.z + wall.end.z) / 2 };
+      gizmoKind = "walls";
+    } else if (selectedWallIds.length > 1 && multiMid) {
+      gizmoPos = multiMid;
+      gizmoKind = "walls";
+    }
+  } else if (vertGroupMid) {
+    gizmoPos = vertGroupMid;
+    gizmoKind = "vgroup";
+  } else if (pickedValid) {
     gizmoPos = pickedWall[picked.end];
     gizmoKind = "vertex";
   } else if (selectedWallIds.length === 1 && wall) {
@@ -587,12 +660,36 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
     gizmoPos = multiMid;
     gizmoKind = "walls";
   }
-  // ハンドルの当たり判定と同一平面に置くとレイキャストの順序が曖昧になるので、少しだけ上へ
-  const gizmoY = yEnd + 2 * k;
+  // ギズモの取り付け高さ(mm)。
+  //   平面/パース: ハンドルの当たり判定と同一平面だとレイキャストの順序が曖昧になるので少し上へ。
+  //   立面/断面: 実際の壁の足元（床レベル＋その壁の上下オフセット）。上空に浮くと
+  //     断面のどこの話か分からず、上下ドラッグの起点としても不正確になるため。
+  const gizmoWallOffsetMm = gizmoOnly && wall ? (wall.offsetYMm || 0) : 0;
+  const gizmoYMm = gizmoOnly
+    ? floorBaseYMm + gizmoWallOffsetMm
+    : handleBaseYMm + 4;
+  // 立面/断面は画面に見えている2軸だけ（横＝視線に直交する水平軸／縦＝上下）。
+  const gizmoAxes = gizmoOnly
+    ? (sideAxis === "x" ? [true, true, false] : [false, true, true])
+    : [true, false, true];
 
   /** ギズモ掴み始め: 元位置と連結点（同一座標の他壁端点）を控える。 */
   const onGizmoBegin = () => {
     const st = useWallStore.getState();
+    if (gizmoKind === "vgroup") {
+      // 範囲選択した各頂点の元位置＋重心を控える（重心基準の差分で全部動かす）
+      const items = vertSelRef.current
+        .map((v) => {
+          const w = st.walls.find((x) => x.id === v.wallId);
+          return w ? { wallId: v.wallId, end: v.end, orig: { ...w[v.end] } } : null;
+        })
+        .filter(Boolean);
+      if (!items.length) return;
+      let sx = 0, sz = 0;
+      for (const it of items) { sx += it.orig.x; sz += it.orig.z; }
+      gizmoOrigRef.current = { kind: "vgroup", items, mid: { x: sx / items.length, z: sz / items.length } };
+      return;
+    }
     if (gizmoKind === "vertex") {
       const w = st.walls.find((x) => x.id === picked.wallId);
       if (!w) return;
@@ -609,13 +706,24 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
         kind: "vertex",
         fixed: picked.end === "start" ? { ...w.end } : { ...w.start },
         mates,
+        // Shift スナップ用: 掴む前の位置と、一緒に動く端点（自分＋連結点）＝候補から外す集合。
+        origPoint: { ...p0 },
+        excludeKeys: new Set([
+          vKey(picked.wallId, picked.end),
+          ...mates.map((m) => vKey(m.wallId, m.end)),
+        ]),
       };
       return;
     }
-    // 壁全体（単体は中心、複数は重心）: 対象の元位置と、差分の基準になる重心を控える
+    // 壁全体（単体は中心、複数は重心）: 対象の元位置と、差分の基準になる重心を控える。
+    // 上下オフセットも控える（立面/断面での縦ドラッグ用）。
     const items = st.walls
       .filter((w) => st.selectedWallIds.includes(w.id))
-      .map((w) => ({ wallId: w.id, orig: { start: { ...w.start }, end: { ...w.end } } }));
+      .map((w) => ({
+        wallId: w.id,
+        orig: { start: { ...w.start }, end: { ...w.end } },
+        origOffsetY: w.offsetYMm || 0,
+      }));
     if (!items.length) return;
     let sx = 0, sz = 0, n = 0;
     for (const it of items) {
@@ -623,72 +731,87 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
       sz += it.orig.start.z + it.orig.end.z;
       n += 2;
     }
-    gizmoOrigRef.current = { kind: "walls", items, mid: { x: sx / n, z: sz / n } };
+    gizmoOrigRef.current = {
+      kind: "walls",
+      items,
+      mid: { x: sx / n, z: sz / n },
+      midY: gizmoYMm, // 縦ドラッグの基準（ギズモの開始高さ）
+    };
   };
 
-  const onGizmoMove = ({ xMm, zMm }) => {
+  const onGizmoMove = ({ xMm, yMm, zMm }) => {
     const g = gizmoOrigRef.current;
     if (!g) return;
     const st = useWallStore.getState();
+    if (g.kind === "vgroup") {
+      // 頂点群のまとめ移動は「移動量」を Shift で 50mm 刻みに（形は保ったまま動かす）。
+      const rd = shiftRef.current ? snap : Math.round;
+      const dx = rd(xMm - g.mid.x);
+      const dz = rd(zMm - g.mid.z);
+      for (const it of g.items) {
+        st.updateWallLocal(it.wallId, { [it.end]: { x: it.orig.x + dx, z: it.orig.z + dz } });
+      }
+      return;
+    }
     if (g.kind === "vertex") {
-      const p = { x: Math.round(xMm), z: Math.round(zMm) };
+      // Shift 中はスナップ（直接ドラッグと同じ resolveDrawSnap ＝ 通り芯・壁芯・端点・床の辺）。
+      // ⚠️ ギズモは軸拘束（X矢印なら X だけ動く）。スナップで拘束していない軸まで動かすと
+      //    「X に沿って動かしたつもりが Z もずれる」ので、実際に動いた軸だけ採用する。
+      const orig = g.origPoint || { x: xMm, z: zMm };
+      const movedX = Math.abs(xMm - orig.x) > 0.5;
+      const movedZ = Math.abs(zMm - orig.z) > 0.5;
+      let p = { x: Math.round(xMm), z: Math.round(zMm) };
+      if (shiftRef.current) {
+        const r = snapEndpoint({ x: xMm, z: zMm }, g.fixed, g.excludeKeys || new Set(), false);
+        setSnapHint(r.kind ? r : null);
+        p = { x: movedX ? r.x : orig.x, z: movedZ ? r.z : orig.z };
+      } else {
+        setSnapHint(null);
+        p = { x: movedX ? p.x : orig.x, z: movedZ ? p.z : orig.z };
+      }
       // 最小長を割る位置は無視（潰れ防止。直接ドラッグと同じルール）
       if (Math.hypot(p.x - g.fixed.x, p.z - g.fixed.z) < WALL_MIN_LENGTH) return;
       st.updateWallLocal(picked.wallId, { [picked.end]: p });
       for (const m of g.mates) st.updateWallLocal(m.wallId, { [m.end]: p });
       return;
     }
-    const dx = Math.round(xMm - g.mid.x);
-    const dz = Math.round(zMm - g.mid.z);
+    // 壁のまとめ移動も Shift で 50mm 刻み。
+    const rdAll = shiftRef.current ? snap : Math.round;
+    const dx = rdAll(xMm - g.mid.x);
+    const dz = rdAll(zMm - g.mid.z);
+    // 立面/断面の縦ドラッグ: 床レベル(FL)からの上下オフセットを変える
+    const dy = g.midY != null && Number.isFinite(yMm) ? Math.round(yMm - g.midY) : 0;
     for (const it of g.items) {
-      st.updateWallLocal(it.wallId, {
+      const patch = {
         start: { x: it.orig.start.x + dx, z: it.orig.start.z + dz },
         end: { x: it.orig.end.x + dx, z: it.orig.end.z + dz },
-      });
+      };
+      if (dy) patch.offsetYMm = it.origOffsetY + dy;
+      st.updateWallLocal(it.wallId, patch);
     }
   };
 
   const onGizmoCommit = () => {
     if (gizmoOrigRef.current) useWallStore.getState().persistWalls();
     gizmoOrigRef.current = null;
+    setSnapHint(null); // 吸着マーカー／ラベルを消す
   };
-
-  // 範囲選択された頂点の現在位置（壁からライブに引く）
-  const vertMarkers = vertSel
-    .map((v) => {
-      const w = walls.find((x) => x.id === v.wallId);
-      return w ? { ...v, p: w[v.end] } : null;
-    })
-    .filter(Boolean);
-
-  // ガイド線の長さ（シーン全体を貫く程度）
-  const gLen = Math.max((sceneExtentXZ || 0) * 2, isMm ? 20000 : 20);
 
   return (
     // ignoreClipping: ハンドルは壁の立体より上（＝平面図のカット高さより上）に浮かせてあるので、
     // 断面クリップの対象にすると丸ごと消える。UI ギズモは断面表現の対象外（SectionClipManager が
     // この印の付いた枝を飛ばす）。
-    <group userData={{ ignoreClipping: true }}>
-      {/* 整列スナップのガイド線（他の壁端点・床頂点と同じ X / Z に揃っていることを示す） */}
-      {guides.x != null && (
-        <Line
-          points={[[guides.x * k, yEnd, -gLen * k], [guides.x * k, yEnd, gLen * k]]}
-          color={MARQUEE_COLOR} lineWidth={1} transparent opacity={0.7} depthTest={false}
-          dashed dashSize={200 * k} gapSize={140 * k}
-        />
-      )}
-      {guides.z != null && (
-        <Line
-          points={[[-gLen * k, yEnd, guides.z * k], [gLen * k, yEnd, guides.z * k]]}
-          color={MARQUEE_COLOR} lineWidth={1} transparent opacity={0.7} depthTest={false}
-          dashed dashSize={200 * k} gapSize={140 * k}
-        />
-      )}
+    <group userData={{ ignoreClipping: true, isDrawnStructure: true }}>
+      {/* 吸着ヒント: 何に吸ったか（印＋「通り芯 X1」等のラベル）。作図中とまったく同じ見せ方。
+          ⚠️ 高さはハンドル（yEnd＝壁より上に逃がしてある）ではなく床すぐ上にすること。
+          ハンドルの高さだと ①ひし形がハンドルの丸に隠れる ②ラベル(drei Html)が
+          トップビューのカメラより上＝「カメラの後ろ」と判定されて消える。作図側と同じ高さにする。 */}
+      <DrawSnapMarker snap={snapHint} y={(gridHeightMm + 4) * k} />
 
       {/* 壁本体の移動用ヒット面（平面図のみ）: 選択中の壁の足元に透明の帯を敷き、
           掴んでドラッグで壁（複数選択なら全部）を平行移動。パースでは壁の上空に浮いて
           見当違いのクリックを奪うため出さない（パースは中心ギズモで動かす）。 */}
-      {camera?.isOrthographicCamera && selectedWalls.map((w) => {
+      {!gizmoOnly && camera?.isOrthographicCamera && selectedWalls.map((w) => {
         const dx = w.end.x - w.start.x;
         const dz = w.end.z - w.start.z;
         const len = Math.hypot(dx, dz);
@@ -738,7 +861,8 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
       {!drag && gizmoPos && (
         <VertexGizmo
           orbitRef={orbitRef}
-          xMm={gizmoPos.x} zMm={gizmoPos.z} y={gizmoY} k={k}
+          xMm={gizmoPos.x} zMm={gizmoPos.z} yMm={gizmoYMm} k={k}
+          axes={gizmoAxes}
           onBegin={onGizmoBegin} onMove={onGizmoMove} onCommit={onGizmoCommit}
         />
       )}
@@ -758,8 +882,8 @@ export default function WallEditController({ enabled = true, orbitRef = null }) 
         />
       )}
 
-      {/* 範囲選択された頂点（クリックでグループ移動を開始） */}
-      {vertMarkers.map((v) => (
+      {/* 範囲選択された頂点（クリックでグループ移動を開始）。立面/断面では掴めないので出さない */}
+      {!gizmoOnly && vertMarkers.map((v) => (
         <group key={vKey(v.wallId, v.end)} position={[v.p.x * k, yEnd, v.p.z * k]}>
           <mesh
             rotation={[-Math.PI / 2, 0, 0]}

@@ -16,6 +16,8 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import LayersRoundedIcon from "@mui/icons-material/LayersRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import * as THREE from "three";
 import { layoutSceneRef } from "../services/layoutSceneRef";
 import { useEditorModeStore } from "../store/useEditorModeStore";
@@ -29,6 +31,7 @@ import { useElevationMarkerStore, computeRoomBoxFromRects } from "../store/useEl
 // 部屋ごとの展開ドキュメント（展開A〜D + 追加分）とオープン経路
 import { useRoomElevationsStore } from "../store/useRoomElevationsStore";
 import { openRoomElevation, computeElevationRooms, getElevationMarkerPos } from "../utils/openElevationView";
+import { useSelectionScopeStore } from "../store/useSelectionScopeStore";
 import { useLayoutTaskStore } from "../store/useLayoutTaskStore";
 // 断面表示時に右サイドバーの Properties（断面専用）を自動で開く
 import { useUiRightSidebarStore } from "../store/uiRightSidebarStore";
@@ -139,12 +142,15 @@ function focusViewportForDock(vp, targetId) {
 function applyEditorViewState(kind, opts = {}) {
   const em = useEditorModeStore.getState();
   const vp = useViewportUiStore.getState();
+  // 切替の起点でディゾルブを開始（クリップ即適用→リフレーム遅延の中間フレームを覆い隠す）。
+  vp.beginViewTransition?.();
   // 単体ビューへの切替は図面グリッド（分割図面ビュー）からの離脱でもある。
   // SPLIT 中に Top へ行く経路は setLayoutMode/setSplitRightViewId を通らないため明示的に畳む。
   vp.setDrawingGrid?.(null);
-  // 展開図(マテリアルモード)は専用カラムUIなので、他の図面ビュー(平面/立面/断面/パース)へ
-  // 切り替えるときは layout へ戻す（展開図ボタンのハイライトも解除される）。
-  if (em.editorMode === "material") em.setEditorMode("layout");
+  // Material モード（面仕上げ）は図面ビューを跨いで維持する（面ピックは平面/立面/断面/展開すべてで可）。
+  // ただしユーザーが明示的に Material スコープに居るときだけ維持し、旧来の一時的な material は layout へ戻す。
+  const scope = useSelectionScopeStore.getState().scope;
+  if (em.editorMode === "material" && scope !== "material") em.setEditorMode("layout");
   // ラベルモードは断面が強制OFFになるので layout へ切替（断面/間取りを見せるため）
   if (kind !== "persp" && em.editorMode === "label") em.setEditorMode("layout");
 
@@ -158,14 +164,33 @@ function applyEditorViewState(kind, opts = {}) {
     focusViewportForDock(vp, VIEWPORT_IDS.PERSP);
   } else if (kind === "floor") {
     // 平面図: layoutCameraTilt="top" で真上固定（SingleViewportCanvas が furniture_top=Top へ）。
+    // tilt を効かせるため subMode は furniture_iso に正規化（天井ビューからの復帰も含む）。
+    if (em.layoutSubMode === "ceiling_top") em.setLayoutSubMode?.("furniture_iso");
     em.setLayoutCameraTilt?.("top");
     em.setIsSectionClipEnabled(true);
     em.setSectionClipYEnabled(true);
+    em.setSectionClipYInvert?.(false);
     em.setSectionClipXEnabled(false);
     em.setSectionClipZEnabled(false);
     em.setSectionClipHeight(opts.cutY);
     focusViewportForDock(vp, VIEWPORT_IDS.TOP);
-    setTimeout(() => vp.requestFrameAll?.(), 120);
+    // リフレームはディゾルブカバーの不透明保持中に済ませる（中間フレームを見せない）。
+    setTimeout(() => vp.requestFrameAll?.(), 40);
+  } else if (kind === "ceiling") {
+    // 天井伏図: その階の FL+カット高で「下を消す」Y反転クリップにし、下から見上げる
+    // （tilt="ceiling" → effectiveSubMode=ceiling_top。LayoutCameraRig が真下から
+    //   見上げるカメラに組む。BaseGlb は天井を表示、家具はクリップで自然に消える）。
+    // tilt を効かせるため subMode は furniture_iso に正規化する。
+    if (em.layoutSubMode !== "furniture_iso") em.setLayoutSubMode?.("furniture_iso");
+    em.setLayoutCameraTilt?.("ceiling");
+    em.setIsSectionClipEnabled(true);
+    em.setSectionClipYEnabled(true);
+    em.setSectionClipYInvert?.(true);
+    em.setSectionClipXEnabled(false);
+    em.setSectionClipZEnabled(false);
+    em.setSectionClipHeight(opts.cutY);
+    focusViewportForDock(vp, VIEWPORT_IDS.TOP);
+    setTimeout(() => vp.requestFrameAll?.(), 40);
   } else if (kind === "section") {
     // 断面図: tilt="default" にしないと Top 強制で FRONT/RIGHT が無視される（2D配置の要）。
     em.setLayoutCameraTilt?.("default");
@@ -176,25 +201,47 @@ function applyEditorViewState(kind, opts = {}) {
     if (opts.axis === "x") em.setSectionClipX(opts.pos);
     else em.setSectionClipZ(opts.pos);
     focusViewportForDock(vp, opts.axis === "x" ? VIEWPORT_IDS.RIGHT : VIEWPORT_IDS.FRONT);
-    setTimeout(() => vp.requestFrameAll?.(), 140);
+    setTimeout(() => vp.requestFrameAll?.(), 40);
   } else if (kind === "elevation") {
     // 立面図: 断面クリップOFFで正面(FRONT)/側面(RIGHT)を正射投影表示（建物の外形＝立面）。
     // tilt="default" にしないと Top 強制で FRONT/RIGHT が無視される。
     em.setLayoutCameraTilt?.("default");
     em.setIsSectionClipEnabled(false);
     focusViewportForDock(vp, opts.axis === "x" ? VIEWPORT_IDS.RIGHT : VIEWPORT_IDS.FRONT);
-    setTimeout(() => vp.requestFrameAll?.(), 120);
+    setTimeout(() => vp.requestFrameAll?.(), 40);
   }
 }
 
-function Slot({ label, active, onClick, onHover, onLeave, onDelete, indent = false }) {
+/** 指定階の切断高さ（world単位）。平面図・天井伏図共通の FL+1500mm。 */
+function floorCutY(index) {
+  const bs = useBuildingSpecStore.getState();
+  const em = useEditorModeStore.getState();
+  const i = Math.max(0, Math.min(index ?? (bs.activeFloorIndex || 0), (bs.floors?.length || 1) - 1));
+  const cutMm = (bs.fl0Mm || 0) + (bs.floors?.[i]?.flMm || 0) + 1500;
+  const isMm = (em.sceneMaxY || 0) > 100;
+  return { index: i, cutY: isMm ? cutMm : cutMm / 1000 };
+}
+
+/** アクティブ階の平面図を開く（右ドック以外＝LayoutOperationUI などからの共通経路）。 */
+export function openFloorViewForActiveFloor() {
+  const { cutY } = floorCutY(null);
+  applyEditorViewState("floor", { cutY });
+}
+
+/** アクティブ階の天井伏図（見上げ）を開く（右ドック以外からの共通経路）。 */
+export function openCeilingViewForActiveFloor() {
+  const { cutY } = floorCutY(null);
+  applyEditorViewState("ceiling", { cutY });
+}
+
+function Slot({ label, active, onClick, onHover, onLeave, onDelete, indent = false, trailing = null }) {
   return (
     <Box
       onClick={onClick}
       onMouseEnter={(e) => onHover?.(e.currentTarget)}
       onMouseLeave={() => onLeave?.()}
       sx={{
-        position: "relative", height: 30, px: 1.4, display: "flex", alignItems: "center",
+        position: "relative", height: 30, px: 1.4, display: "flex", alignItems: "center", gap: 0.5,
         ml: indent ? 1.8 : 0,
         borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap",
         color: active ? "#06210f" : "color-mix(in srgb, var(--brand-fg) 82%, transparent)",
@@ -204,7 +251,8 @@ function Slot({ label, active, onClick, onHover, onLeave, onDelete, indent = fal
         "&:hover .rm": { opacity: 1 },
       }}
     >
-      {label}
+      <Box component="span" sx={{ flex: 1 }}>{label}</Box>
+      {trailing}
       {onDelete && (
         <IconButton
           className="rm" size="small"
@@ -298,6 +346,11 @@ export default function EditorAngleBar() {
   const floors = useBuildingSpecStore((s) => s.floors);
   const fl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
   const setActiveFloorIndex = useBuildingSpecStore((s) => s.setActiveFloorIndex);
+  const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
+  // 他階の表示切替（右ドックの階の目アイコン）。既定は非表示、ONにした階だけ透過表示する。
+  const ghostFloors = useEditorModeStore((s) => s.ghostFloors);
+  const toggleFloorGhost = useEditorModeStore((s) => s.toggleFloorGhost);
+  const showOtherFloorsGhost = useEditorModeStore((s) => s.showOtherFloorsGhost);
   const loadedKey = useLayoutLoadSignal((s) => s.loadedKey);
   const shots = useShotStore((s) => s.shots);
   const addShot = useShotStore((s) => s.addShot);
@@ -411,9 +464,20 @@ export default function EditorAngleBar() {
     rafRef.current = requestAnimationFrame(step);
   }, []);
 
+  // ユーザーが明示的にビューを選んだか。下の「初回デフォルト＝1F」を抑止するために使う。
+  //   図面グリッド（立面/断面/展開）と展開図は activeId を null に戻すので、activeId だけを
+  //   見ていると「プランを開いて最初に断面を押したのに 1F へ飛ぶ」ことになる
+  //   （グリッドを開いた直後にデフォルトが発火し、goFloor → applyEditorViewState が
+  //     setDrawingGrid(null) でグリッドを畳んでしまう）。
+  const userPickedRef = useRef(false);
+  const consumeAutoDefault = useCallback(() => { userPickedRef.current = true; }, []);
+  // 別の Base/Plan を読み込んだらデフォルト選択の権利を戻す。
+  useEffect(() => { userPickedRef.current = false; }, [loadedKey]);
+
   const goShot = useCallback((shot) => {
     const cam = shot?.camera;
     if (!cam) return;
+    consumeAutoDefault();
     if (shot.category === CAT_SECTION && shot.section) {
       applyEditorViewState("section", { axis: shot.section.axis, pos: shot.section.pos });
     } else {
@@ -423,15 +487,39 @@ export default function EditorAngleBar() {
     }
     setActiveId(shot.id);
     setActiveShotId(shot.id);
-  }, [flyTo, setActiveShotId]);
+  }, [flyTo, setActiveShotId, consumeAutoDefault]);
 
   const goFloor = useCallback((fv) => {
+    consumeAutoDefault();
     applyEditorViewState("floor", { cutY: fv.cutY });
     // 新規家具の配置高さ（床レベル）をこの階に合わせる。
     if (typeof fv.index === "number") setActiveFloorIndex(fv.index);
     setActiveId(fv.id);
     setActiveShotId(null);
-  }, [setActiveShotId, setActiveFloorIndex]);
+  }, [setActiveShotId, setActiveFloorIndex, consumeAutoDefault]);
+
+  // 天井伏図（見上げ）: 同じ階リストから「その階の天井」を開く。
+  const goCeiling = useCallback((fv) => {
+    consumeAutoDefault();
+    applyEditorViewState("ceiling", { cutY: fv.cutY });
+    if (typeof fv.index === "number") setActiveFloorIndex(fv.index);
+    setActiveId(`ceil-${fv.index}`);
+    setActiveShotId(null);
+  }, [setActiveShotId, setActiveFloorIndex, consumeAutoDefault]);
+
+  // 「＋平面」「＋天井」: 直上に1階追加して、その階のビューをそのまま開く。
+  //   階は建物スペック（floors）に持つので、平面・天井の両リストに同時に増える。
+  //   ※ 階の追加は buildingSpec の変更なので、保存ボタンで永続化される。
+  const addFloorAndOpen = useCallback((kind) => {
+    const bs = useBuildingSpecStore.getState();
+    bs.addFloor();
+    const next = useBuildingSpecStore.getState().floors;
+    const i = next.length - 1;
+    const cutY = toWorldY((bs.fl0Mm || 0) + (next[i]?.flMm || 0) + 1500);
+    const fv = { id: `floor-${i}`, index: i, label: `${i + 1}F`, cutY };
+    if (kind === "ceiling") goCeiling(fv); else goFloor(fv);
+    setOpenGroups((g) => ({ ...g, [kind === "ceiling" ? "ceil" : "plan"]: true }));
+  }, [toWorldY, goFloor, goCeiling]);
 
   // ✅ 初回オープン時のデフォルト: 2D 配置なら 1F（平面図）を選択状態にする。
   //    ローダー完了(loadedKey)後、まだ何も選択されておらず、かつ 2D グループのときに一度だけ適用。
@@ -439,7 +527,7 @@ export default function EditorAngleBar() {
   useEffect(() => {
     if (!isViewGroup2D) return;
     if (!loadedKey || autoFloorRef.current === loadedKey) return;
-    if (activeId) return;              // 既に何か選択済みなら尊重
+    if (activeId || userPickedRef.current) return; // 既に選択済み／ユーザーが選んだなら尊重
     if (floorViews.length === 0) return; // フロア情報がまだ無ければ次の再評価を待つ
     autoFloorRef.current = loadedKey;
     goFloor(floorViews[0]);
@@ -449,10 +537,11 @@ export default function EditorAngleBar() {
   //   北⇄南 は Z軸(FRONT)の flip、東⇄西 は X軸(RIGHT)の flip で切替。
   //   平面(TOP)の上=−Z=北 の約束に合わせる: 南=+Z(flip無) / 北=−Z(flip) / 東=+X(flip無) / 西=−X(flip)。
   const goElevation = useCallback((axis, flip, id) => {
+    consumeAutoDefault();
     applyEditorViewState("elevation", { axis, flip });
     setActiveId(id);
     setActiveShotId(null);
-  }, [setActiveShotId]);
+  }, [setActiveShotId, consumeAutoDefault]);
 
   // 2D 図面種別: 断面図（登録済みの断面ライン A-A' / B-B'… を開く）
   const openSectionProps = useCallback(() => {
@@ -463,12 +552,13 @@ export default function EditorAngleBar() {
 
   const goSectionLine = useCallback((line) => {
     if (!line) return;
+    consumeAutoDefault();
     applyEditorViewState("section", { axis: line.axis, pos: line.pos, flip: !!line.flip });
     useSectionLinesStore.getState().setActiveLine(line.id);
     openSectionProps();
     setActiveId(`sect-${line.id}`);
     setActiveShotId(null);
-  }, [setActiveShotId, openSectionProps]);
+  }, [setActiveShotId, openSectionProps, consumeAutoDefault]);
 
   // 「＋断面」: 建物中央に新しい断面ライン（既定は前後Z＝正面切り）を登録して開く。
   //   位置・向きはプロパティの平面ミニマップで調整できる。
@@ -492,10 +582,11 @@ export default function EditorAngleBar() {
   const rooms = useMemo(() => computeElevationRooms(zones || [], roomsList || []), [zones, roomsList]);
 
   const goRoomElevation = useCallback((elevationId) => {
+    consumeAutoDefault();
     openRoomElevation(elevationId);
     setActiveId(null);
     setActiveShotId(null);
-  }, [setActiveShotId]);
+  }, [setActiveShotId, consumeAutoDefault]);
 
   // 「＋展開」: 部屋に展開を1本追加してそのまま開く（向き・名前はストアが自動採番）。
   const addAndOpenRoomElevation = useCallback((roomId) => {
@@ -506,11 +597,14 @@ export default function EditorAngleBar() {
   // 平面図の展開記号クリック（オーバーレイ側）でも開かれるため、viewActive が立ったら
   // 他スロット（1F等）のハイライトを消して展開側へ寄せる。
   useEffect(() => {
-    if (elevViewActive) setActiveId(null);
-  }, [elevViewActive]);
+    if (!elevViewActive) return;
+    consumeAutoDefault(); // 展開図を開いた＝ユーザーの選択。1F デフォルトに奪われないようにする。
+    setActiveId(null);
+  }, [elevViewActive, consumeAutoDefault]);
 
-  // ✅ グループ（立面/断面/部屋ごとの展開）の開閉状態。既定は全て折りたたみ。
-  const [openGroups, setOpenGroups] = useState({});
+  // ✅ グループ（平面/天井/立面/断面/部屋ごとの展開）の開閉状態。
+  //    平面（1F/2F…）だけは従来フラットに並んでいた機能なので既定で展開しておく。
+  const [openGroups, setOpenGroups] = useState({ plan: true });
   const toggleGroup = useCallback((key) => setOpenGroups((s) => ({ ...s, [key]: !s[key] })), []);
 
   // ============================================================
@@ -520,6 +614,7 @@ export default function EditorAngleBar() {
 
   // グリッドへ入る前の共通リセット。グローバルのクリップ/flip はペイン別設定に置き換わるので落とす。
   const prepareDrawingGrid = useCallback(() => {
+    consumeAutoDefault(); // グリッドを開いた＝ユーザーの選択（activeId は null に戻すので明示的に印を付ける）
     const em = useEditorModeStore.getState();
     if (em.editorMode === "material" || em.editorMode === "label") em.setEditorMode("layout");
     em.setLayoutCameraTilt?.("default");
@@ -529,7 +624,7 @@ export default function EditorAngleBar() {
     useSectionLinesStore.getState().setActiveLine(null);
     setActiveId(null);
     setActiveShotId(null);
-  }, [setActiveShotId]);
+  }, [setActiveShotId, consumeAutoDefault]);
 
   // 立面: 北/東/南/西 の4面（goElevation と同じ axis/flip の組）。
   const openElevationGrid = useCallback(() => {
@@ -688,6 +783,7 @@ export default function EditorAngleBar() {
     setHover({ id: shot ? shot.id : null, anchor });
   }, [ensureThumb]);
   const onFloorHover = useCallback((fv, anchor) => setHover({ id: fv.id, floor: fv.label, anchor }), []);
+  const onCeilHover = useCallback((fv, anchor) => setHover({ id: `ceil-${fv.index}`, floor: fv.label, anchor }), []);
   const onSlotLeave = useCallback(() => setHover(null), []);
 
   // カテゴリ・ドロップダウンを開く（その分のサムネを撮影）。
@@ -741,11 +837,13 @@ export default function EditorAngleBar() {
 
   // ホバープレビューの解決
   const isFloorHover = hover && typeof hover.id === "string" && hover.id.startsWith("floor-");
-  const hoverShot = hover && !isFloorHover ? views.find((s) => s.id === hover.id) : null;
+  const isCeilHover = hover && typeof hover.id === "string" && hover.id.startsWith("ceil-");
+  const hoverShot = hover && !isFloorHover && !isCeilHover ? views.find((s) => s.id === hover.id) : null;
   const previewThumb = hoverShot?.thumbnail || null;
   const previewBusy = hover ? capturingKey === hover.id : false;
   let previewLabel = "";
   if (isFloorHover) previewLabel = `${hover.floor}（間取り・水平断面）`;
+  else if (isCeilHover) previewLabel = `${hover.floor}（天井伏図・見上げ）`;
   else if (hoverShot) {
     if (hoverShot.category === CAT_OVERVIEW) previewLabel = "全体（俯瞰）";
     else {
@@ -793,15 +891,74 @@ export default function EditorAngleBar() {
         {/* ✅ 全体（保存パースビュー）は 3D 演出グループのみ */}
         {!isViewGroup2D && vOverview && <Slot {...shotSlot(vOverview, CAT_OVERVIEW, false)} />}
 
-        {/* ✅ フロア（1F/2F… 間取り・水平断面＝平面図）は 2D 配置グループのみ */}
-        {isViewGroup2D && floorViews.map((fv) => (
-          <Slot
-            key={fv.id} label={fv.label} active={activeId === fv.id}
-            onClick={() => goFloor(fv)} onHover={(a) => onFloorHover(fv, a)} onLeave={onSlotLeave}
-          />
-        ))}
+        {/* ✅ 平面（1F/2F… 間取り・水平断面）は 2D 配置グループのみ。
+            ラベルクリック=アクティブ階の平面図を開く、チェブロン=階リストの開閉。 */}
+        {isViewGroup2D && floorViews.length > 0 && (
+          <>
+            <GroupSlot
+              label="平面"
+              expanded={!!openGroups.plan}
+              childActive={String(activeId || "").startsWith("floor-")}
+              gridActive={false}
+              onToggle={() => toggleGroup("plan")}
+              onOpen={() => goFloor(floorViews[Math.min(activeFloorIndex || 0, floorViews.length - 1)] || floorViews[0])}
+            />
+            {!!openGroups.plan && (
+              <>
+                {floorViews.map((fv) => {
+                  // アクティブ階は常に実体（目アイコン無し）。他階は既定で非表示、目アイコンを
+                  // ONにした階だけ透過（ゴースト）表示する。
+                  const isActiveFloor = (fv.index ?? 0) === (activeFloorIndex || 0);
+                  const isGhost = ghostFloors.includes(fv.index ?? 0);
+                  const showEye = !isActiveFloor && showOtherFloorsGhost;
+                  return (
+                    <Slot
+                      key={fv.id} indent label={fv.label} active={activeId === fv.id}
+                      onClick={() => goFloor(fv)} onHover={(a) => onFloorHover(fv, a)} onLeave={onSlotLeave}
+                      trailing={showEye ? (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); toggleFloorGhost(fv.index ?? 0); }}
+                          title={isGhost ? `${fv.label} を非表示にする` : `${fv.label} を薄く重ねて表示`}
+                          sx={{ p: 0.2, color: activeId === fv.id ? "#06210f" : `color-mix(in srgb, var(--brand-fg) ${isGhost ? 75 : 40}%, transparent)` }}
+                        >
+                          {isGhost
+                            ? <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
+                            : <VisibilityOffRoundedIcon sx={{ fontSize: 15 }} />}
+                        </IconButton>
+                      ) : null}
+                    />
+                  );
+                })}
+                <Slot indent label="＋ 平面" onClick={() => addFloorAndOpen("floor")} />
+              </>
+            )}
+            <Divider />
 
-        {/* ✅ 2D 配置グループ: 平面図(上記) に加えて 立面 / 断面 / 部屋ごとの展開 をネストで切替 */}
+            {/* 天井（1F/2F… 天井伏図）: その階の天井を FL+カット高から見上げるビュー。 */}
+            <GroupSlot
+              label="天井"
+              expanded={!!openGroups.ceil}
+              childActive={String(activeId || "").startsWith("ceil-")}
+              gridActive={false}
+              onToggle={() => toggleGroup("ceil")}
+              onOpen={() => goCeiling(floorViews[Math.min(activeFloorIndex || 0, floorViews.length - 1)] || floorViews[0])}
+            />
+            {!!openGroups.ceil && (
+              <>
+                {floorViews.map((fv) => (
+                  <Slot
+                    key={`ceil-${fv.index}`} indent label={fv.label} active={activeId === `ceil-${fv.index}`}
+                    onClick={() => goCeiling(fv)} onHover={(a) => onCeilHover(fv, a)} onLeave={onSlotLeave}
+                  />
+                ))}
+                <Slot indent label="＋ 天井" onClick={() => addFloorAndOpen("ceiling")} />
+              </>
+            )}
+          </>
+        )}
+
+        {/* ✅ 2D 配置グループ: 平面/天井(上記) に加えて 立面 / 断面 / 部屋ごとの展開 をネストで切替 */}
         {isViewGroup2D && floorViews.length > 0 && <Divider />}
         {isViewGroup2D && (
           <>

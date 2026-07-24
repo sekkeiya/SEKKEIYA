@@ -17,7 +17,6 @@ import * as THREE from "three";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useMaterialViewStore } from "../../store/useMaterialViewStore";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
-import { useElevationMarkerStore } from "../../store/useElevationMarkerStore";
 
 const CAP_COLOR = 0x0a0a0a;
 const AXES = ["y", "x", "z"]; // renderOrder 順（各軸が独立にステンシル→キャップ→clear する）
@@ -32,7 +31,14 @@ function makeStencilMat(side, op) {
   return m;
 }
 
-export default function SectionCapFill() {
+/**
+ * mirrored: 天井伏図のように投影を左右反転して描いているか。
+ *   反転すると画面上の巻き方向が逆になり、three.js は「オブジェクト行列」の反転しか
+ *   補正しないため、side=BackSide/FrontSide が示す面が入れ替わる。
+ *   キャップのステンシルは「奥向きの面で +1 / 手前向きの面で −1」を数える方式なので、
+ *   反転時は side を入れ替えて幾何学的な向きを保つ（さもないと塗りが反転して真っ黒になる）。
+ */
+export default function SectionCapFill({ mirrored = false }) {
   const { gl, scene, camera } = useThree();
   const enabledRaw = useEditorModeStore((s) => s.isSectionClipEnabled);
   const editorMode = useEditorModeStore((s) => s.editorMode);
@@ -47,12 +53,14 @@ export default function SectionCapFill() {
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const sceneExtentXZ = useEditorModeStore((s) => s.sceneExtentXZ);
 
-  // 展開図ビュー（部屋の壁面を正対で見る姿図）では切断面の塗り（ポシェ）を出さない。
-  // 出すと断面図に見えてしまうため（展開図は切断ではなく「見え」の図面）。
-  const elevView = useElevationMarkerStore((s) => s.viewActive);
-
+  // 展開図ビューでも切り口ポシェを出す（断面と同じ見た目にする）。
+  //   展開図の部屋ボックス6面クリップは SectionClipManager が全マテリアル（ステンシル材含む）へ
+  //   焼き込むため、ステンシルは部屋の内側だけの正しい形で数えられる。キャップは視線軸
+  //   （sectionClipX/ZEnabled ＝ マーカー位置の近接面）に置かれ、作図した壁・床が
+  //   マーカー面で切られた断面が黒く塗られる（躯体は ElevationDimensionsOverlay の
+  //   合成ポシェ帯と同じ位置に重なるだけなので見た目は壊れない）。
   // SectionClipManager と同じ有効条件。
-  const enabled = enabledRaw && editorMode !== "walkthrough" && !matFp && (editorMode !== "label" || heightActive) && !elevView;
+  const enabled = enabledRaw && editorMode !== "walkthrough" && !matFp && (editorMode !== "label" || heightActive);
 
   const rootRef = useRef();
   const builtRef = useRef({ key: "", items: [] });
@@ -67,7 +75,9 @@ export default function SectionCapFill() {
     scene.traverse((o) => {
       if (!o?.isMesh || !o.geometry) return;
       if (o.userData?.isSectionFill || o.userData?.isSurfaceFinish || o.userData?.replacedByUnion) return;
-      if (o.userData?.isStructuralBase) srcs.push(o);
+      // 躯体(BaseGlb/ParametricRoom)に加えて、作図した壁・床（スラブ）も切り口を塗る。
+      // これが無いと断面図で作図要素だけポシェが付かず「反映されていない」ように見える。
+      if (o.userData?.isStructuralBase || o.userData?.isWall || o.userData?.isFloorSlab) srcs.push(o);
     });
     return srcs;
   };
@@ -88,7 +98,7 @@ export default function SectionCapFill() {
     const srcs = collectSrcs();
     const half = capExtent();
     const capW = half * 2;
-    const key = capW.toFixed(0) + "|" + srcs.map((s) => s.uuid).join(",");
+    const key = capW.toFixed(0) + "|" + (mirrored ? "m" : "n") + "|" + srcs.map((s) => s.uuid).join(",");
     if (key === builtRef.current.key && group.children.length) return; // 既にビルド済み
     if (!srcs.length) return; // 躯体未ロード（後で buildTick で再試行）
 
@@ -98,9 +108,12 @@ export default function SectionCapFill() {
     AXES.forEach((axis, ai) => {
       const order = 9990 + ai * 4;
       const stencil = [];
+      // 幾何学的な「奥向き=+1 / 手前向き=−1」を保つ。左右反転描画中は side の意味が逆になるので入れ替える。
+      const sideBack = mirrored ? THREE.FrontSide : THREE.BackSide;
+      const sideFront = mirrored ? THREE.BackSide : THREE.FrontSide;
       for (const src of srcs) {
-        const mB = new THREE.Mesh(src.geometry, makeStencilMat(THREE.BackSide, THREE.IncrementWrapStencilOp));
-        const mF = new THREE.Mesh(src.geometry, makeStencilMat(THREE.FrontSide, THREE.DecrementWrapStencilOp));
+        const mB = new THREE.Mesh(src.geometry, makeStencilMat(sideBack, THREE.IncrementWrapStencilOp));
+        const mF = new THREE.Mesh(src.geometry, makeStencilMat(sideFront, THREE.DecrementWrapStencilOp));
         [mB, mF].forEach((m) => { m.matrixAutoUpdate = false; m.renderOrder = order; m.userData.isSectionFill = true; });
         group.add(mB); group.add(mF);
         stencil.push({ src, mB, mF });
@@ -129,7 +142,7 @@ export default function SectionCapFill() {
       }
     } catch {}
     if (DEBUG) console.log("[capfill] build", srcs.length, "srcs", (performance.now() - t0).toFixed(1), "ms");
-  }, [enabled, buildTick, scene, camera, gl, sceneMaxY, sceneExtentXZ]);
+  }, [enabled, mirrored, buildTick, scene, camera, gl, sceneMaxY, sceneExtentXZ]);
 
   // ── 毎フレーム：平面位置・キャップ位置・可視/不可視・行列同期（軽量）。アクティブビューのみ走る。
   useFrame((state) => {
@@ -156,7 +169,7 @@ export default function SectionCapFill() {
       lastCheckRef.current = now;
       const srcs = collectSrcs();
       const capW = capExtent() * 2;
-      const key = capW.toFixed(0) + "|" + srcs.map((s) => s.uuid).join(",");
+      const key = capW.toFixed(0) + "|" + (mirrored ? "m" : "n") + "|" + srcs.map((s) => s.uuid).join(",");
       if (key !== builtRef.current.key) { setBuildTick((t) => t + 1); return; }
     }
 
@@ -175,7 +188,12 @@ export default function SectionCapFill() {
       it.cap.visible = on;
       for (const sm of it.stencil) {
         sm.mB.visible = on; sm.mF.visible = on;
-        if (on) { sm.mB.matrix.copy(sm.src.matrixWorld); sm.mF.matrix.copy(sm.src.matrixWorld); }
+        if (on) {
+          sm.mB.matrix.copy(sm.src.matrixWorld); sm.mF.matrix.copy(sm.src.matrixWorld);
+          // 作図した壁・床は編集のたびにジオメトリが作り直される（躯体GLBは不変）。
+          // ビルド時に掴んだ参照のままだと編集後の形とズレるので、毎フレーム追従させる。
+          if (sm.mB.geometry !== sm.src.geometry) { sm.mB.geometry = sm.src.geometry; sm.mF.geometry = sm.src.geometry; }
+        }
       }
     }
 

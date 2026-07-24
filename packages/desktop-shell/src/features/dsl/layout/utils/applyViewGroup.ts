@@ -2,7 +2,8 @@
 // applySelectionScope と同じ React 非依存パターン（全ストアを getState で操作）。
 //
 // グループの意味:
-// - 2D 配置: 平面での配置作業。スコープ = ALL / Item(家具) / Zone / Map(敷地)
+// - 2D 配置: 平面での配置作業。スコープ = ALL / Item(家具) / Zone / Material(面仕上げ) / Map(敷地)
+//   Material は図面ビュー（平面/立面/断面/展開）のまま面を選んで仕上げを貼るモード。
 // - 3D 演出: 見え方の演出。スコープ = ALL / Lighting / Material / Label(面)
 //
 // 切替時の副作用:
@@ -14,7 +15,7 @@ import { useEditorModeStore, type EditorViewGroup } from "../store/useEditorMode
 import { useSelectionScopeStore } from "../store/useSelectionScopeStore";
 import { applySelectionScope } from "./applySelectionScope";
 
-export const SCOPES_2D = ["all", "item", "zone", "map"] as const;
+export const SCOPES_2D = ["all", "item", "zone", "material", "map"] as const;
 export const SCOPES_3D = ["all", "lighting", "material", "label"] as const;
 
 export function scopesForGroup(group: EditorViewGroup): readonly string[] {

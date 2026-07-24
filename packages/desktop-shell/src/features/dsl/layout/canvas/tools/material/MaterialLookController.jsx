@@ -9,7 +9,7 @@ import { useSceneObjectRegistryStore } from "../../../store/sceneObjectRegistryS
 import { useEditorModeStore } from "../../../store/useEditorModeStore";
 import { useMaterialFaceStore, classifySurface } from "../../../store/useMaterialFaceStore";
 import { useMaterialViewStore } from "../../../store/useMaterialViewStore";
-import { extractSurfaceRect } from "../../viewports/controllers/FacePickController.jsx";
+import { extractSurfaceRect, clampWallSurfaceToCeiling } from "../../viewports/controllers/FacePickController.jsx";
 import { layoutSceneRef } from "../../../services/layoutSceneRef";
 
 const FLOOR_NORMAL_MIN = 0.5;
@@ -36,7 +36,8 @@ function faceFromHit(hit) {
   const n = hit.face?.normal ? hit.face.normal.clone() : null;
   if (n && hit.object?.matrixWorld) n.transformDirection(hit.object.matrixWorld);
   if (n) n.normalize();
-  const surface = n ? extractSurfaceRect(hit.object, n, hit.point.clone()) : null;
+  // 内装壁は FL〜CL に切り詰めて展開図サイドバーと高さを一致させる（FacePickController と同じ）。
+  const surface = n ? clampWallSurfaceToCeiling(extractSurfaceRect(hit.object, n, hit.point.clone())) : null;
   const surfaceType = n ? classifySurface(n.y) : "floor";
   return {
     objectUuid: hit.object.uuid,

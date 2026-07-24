@@ -17,6 +17,7 @@ import {
   getRoomCategoryMeta,
   zoneAreaLabel,
 } from '../../../../../constants/roomCategories';
+import { measureBaseInterior } from '../../../../../utils/baseFootprint';
 
 const LABEL_SX = {
   fontSize: 10, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.35)',
@@ -91,6 +92,22 @@ export default function ZonePropertiesPanel({ zone }) {
     if (field === 'z') rect.z = v;
     updateZone({ rect });
   }, [zone.rect, updateZone]);
+
+  // 実躯体（壁の内側の面）を実測してゾーンを一致させる。
+  // 展開図の寸法（ElevationDimensionsOverlay）と同じ実測ロジックなので、
+  // フィット後は平面のゾーン面積と展開図の寸法が揃う。
+  const handleFitToBase = useCallback(() => {
+    const interior = measureBaseInterior();
+    if (!interior) return;
+    updateZone({
+      rect: {
+        x: (interior.minX + interior.maxX) / 2,
+        z: (interior.minZ + interior.maxZ) / 2,
+        width: interior.maxX - interior.minX,
+        depth: interior.maxZ - interior.minZ,
+      },
+    });
+  }, [updateZone]);
 
   const handleDelete = useCallback(() => {
     window.dispatchEvent(new CustomEvent('LayoutShell:DeleteZone', { detail: { id: zone.id } }));
@@ -183,6 +200,21 @@ export default function ZonePropertiesPanel({ zone }) {
             <NumField label="X" value={zone.rect.x} onCommit={v => handleRect('x', v)} />
             <NumField label="Y" value={zone.rect.z} onCommit={v => handleRect('z', v)} />
           </Box>
+          {/* 実躯体の内法にゾーンを合わせる。ゾーンと躯体がズレていると
+              面積表示・展開図の寸法・自動レイアウトの基準が食い違うため。 */}
+          <Tooltip title="実際の躯体（壁の内側）を実測して、ゾーンの寸法・位置を合わせます" arrow>
+            <Button
+              size="small"
+              onClick={handleFitToBase}
+              sx={{
+                textTransform: 'none', fontSize: 11, alignSelf: 'flex-start',
+                color: 'var(--brand-fg)', border: `1px solid ${alpha('#38bdf8', 0.4)}`,
+                '&:hover': { bgcolor: alpha('#38bdf8', 0.12), borderColor: alpha('#38bdf8', 0.7) },
+              }}
+            >
+              躯体にフィット
+            </Button>
+          </Tooltip>
         </Box>
       )}
 

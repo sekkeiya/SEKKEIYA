@@ -10,7 +10,8 @@
  */
 
 const admin = require("firebase-admin");
-const { synthesizePcm, isPaidUser } = require("./ttsSynthesize");
+const { synthesizePcm, isPaidUser, TTS_AUDIO_USD_PER_SEC } = require("./ttsSynthesize");
+const { recordUsage } = require("../usage/recordUsage");
 
 /** Markdown → 読み上げ用プレーンテキスト（画像・リンクURL・末尾の参考記事リストを除去）。 */
 function markdownToSpeechText(md) {
@@ -69,10 +70,12 @@ exports.generateArticleAudio = async (data = {}, context = {}) => {
   // 2並列で順に合成（速度と レート制限のバランス）
   const pcms = new Array(chunks.length);
   let sampleRate = 24000;
+  let ttsModel = null;
   for (let i = 0; i < chunks.length; i += 2) {
     const batch = chunks.slice(i, i + 2).map(async (text, j) => {
       const r = await synthesizePcm(text, voice, style);
       sampleRate = r.sampleRate;
+      ttsModel = r.model || ttsModel;
       pcms[i + j] = r.pcm;
     });
     await Promise.all(batch);
@@ -80,6 +83,17 @@ exports.generateArticleAudio = async (data = {}, context = {}) => {
   const pcmAll = Buffer.concat(pcms.filter(Boolean));
   if (!pcmAll.length) return { success: false, reason: "音声を生成できませんでした" };
   const durationSec = Math.round(pcmAll.length / 2 / sampleRate);
+
+  // 管理者APIモニターへ概算原価を計上（記事1本ぶんまとめて）。
+  // await 必須: CF v2 のレスポンス後CPUスロットリングで fire-and-forget 書込が落ちるため
+  await recordUsage({
+    uid,
+    email: context.auth?.token?.email || null,
+    feature: "article-audio",
+    provider: "gemini",
+    model: ttsModel || "gemini-2.5-flash-preview-tts",
+    costUsd: durationSec * TTS_AUDIO_USD_PER_SEC,
+  });
 
   // MP3 エンコード（64kbps mono — 5分で約2.4MB）
   const { Mp3Encoder } = await import("@breezystack/lamejs");

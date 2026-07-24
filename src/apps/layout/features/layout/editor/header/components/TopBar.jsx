@@ -10,6 +10,10 @@ import { useWorkspaceStructureStore } from "@layout/features/layout/store/useWor
 import Menus from "./Menus";
 import ConfirmDialog from "./ConfirmDialog";
 
+// ✅ 2D/3D モード
+import EditorModeToggle from "./EditorModeToggle";
+import { useEditorModeStore, EDITOR_MODES } from "@layout/features/layout/store/useEditorModeStore";
+
 // ✁EToolButtons�E�Erops無し運用�E�E
 import MaterialPickerButton from "./ToolButtons/MaterialPickerButton";
 import MoveButton from "./ToolButtons/MoveButton";
@@ -64,6 +68,10 @@ export default function TopBar({
   onSave,
 }) {
   const theme = useTheme();
+
+  // ✅ 2D/3D モード
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const is3DMode = editorMode === EDITOR_MODES.PRESENT_3D;
 
   // =========================
   // ✁EZustand selectors�E�最小限�E�E
@@ -246,10 +254,7 @@ export default function TopBar({
         minWidth: 0,
       }}
     >
-      {/* LEFT: 空�E�スペ�Eサー�E�E*/}
-      <Box sx={{ minWidth: 0 }} />
-
-      {/* CENTER: Base/Plan/Option Pills + Status */}
+      {/* LEFT: Base/Plan/Option Pills + Status */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, minWidth: 0 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0 }}>
           <Button
@@ -290,19 +295,25 @@ export default function TopBar({
         </Box>
       </Box>
 
-      {/* RIGHT: ToolButtons */}
+      {/* CENTER: 2D/3D モードトグル（一等地） */}
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minWidth: 0 }}>
+        <EditorModeToggle />
+      </Box>
+
+      {/* RIGHT: ToolButtons（モード別ゲート） */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 0.8, minWidth: 0 }}>
         {loadingMeta ? <CircularProgress size={14} /> : null}
 
         <ToolDivider />
-        <MaterialPickerButton />
+        {/* ✅ 3D 演出モード限定ツール（材質・スケール・座標系） */}
+        {is3DMode ? <MaterialPickerButton /> : null}
         <MoveButton />
         <RotateButton />
-        <ScaleButton />
+        {is3DMode ? <ScaleButton /> : null}
 
-        {/* Space */}
-        <WorldButton />
-        <LocalButton />
+        {/* Space（3Dのみ） */}
+        {is3DMode ? <WorldButton /> : null}
+        {is3DMode ? <LocalButton /> : null}
 
         <ToolDivider />
 

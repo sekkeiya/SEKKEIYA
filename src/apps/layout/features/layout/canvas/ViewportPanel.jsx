@@ -13,6 +13,7 @@ import ViewportToolbar from "./ViewportToolbar.jsx";
 import { useUiSelectionStore } from "@layout/features/layout/store/uiSelectionStore";
 import { useToolsStore } from "@layout/features/layout/store/toolsStore/useToolsStore";
 import { useViewportUiStore } from "@layout/features/layout/store/viewportUiStore";
+import { useEditorModeStore, EDITOR_MODES } from "@layout/features/layout/store/useEditorModeStore";
 
 // ✅ speed enums (MultiViewportTiled に渡す互換)
 import { SPEED_MODES } from "./menu/MoveSpeedDock.jsx";
@@ -483,7 +484,10 @@ export default function ViewportPanel({
     } catch {}
 
     if (layoutMode !== "split") {
-      if (st.activeViewportId !== "vp_persp") st.setActiveViewportId?.("vp_persp");
+      // ✅ 2D 配置モード中は TOP を維持（vp_persp に戻さない）
+      const is2D = useEditorModeStore.getState().editorMode === EDITOR_MODES.LAYOUT_2D;
+      const homeId = is2D ? "vp_top" : "vp_persp";
+      if (st.activeViewportId !== homeId) st.setActiveViewportId?.(homeId);
     }
   }, [layoutMode]);
 

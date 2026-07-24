@@ -9,7 +9,7 @@ import { useThree } from "@react-three/fiber";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
 import { useLevelLinesStore } from "../../store/useLevelLinesStore";
-import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
+import { useBuildingSpecStore, floorHeightOf, ceilingHeightOf } from "../../store/useBuildingSpecStore";
 import { useStructureLabelStore } from "../../store/useStructureLabelStore";
 
 const GL_COLOR = "#84cc16"; // GL = 黄緑
@@ -17,6 +17,35 @@ const FL_COLOR = "#38bdf8"; // FL = 水色
 const CH_COLOR = "#fb923c"; // CH(階高寸法) = オレンジ
 const CL_COLOR = "#c084fc"; // CL(天井レベル) = 紫
 const SNAP_TOL_MM = 120;    // スナップ許容（mm）
+
+// 図面（断面/立面）での寸法表記。展開図（ElevationDimensionsOverlay）と同じ体裁に揃える:
+// スレートの細線＋端部ティック＋白地に mm 値。色分けピルは「高さ設定モード」用に残す。
+const DRAFT_INK = "#475569";    // 寸法線
+const DRAFT_TEXT = "#0f172a";   // 数値
+const DRAFT_ACCENT = "#0369a1"; // 編集できることを示すアクセント（展開図と同じ）
+// hovered: ホバー中は枠をアクセント色にして「ダブルクリックで編集できる」ことを示す。
+const draftTagStyle = (strong, hovered) => ({
+  fontSize: strong ? 11 : 10,
+  fontWeight: 700,
+  letterSpacing: 0.2,
+  color: hovered ? DRAFT_ACCENT : DRAFT_TEXT,
+  background: hovered ? "rgba(255,255,255,0.99)" : "rgba(255,255,255,0.92)",
+  border: `1px solid ${hovered ? "rgba(3,105,161,0.75)" : "rgba(30,41,59,0.35)"}`,
+  boxShadow: hovered ? "0 0 0 2px rgba(3,105,161,0.15)" : "none",
+  borderRadius: 3,
+  padding: "0px 4px",
+  whiteSpace: "nowrap",
+  fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
+  transition: "border-color 0.12s, color 0.12s, box-shadow 0.12s",
+});
+const SNAP_GREEN = "#16a34a";   // 端部ドラッグでレベルへ吸着中の色（展開図と同じ）
+// 図面表記の数値入力（展開図の inputStyle と同じ白地）。
+const draftInputStyle = {
+  width: 64, fontSize: 11, fontWeight: 700, textAlign: "center",
+  borderRadius: 3, border: `1px solid ${DRAFT_ACCENT}`,
+  background: "rgba(255,255,255,0.98)", color: DRAFT_TEXT,
+  outline: "none", pointerEvents: "auto",
+};
 
 // 縦（world Y）方向の左ドラッグを world mm に変換し、レベル候補へスナップ／50mm 丸めして
 // onCommitMm(mm) へ渡す共通フック。LevelLine と CL 寸法の上下端で共有する。
@@ -66,13 +95,51 @@ function useVerticalDrag({ isMm, snapsMm, onCommitMm }) {
   return { dragging, snapped, startDrag: () => setDragging(true) };
 }
 
+// 図面表記（断面/立面）の寸法端部ハンドル。普段は透明で、ホバーすると●が現れる
+// （展開図の MarkHandle と同じ流儀）。左ドラッグで上端=天井 / 下端=床のレベルを調整。
+// R3F の Html なので DOM でヒットを取る＝図面を丸マークで汚さない。
+function DraftEndHandle({ position, drag, title }) {
+  const [hover, setHover] = useState(false);
+  const visible = hover || drag.dragging;
+  return (
+    <Html position={position} center zIndexRange={[19, 0]}>
+      <div
+        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); drag.startDrag(); }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        title={title}
+        style={{
+          width: 14, height: 14, borderRadius: "50%",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "ns-resize", pointerEvents: "auto", background: "transparent",
+          touchAction: "none",
+        }}
+      >
+        <div
+          style={{
+            width: visible ? 11 : 0, height: visible ? 11 : 0, borderRadius: "50%",
+            background: drag.snapped ? SNAP_GREEN : drag.dragging ? DRAFT_ACCENT : "rgba(255,255,255,0.95)",
+            border: visible ? `1.5px solid ${drag.snapped ? SNAP_GREEN : DRAFT_ACCENT}` : "none",
+            boxShadow: visible ? "0 1px 2px rgba(0,0,0,0.3)" : "none",
+            transition: "width 80ms, height 80ms",
+          }}
+        />
+      </div>
+    </Html>
+  );
+}
+
 // 縦方向の寸法（高さ差）を断面に表示。ダブルクリックで数値入力して値を編集できる。
 //   y1,y2: ワールド Y（線の上下端）／ z: 表示する奥行き位置／ valueMm: 表示・編集する寸法(mm)
 // hAxis: 画面横方向に対応する world 軸（"x" or "z"）。pos: その軸上の固定位置（画面左端）。
 function Dimension({ y1, y2, hAxis = "z", pos = 0, tickHalf = 60, color, label, valueMm, onCommitMm, readOnly = false, faint = false,
-  draggableEnds = false, isMm = false, snapsMm = [], onDragTopMm, onDragBottomMm }) {
+  draggableEnds = false, isMm = false, snapsMm = [], onDragTopMm, onDragBottomMm,
+  // drafting: 図面（断面/立面）向けの表記。展開図と同じスレート線＋白地の mm 値にする。
+  //   title は数値だけでは何の寸法か分からないため、ツールチップで補う（階高 / CL など）。
+  drafting = false, title = "", strong = false }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
+  const [hovered, setHovered] = useState(false);
   const yMid = (y1 + y2) / 2;
   // 縦の寸法線とティックを、画面横方向(hAxis)に応じた world 位置に置く。
   const P = (yy) => (hAxis === "x" ? [pos, yy, 0] : [0, yy, pos]);
@@ -88,16 +155,27 @@ function Dimension({ y1, y2, hAxis = "z", pos = 0, tickHalf = 60, color, label, 
   // 上端(天井 y2)・下端(床 y1)の左ドラッグ（スナップ付き）。
   const topDrag = useVerticalDrag({ isMm, snapsMm, onCommitMm: onDragTopMm || (() => {}) });
   const botDrag = useVerticalDrag({ isMm, snapsMm, onCommitMm: onDragBottomMm || (() => {}) });
-  const topColor = topDrag.snapped ? "#fff" : color;
-  const botColor = botDrag.snapped ? "#fff" : color;
+  // 図面表記では線・ティックをスレートに統一（色分けピルは高さ設定モード用）。
+  const lineColor = drafting ? DRAFT_INK : color;
+  const topColor = topDrag.snapped ? "#fff" : (drafting ? DRAFT_INK : color);
+  const botColor = botDrag.snapped ? "#fff" : (drafting ? DRAFT_INK : color);
   return (
     <group renderOrder={9998}>
       {/* 図面注記なので断面/展開のクリップ対象外（userData.ignoreClipping） */}
-      <Line points={pts} color={color} lineWidth={1.6} transparent opacity={faint ? 0.45 : 0.9} depthTest={false} userData={{ ignoreClipping: true }} />
+      <Line points={pts} color={lineColor} lineWidth={drafting ? 1.4 : 1.6} transparent opacity={faint ? 0.45 : (drafting ? 0.95 : 0.9)} depthTest={false} userData={{ ignoreClipping: true }} />
       <Line points={T(y1)} color={botColor} lineWidth={1.4} transparent opacity={faint ? 0.45 : 1} depthTest={false} userData={{ ignoreClipping: true }} />
       <Line points={T(y2)} color={topColor} lineWidth={1.4} transparent opacity={faint ? 0.45 : 1} depthTest={false} userData={{ ignoreClipping: true }} />
-      {/* 端点の左ドラッグハンドル（上=天井 / 下=床）。伸ばして他レベルにスナップできる。 */}
-      {draggableEnds && !readOnly && (
+      {/* 図面表記（断面/立面）の端部: 普段は透明・ホバーで●が出る DOM ハンドル。
+          左ドラッグで上端=天井 / 下端=床のレベルを調整（他レベルへスナップ）。 */}
+      {draggableEnds && !readOnly && drafting && (
+        <>
+          <DraftEndHandle position={P(y2)} drag={topDrag} title={`${title}の上端をドラッグで調整（レベルにスナップ）`} />
+          <DraftEndHandle position={P(y1)} drag={botDrag} title={`${title}の下端をドラッグで調整（レベルにスナップ）`} />
+        </>
+      )}
+      {/* 高さ設定モードの端部ハンドル（上=天井 / 下=床）。伸ばして他レベルにスナップできる。
+          図面表記では丸が図を汚すので上の DOM ハンドルを使う。 */}
+      {draggableEnds && !readOnly && !drafting && (
         <>
           <mesh position={P(y2)} userData={{ ignoreClipping: true }} onPointerDown={(e) => { e.stopPropagation(); topDrag.startDrag(); }}>
             <sphereGeometry args={[tickHalf * 1.1, 10, 10]} />
@@ -117,9 +195,28 @@ function Dimension({ y1, y2, hAxis = "z", pos = 0, tickHalf = 60, color, label, 
             onBlur={commit}
             onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
             onPointerDown={(e) => e.stopPropagation()}
-            style={{ width: 64, fontSize: 12, fontWeight: 800, textAlign: "center", borderRadius: 4,
+            // 図面表記（断面/立面）は展開図と同じ白地の入力欄。高さ設定モードは従来の暗色。
+            style={drafting ? draftInputStyle : { width: 64, fontSize: 12, fontWeight: 800, textAlign: "center", borderRadius: 4,
               border: `2px solid ${color}`, background: "#0b1020", color: "#fff", pointerEvents: "auto", outline: "none" }}
           />
+        ) : drafting ? (
+          // 図面表記: 展開図と同じ「白地に mm 値」。ホバーで枠がアクセント色になり編集できると分かる。
+          // 何の寸法かはツールチップで補う。
+          <div
+            onMouseEnter={readOnly ? undefined : () => setHovered(true)}
+            onMouseLeave={readOnly ? undefined : () => setHovered(false)}
+            onDoubleClick={readOnly ? undefined : (e) => { e.stopPropagation(); setText(String(Math.round(valueMm))); setEditing(true); }}
+            title={readOnly ? title : `${title}（ダブルクリックで数値入力）`}
+            style={{
+              ...draftTagStyle(strong, hovered && !readOnly),
+              opacity: faint ? 0.88 : 1,
+              pointerEvents: readOnly ? "none" : "auto",
+              cursor: readOnly ? "default" : "text",
+              userSelect: "none",
+            }}
+          >
+            {Math.round(valueMm)}
+          </div>
         ) : (
           <div
             onDoubleClick={readOnly ? undefined : (e) => { e.stopPropagation(); setText(String(Math.round(valueMm))); setEditing(true); }}
@@ -216,6 +313,8 @@ export default function LevelLinesOverlay({ overviewSuppressed = false, sectionE
   const setFl0Mm = useBuildingSpecStore((s) => s.setFl0Mm);
   const setFloorFlMm = useBuildingSpecStore((s) => s.setFloorFlMm);
   const setFloorHeightMm = useBuildingSpecStore((s) => s.setFloorHeightMm);
+  const setFloorHeightAt = useBuildingSpecStore((s) => s.setFloorHeightAt);
+  const setCeilingHeightAt = useBuildingSpecStore((s) => s.setCeilingHeightAt);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
   const setCeilingHeightMm = useBuildingSpecStore((s) => s.setCeilingHeightMm);
   const labels = useStructureLabelStore((s) => s.labels);
@@ -241,7 +340,9 @@ export default function LevelLinesOverlay({ overviewSuppressed = false, sectionE
     set.add(base + glMm);
     (floors || []).forEach((f) => set.add(base + f.flMm));
     // 各階の CL（天井レベル）にもスナップできるようにする（FL↔CL の合わせ込み用）。
-    (floors || []).forEach((f) => set.add(base + f.flMm + ceilingHeightMm));
+    //   CL は階ごとに違ってよいので、その階の値を使う。
+    const bs = useBuildingSpecStore.getState();
+    (floors || []).forEach((f, i) => set.add(base + f.flMm + ceilingHeightOf(bs, i)));
     return Array.from(set);
   }, [labels, isMm, glMm, floors, base, ceilingHeightMm]);
 
@@ -267,6 +368,13 @@ export default function LevelLinesOverlay({ overviewSuppressed = false, sectionE
   // 画面左の world 符号: 前(z切り)=−X（flip時+X）／ 横(x切り)=+Z（flip時−Z）
   const leftSign = sectionAxis === "z" ? (sectionFlip ? 1 : -1) : (sectionFlip ? -1 : 1);
   const dimPos = sectionAxis ? leftSign * half * 0.9 : dimZ;
+  // 断面図の2列チェーン:
+  //   内側 = 室内の高さ（CL）
+  //   外側 = 地盤・階レベル（GL→FL±0 → 階高）。GL→FL と 階高 は FL±0 を境に縦に連なり、
+  //          地盤から上階の床までの通し寸法になる（断面図の作法）。
+  // 高さ設定モードは従来の配置（CL を建物寄り・階高を外側）のまま。
+  const posSeg = sectionEditable ? dimPos : dimPos * 0.72;
+  const posTot = sectionEditable ? dimPos + leftSign * toWorldY(420) : dimPos;
 
   return (
     <group>
@@ -301,33 +409,84 @@ export default function LevelLinesOverlay({ overviewSuppressed = false, sectionE
 
       {/* CL（天井高）= 階高と同じ寸法線 UI（開始点=床 FL / 終点=天井 FL+CL の 2 点間）。
           断面/立面の編集ビュー（または高さ設定モード）でのみ表示。ダブルクリックで数値編集（全階共通）。 */}
-      {(sectionEditable || active) && (floors || []).map((f, i) => (
+      {(sectionEditable || active) && (floors || []).map((f, i) => {
+        // CL は階ごとの値。ある階の CL を触っても他の階の CL は変わらない。
+        const clI = ceilingHeightOf(useBuildingSpecStore.getState(), i);
+        return (
         <Dimension
           key={`cl-${i}`}
-          y1={toWorldY(flWorldMm(i))} y2={toWorldY(flWorldMm(i) + ceilingHeightMm)}
-          hAxis={dimHAxis} pos={dimPos * 0.72} tickHalf={tickHalf}
+          y1={toWorldY(flWorldMm(i))} y2={toWorldY(flWorldMm(i) + clI)}
+          hAxis={dimHAxis} pos={posSeg} tickHalf={tickHalf}
           color={CL_COLOR}
-          label={displayOnly ? `CL ${(ceilingHeightMm / 1000).toFixed(2)}m` : `CL ${(ceilingHeightMm / 1000).toFixed(2)}m ✎`}
-          valueMm={ceilingHeightMm} onCommitMm={setCeilingHeightMm} readOnly={displayOnly} faint={displayOnly}
-          draggableEnds={!displayOnly} isMm={isMm} snapsMm={snapsExcept(flWorldMm(i) + ceilingHeightMm)}
-          // 上端(天井)ドラッグ → 天井高 = worldY - その階の床。
-          onDragTopMm={(mm) => setCeilingHeightMm(mm - flWorldMm(i))}
+          drafting={sectionEditable} title={`天井高（CL）${f.name || `${i + 1}FL`}`}
+          label={displayOnly ? `CL ${(clI / 1000).toFixed(2)}m` : `CL ${(clI / 1000).toFixed(2)}m ✎`}
+          valueMm={clI} onCommitMm={(v) => setCeilingHeightAt(i, v)} readOnly={displayOnly} faint={displayOnly}
+          draggableEnds={!displayOnly} isMm={isMm} snapsMm={snapsExcept(flWorldMm(i) + clI)}
+          // 上端(天井)ドラッグ → その階の天井高 = worldY - その階の床。
+          onDragTopMm={(mm) => setCeilingHeightAt(i, mm - flWorldMm(i))}
           // 下端(床)ドラッグ → その階の FL を移動（1F は datum、GL は据え置き）。
           onDragBottomMm={i === 0
             ? (mm) => { const bs = useBuildingSpecStore.getState(); const glWorld = (bs.fl0Mm || 0) + bs.glMm; bs.setFl0Mm(mm); bs.setGlMm(glWorld - mm); }
             : (mm) => setFloorFlMm(i, mm - base)}
         />
-      ))}
+        );
+      })}
+
+      {/* 寸法: GL → FL±0（地盤面から 1FL までの立上り）。階高と同じ外側列に置き、
+          GL→FL±0→階高 が下から連なる通し寸法になる（断面図の作法）。展開図では非表示。
+          ダブルクリックで GL の深さを編集（FL±0 基準の下がり量 mm）。 */}
+      {!elevationMode && (sectionEditable || active) && Math.abs(glMm) >= 1 && (
+        <Dimension
+          y1={toWorldY(glWorldMm)} y2={toWorldY(base)}
+          hAxis={dimHAxis} pos={posTot} tickHalf={tickHalf}
+          color={GL_COLOR}
+          drafting={sectionEditable} title="GL〜FL±0"
+          label={displayOnly ? `GL→FL ${(-glMm / 1000).toFixed(2)}m` : `GL→FL ${(-glMm / 1000).toFixed(2)}m ✎`}
+          valueMm={-glMm}
+          onCommitMm={(v) => setGlMm(-Math.abs(v))}
+          readOnly={displayOnly} faint={displayOnly}
+          draggableEnds={!displayOnly} isMm={isMm} snapsMm={snapsExcept(glWorldMm)}
+          // 上端(FL±0)ドラッグ = 基準(datum)移動。GL のワールド位置は据え置き（＝この寸法が伸縮する）。
+          onDragTopMm={(mm) => {
+            const bs = useBuildingSpecStore.getState();
+            const glWorld = (bs.fl0Mm || 0) + bs.glMm;
+            bs.setFl0Mm(mm);
+            bs.setGlMm(glWorld - mm);
+          }}
+          // 下端(GL)ドラッグ = 地盤面の高さ。
+          onDragBottomMm={(mm) => setGlMm(mm - base)}
+        />
+      )}
 
       {/* 寸法: 階高（FL±0 → 上階の床）。ダブルクリックで階高を編集（全 FL が等間隔で追従）。
           表示専用時は編集不可（readOnly）で薄く表示。展開図では非表示。 */}
-      {!elevationMode && (
-        <Dimension
-          y1={toWorldY(base)} y2={toWorldY(base + floorHeightMm)} hAxis={dimHAxis} pos={dimPos} tickHalf={tickHalf}
-          color={CH_COLOR} label={displayOnly ? `階高 ${(floorHeightMm / 1000).toFixed(2)}m` : `階高 ${(floorHeightMm / 1000).toFixed(2)}m ✎`}
-          valueMm={floorHeightMm} onCommitMm={setFloorHeightMm} readOnly={displayOnly} faint={displayOnly}
-        />
-      )}
+      {!elevationMode && (floors || []).map((f, i) => {
+        // 階高も階ごとの値。その階の FL → 次の階の FL までを1本の寸法にする。
+        const hI = floorHeightOf(useBuildingSpecStore.getState(), i);
+        const y0 = flWorldMm(i);
+        return (
+          <Dimension
+            key={`fh-${i}`}
+            y1={toWorldY(y0)} y2={toWorldY(y0 + hI)} hAxis={dimHAxis} pos={posTot} tickHalf={tickHalf}
+            color={CH_COLOR}
+            drafting={sectionEditable} title={`階高 ${f.name || `${i + 1}FL`}`} strong
+            label={displayOnly ? `階高 ${(hI / 1000).toFixed(2)}m` : `階高 ${(hI / 1000).toFixed(2)}m ✎`}
+            valueMm={hI} onCommitMm={(v) => setFloorHeightAt(i, v)} readOnly={displayOnly} faint={displayOnly}
+            draggableEnds={!displayOnly} isMm={isMm} snapsMm={snapsExcept(y0 + hI)}
+            // 上端(上階の床)ドラッグ → その階だけの階高（上の階は積み上がりで追従）。
+            onDragTopMm={(mm) => { const v = mm - y0; if (v >= 1800) setFloorHeightAt(i, v); }}
+            // 下端: 1F は基準(datum)移動（GL のワールド位置は据え置き）／2F 以降は下階の階高。
+            onDragBottomMm={i === 0
+              ? (mm) => {
+                  const bs = useBuildingSpecStore.getState();
+                  const glWorld = (bs.fl0Mm || 0) + bs.glMm;
+                  bs.setFl0Mm(mm);
+                  bs.setGlMm(glWorld - mm);
+                }
+              : (mm) => setFloorFlMm(i, mm - base)}
+          />
+        );
+      })}
     </group>
   );
 }

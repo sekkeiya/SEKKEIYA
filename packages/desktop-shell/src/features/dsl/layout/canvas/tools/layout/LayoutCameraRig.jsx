@@ -28,12 +28,16 @@ export default function LayoutCameraRig({ orbitRef, layoutSubMode, baseBoundsRef
       const cam = orbit.object || camera;
       const b = baseBoundsRef?.current;
 
+      // 天井伏図（ceiling_top）は建物の下から「見上げ」で組む。
+      // 位置だけ下へ反転し、up は同じ（北=画面上 を保つ。左右は鏡像＝見上げの自然な見え方）。
+      const lookFromBelow = effectiveSubMode === "ceiling_top";
+
       if (b && b.center && b.maxDim > 0) {
         const { center, maxDim } = b;
         const orthoDist = Math.max(20, maxDim * 1.4);
 
         orbit.target.copy(center);
-        cam.position.set(center.x, center.y + orthoDist, center.z);
+        cam.position.set(center.x, center.y + (lookFromBelow ? -orthoDist : orthoDist), center.z);
         const rotIndex = layoutCameraRotationIndex || 0;
         const upVec = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotIndex * -Math.PI / 2);
         cam.up.copy(upVec);
@@ -45,7 +49,7 @@ export default function LayoutCameraRig({ orbitRef, layoutSubMode, baseBoundsRef
         }
       } else {
         orbit.target.set(0, 0, 0);
-        cam.position.set(0, 90, 0.001);
+        cam.position.set(0, lookFromBelow ? -90 : 90, 0.001);
         const rotIndex = layoutCameraRotationIndex || 0;
         const upVec = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotIndex * -Math.PI / 2);
         cam.up.copy(upVec);

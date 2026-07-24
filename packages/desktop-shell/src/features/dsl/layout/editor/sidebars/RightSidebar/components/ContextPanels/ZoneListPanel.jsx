@@ -23,7 +23,9 @@ const LABEL_SX = {
 };
 
 export default function ZoneListPanel() {
-  const zones = useLayoutTaskStore((s) => s.zones);
+  const allZones = useLayoutTaskStore((s) => s.zones);
+  // 部屋に属さないゾーンだけを扱う（部屋付きは「部屋・ゾーン」ツリー側で見せる）。
+  const zones = React.useMemo(() => (allZones || []).filter((z) => !z?.roomId), [allZones]);
   const buildingType = useAutoLayoutStore((s) => s.buildingType) ?? 'residential';
 
   const handleSelectZone = useCallback((id) => {
@@ -46,7 +48,8 @@ export default function ZoneListPanel() {
           ゾーン
         </Typography>
         <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", fontVariantNumeric: 'tabular-nums' }}>
-          {zones.length} 件
+          {/* 総数（部屋付きも含む）。括弧内は部屋に属さないゾーンの数。 */}
+          {(allZones || []).length} 件{zones.length ? `（未割当 ${zones.length}）` : ""}
         </Typography>
       </Box>
 
@@ -67,12 +70,13 @@ export default function ZoneListPanel() {
         自動ラベルの床・内壁から部屋（ゾーン）を自動生成します
       </Typography>
 
-      {/* ゾーン一覧 */}
+      {/* ゾーン一覧。部屋に属するゾーンは上の「部屋・ゾーン」ツリーに出るので、
+          ここでは部屋に属さないゾーン（roomId なし）だけを一覧する。 */}
       <Box>
-        <Typography sx={LABEL_SX}>ゾーン一覧</Typography>
+        <Typography sx={LABEL_SX}>部屋に属さないゾーン</Typography>
         {zones.length === 0 ? (
           <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", lineHeight: 1.6 }}>
-            ゾーンがありません。「自動ゾーニング」を実行するか、Top ビューで2点クリックして矩形ゾーンを描画してください。
+            ゾーンがありません。「自動部屋作成」で部屋を作るか、「自動ゾーニング」を実行、または Top ビューで2点クリックして矩形ゾーンを描画してください。
           </Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>

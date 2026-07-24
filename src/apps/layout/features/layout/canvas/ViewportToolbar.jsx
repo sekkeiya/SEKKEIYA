@@ -29,8 +29,12 @@ import ViewComfyRoundedIcon from "@mui/icons-material/ViewComfyRounded";
 
 // ✁Estore
 import { useViewportUiStore, VIEWPORT_IDS, VIEWPORT_LAYOUT } from "@layout/features/layout/store/viewportUiStore";
+import { useEditorModeStore, EDITOR_MODES } from "@layout/features/layout/store/useEditorModeStore";
 
 export default function ViewportToolbar({ variant = "inline", dense = true }) {
+  // ✅ 2D 配置モードではビュー切替（Single/Split/Persp...）を隠す（TOP固定のため）
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const is2DMode = editorMode === EDITOR_MODES.LAYOUT_2D;
   // =========================
   // ✁EViewport UI store
   // =========================
@@ -151,43 +155,48 @@ export default function ViewportToolbar({ variant = "inline", dense = true }) {
         <Stack direction="row" spacing={1} alignItems="center">
           <CommandBar />
 
-          <Divider flexItem orientation="vertical" />
+          {/* ✅ 2D 配置モードでは TOP 固定なのでビュー切替 UI を出さない */}
+          {!is2DMode ? (
+            <>
+              <Divider flexItem orientation="vertical" />
 
-          {/* ✁ELayout buttons�E�EINGLE / SPLIT�E�E*/}
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            {mkBtn("Layout: Single", onSetSingle, GridOnRoundedIcon, isSingle)}
-            {mkBtn("Layout: Split (Top + Persp)", onSetSplit, VerticalSplitRoundedIcon, isSplit)}
-          </Stack>
+              {/* ✁ELayout buttons�E�EINGLE / SPLIT�E�E*/}
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                {mkBtn("Layout: Single", onSetSingle, GridOnRoundedIcon, isSingle)}
+                {mkBtn("Layout: Split (Top + Persp)", onSetSplit, VerticalSplitRoundedIcon, isSplit)}
+              </Stack>
 
-          <Divider flexItem orientation="vertical" />
+              <Divider flexItem orientation="vertical" />
 
-          {/* ✁ESINGLE時：View刁E���E�Eersp/Top/Front/Right�E�E*/}
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ opacity: viewBtnsDisabled ? 0.45 : 1 }}>
-            {mkBtn(
-              "View: Perspective (1)",
-              () => onSetView(VIEWPORT_IDS.PERSP),
-              ThreeDRotationRoundedIcon,
-              isSingle && activeViewportId === VIEWPORT_IDS.PERSP
-            )}
-            {mkBtn(
-              "View: Top (2)",
-              () => onSetView(VIEWPORT_IDS.TOP),
-              ViewModuleRoundedIcon,
-              isSingle && activeViewportId === VIEWPORT_IDS.TOP
-            )}
-            {mkBtn(
-              "View: Front (3)",
-              () => onSetView(VIEWPORT_IDS.FRONT),
-              ViewInArRoundedIcon,
-              isSingle && activeViewportId === VIEWPORT_IDS.FRONT
-            )}
-            {mkBtn(
-              "View: Right (4)",
-              () => onSetView(VIEWPORT_IDS.RIGHT),
-              ViewComfyRoundedIcon,
-              isSingle && activeViewportId === VIEWPORT_IDS.RIGHT
-            )}
-          </Stack>
+              {/* ✁ESINGLE時：View刁E���E�Eersp/Top/Front/Right�E�E*/}
+              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ opacity: viewBtnsDisabled ? 0.45 : 1 }}>
+                {mkBtn(
+                  "View: Perspective (1)",
+                  () => onSetView(VIEWPORT_IDS.PERSP),
+                  ThreeDRotationRoundedIcon,
+                  isSingle && activeViewportId === VIEWPORT_IDS.PERSP
+                )}
+                {mkBtn(
+                  "View: Top (2)",
+                  () => onSetView(VIEWPORT_IDS.TOP),
+                  ViewModuleRoundedIcon,
+                  isSingle && activeViewportId === VIEWPORT_IDS.TOP
+                )}
+                {mkBtn(
+                  "View: Front (3)",
+                  () => onSetView(VIEWPORT_IDS.FRONT),
+                  ViewInArRoundedIcon,
+                  isSingle && activeViewportId === VIEWPORT_IDS.FRONT
+                )}
+                {mkBtn(
+                  "View: Right (4)",
+                  () => onSetView(VIEWPORT_IDS.RIGHT),
+                  ViewComfyRoundedIcon,
+                  isSingle && activeViewportId === VIEWPORT_IDS.RIGHT
+                )}
+              </Stack>
+            </>
+          ) : null}
         </Stack>
       </Box>
 

@@ -26,6 +26,9 @@ import { useUiSelectionStore } from "@layout/features/layout/store/uiSelectionSt
 // ✁Eviewport ui store�E�Elign tick 統一�E�E
 import { useViewportUiStore } from "@layout/features/layout/store/viewportUiStore";
 
+// ✅ 2D/3D エディターモード（2D中はビュー切替ショートカット無効）
+import { useEditorModeStore, EDITOR_MODES } from "@layout/features/layout/store/useEditorModeStore";
+
 /**
  * MultiViewportTiled�E�簡易版�E�E
  * - SINGLE: 1画面�E�Eerspective/Top/Front/Right の刁E���E�E
@@ -229,6 +232,9 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
       if (isTypingTarget(e.target)) return;
       if (e.repeat) return;
 
+      // ✅ 2D 配置モード中は TOP 固定なのでビュー切替キーを無効化
+      if (useEditorModeStore.getState().editorMode === EDITOR_MODES.LAYOUT_2D) return;
+
       const map = {
         Digit1: 1,
         Digit2: 2,
@@ -320,7 +326,15 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
     };
   }, [tiles.length]);
 
-  const layoutLabel = normalizedLayoutMode === LAYOUT_MODES.SPLIT ? "SPLIT" : "SINGLE";
+  // ✅ 2D/3D モード（オーバーレイ表示用）
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const is2DMode = editorMode === EDITOR_MODES.LAYOUT_2D;
+
+  const layoutLabel = is2DMode
+    ? "2D 平面"
+    : normalizedLayoutMode === LAYOUT_MODES.SPLIT
+      ? "SPLIT"
+      : "SINGLE";
 
   return (
     <Box
@@ -359,9 +373,11 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
           />
 
           <Typography sx={{ fontSize: 11, opacity: 0.65, fontWeight: 800 }}>
-            {normalizedLayoutMode === LAYOUT_MODES.SPLIT
-              ? "Shortcuts: 1=Persp / 2=Top"
-              : "Shortcuts: 1=Persp / 2=Top / 3=Front / 4=Right"}
+            {is2DMode
+              ? "家具をドラッグして配置 / 右ドラッグでパン"
+              : normalizedLayoutMode === LAYOUT_MODES.SPLIT
+                ? "Shortcuts: 1=Persp / 2=Top"
+                : "Shortcuts: 1=Persp / 2=Top / 3=Front / 4=Right"}
           </Typography>
         </Stack>
       </Box>

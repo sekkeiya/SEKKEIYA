@@ -6,12 +6,19 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 
 import { useMaterialPickerStore } from "@layout/features/layout/store/materialPickerStore";
 import { useSceneAssetsStore } from "@layout/features/layout/store/sceneAssetsStore";
+import { useSceneObjectRegistryStore } from "@layout/features/layout/store/sceneObjectRegistryStore";
 
 export default function TextureLibraryPanel() {
   const commitPick = useMaterialPickerStore((s) => s.commitPick);
 
-  const getUniqueTextureSets = useSceneAssetsStore((s) => s.getUniqueTextureSets);
-  const textures = useMemo(() => getUniqueTextureSets(), [getUniqueTextureSets]);
+  // ✅ Fix: store には getUniqueTextureSetsFromObjects しか無い。
+  //    registry の Object3D 群から抽出する（map の参照変化で再計算）
+  const objectMap = useSceneObjectRegistryStore((s) => s.map);
+  const getUniqueTextureSetsFromObjects = useSceneAssetsStore((s) => s.getUniqueTextureSetsFromObjects);
+  const textures = useMemo(
+    () => getUniqueTextureSetsFromObjects(Array.from(objectMap?.values?.() || []).filter(Boolean)),
+    [getUniqueTextureSetsFromObjects, objectMap]
+  );
 
   const [q, setQ] = useState("");
 

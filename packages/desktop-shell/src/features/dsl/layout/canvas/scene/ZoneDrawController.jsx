@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { useZoningStore, rectToBounds } from "../../store/useZoningStore";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useUiSelectionStore } from "../../store/uiSelectionStore";
 import { useAutoLayoutStore } from "../../store/useAutoLayoutStore";
 import { getRoomCategories } from "../../constants/roomCategories";
@@ -155,6 +156,8 @@ export default function ZoneDrawController({ enabled = true, roomSpec = null }) 
           category: generalCat?.key ?? "general",
           color: newZoneColor,
           rect: bounds,
+          // 描いたゾーンはそのときのアクティブ階に属す（壁・床・自動部屋作成と同じ規約）。
+          floorIndex: useBuildingSpecStore.getState().activeFloorIndex || 0,
           createdBy: "user",
           createdAtMs: Date.now(),
         };

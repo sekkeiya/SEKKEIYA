@@ -1,23 +1,41 @@
-// FloorSlabDrawController — 平面図(Top)で床（スラブ）を左クリック連打の多角形で作図する。
+// FloorSlabDrawController — 平面図(Top)で床（スラブ）を「2クリックの矩形」で作図する。
 //   ツールバーの「床」ボタンで useSlabStore.drawActive を立て、
-//     クリック = 頂点を追加（50mmスナップ／前の頂点基準の直交スナップ。Alt で自由角度）
-//     最初の頂点の近くをクリック or 右クリック（=Enter） = 多角形を閉じてスラブ確定。
-//       同時に床ツール自体も解除し、確定した床を選択状態にする（そのまま頂点編集に移れる）。
-//     Escape = 取消。下書きを捨ててコマンド終了（＝ツールも解除）。
-//   壁の作図（WallDrawController）と同じ操作系に揃えている。
-import React, { useRef, useCallback, useEffect } from "react";
+//     1回目クリック = 開始点（矩形の一方の隅）を置く
+//     カーソル移動   = 開始点から現在位置までの矩形をライブプレビュー（面積ラベル付き）
+//     2回目クリック = 終点（対角の隅）を置いて矩形の床を確定
+//       確定と同時に床ツール自体も解除し、その床を選択状態にする
+//       （そのまま頂点ハンドル／中心ギズモで編集に移れる）。
+//     右クリック / Escape = 取消（下書きを捨ててコマンド終了＝ツールも解除）。
+//   四角以外の形にしたいときは、確定後に SlabEditController の辺の中点「＋」ハンドルで
+//   頂点を追加して折れば作れる（矩形はあくまで作図の出発点）。
+//   スナップは既定でON（壁の作図と同じ）。点（壁端点・床頂点・通り芯の交点）→
+//   線（通り芯・壁芯・床の辺）→ 50mm グリッドの順に効き、何に吸着したかはマーカーで出る。
+//   Alt 押下中は吸着を外して自由配置。
+import React, { useRef, useCallback, useEffect, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useUiSelectionStore } from "../../store/uiSelectionStore";
-import { useSlabStore, SLAB_MIN_POINTS, slabAreaMm2 } from "../../store/useSlabStore";
+import { useSlabStore, slabAreaMm2 } from "../../store/useSlabStore";
+import { useWallStore } from "../../store/useWallStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
+import { resolveDrawSnap } from "../../utils/drawSnap";
+import DrawSnapMarker from "./DrawSnapMarker.jsx";
 
-const SNAP_MM = 50;        // グリッド刻み
-const CLOSE_SNAP_MM = 250; // 最初の頂点へ吸着して閉じる距離
-const ORTHO_TOL = 0.28;    // 直交スナップの許容（rad ≒ 16°）
+const SNAP_MM = 50;        // グリッド刻み（Shift 押下中のみ）
+const PT_SNAP_MM = 250;    // 既存の壁端点／床頂点への吸着距離（Shift 押下中のみ）
+const MIN_SIDE_MM = 100;   // これより細い辺の矩形は確定しない（誤クリック対策）
 const PREVIEW_COLOR = "#0d9488"; // 床ツール = ティール（壁のスレートと区別）
 
 const snap = (v) => Math.round(v / SNAP_MM) * SNAP_MM;
+
+/** 対角の2点 → 矩形の4頂点（world XZ 軸に平行）。 */
+const rectPoints = (a, b) => [
+  { x: a.x, z: a.z },
+  { x: b.x, z: a.z },
+  { x: b.x, z: b.z },
+  { x: a.x, z: b.z },
+];
 
 export default function FloorSlabDrawController({ enabled = true }) {
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm) || 0;
@@ -26,68 +44,58 @@ export default function FloorSlabDrawController({ enabled = true }) {
   const setDraftPoints = useSlabStore((s) => s.setDraftPoints);
 
   const { gl } = useThree();
-  // カーソル位置（プレビュー用）。draft の最後の点から引く。
-  const cursorRef = useRef(null);
-  const [, force] = React.useReducer((c) => c + 1, 0);
+  // 矩形の開始点。null = 未開始（次のクリックが開始点になる）。
+  const anchorRef = useRef(null);
 
   const active = enabled && drawActive;
 
-  /** 直交スナップ（前の頂点基準。Alt で解除）＋グリッドスナップ。 */
-  const resolvePoint = useCallback((e, prev) => {
-    const raw = { x: e.point.x, z: e.point.z };
-    let p = raw;
-    if (!e.altKey && prev) {
-      const dx = p.x - prev.x, dz = p.z - prev.z;
-      if (dx !== 0 || dz !== 0) {
-        const ang = Math.atan2(Math.abs(dz), Math.abs(dx));
-        if (ang < ORTHO_TOL) p = { x: p.x, z: prev.z };
-        else if (ang > Math.PI / 2 - ORTHO_TOL) p = { x: prev.x, z: p.z };
-      }
-    }
-    return { x: snap(p.x), z: snap(p.z) };
-  }, []);
+  // 今どこへ吸着しているか（マーカー表示用）。
+  const [snapHint, setSnapHint] = useState(null);
 
   /**
-   * コマンドを終了する（右クリック／Enter＝確定、Escape＝取消）。壁の作図と同じ流儀で、
-   * 終了と同時に床ツール自体も解除する。commit=true かつ3点以上なら多角形を閉じて確定し、
-   * addSlab がその床を選択状態にするので、そのまま頂点ハンドルで編集に移れる。
+   * クリック位置を決める。スナップは Shift 押下中のみ。
+   *   点（壁端点・床頂点・通り芯の交点）→ 線（通り芯・壁芯・床の辺）→ 50mm グリッド。
+   *   Alt 押下中は吸着を外して自由配置。
    */
-  const finishCommand = useCallback((commit) => {
-    const st = useSlabStore.getState();
-    const pts = st.draftPoints;
-    if (commit && pts.length >= SLAB_MIN_POINTS) st.addSlab(pts);
-    else st.setDraftPoints([]);
-    st.setDrawActive(false);
-    cursorRef.current = null;
+  const resolvePoint = useCallback((e) => {
+    // 矩形の作図なので直交スナップ（anchor 基準の水平/垂直寄せ）は使わない。
+    const r = resolveDrawSnap({ x: e.point.x, z: e.point.z }, null, !!e.altKey);
+    setSnapHint(r.kind ? r : null);
+    return { x: r.x, z: r.z };
   }, []);
 
-  // Enter = 確定（コマンド終了）／Escape = 取消（下書きを捨ててコマンド終了）
+  // ツールを離れたら吸着マーカーも消す。
+  useEffect(() => { if (!active) setSnapHint(null); }, [active]);
+
+  /** 下書きを捨ててコマンド終了（床ツール自体も解除する）。 */
+  const cancelCommand = useCallback(() => {
+    const st = useSlabStore.getState();
+    st.setDraftPoints([]);
+    st.setDrawActive(false);
+    anchorRef.current = null;
+  }, []);
+
+  // Escape = 取消（下書きを捨ててコマンド終了）
   useEffect(() => {
     const onKey = (e) => {
-      const st = useSlabStore.getState();
-      if (e.key === "Enter" && st.draftPoints.length >= SLAB_MIN_POINTS) {
-        e.stopPropagation();
-        finishCommand(true);
-        return;
-      }
-      if (e.key !== "Escape" || !st.drawActive) return;
+      if (e.key !== "Escape" || !useSlabStore.getState().drawActive) return;
       e.stopPropagation();
-      finishCommand(false);
+      cancelCommand();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [finishCommand]);
+  }, [cancelCommand]);
 
   // ツール解除／Top を離れたら下書きを破棄
   useEffect(() => {
-    if (!active && useSlabStore.getState().draftPoints.length > 0) {
-      useSlabStore.getState().setDraftPoints([]);
-      cursorRef.current = null;
+    if (!active) {
+      anchorRef.current = null;
+      if (useSlabStore.getState().draftPoints.length > 0) useSlabStore.getState().setDraftPoints([]);
     }
   }, [active]);
 
-  // 右クリック＝Enter で受けた分だけブラウザのコンテキストメニューを抑止する。
-  // Enter はツール自体を解除する（active が false になる）ので、リスナを active で
+  // 右クリック＝取消で受けた分だけブラウザのコンテキストメニューを抑止する。
+  // 取消はツール自体を解除する（active が false になる）ので、リスナを active で
   // 出し入れすると解除の直後にメニューが出てしまう。常時張っておき、pointerdown 側が
   // 立てたフラグを見て1回だけ止める。
   const suppressCtxRef = useRef(false);
@@ -105,55 +113,59 @@ export default function FloorSlabDrawController({ enabled = true }) {
   const handlePointerDown = useCallback((e) => {
     if (!active) return;
 
-    // 右クリック = Enter（3点以上なら閉じて確定。コマンド終了＝ツールも解除）。
-    // 作図を始めていなくても「ツールを構えたのをやめる」出口として機能させる。
+    // 右クリック = 取消（作図を始めていなくても「ツールを構えたのをやめる」出口になる）
     if (e.button === 2) {
       e.stopPropagation();
       suppressCtxRef.current = true; // 直後に来る contextmenu を1回だけ止める
-      finishCommand(true);
+      cancelCommand();
       return;
     }
     if (e.button !== 0) return;
     e.stopPropagation();
 
-    const pts = useSlabStore.getState().draftPoints;
-    const prev = pts.length ? pts[pts.length - 1] : null;
-    const p = resolvePoint(e, prev);
+    const p = resolvePoint(e);
 
-    if (pts.length === 0) {
+    // 1回目 = 開始点を置く
+    if (!anchorRef.current) {
       useUiSelectionStore.getState().setSelectedItemIds([]);
       useSlabStore.getState().setSelectedSlabId(null);
-      setDraftPoints([p]);
+      useWallStore.getState().setSelectedWallId(null); // 作図中は他タイプの選択も畳む
+      anchorRef.current = p;
+      setDraftPoints(rectPoints(p, p));
       return;
     }
-    // 最初の頂点の近く = 閉じる
-    const first = pts[0];
-    if (pts.length >= SLAB_MIN_POINTS && Math.hypot(p.x - first.x, p.z - first.z) <= CLOSE_SNAP_MM) {
-      finishCommand(true);
-      return;
-    }
-    // 直前と同一点は無視
-    if (prev && Math.hypot(p.x - prev.x, p.z - prev.z) < 1) return;
-    setDraftPoints([...pts, p]);
-  }, [active, resolvePoint, setDraftPoints, finishCommand]);
 
+    // 2回目 = 終点。矩形を確定してコマンド終了（ツールも解除）。
+    const a = anchorRef.current;
+    // 潰れた矩形は無視（開始点は動かさずクリックし直せる）
+    if (Math.abs(p.x - a.x) < MIN_SIDE_MM || Math.abs(p.z - a.z) < MIN_SIDE_MM) return;
+    const st = useSlabStore.getState();
+    // 作図した時点のアクティブ階を記録する（以後その階の FL に敷かれる）。
+    // addSlab はその床を選択状態にするので、そのまま編集に移れる。
+    st.addSlab(rectPoints(a, p), useBuildingSpecStore.getState().activeFloorIndex || 0);
+    st.setDrawActive(false);
+    anchorRef.current = null;
+  }, [active, resolvePoint, setDraftPoints, cancelCommand]);
+
+  // 開始点が決まっていれば、カーソル位置までの矩形をプレビュー（ボタンは押していなくてよい）
   const handlePointerMove = useCallback((e) => {
-    const pts = useSlabStore.getState().draftPoints;
-    if (!pts.length) return;
     e.stopPropagation();
-    cursorRef.current = resolvePoint(e, pts[pts.length - 1]);
-    force();
-  }, [resolvePoint]);
+    const a = anchorRef.current;
+    // 開始点を置く前もカーソル位置の吸着を解決しておく（マーカーで狙いを付けられる）。
+    const pt = resolvePoint(e);
+    if (!a) return;
+    setDraftPoints(rectPoints(a, pt));
+  }, [resolvePoint, setDraftPoints]);
 
   const y = gridHeightMm + 2;
-  const cursor = cursorRef.current;
-  // プレビュー: 確定済み頂点 ＋ カーソル位置
-  const previewPts = draftPoints.length
-    ? [...draftPoints, ...(cursor ? [cursor] : [])]
-    : [];
-  const areaM2 = previewPts.length >= 3 ? slabAreaMm2(previewPts) / 1_000_000 : 0;
-  const centroid = previewPts.length
-    ? previewPts.reduce((a, p) => ({ x: a.x + p.x / previewPts.length, z: a.z + p.z / previewPts.length }), { x: 0, z: 0 })
+  // プレビューは矩形の4頂点（閉じた輪郭で描く）
+  const hasPreview = draftPoints.length === 4;
+  const areaM2 = hasPreview ? slabAreaMm2(draftPoints) / 1_000_000 : 0;
+  const centroid = hasPreview
+    ? {
+        x: (draftPoints[0].x + draftPoints[2].x) / 2,
+        z: (draftPoints[0].z + draftPoints[2].z) / 2,
+      }
     : null;
 
   return (
@@ -171,24 +183,17 @@ export default function FloorSlabDrawController({ enabled = true }) {
         </mesh>
       )}
 
-      {/* ライブプレビュー（外周ライン＋閉じる破線＋面積ラベル） */}
-      {previewPts.length >= 2 && (
+      {/* 吸着マーカー（何に吸着しているかを形と色で示す） */}
+      {active && <DrawSnapMarker snap={snapHint} y={gridHeightMm + 3} />}
+
+      {/* ライブプレビュー（矩形の輪郭＋面積ラベル）。輪郭は動かし始めた時点から出す。 */}
+      {hasPreview && (
         <>
           <Line
-            points={previewPts.map((p) => [p.x, y, p.z])}
+            points={[...draftPoints, draftPoints[0]].map((p) => [p.x, y, p.z])}
             color={PREVIEW_COLOR} lineWidth={2.2} transparent opacity={0.9} depthTest={false}
           />
-          {previewPts.length >= 3 && (
-            <Line
-              points={[
-                [previewPts[previewPts.length - 1].x, y, previewPts[previewPts.length - 1].z],
-                [previewPts[0].x, y, previewPts[0].z],
-              ]}
-              color={PREVIEW_COLOR} lineWidth={1.4} transparent opacity={0.55} depthTest={false}
-              dashed dashSize={220} gapSize={120}
-            />
-          )}
-          {centroid && areaM2 > 0.01 && (
+          {centroid && areaM2 > 0.001 && (
             <Html position={[centroid.x, y, centroid.z]} center zIndexRange={[18, 0]} style={{ pointerEvents: "none" }}>
               <div
                 style={{
@@ -198,7 +203,7 @@ export default function FloorSlabDrawController({ enabled = true }) {
                   fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
                 }}
               >
-                床 {areaM2.toFixed(2)}㎡（右クリックで確定）
+                床 {areaM2.toFixed(2)}㎡（クリックで確定）
               </div>
             </Html>
           )}

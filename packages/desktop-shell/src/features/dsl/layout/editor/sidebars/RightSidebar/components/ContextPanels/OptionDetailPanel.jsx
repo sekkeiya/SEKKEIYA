@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Typography, Button, TextField, List, ListItem, Divider, IconButton, Collapse, Select, MenuItem } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
@@ -17,7 +17,9 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { useLayoutTaskStore } from "../../../../../store/useLayoutTaskStore";
 import { useZoningStore } from "../../../../../store/useZoningStore";
+import { useRoomCreateToolStore } from "../../../../../store/useRoomCreateToolStore";
 import { useEditorModeStore } from "../../../../../store/useEditorModeStore";
+import { useBuildingSpecStore } from "../../../../../store/useBuildingSpecStore";
 import { useAutoLayoutStore } from "../../../../../store/useAutoLayoutStore";
 import { getRoomCategories } from "../../../../../constants/roomCategories";
 import { computeBuildingCenterXZ } from "../../../../../store/useElevationMarkerStore";
@@ -549,7 +551,8 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
     const exists = rooms.some((r) => r.id === group.id);
     const newRooms = exists
       ? rooms.map((r) => (r.id === group.id ? { ...r, name } : r))
-      : [...rooms, { id: group.id, name, createdAtMs: Date.now() }]; // 擬似グループをマスタへ昇格
+      // 擬似グループをマスタへ昇格。階はグループが持つ floorIndex（＝所属ゾーンの階）を継承。
+      : [...rooms, { id: group.id, name, floorIndex: group.floorIndex ?? 0, createdAtMs: Date.now() }];
     window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms: newRooms } }));
   };
 
@@ -579,6 +582,8 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
         category: category?.key ?? null,
         color: category?.color || "rgb(var(--brand-fg-rgb) / 0.65)",
         rect: { x: cx, z: cz, width: size, depth: size },
+        // ゾーンは所属部屋と同じ階に置く（部屋の floorIndex を継承）。
+        floorIndex: group.floorIndex ?? 0,
         createdBy: "user",
         createdAtMs: Date.now(),
       },
@@ -609,6 +614,35 @@ const RoomGroup = ({ group, activeZoneId, sensors, onGroupDragEnd, rooms, candid
             <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)" }}>
               {group.zones.length ? `${group.zones.length}ゾーン` : "ゾーン未割当"}
             </Typography>
+            {/* 部屋の削除: 部屋マスタ＋所属ゾーンをまとめて消す（展開図は部屋が消えると自動掃除）。
+                「未割当」の擬似グループは部屋マスタが無いので出さない。 */}
+            {group.id !== "__unassigned__" && (
+              <IconButton
+                size="small"
+                onClick={async () => {
+                  const zoneCount = group.zones.length;
+                  if (zoneCount > 0) {
+                    // Tauri の confirm は Promise を返す実装があり得るので両対応にする
+                    let res = window.confirm(`部屋「${group.name}」と所属する${zoneCount}ゾーンを削除しますか？`);
+                    if (res && typeof res.then === "function") res = await res;
+                    if (!res) return;
+                  }
+                  const st = useLayoutTaskStore.getState();
+                  // ゾーン → 部屋マスタの順で消す（部屋だけ消すとゾーンが「未割当」に残ってしまう）
+                  const zoneIds = new Set(group.zones.map((z) => z.id));
+                  window.dispatchEvent(new CustomEvent("LayoutShell:UpdateZonesArray", {
+                    detail: { zones: (st.zones || []).filter((z) => !zoneIds.has(z.id)) },
+                  }));
+                  window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", {
+                    detail: { rooms: (st.rooms || []).filter((r) => r.id !== group.id) },
+                  }));
+                }}
+                title={`部屋「${group.name}」を削除`}
+                sx={{ p: 0.25, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", "&:hover": { color: "#f87171" } }}
+              >
+                <DeleteOutlineIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            )}
           </Box>
         )}
       </Box>
@@ -684,20 +718,63 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
         unassigned.push(z);
       }
     });
-    const groups = rooms.map((r) => ({ id: r.id, name: r.name, zones: byRoom.get(r.id) || [], inMaster: true }));
+    // 部屋の階は Room マスタの floorIndex を正とし、無ければ所属ゾーンから拾う（既存データの保険）。
+    const groups = rooms.map((r) => ({
+      id: r.id, name: r.name, inMaster: true,
+      floorIndex: r.floorIndex ?? (byRoom.get(r.id)?.[0]?.floorIndex ?? 0),
+      zones: byRoom.get(r.id) || [],
+    }));
     byRoom.forEach((zs, roomId) => {
       if (!rooms.some((r) => r.id === roomId)) {
-        groups.push({ id: roomId, name: zs[0]?.name || "（部屋）", zones: zs, inMaster: false });
+        groups.push({ id: roomId, name: zs[0]?.name || "（部屋）", floorIndex: zs[0]?.floorIndex ?? 0, zones: zs, inMaster: false });
       }
     });
     return { roomGroups: groups, unassignedZones: unassigned };
   }, [zones, rooms]);
+
+  // 階ごとに部屋をまとめる（階見出し → 部屋 → ゾーン の3階層表示用）。
+  //   建物に定義済みの階（floors）はすべて見出しを出し、部屋が無ければ「部屋なし」と示す。
+  //   部屋側にしか無い階（データ不整合の保険）も拾う。
+  const specFloors = useBuildingSpecStore((s) => s.floors);
+  const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex) || 0;
+  const floorGroups = React.useMemo(() => {
+    const byFloor = new Map();
+    roomGroups.forEach((g) => {
+      const fi = g.floorIndex ?? 0;
+      if (!byFloor.has(fi)) byFloor.set(fi, []);
+      byFloor.get(fi).push(g);
+    });
+    const floorCount = Math.max(1, specFloors?.length || 1);
+    const indices = new Set();
+    for (let i = 0; i < floorCount; i++) indices.add(i);
+    byFloor.forEach((_v, k) => indices.add(k));
+    return [...indices].sort((a, b) => a - b).map((fi) => ({
+      floorIndex: fi,
+      label: specFloors?.[fi]?.name || `${fi + 1}F`,
+      groups: byFloor.get(fi) || [],
+    }));
+  }, [roomGroups, specFloors]);
   
   // Store actions for creating zones and circulations
   const zoningSubMode = useZoningStore((s) => s.zoningSubMode);
   const setZoningSubMode = useZoningStore((s) => s.setZoningSubMode);
   const isZoningActionSelect = useZoningStore((s) => s.isZoningActionSelect);
   const setIsZoningActionSelect = useZoningStore((s) => s.setIsZoningActionSelect);
+
+  // 「自動部屋作成」ツール: 構えている間、平面図で床をクリックするとその輪郭から
+  // 部屋（Room＋Zone）が作られ、展開A〜Dの記号が自動で生える。連続クリック可。
+  const roomToolActive = useRoomCreateToolStore((s) => s.active);
+  const setRoomToolActive = useRoomCreateToolStore((s) => s.setActive);
+  useEffect(() => {
+    if (!roomToolActive) return;
+    const onKey = (e) => { if (e.key === "Escape") setRoomToolActive(false); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      // パネルごと閉じたときも構えっぱなしにしない
+      useRoomCreateToolStore.getState().setActive(false);
+    };
+  }, [roomToolActive, setRoomToolActive]);
 
   const activeCirculationPatternId = useLayoutTaskStore((s) => s.activeCirculationPatternId);
   const editorMode = useEditorModeStore((s) => s.editorMode);
@@ -798,6 +875,8 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
     const newRoom = {
       id: `room-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
       name,
+      // ＋部屋はそのときのアクティブ階に作る。
+      floorIndex: useBuildingSpecStore.getState().activeFloorIndex || 0,
       createdAtMs: Date.now(),
     };
     window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms: [...rooms, newRoom] } }));
@@ -858,6 +937,23 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
           >
             部屋
           </Button>
+          {/* 自動部屋作成: 構えて平面図の床をクリック → 床の輪郭から部屋を作成（展開記号も自動生成）。
+              連続クリックで各部屋を作れる。もう一度押すか Esc で解除。 */}
+          <Button
+            size="small"
+            variant={roomToolActive ? "contained" : "outlined"}
+            color={roomToolActive ? "primary" : "inherit"}
+            onClick={() => {
+              const next = !roomToolActive;
+              setRoomToolActive(next);
+              if (next) setIsZoningActionSelect(true); // ゾーン描画と同時に構えない
+            }}
+            startIcon={<AddIcon />}
+            title="平面図で床をクリックすると、その輪郭から部屋が作られ展開記号が表示されます（連続クリック可 / Escで解除）"
+            sx={{ fontSize: 11, py: 0, px: 1, textTransform: 'none', borderColor: alpha("#fff", 0.2) }}
+          >
+            {roomToolActive ? "床をクリック..." : "自動部屋作成"}
+          </Button>
           <Button
             size="small"
             variant={(!isZoningActionSelect && zoningSubMode === "zone") ? "contained" : "outlined"}
@@ -868,6 +964,7 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
               } else {
                 setZoningSubMode("zone");
                 setIsZoningActionSelect(false);
+                setRoomToolActive(false); // 自動部屋作成と同時に構えない
               }
             }}
             startIcon={<AddIcon />}
@@ -896,20 +993,43 @@ export default function OptionDetailPanel({ optionDoc, optionDocLoading, onAddZo
         </Typography>
       ) : (
         <Box sx={{ mb: 2 }}>
-          {/* 部屋ごとのグループ（ゾーン0件＝部屋のみ、も表示） */}
-          {roomGroups.map((g) => (
-            <RoomGroup
-              key={g.id}
-              group={g}
-              activeZoneId={activeZoneId}
-              sensors={sensors}
-              onGroupDragEnd={handleGroupDragEnd}
-              rooms={rooms}
-              candidates={nameCandidates}
-            />
+          {/* 階ごとに 階見出し → 部屋 → ゾーン の3階層で表示。今いる階を強調する。 */}
+          {floorGroups.map(({ floorIndex, label, groups }) => (
+            <Box key={floorIndex} sx={{ mb: 1.5 }}>
+              <Box
+                sx={{
+                  display: "flex", alignItems: "center", gap: 0.75,
+                  px: 0.75, py: 0.4, mb: 0.5, borderRadius: 1,
+                  background: floorIndex === activeFloorIndex ? alpha("#34d399", 0.16) : alpha("#fff", 0.05),
+                  border: `1px solid ${floorIndex === activeFloorIndex ? alpha("#34d399", 0.5) : alpha("#fff", 0.08)}`,
+                }}
+              >
+                <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: floorIndex === activeFloorIndex ? "#34d399" : "color-mix(in srgb, var(--brand-fg) 75%, transparent)" }}>
+                  {label}
+                </Typography>
+                {floorIndex === activeFloorIndex && (
+                  <Typography sx={{ fontSize: 9, fontWeight: 700, color: "#34d399" }}>表示中</Typography>
+                )}
+              </Box>
+              <Box sx={{ pl: 0.5 }}>
+                {groups.length === 0 ? (
+                  <Typography sx={{ fontSize: 10.5, opacity: 0.4, pl: 0.5, mb: 0.5 }}>部屋なし</Typography>
+                ) : groups.map((g) => (
+                  <RoomGroup
+                    key={g.id}
+                    group={g}
+                    activeZoneId={activeZoneId}
+                    sensors={sensors}
+                    onGroupDragEnd={handleGroupDragEnd}
+                    rooms={rooms}
+                    candidates={nameCandidates}
+                  />
+                ))}
+              </Box>
+            </Box>
           ))}
 
-          {/* 部屋に属さないゾーン */}
+          {/* 部屋に属さないゾーン（階に紐づかない扱い） */}
           {unassignedZones.length > 0 && (
             <RoomGroup
               group={{ id: "__unassigned__", name: "未分類ゾーン", zones: unassignedZones, inMaster: false }}

@@ -12,8 +12,102 @@ import {
   useMaterialFaceStore,
   classifySurface,
 } from "../../../store/useMaterialFaceStore";
+import { useBuildingSpecStore } from "../../../store/useBuildingSpecStore";
+import { useEditorModeStore } from "../../../store/useEditorModeStore";
+import { measureBaseInterior } from "../../../utils/baseFootprint";
+import { useSceneObjectRegistryStore } from "../../../store/sceneObjectRegistryStore";
 
 const CLICK_MOVE_THRESHOLD = 5; // px。これ以上動いたらドラッグ（=オービット）とみなす
+
+/**
+ * 内側を向いた壁面の縦範囲を「床上端〜天井下端」に切り詰めた SurfaceRect を返す。
+ * 躯体の壁メッシュは床スラブ下端から天井上まで立っているため、そのままだと展開図
+ * サイドバーの高さ・面積・貼り付け範囲が室内の見え（下は床厚に被り、上は天井際が抜ける）
+ * と食い違う。
+ * 上下端は壁ぎわの室内点から上下レイキャストで「実際の床上端／天井下端」を実測する
+ * （CL 設定値と躯体がずれていても見た目に一致する）。測れないときだけ buildingSpec の
+ * 階レベル（fl0Mm + floors[].flMm）と ceilingHeightMm にフォールバック。
+ * 外側を向いた面（外壁の外側）は外装として全高が正しいので触らない。
+ * 床/天井・鉛直でない面・クランプ不要の面はそのまま返す。
+ * ※中心は v 軸に沿って移動するだけなので平面オフセット n·c は不変＝surfaceKeyOf は変わらない。
+ */
+export function clampWallSurfaceToCeiling(surface) {
+  if (!surface) return surface;
+  const [nx, ny, nz] = surface.normal;
+  if (Math.abs(ny) > 0.5) return surface; // 壁のみ対象
+  const vy = surface.vAxis?.[1] ?? 0;
+  if (Math.abs(vy) < 0.9) return surface; // v軸が鉛直でない特殊面は対象外
+
+  const isMm = ((useEditorModeStore.getState().sceneMaxY) || 0) > 100;
+  const toWorld = (mm) => (isMm ? mm : mm / 1000);
+  const bs = useBuildingSpecStore.getState();
+  const clHeight = toWorld(bs.ceilingHeightMm || 2400);
+  const tol = toWorld(10);
+
+  const half = surface.height / 2;
+  const topY = surface.center[1] + half * Math.abs(vy);
+  const botY = surface.center[1] - half * Math.abs(vy);
+
+  // 法線の先が内法（実測の部屋範囲）に入る面＝内装面のみクランプ。
+  // 外壁の外側面は法線先が内法の外に出るので全高のまま。内法が測れない場合も安全側で触らない。
+  const interior = measureBaseInterior();
+  if (!interior) return surface;
+  const step = toWorld(200);
+  const px = surface.center[0] + nx * step;
+  const pz = surface.center[2] + nz * step;
+  const facesInside =
+    px >= interior.minX - tol && px <= interior.maxX + tol &&
+    pz >= interior.minZ - tol && pz <= interior.maxZ + tol;
+  if (!facesInside) return surface;
+
+  // ── 上下端を実測: 壁ぎわ室内点(px, midY, pz)から上下へレイ ─────────────
+  // 下向き＝上を向いた面（床上端）/ 上向き＝下を向いた面（天井下端）。
+  // baseColliders は躯体のみなので家具には当たらない。
+  const colliders = useSceneObjectRegistryStore.getState().baseColliders || [];
+  const midY = (topY + botY) / 2;
+  const rayHitY = (dirY, wantUpFace) => {
+    if (!colliders.length) return null;
+    const ray = new THREE.Raycaster(new THREE.Vector3(px, midY, pz), new THREE.Vector3(0, dirY, 0));
+    for (const h of ray.intersectObjects(colliders, true)) {
+      const nyW = h.face?.normal ? h.face.normal.clone().transformDirection(h.object.matrixWorld).y : 0;
+      if (wantUpFace ? nyW > 0.5 : nyW < -0.5) return h.point.y;
+    }
+    return null;
+  };
+
+  // FL（下端）: 実測の床上端。妥当範囲（壁下端-10mm〜+1.5m）を外れたら spec の階レベルへ。
+  let flY = rayHitY(-1, true);
+  if (flY == null || flY < botY - tol || flY > botY + toWorld(1500)) {
+    const flCandidates = [toWorld(bs.fl0Mm || 0)];
+    (bs.floors || []).forEach((f) => flCandidates.push(toWorld((bs.fl0Mm || 0) + (f.flMm || 0))));
+    flY = Infinity;
+    for (const fl of flCandidates) {
+      if (fl >= botY - tol && fl <= botY + toWorld(1500) && fl < flY) flY = fl;
+    }
+    if (!isFinite(flY)) flY = botY;
+  }
+
+  // 天井（上端）: 実測の天井下端。無い/低すぎる（FL+1.5m未満）ときは FL+CL。
+  let ceilY = rayHitY(1, false);
+  if (ceilY == null || ceilY < flY + toWorld(1500)) ceilY = flY + clHeight;
+
+  const newBotY = Math.max(botY, flY);
+  const newTopY = Math.min(topY, ceilY);
+  if (newBotY <= botY + tol && topY <= newTopY + tol) return surface; // クランプ不要
+  if (newTopY - newBotY < toWorld(100)) return surface; // 退化する場合は触らない
+
+  // 中心を v 軸に沿って新しい中点へ移動（|vy|≈1 なので t ≈ Y差分）
+  const t = ((newTopY + newBotY) / 2 - (topY + botY) / 2) / vy;
+  return {
+    ...surface,
+    center: [
+      surface.center[0] + surface.vAxis[0] * t,
+      surface.center[1] + surface.vAxis[1] * t,
+      surface.center[2] + surface.vAxis[2] * t,
+    ],
+    height: newTopY - newBotY,
+  };
+}
 
 /**
  * クリックしたメッシュのうち、ヒット面と同一平面（法線+オフセット一致）の頂点を集めて
@@ -228,8 +322,11 @@ export default function FacePickController({ active, baseCollidersRef, isTopView
       if (n) n.normalize();
 
       // クリック面に地続きの連結領域だけを選択（壁の中まで伸びるのを防ぐ）。faceIndex が無ければ従来法。
+      // 内装壁は FL〜CL に切り詰めて展開図（サイドバー/貼り付け範囲）と高さを一致させる。
       const surface = n
-        ? (extractConnectedFaceRect(hit.object, hit.faceIndex, n) || extractSurfaceRect(hit.object, n, hit.point.clone()))
+        ? clampWallSurfaceToCeiling(
+            extractConnectedFaceRect(hit.object, hit.faceIndex, n) || extractSurfaceRect(hit.object, n, hit.point.clone())
+          )
         : null;
 
       const surfaceType = n ? classifySurface(n.y) : "floor";

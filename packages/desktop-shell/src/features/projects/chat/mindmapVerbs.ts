@@ -30,8 +30,9 @@ export const mindmapVerbs: VerbDef[] = [
     risk: 'low',
     label: 'マインドマップを確認しています…',
     handler: async (ctx) => {
-      const { getActiveMindMapBoardId } = await import('./mindmapBridge');
-      const boardKey = getActiveMindMapBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      const { resolveMindMapBoardKey } = await import('./mindmapBridge');
+      const boardKey = resolveMindMapBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!boardKey) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       try {
         const { getMindMapState } = await import('./mindmapBridge');
@@ -109,8 +110,9 @@ export const mindmapVerbs: VerbDef[] = [
     risk: 'low',
     label: 'マインドマップにトピックを生やしています…',
     handler: async (ctx) => {
-      const { getActiveMindMapBoardId } = await import('./mindmapBridge');
-      const boardKey = getActiveMindMapBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      const { resolveMindMapBoardKey } = await import('./mindmapBridge');
+      const boardKey = resolveMindMapBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!boardKey) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const raw: Array<Record<string, unknown>> = Array.isArray(ctx.input.topics) ? ctx.input.topics : [];
       if (raw.length === 0) return JSON.stringify({ ok: false, error: 'topics が空です' });
@@ -211,8 +213,9 @@ export const mindmapVerbs: VerbDef[] = [
     risk: 'low',
     label: 'トピックを更新しています…',
     handler: async (ctx) => {
-      const { getActiveMindMapBoardId } = await import('./mindmapBridge');
-      const boardKey = getActiveMindMapBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      const { resolveMindMapBoardKey } = await import('./mindmapBridge');
+      const boardKey = resolveMindMapBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!boardKey) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const id = String(ctx.input.id || '');
       if (!id) return JSON.stringify({ ok: false, error: 'id が必要です' });
@@ -275,8 +278,9 @@ export const mindmapVerbs: VerbDef[] = [
     risk: 'medium',
     label: 'トピックを削除しています…',
     handler: async (ctx) => {
-      const { getActiveMindMapBoardId } = await import('./mindmapBridge');
-      const boardKey = getActiveMindMapBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      const { resolveMindMapBoardKey } = await import('./mindmapBridge');
+      const boardKey = resolveMindMapBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!boardKey) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const ids = Array.isArray(ctx.input.ids) ? ctx.input.ids.map(String) : [];
       if (ids.length === 0) return JSON.stringify({ ok: false, error: 'ids が空です' });
@@ -320,8 +324,9 @@ export const mindmapVerbs: VerbDef[] = [
     risk: 'low',
     label: 'トピックを関係線で結んでいます…',
     handler: async (ctx) => {
-      const { getActiveMindMapBoardId } = await import('./mindmapBridge');
-      const boardKey = getActiveMindMapBoardId() ?? ctx.resolveProjectId(ctx.input.projectId);
+      // チャットが正: セッションのプロジェクトを最優先し、表示中のボードは同スコープのときだけ使う
+      const { resolveMindMapBoardKey } = await import('./mindmapBridge');
+      const boardKey = resolveMindMapBoardKey(ctx.resolveProjectId(ctx.input.projectId));
       if (!boardKey) return JSON.stringify({ ok: false, error: 'projectId が必要です' });
       const rawRels: Array<Record<string, unknown>> = Array.isArray(ctx.input.relations) ? ctx.input.relations : [];
       const removeIds = Array.isArray(ctx.input.removeRelationIds) ? ctx.input.removeRelationIds.map(String) : [];

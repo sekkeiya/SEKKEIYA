@@ -61,6 +61,11 @@ export default function TransformGizmo({
   useEffect(() => {
     if (gizmoRootRef.current) {
       gizmoRootRef.current.traverse((child) => {
+        // depthTest=false の半透明オーバーレイ（床の塗り 9980 / ポシェ 9990 / 選択ティント /
+        // ハンドル 10000）はギズモ(既定 renderOrder 500)より後に描かれ、ギズモを上塗りして
+        // 薄く見せる（特に床は塗りが全面を覆うので顕著）。ギズモは最前面に置くべき UI なので、
+        // それらより高い renderOrder にして必ず上に描く。
+        if (child.renderOrder < 100000) child.renderOrder = 100000;
         const mat = child.material;
         if (mat) {
           if (child.isMesh) mat.side = THREE.DoubleSide;
@@ -792,7 +797,8 @@ export default function TransformGizmo({
       onClick={handleClick}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
-      userData={{ isGizmo: true }}
+      // 断面/展開ビューのクリップ対象外（UI ギズモが壁・天井で切れないように）。
+      userData={{ isGizmo: true, ignoreClipping: true }}
     >
       <PivotControls
         ref={tcRef}
@@ -807,6 +813,8 @@ export default function TransformGizmo({
         disableRotations={disableRotations}
         disableScaling={disableScaling}
         depthTest={false}       // Draw on top of everything
+        renderOrder={100000}    // 平面のオーバーレイ（床の塗り/ポシェ/ハンドル ~10000）より前面に
+
         fixed={true}            // Essential: Keep gizmo constant size on screen like TransformControls!
         translationSnap={null}
         translationLimits={undefined}

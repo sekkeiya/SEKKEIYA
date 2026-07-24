@@ -12,6 +12,8 @@ export interface Room {
   name: string;
   color?: string;
   createdAtMs?: number;
+  /** どの階の部屋か（0=1F）。未設定は 1F 扱い（既存データはそのまま使える）。 */
+  floorIndex?: number;
 }
 
 export interface ZoneLayoutVersion {
@@ -49,6 +51,9 @@ export interface ZoneNode {
   createdBy?: 'user' | 'ai';
   createdAtMs?: number;
   versions?: ZoneLayoutVersion[];
+  /** どの階のゾーンか（0=1F）。未設定は 1F 扱い（既存データはそのまま使える）。
+   *  平面図ではアクティブ階のゾーンだけ実体表示し、他階は「他階トレース」トグルで薄く出す。 */
+  floorIndex?: number;
 }
 
 interface ZoneActuals {

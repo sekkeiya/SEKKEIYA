@@ -151,6 +151,12 @@ service firebase.storage {
       allow read, write: if isSignedIn();
     }
 
+    /* ---------- 3DSL Underlays (下絵: PDF/画像をラスタライズした床下トレース画像) ---------- */
+    // three.js の TextureLoader が downloadURL で読むだけなので renders と同方針。
+    match /projects/{projectId}/underlays/{allPaths=**} {
+      allow read, write: if isSignedIn();
+    }
+
     /* ---------- 3DSD Thumbnails ---------- */
     match /projects/{projectId}/dsd-thumbnails/{allPaths=**} {
       allow read: if true;

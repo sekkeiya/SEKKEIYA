@@ -11,6 +11,11 @@ import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useSectionLinesStore } from "../../store/useSectionLinesStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
+import { useWallStore } from "../../store/useWallStore";
+import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStore";
+import LineEndHandle from "./LineEndHandle.jsx";
+import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
+import { measureXZBounds, defaultSectionSpan } from "../../utils/planBounds";
 
 // 落ち着いたモノクロ基調（建築図面らしい無駄のないスタイル）。
 //   非選択 = ミディアムスレート / 選択 = ほぼ黒。装飾（グロー等）は入れない。
@@ -18,7 +23,9 @@ const LINE_COLOR = "#475569";
 const LINE_ACTIVE = "#0f172a";
 const snap50 = (v, isMm) => (isMm ? Math.round(v / 50) * 50 : Math.round(v / 0.05) * 0.05);
 
-function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
+function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, active, arrowStyle }) {
+  // 作図中は DOM のラベルがクリックを吸わないようにする。
+  const drawing = useDrawToolActive();
   const { camera, gl } = useThree();
   const [dragging, setDragging] = useState(false);
   const lineRef = useRef(line);
@@ -55,13 +62,18 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
 
   // 幾何: axis="z" → 線は X 方向（z=pos）／ axis="x" → 線は Z 方向（x=pos）。矢印は −軸向き。
   const isZ = line.axis === "z";
-  const p1 = isZ ? [-half, y, line.pos] : [line.pos, y, -half];
-  const p2 = isZ ? [half, y, line.pos] : [line.pos, y, half];
+  // 線の伸びる向き: axis="z"（横断面線）は X 方向 / axis="x"（縦断面線）は Z 方向。
+  // span 未設定なら「建物の端 → 1列目の寸法線の少し内側」（autoSpan）。端部ドラッグで伸縮できる。
+  const dirAxis = isZ ? "x" : "z";
+  const from = line.span?.from ?? autoSpan.from;
+  const to = line.span?.to ?? autoSpan.to;
+  const spanMid = (from + to) / 2;
+  const p1 = isZ ? [from, y, line.pos] : [line.pos, y, from];
+  const p2 = isZ ? [to, y, line.pos] : [line.pos, y, to];
   // 視線方向: 通常 −Z / −X、向き反転（flip）時は +Z / +X。矢印は線に直交して視線側を向く。
   const sgn = line.flip ? 1 : -1;
   const dir = isZ ? [0, 0, sgn] : [sgn, 0, 0];
   const side = isZ ? [1, 0, 0] : [0, 0, 1];
-  const arrowLen = Math.max(half * 0.07, isMm ? 550 : 0.55);
   const headW = arrowLen * 0.3; // 細身の矢じり（主張しすぎない）
   // 矢印ジオメトリ（両端）。base=線端 → tip=視線方向へ arrowLen。
   //   スタイル別に stem / tri / wing を組み合わせて描く（arrowStyle は store のドキュメント設定）。
@@ -73,7 +85,7 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
     const cR = [neck[0] - side[0] * headW, y, neck[2] - side[2] * headW];
     // 線方向の単位ベクトル（isZ: X 方向 / それ以外: Z 方向）× outSign（p1=-1 / p2=+1）
     const lineDir = isZ ? [1, 0, 0] : [0, 0, 1];
-    const gap = arrowLen * 0.6;
+    const gap = labelGap; // 線端 → ラベル中心の距離（親と共有。既定長さの逆算に使う値と同じ）
     const labelPos = [
       base[0] + lineDir[0] * outSign * gap + dir[0] * (arrowLen * 0.5),
       y,
@@ -84,8 +96,10 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
       tri: new Float32Array([tip[0], y, tip[2], cL[0], y, cL[2], cR[0], y, cR[2]]),
     };
   };
-  const a1 = useMemo(() => makeArrow(p1, -1), [line.pos, line.axis, line.flip, half, y, isMm]);
-  const a2 = useMemo(() => makeArrow(p2, +1), [line.pos, line.axis, line.flip, half, y, isMm]);
+  // ⚠️ from/to（線の伸縮）を必ず依存に入れる。入れ忘れると端部をドラッグして線を伸ばしても
+  //    矢印とラベルが再計算されず、線だけ伸びて矢印が元の位置に取り残される。
+  const a1 = useMemo(() => makeArrow(p1, -1), [line.pos, line.axis, line.flip, from, to, arrowLen, labelGap, y, isMm]);
+  const a2 = useMemo(() => makeArrow(p2, +1), [line.pos, line.axis, line.flip, from, to, arrowLen, labelGap, y, isMm]);
 
   // ラベル: name "A-A'" → 両端に "A" / "A'"
   const [n1, n2] = useMemo(() => {
@@ -140,7 +154,7 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
     background: active ? "#1e293b" : "rgba(255,255,255,0.92)",
     border: `1px solid ${active ? "#1e293b" : "rgba(30,41,59,0.4)"}`,
     boxShadow: "0 1px 3px rgba(15,23,42,0.2)",
-    pointerEvents: "auto", cursor: "pointer", userSelect: "none",
+    pointerEvents: drawing ? "none" : "auto", cursor: "pointer", userSelect: "none",
   };
 
   // ドラッグ用の透明ヒット帯（線に沿って細長く）
@@ -148,6 +162,10 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
 
   // 選択＝Properties に断面線の設定を出す（パネルも開く）。
   const selectLine = (e) => {
+    // 左クリックのみ（右/中ボタンでは選択しない）。
+    if (e && e.button != null && e.button !== 0) return;
+    // 作図中は断面線を選ばず、奥の作図プレーンへイベントを通す。
+    if (isDrawToolActive()) return;
     e?.stopPropagation?.();
     useSectionLinesStore.getState().setActiveLine(lineRef.current.id);
     useUiRightSidebarStore.getState().setRightPanel("properties", true);
@@ -198,18 +216,45 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
       {/* 中間の切断線＋ドラッグ帯は選択中のみ（非選択時は両端の記号だけ＝図面の作法） */}
       {active && (
         <mesh
-          position={isZ ? [0, y, line.pos] : [line.pos, y, 0]}
+          position={isZ ? [spanMid, y, line.pos] : [line.pos, y, spanMid]}
           rotation={[-Math.PI / 2, 0, isZ ? 0 : Math.PI / 2]}
-          onPointerDown={(e) => { e.stopPropagation(); setDragging(true); }}
-          onClick={(e) => e.stopPropagation()} // 床の onClick（選択解除）へ届かせない
+          onPointerDown={(e) => { if (e.button !== 0) return; if (isDrawToolActive()) return; e.stopPropagation(); setDragging(true); }}
+          onClick={(e) => { if (!isDrawToolActive()) e.stopPropagation(); }} // 床の onClick（選択解除）へ届かせない
         >
-          <planeGeometry args={[half * 2, hitW]} />
+          <planeGeometry args={[Math.abs(to - from), hitW]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
       )}
       {active && (
         <Line points={[p1, p2]} color={col} lineWidth={width} transparent opacity={opacity}
           depthTest={false} dashed dashSize={half * 0.06} gapSize={half * 0.014} />
+      )}
+      {/* 選択中: 端部ドラッグで切断線そのものの長さを伸縮（通り芯と同じ操作） */}
+      {active && (
+        <>
+          <LineEndHandle
+            position={p1} dirAxis={dirAxis} planeY={y}
+            onChange={(v) => {
+              const cur = useSectionLinesStore.getState().lines.find((l) => l.id === lineRef.current.id);
+              if (!cur) return;
+              const t = cur.span?.to ?? autoSpan.to;
+              if (Math.abs(t - v) < 500) return;
+              useSectionLinesStore.getState().updateLine(cur.id, { span: { from: v, to: t } });
+            }}
+            title={`断面線 ${line.name} の長さを調整`}
+          />
+          <LineEndHandle
+            position={p2} dirAxis={dirAxis} planeY={y}
+            onChange={(v) => {
+              const cur = useSectionLinesStore.getState().lines.find((l) => l.id === lineRef.current.id);
+              if (!cur) return;
+              const f = cur.span?.from ?? autoSpan.from;
+              if (Math.abs(v - f) < 500) return;
+              useSectionLinesStore.getState().updateLine(cur.id, { span: { from: f, to: v } });
+            }}
+            title={`断面線 ${line.name} の長さを調整`}
+          />
+        </>
       )}
 
       {/* 両端の視線方向矢印（スタイルは Properties で選択）＋選択用の透明ヒット円 */}
@@ -241,7 +286,7 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
           key={`giz-${line.id}-${line.axis}-${gizmoKey}`}
           position={gizDraggingRef.current && gizBaseRef.current
             ? gizBaseRef.current
-            : (isZ ? [0, y, line.pos] : [line.pos, y, 0])}
+            : (isZ ? [spanMid, y, line.pos] : [line.pos, y, spanMid])}
         >
           <PivotControls
             autoTransform
@@ -255,7 +300,7 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
               gizDraggingRef.current = true;
               dragAxisRef.current = lineRef.current.axis;
               gizBaseRef.current = lineRef.current.axis === "z"
-                ? [0, y, lineRef.current.pos] : [lineRef.current.pos, y, 0];
+                ? [spanMid, y, lineRef.current.pos] : [lineRef.current.pos, y, spanMid];
               useSectionLinesStore.getState().setActiveLine(lineRef.current.id);
               useViewportUiStore.getState().setGizmoDragging?.(true);
             }}
@@ -295,7 +340,7 @@ function SectionLineItem({ line, half, y, isMm, active, arrowStyle }) {
             扱いにくいため、確実に押せる HTML ボタンとしてギズモの上に出す。 ── */}
       {active && (
         <Html
-          position={isZ ? [0, y, line.pos] : [line.pos, y, 0]}
+          position={isZ ? [spanMid, y, line.pos] : [line.pos, y, spanMid]}
           center
           zIndexRange={[18, 0]}
           style={{ pointerEvents: "none" }}
@@ -355,20 +400,48 @@ export default function SectionLinesPlanOverlay() {
   const lines = useSectionLinesStore((s) => s.lines);
   const activeLineId = useSectionLinesStore((s) => s.activeLineId);
   const arrowStyle = useSectionLinesStore((s) => s.arrowStyle);
+  const walls = useWallStore((s) => s.walls);
+  const baseColliders = useSceneObjectRegistryStore((s) => s.baseColliders);
   const sceneExtentXZ = useEditorModeStore((s) => s.sceneExtentXZ);
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const sectionClipHeight = useEditorModeStore((s) => s.sectionClipHeight);
 
-  if (!lines.length) return null;
   const isMm = (sceneMaxY || 0) > 100;
+  const w = (mm) => (isMm ? mm : mm / 1000);
   const half = Math.max((sceneExtentXZ || 0) * 0.85, isMm ? 2000 : 2);
+  // 矢印の長さ。シーンの大きさに応じるが、伸びすぎると記号が寸法列まではみ出すので上限を切る。
+  const arrowLen = Math.min(Math.max(half * 0.07, w(550)), w(700));
+  const labelGap = arrowLen * 0.6;  // 線端 → ラベル（A / A'）中心の距離
+  // 既定の長さは「ラベルが1列目の寸法線に被らない位置」から逆算。寸法列と同じ基準（planBounds）。
+  const bounds = useMemo(
+    () => measureXZBounds(baseColliders, walls, w),
+    [baseColliders, walls, isMm],
+  );
+  const autoSpan = useMemo(() => ({
+    // axis="z"（横断面線）は X 方向に伸びる／axis="x"（縦断面線）は Z 方向。
+    z: defaultSectionSpan(bounds, "x", w, half, labelGap),
+    x: defaultSectionSpan(bounds, "z", w, half, labelGap),
+  }), [bounds, half, labelGap, isMm]);
+
+  if (!lines.length) return null;
   // 平面図の水平カット面の少し下に描く（クリップで消えないように）
   const y = (sectionClipHeight || (isMm ? 1500 : 1.5)) * 0.98;
 
   return (
     <group>
       {lines.map((l) => (
-        <SectionLineItem key={l.id} line={l} half={half} y={y} isMm={isMm} active={l.id === activeLineId} arrowStyle={arrowStyle} />
+        <SectionLineItem
+          key={l.id}
+          line={l}
+          half={half}
+          autoSpan={autoSpan[l.axis] || autoSpan.z}
+          arrowLen={arrowLen}
+          labelGap={labelGap}
+          y={y}
+          isMm={isMm}
+          active={l.id === activeLineId}
+          arrowStyle={arrowStyle}
+        />
       ))}
     </group>
   );

@@ -52,6 +52,8 @@ import WalkthroughShareDialog, { type ShareVisibility } from "./share/Walkthroug
 // ✅ history / shortcuts（新規）
 import { useLayoutHistory } from "../hooks/useLayoutHistory";
 import { useUndoRedoShortcuts } from "../hooks/useUndoRedoShortcuts";
+import { useElevationMarkerStore } from "../store/useElevationMarkerStore";
+import { useElevationDimOverridesStore } from "../store/useElevationDimOverridesStore";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useLightingStore } from "../store/useLightingStore";
 import { cancelLightingReveal } from "../services/autoLightingPipeline";
@@ -60,6 +62,9 @@ import { useShotStore } from "../store/useShotStore";
 import { useBuildingSpecStore, getFloorBaseYmm } from "../store/useBuildingSpecStore";
 import { useWallStore, wallsToObstacles } from "../store/useWallStore";
 import { useSlabStore } from "../store/useSlabStore";
+import { useManualDimensionStore } from "../store/useManualDimensionStore";
+import { useGridAxisStore } from "../store/useGridAxisStore";
+import { useDimChainStore } from "../store/useDimChainStore";
 import { useDrawnFinishStore } from "../store/useDrawnFinishStore";
 import { useSurfaceFinishStore } from "../store/useSurfaceFinishStore";
 import { useSurfacePatternStore } from "../store/useSurfacePatternStore";
@@ -81,6 +86,7 @@ import { useUiSelectionStore } from "../store/uiSelectionStore";
 import { openLocalModelFiles } from "../services/layoutFileImportService";
 import { useUnderlayStore } from "../store/useUnderlayStore";
 import { importUnderlay, deleteUnderlayFile } from "../services/underlayImportService";
+import { useRhinoLayoutSyncStore } from "../store/useRhinoLayoutSyncStore";
 import { layoutPersistenceService } from "../services/layoutPersistenceService";
 import { useAutosaveDraft } from "../../../../shared/hooks/useAutosaveDraft";
 // ✅ tools store（TopBar/Buttonsのpropsバケツリレー削減）
@@ -718,7 +724,18 @@ export default function LayoutShell({
 
   const [baseGlbVersion, setBaseGlbVersion] = useState(0);
   const bumpBaseVersion = useCallback(() => setBaseGlbVersion((v) => v + 1), []);
-  const baseGlbUrlResolved = useResolvedUrl(baseGlbUrlRaw, baseGlbVersion);
+  const baseGlbUrlCloudResolved = useResolvedUrl(baseGlbUrlRaw, baseGlbVersion);
+
+  // Rhino ライブ同期（Datasmith 風）: リンク中はローカル変換した GLB（asset://）で
+  // 躯体を上書きする。以降の全利用箇所（ビューポート/プレビュー/エクスポート判定）が
+  // この値を参照するので、ここ一箇所のシャドーイングで完結する。
+  const rhinoSyncGlbUrl = useRhinoLayoutSyncStore((s) => s.glbUrl);
+  const baseGlbUrlResolved = rhinoSyncGlbUrl || baseGlbUrlCloudResolved;
+
+  // Base を離れたら Rhino 同期を解除（別 Base に他所の躯体が被らないように）。
+  useEffect(() => {
+    return () => { useRhinoLayoutSyncStore.getState().stopLink(); };
+  }, [baseDocId]);
 
   // =========================
   // ✅ Lazy migration: legacy flat Layout → Base + default Plan 1 / Option 1
@@ -938,6 +955,13 @@ export default function LayoutShell({
   }, [lastAutoLayoutConfig]);
 
   const handleUndo = useCallback(() => {
+    // 展開図の寸法編集（手入力上書き・区切り削除）は独立ストア。展開図表示中で
+    // その履歴があれば、家具レイアウトの undo より先にこちらを戻す。
+    const dim = useElevationDimOverridesStore.getState();
+    if (useElevationMarkerStore.getState().viewActive && dim.canUndo()) {
+      dim.undo();
+      return;
+    }
     coreHandleUndo();
     logSaveDataEvent({
       userId: uid || 'anonymous',
@@ -951,10 +975,19 @@ export default function LayoutShell({
     });
   }, [coreHandleUndo, logSaveDataEvent, uid, projectId, workspaceId]);
 
+  const handleRedoWithDim = useCallback(() => {
+    const dim = useElevationDimOverridesStore.getState();
+    if (useElevationMarkerStore.getState().viewActive && dim.canRedo()) {
+      dim.redo();
+      return;
+    }
+    handleRedo();
+  }, [handleRedo]);
+
   // ✅ Ctrl/Cmd + Z/Y（hookへ移動）
   useUndoRedoShortcuts({
     onUndo: handleUndo,
-    onRedo: handleRedo,
+    onRedo: handleRedoWithDim,
   });
 
   // =========================
@@ -1087,6 +1120,30 @@ export default function LayoutShell({
     if (baseDocLoading) return;
     useSlabStore.getState().setSlabs((baseDoc as any)?.spaceProgram?.slabs || []);
   }, [(baseDoc as any)?.spaceProgram?.slabs, baseDocLoading]);
+
+  // Sync manual dims（手動寸法）from BaseDoc to Zustand（壁・床と同じ扱い）
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useManualDimensionStore.getState().setDims((baseDoc as any)?.spaceProgram?.manualDims || []);
+  }, [(baseDoc as any)?.spaceProgram?.manualDims, baseDocLoading]);
+
+  // Sync grid axes（通り芯）from BaseDoc to Zustand（壁・床と同じ扱い）
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useGridAxisStore.getState().setAxes((baseDoc as any)?.spaceProgram?.gridAxes || []);
+  }, [(baseDoc as any)?.spaceProgram?.gridAxes, baseDocLoading]);
+
+  // Sync dim chains（寸法列の構成）from BaseDoc to Zustand
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useDimChainStore.getState().setConfigs((baseDoc as any)?.spaceProgram?.dimChains || {});
+  }, [(baseDoc as any)?.spaceProgram?.dimChains, baseDocLoading]);
+
+  // Sync dim chain marks（× で消した区切り）from BaseDoc to Zustand
+  useEffect(() => {
+    if (baseDocLoading) return;
+    useDimChainStore.getState().setRemovedMarks((baseDoc as any)?.spaceProgram?.dimChainMarks || {});
+  }, [(baseDoc as any)?.spaceProgram?.dimChainMarks, baseDocLoading]);
 
   // 下絵（継承＋上書き）------------------------------------------------------
   // Option 選択中は Plan ドキュメントが購読されない（optionDoc は Option 自身を指す）ため、
@@ -1233,7 +1290,11 @@ export default function LayoutShell({
     const addHandler = async (e: any) => {
       if (!baseRef) return;
       const newZone = e.detail;
-      const currentZones = baseDoc?.spaceProgram?.zones || [];
+      // ⚠️ baseDoc（React クロージャのスナップショット）を基準にしないこと。
+      //    Firestore の購読が返る前に続けて追加すると古い配列を土台にしてしまい、
+      //    直前に追加したゾーンを上書きして消す（部屋を続けて作ると先の部屋の
+      //    ゾーンが消える不具合の原因だった）。常にライブなストアを土台にする。
+      const currentZones = useLayoutTaskStore.getState().zones || [];
       const updatedZones = [...currentZones, newZone];
       try {
         useLayoutTaskStore.getState().setZones(updatedZones);
@@ -1250,8 +1311,9 @@ export default function LayoutShell({
     const updateHandler = async (e: any) => {
       if (!baseRef) return;
       const { id, targetSeats, name, category, color, rect, remarks, circulations, __merge, __noPersist } = e.detail;
-      
-      const currentZones = baseDoc?.spaceProgram?.zones || [];
+      // addHandler と同じ理由でライブなストアを土台にする（古い snapshot だと
+      // 直前に追加/更新した内容を巻き戻してしまう）。
+      const currentZones = useLayoutTaskStore.getState().zones || [];
       const updatedZones = currentZones.map((z: any) => {
         if (z.id === id) {
           return {
@@ -1286,7 +1348,8 @@ export default function LayoutShell({
       if (!baseRef) return;
       const { id } = e.detail;
       if (!id) return;
-      const currentZones = baseDoc?.spaceProgram?.zones || [];
+      // ここもライブなストアを土台にする（古い snapshot だと他のゾーンを巻き戻す）。
+      const currentZones = useLayoutTaskStore.getState().zones || [];
       const updatedZones = currentZones.filter((z: any) => z.id !== id);
       
       try {
@@ -1566,6 +1629,50 @@ export default function LayoutShell({
       }
     };
 
+    // 手動寸法: useManualDimensionStore の変更を Base の spaceProgram.manualDims へ保存。
+    const updateManualDimsHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ dims: any[] }>;
+      if (!baseRef) return;
+      try {
+        await updateDoc(baseRef, { "spaceProgram.manualDims": customEvent.detail.dims });
+      } catch (err) {
+        console.error("Failed to update manual dims", err);
+      }
+    };
+
+    // 寸法列で × 削除した区切りを Base の spaceProgram.dimChainMarks へ保存。
+    const updateDimChainMarksHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ removedMarks: any }>;
+      if (!baseRef) return;
+      try {
+        await updateDoc(baseRef, { "spaceProgram.dimChainMarks": customEvent.detail.removedMarks });
+      } catch (err) {
+        console.error("Failed to update dim chain marks", err);
+      }
+    };
+
+    // 通り芯: useGridAxisStore の変更を Base の spaceProgram.gridAxes へ保存。
+    const updateGridAxesHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ axes: any[] }>;
+      if (!baseRef) return;
+      try {
+        await updateDoc(baseRef, { "spaceProgram.gridAxes": customEvent.detail.axes });
+      } catch (err) {
+        console.error("Failed to update grid axes", err);
+      }
+    };
+
+    // 寸法列: useDimChainStore の変更を Base の spaceProgram.dimChains へ保存。
+    const updateDimChainsHandler = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ configs: any }>;
+      if (!baseRef) return;
+      try {
+        await updateDoc(baseRef, { "spaceProgram.dimChains": customEvent.detail.configs });
+      } catch (err) {
+        console.error("Failed to update dim chains", err);
+      }
+    };
+
     // 下絵: useUnderlayStore の変更を、その下絵が載っている階層の spaceProgram.underlay へ保存。
     //   target==="base" → Base（全 Plan 共通の下絵）
     //   target==="plan" → その Plan（Base の下絵を上書きする Plan 専用の下絵）
@@ -1592,6 +1699,10 @@ export default function LayoutShell({
 
     window.addEventListener("LayoutShell:UpdateWalls", updateWallsHandler);
     window.addEventListener("LayoutShell:UpdateSlabs", updateSlabsHandler);
+    window.addEventListener("LayoutShell:UpdateManualDims", updateManualDimsHandler);
+    window.addEventListener("LayoutShell:UpdateGridAxes", updateGridAxesHandler);
+    window.addEventListener("LayoutShell:UpdateDimChains", updateDimChainsHandler);
+    window.addEventListener("LayoutShell:UpdateDimChainMarks", updateDimChainMarksHandler);
     window.addEventListener("LayoutShell:UpdateUnderlay", updateUnderlayHandler);
     window.addEventListener("LayoutShell:AddZone", addHandler);
     window.addEventListener("LayoutShell:UpdateZone", updateHandler);
@@ -1609,6 +1720,10 @@ export default function LayoutShell({
     return () => {
       window.removeEventListener("LayoutShell:UpdateWalls", updateWallsHandler);
       window.removeEventListener("LayoutShell:UpdateSlabs", updateSlabsHandler);
+      window.removeEventListener("LayoutShell:UpdateManualDims", updateManualDimsHandler);
+      window.removeEventListener("LayoutShell:UpdateGridAxes", updateGridAxesHandler);
+      window.removeEventListener("LayoutShell:UpdateDimChains", updateDimChainsHandler);
+      window.removeEventListener("LayoutShell:UpdateDimChainMarks", updateDimChainMarksHandler);
       window.removeEventListener("LayoutShell:UpdateUnderlay", updateUnderlayHandler);
       window.removeEventListener("LayoutShell:AddZone", addHandler);
       window.removeEventListener("LayoutShell:UpdateZone", updateHandler);
@@ -3408,8 +3523,10 @@ export default function LayoutShell({
 
         {/* Right — 全幅ヘッダー化: デスクトップはエディタ中つねに右サイドバー(320px)を表示。
             上部の切替タブでパネルを1枚ずつ開閉する（旧・右ドックの代替）。
-            非編集（Layout Dashboard）中は LayoutDashboard 自身が右パネルを埋め込むためここでは出さない。 */}
-        {isEditing ? (
+            非編集（Layout Dashboard）中は LayoutDashboard 自身が右パネルを埋め込むためここでは出さない。
+            Material モード中は展開図カラム（ElevationEditor）だけを出し、右サイドバーは列ごと隠す。
+            パネルの開閉状態は触らないので、モードを抜ければそのまま復帰する。 */}
+        {isEditing && editorMode !== "material" ? (
           !isMobile ? (
             <Box sx={{ width: 320, flexShrink: 0, height: "100%", borderLeft: "1px solid rgb(var(--brand-fg-rgb) / 0.08)", display: "flex", flexDirection: "column", overflow: "hidden", bgcolor: "var(--brand-panel)" }}>
               {rightSidebarEl}

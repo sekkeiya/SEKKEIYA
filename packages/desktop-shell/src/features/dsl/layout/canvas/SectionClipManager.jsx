@@ -41,6 +41,8 @@ export default function SectionClipManager({ isTopView = false, passive = false 
   const isSectionClipEnabled  = sectionClipEnabledRaw && editorMode !== "walkthrough" && !materialFirstPerson;
   const sectionClipHeight    = useEditorModeStore((s) => s.sectionClipHeight);
   const sectionClipYEnabled  = useEditorModeStore((s) => s.sectionClipYEnabled);
+  // Y クリップの向き。false=上を消す（平面図の見下ろし）/ true=下を消す（天井伏図の見上げ）
+  const sectionClipYInvert   = useEditorModeStore((s) => s.sectionClipYInvert);
   const sectionClipXEnabled  = useEditorModeStore((s) => s.sectionClipXEnabled);
   const sectionClipX         = useEditorModeStore((s) => s.sectionClipX);
   const sectionClipZEnabled  = useEditorModeStore((s) => s.sectionClipZEnabled);
@@ -114,9 +116,11 @@ export default function SectionClipManager({ isTopView = false, passive = false 
   // frameloop="demand" の viewport では値変更だけでは再描画されないため、invalidate() で再描画を要求する
   // （これが無いと操作後しばらく断面が反映されない＝効いていないように見える）。
   useEffect(() => {
-    clipPlaneY.constant = sectionClipHeight;
+    // 通常: 「高さ以下を残す」(normal −Y, const=+h)。反転（天井伏図）: 「高さ以上を残す」(normal +Y, const=−h)。
+    clipPlaneY.normal.set(0, sectionClipYInvert ? 1 : -1, 0);
+    clipPlaneY.constant = sectionClipYInvert ? -sectionClipHeight : sectionClipHeight;
     invalidate();
-  }, [sectionClipHeight, clipPlaneY, invalidate]);
+  }, [sectionClipHeight, sectionClipYInvert, clipPlaneY, invalidate]);
 
   // 向き反転（sectionViewFlip）: 通常は「pos 以下側を残す」（normal −1, const=pos）、
   // 反転時は「pos 以上側を残す」（normal +1, const=−pos）。A-A' の矢印向きと連動する。
@@ -139,7 +143,7 @@ export default function SectionClipManager({ isTopView = false, passive = false 
     lastUpdateRef.current = -Infinity;
     invalidate();
   }, [
-    isSectionClipEnabled, isTopView, sectionClipYEnabled, sectionClipXEnabled, sectionClipZEnabled, invalidate,
+    isSectionClipEnabled, isTopView, sectionClipYEnabled, sectionClipYInvert, sectionClipXEnabled, sectionClipZEnabled, invalidate,
   ]);
 
   // Enable/disable local clipping on the renderer
@@ -200,6 +204,19 @@ export default function SectionClipManager({ isTopView = false, passive = false 
     const kids = obj.children;
     for (let i = 0; i < kids.length; i++) applyClipToSubtree(kids[i]);
   }, [activePlanes]);
+
+  // クリップ面の実体（activePlanes）が変わったら即・同期でマテリアルへ適用する。
+  //   useFrame の 0.25s スロットルを待つと、展開図の6面クリップ（部屋ボックス）切替や
+  //   展開⇄断面/立面の切替で「旧クリップのままの絵」が最大250ms見えてしまう
+  //   （軸フラグが同じで上のリセット effect では検知できないケース: 展開A→展開C、
+  //    展開→同軸の断面 等）。ビュー切替ディゾルブの不透明保持内に収めるため今適用する。
+  //   ※ applyClipToSubtree 定義後に置く（TDZ 回避）。
+  useEffect(() => {
+    if (!isSectionClipEnabled || passive) return;
+    lastUpdateRef.current = -Infinity;
+    try { applyClipToSubtree(scene); } catch { /* noop */ }
+    invalidate();
+  }, [activePlanes, isSectionClipEnabled, passive, applyClipToSubtree, scene, invalidate]);
 
   useFrame((state) => {
     if (!isSectionClipEnabled || passive) return;

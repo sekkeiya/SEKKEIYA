@@ -60,6 +60,12 @@ import WallPropertiesPanel from "./components/WallPropertiesPanel.jsx";
 import { useWallStore } from "../../../store/useWallStore";
 // 床（スラブ）を選択中の Properties
 import SlabPropertiesPanel from "./components/SlabPropertiesPanel.jsx";
+// 通り芯（構造グリッド）の管理パネル
+import GridAxisPanel from "./components/GridAxisPanel.jsx";
+import { useGridAxisStore } from "../../../store/useGridAxisStore";
+// 図面の寸法列（4辺 × 1〜3列）の構成パネル
+import DimChainPanel from "./components/DimChainPanel.jsx";
+import { useDimChainStore } from "../../../store/useDimChainStore";
 import { useSlabStore } from "../../../store/useSlabStore";
 import { useSectionLinesStore } from "../../../store/useSectionLinesStore";
 import { useViewportUiStore } from "../../../store/viewportUiStore";
@@ -202,6 +208,13 @@ const RightSidebar = ({
   // 床（スラブ）を選択中 → Properties に床の設定を出す。
   const rsSelectedSlabId = useSlabStore((s) => s.selectedSlabId);
   const showSlabProps = !showWallProps && !!rsSelectedSlabId;
+  // 通り芯を選択中／ヘッダーの「通り芯」で開いた → Properties に通り芯の管理を出す。
+  const rsGridPanelOpen = useGridAxisStore((s) => s.panelOpen);
+  const rsSelectedAxisId = useGridAxisStore((s) => s.selectedId);
+  const showGridAxisProps = !showWallProps && !showSlabProps && (rsGridPanelOpen || !!rsSelectedAxisId);
+  // ヘッダーの「寸法列」で開いた → Properties に寸法列の構成を出す。
+  const rsDimChainPanelOpen = useDimChainStore((s) => s.panelOpen);
+  const showDimChainProps = !showWallProps && !showSlabProps && !showGridAxisProps && rsDimChainPanelOpen;
 
   // ── 右サイドバー上部の切替タブ（旧・右ドックのボタン群を移設。1枚ずつ排他切替） ──
   const rightPanels = useUiRightSidebarStore((s) => s.rightPanels);
@@ -613,7 +626,7 @@ const RightSidebar = ({
           return (
             <React.Fragment key={key}>
               <Section
-                title={showWallProps ? "壁" : showSlabProps ? "床" : rsElevationView ? "展開図" : showSectionProps ? (isSectionView ? "断面図" : "断面線") : hasFaceSelection ? "面ラベル / コリジョン" : showZoneSettings ? "ゾーン" : (selectedItemId || selection?.kind === "light" || selection?.kind === "landscape" || activeZoneForPanel || showMediaSettings || showAutoLayoutSettings || showSelectionSettings || showAiSettings || showAutoSide) ? "Properties" : null}
+                title={showWallProps ? "壁" : showSlabProps ? "床" : showGridAxisProps ? "通り芯" : showDimChainProps ? "寸法列" : rsElevationView ? "展開図" : showSectionProps ? (isSectionView ? "断面図" : "断面線") : hasFaceSelection ? "面ラベル / コリジョン" : showZoneSettings ? "ゾーン" : (selectedItemId || selection?.kind === "light" || selection?.kind === "landscape" || activeZoneForPanel || showMediaSettings || showAutoLayoutSettings || showSelectionSettings || showAiSettings || showAutoSide) ? "Properties" : null}
                 minHeight={150}
                 explicitHeight={passExplicitHeight ? topSectionHeight : null}
               >
@@ -621,6 +634,10 @@ const RightSidebar = ({
                   <WallPropertiesPanel />
                 ) : showSlabProps ? (
                   <SlabPropertiesPanel />
+                ) : showGridAxisProps ? (
+                  <GridAxisPanel />
+                ) : showDimChainProps ? (
+                  <DimChainPanel />
                 ) : showElevationProps ? (
                   <ElevationPropertiesPanel />
                 ) : showSectionProps ? (
@@ -628,7 +645,15 @@ const RightSidebar = ({
                 ) : hasFaceSelection ? (
                   <StructureFacePanel />
                 ) : showZoneSettings ? (
-                  <ZoneListPanel />
+                  // Room/Zone モードでは「部屋・ゾーン」ツリー（＋自動部屋作成／＋部屋／
+                  // ゾーン描画）をそのまま出す。ここを ZoneListPanel に差し替えてしまうと、
+                  // 部屋を作るボタンがモード内から消える（Room/Zone モードなのに部屋が
+                  // 作れない、という状態になっていた）。自動ゾーニングは ZoneListPanel を
+                  // 下に併置して残す。
+                  <>
+                    <OptionDetailPanel optionDoc={optionDoc} optionDocLoading={optionDocLoading} onAddZone={handleAddZone} />
+                    <ZoneListPanel />
+                  </>
                 ) : showAiSettings ? (
                   <AutoAiSidePanel />
                 ) : showAutoSide ? (

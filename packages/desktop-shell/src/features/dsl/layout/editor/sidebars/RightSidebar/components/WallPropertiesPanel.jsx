@@ -59,6 +59,7 @@ export default function WallPropertiesPanel() {
   const updateOpening = useWallStore((s) => s.updateOpening);
   const removeOpening = useWallStore((s) => s.removeOpening);
   const floorHeightMm = useBuildingSpecStore((s) => s.floorHeightMm);
+  const floorsList = useBuildingSpecStore((s) => s.floors);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
 
   const wall = walls.find((w) => w.id === selectedWallId);
@@ -200,6 +201,32 @@ export default function WallPropertiesPanel() {
               </Tooltip>
             }
           />
+          {/* どの階の壁か。変えるとその階の FL に建て直される（平面図の表示階も切替わる）。 */}
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.75 }}>
+            <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)" }}>階</Typography>
+            <select
+              value={wall.floorIndex || 0}
+              onChange={(e) => updateWall(wall.id, { floorIndex: Number(e.target.value) || 0 })}
+              style={{
+                width: 96, fontSize: 12, padding: "3px 6px", borderRadius: 4,
+                border: `1px solid ${alpha("#fff", 0.15)}`, background: alpha("#000", 0.25),
+                color: "var(--brand-fg)", outline: "none",
+              }}
+            >
+              {(floorsList || []).map((f, i) => (
+                <option key={i} value={i}>{f.name || `${i + 1}FL`}</option>
+              ))}
+            </select>
+          </Stack>
+          {/* FL からの上下オフセット。浮き壁・下がり壁に使う（断面ビューで縦ドラッグしても変わる）。 */}
+          <NumRow
+            label="上下オフセット"
+            value={wall.offsetYMm || 0}
+            min={-20000}
+            max={20000}
+            step={10}
+            onChange={(v) => updateWall(wall.id, { offsetYMm: Math.round(v) || 0 })}
+          />
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)" }}>長さ</Typography>
             <Typography sx={{ fontSize: 12, fontWeight: 800, color: "var(--brand-fg)" }}>
@@ -311,8 +338,9 @@ export default function WallPropertiesPanel() {
           ギズモが端点に移り、X / Z 軸に沿って正確に動かせます。
           移動中に <b>Shift</b> を押すとスナップ（端点吸着・直交・50mmグリッド）が効きます。
           連結している他の壁の端点も1つの頂点として一緒に動きます。
-          Ctrl / Shift + クリックで壁を複数選択、余白から <b>Alt + ドラッグ</b>で頂点を範囲選択して
-          まとめて移動できます。壁は Base に保存され、変更は全 Plan / Option に反映。
+          Ctrl / Shift + クリックで壁を複数選択できます。壁を選択中に<b>空き領域から左ドラッグ</b>で頂点を
+          範囲選択すると、その重心にギズモが出て、選んだ頂点をまとめて動かせます。余白をクリックすると選択を解除します。
+          壁は Base に保存され、変更は全 Plan / Option に反映。
           角は隣り合う壁と自動で留め（マイター）処理されます。
         </Typography>
       </Stack>

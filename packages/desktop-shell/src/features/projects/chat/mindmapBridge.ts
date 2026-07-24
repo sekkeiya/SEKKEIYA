@@ -7,11 +7,13 @@ import {
   ResearchCanvasRepository,
   compactMindNode,
   compactMindRelation,
+  parseBoardKey,
   type MindMapNode,
   type MindMapRelation,
   type MindMapSummary,
 } from '../repositories/ResearchCanvasRepository';
-import { RESEARCH_BOARD_CHANGED_EVENT, getActiveBoardId } from './researchBoardBridge';
+import { RESEARCH_BOARD_CHANGED_EVENT, resolveTargetBoardKey } from './researchBoardBridge';
+import { requestShowBoard } from './boardContextBus';
 
 /** マウント中の MindMapCanvas が登録するライブ操作面。 */
 export interface MindMapHost {
@@ -37,12 +39,26 @@ export function registerMindMapHost(host: MindMapHost): () => void {
 }
 
 /**
- * マインドマップ verb の対象ボードキー。
- * マインドマップ表示中はそのボード、ノード画面表示中・ヘッドレスは
- * researchBoardBridge の解決（同じボードの mindmap フィールドを対象にする）。
+ * マインドマップ verb の書き込み先ボードキーを解決する。**チャットが正**:
+ * セッションの属するスコープを最優先し、表示中のボード（このウィンドウのマウント中 /
+ * 本体から配信された表示中 / ヘッドレスの直近対象）は「同じスコープのとき」だけ
+ * docId まで採用する。別プロジェクトを表示中でも、チャットのプロジェクト側へ書く。
  */
-export function getActiveMindMapBoardId(): string | null {
-  return activeHost?.boardKey ?? getActiveBoardId();
+export function resolveMindMapBoardKey(sessionScope: string | null | undefined): string | null {
+  const own = activeHost?.boardKey ?? null;
+  if (sessionScope) {
+    if (own && parseBoardKey(own).scope === sessionScope) return own;
+    return resolveTargetBoardKey(sessionScope);
+  }
+  return own ?? resolveTargetBoardKey(null);
+}
+
+/**
+ * マインドマップが画面に出ているか（＝ MindMapCanvas がマウント中か）。
+ * どちらのビューを見ているかでチャットに渡すプレイブックを切り替えるのに使う。
+ */
+export function isMindMapMounted(): boolean {
+  return activeHost !== null;
 }
 
 function liveHost(boardKey: string): MindMapHost | null {
@@ -167,6 +183,8 @@ export async function addMindTopics(boardKey: string, partials: NewMindTopic[]):
       await ResearchCanvasRepository.save(boardKey, { mindmap: saved });
       notifyChanged(boardKey);
     }
+    // チャットが正: 書き込みが始まったら、そのマップを本体ウィンドウに表示する
+    requestShowBoard({ boardKey, view: 'mindmap' });
   }
   return { created, createdRootId, skipped };
 }
@@ -180,6 +198,7 @@ export async function updateMindTopic(
   if (host) {
     if (!host.getTopics().some(n => n.id === id)) return false;
     host.patchTopic(id, patch);
+    requestShowBoard({ boardKey, view: 'mindmap' });
     return true;
   }
   const doc = await ResearchCanvasRepository.load(boardKey);
@@ -188,6 +207,7 @@ export async function updateMindTopic(
   doc.mindmap[idx] = compactMindNode({ ...doc.mindmap[idx], ...patch, updatedAt: new Date().toISOString() });
   await ResearchCanvasRepository.save(boardKey, { mindmap: doc.mindmap });
   notifyChanged(boardKey);
+  requestShowBoard({ boardKey, view: 'mindmap' });
   return true;
 }
 
@@ -226,6 +246,7 @@ export async function removeMindTopics(boardKey: string, ids: string[]): Promise
     await ResearchCanvasRepository.save(boardKey, { mindmap, mindmapRelations, mindmapSummaries });
     notifyChanged(boardKey);
   }
+  requestShowBoard({ boardKey, view: 'mindmap' });
   return { removed: targets.size, skipped };
 }
 
@@ -268,6 +289,7 @@ export async function addMindRelations(
       await ResearchCanvasRepository.save(boardKey, { mindmapRelations: [...state.relations, ...created] });
       notifyChanged(boardKey);
     }
+    requestShowBoard({ boardKey, view: 'mindmap' });
   }
   return { created, skipped };
 }
@@ -277,7 +299,7 @@ export async function removeMindRelations(boardKey: string, ids: string[]): Prom
   const idSet = new Set(ids);
   if (host) {
     const hit = host.getRelations().filter(r => idSet.has(r.id)).length;
-    if (hit > 0) host.removeRelations(ids);
+    if (hit > 0) { host.removeRelations(ids); requestShowBoard({ boardKey, view: 'mindmap' }); }
     return hit;
   }
   const doc = await ResearchCanvasRepository.load(boardKey);
@@ -286,6 +308,7 @@ export async function removeMindRelations(boardKey: string, ids: string[]): Prom
   if (removed > 0) {
     await ResearchCanvasRepository.save(boardKey, { mindmapRelations: remain });
     notifyChanged(boardKey);
+    requestShowBoard({ boardKey, view: 'mindmap' });
   }
   return removed;
 }

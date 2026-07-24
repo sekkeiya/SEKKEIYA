@@ -7,6 +7,7 @@ import { useSectionLinesStore } from "./useSectionLinesStore";
 import { useLayoutTaskStore } from "./useLayoutTaskStore";
 import { useBuildingSpecStore } from "./useBuildingSpecStore";
 import { useUiRightSidebarStore } from "./uiRightSidebarStore";
+import { useSelectionScopeStore } from "./useSelectionScopeStore";
 
 // 展開記号（平面図に置く「どこから見た展開図か」のマーカー）。
 //   中心＝視点（目）、四方＝視線方向。上(A)/右(B)/下(C)/左(D)。
@@ -73,6 +74,10 @@ export function computeBuildingCenterXZ(): { x: number; z: number } {
  *    A(上=−Z): z≤pos を残し +Z 側から見る（FRONT）        / C(下=+Z): z≥pos を残し −Z 側から（FRONT+flip）
  *    D(左=−X): x≤pos を残し +X 側から見る（RIGHT）        / B(右=+X): x≥pos を残し −X 側から（RIGHT+flip）
  */
+/** 表示範囲がゾーン矩形（＝内壁面）から外側へはみ出すパディング(mm)。壁厚ぶん外側で切って壁面を残す。
+ *  展開図の寸法オーバーレイが「内壁面の位置」を逆算するのにも使う。 */
+export const ELEV_ROOM_PAD_MM = 400;
+
 /** ゾーン矩形の集合 → 展開図の表示範囲（合併バウンディング）。壁面を残すため壁厚ぶん外側で切る。
  *  L字部屋＝「同じ部屋に属する複数の矩形ゾーン」を1つの部屋として扱うため配列で受ける。 */
 export function computeRoomBoxFromRects(rects: any[]): ElevationRoomBox | null {
@@ -82,7 +87,7 @@ export function computeRoomBoxFromRects(rects: any[]): ElevationRoomBox | null {
   const isMm = (emAny.sceneMaxY || 0) > 100;
   const toWorld = (mm: number) => (isMm ? mm : mm / 1000);
   const bs: any = useBuildingSpecStore.getState();
-  const pad = toWorld(400);          // 壁厚ぶん外側で切って壁面を残す
+  const pad = toWorld(ELEV_ROOM_PAD_MM); // 壁厚ぶん外側で切って壁面を残す
   const yPad = toWorld(80);
   const flWorld = toWorld(bs.fl0Mm || 0);
   const clWorld = toWorld((bs.fl0Mm || 0) + (bs.ceilingHeightMm || 2400));
@@ -132,6 +137,8 @@ export function applyElevationView(opts: {
   roomName: string | null;
 }) {
   const { pos, dir, roomBox, roomName } = opts;
+  // 切替の起点でディゾルブを開始（中間フレームを覆い隠す）。
+  useViewportUiStore.getState().beginViewTransition?.();
   const st = useElevationMarkerStore.getState();
   st.setPos(pos);
   st.setActiveDir(dir);
@@ -146,8 +153,10 @@ export function applyElevationView(opts: {
   const cut = axis === "z" ? pos.z : pos.x;
 
   const em: any = useEditorModeStore.getState();
-  // Material（旧・一人称）モードなら通常へ戻し、2D 図面ビューとして表示する
-  if (em.editorMode === "material") em.setEditorMode("layout");
+  // Material スコープ（面仕上げ）に居るときは維持したまま展開図を表示する（面ピック可能）。
+  // それ以外（旧・一人称材質モード等）は通常の 2D 図面ビューへ戻す。
+  const matScope = useSelectionScopeStore.getState().scope === "material";
+  if (em.editorMode === "material" && !matScope) em.setEditorMode("layout");
   em.setLayoutCameraTilt?.("default");
   em.setIsSectionClipEnabled(true);
   em.setSectionClipYEnabled(false);
@@ -165,7 +174,8 @@ export function applyElevationView(opts: {
     vp.setLayoutMode(VIEWPORT_LAYOUT.SINGLE);
   }
   vp.setActiveViewportId(targetId);
-  setTimeout(() => vp.requestFrameAll?.(), 140);
+  // リフレームはディゾルブカバーの不透明保持中に済ませる（中間フレームを見せない）。
+  setTimeout(() => vp.requestFrameAll?.(), 40);
 
   // 右サイドバーに展開図専用 Properties を出す。
   const rs: any = useUiRightSidebarStore.getState();

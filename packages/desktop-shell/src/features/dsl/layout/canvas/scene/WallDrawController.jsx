@@ -3,14 +3,15 @@
 //   透明フロアプレーン上で
 //     1回目クリック = 始点を置く／2回目以降 = そこまでの壁を確定し、その点から続けて次の壁へ
 //   （ポリライン作図。折れ線でどんどん壁をつないでいける）
-//   ・50mm グリッドスナップ（ゾーン作図と同じ刻み）
-//   ・既定で直交スナップ（水平/垂直へ吸着）。Alt 押下中は自由角度。
-//   ・既存の壁端点にも近ければスナップ（つなぎ目・閉合対策）
+//   ・スナップは既定でON（CAD と同じ流儀。何に吸着したかはマーカーとラベルで出る）。
+//     点（壁の端点／床の頂点／通り芯の交点）→ 直交（水平/垂直）→
+//     線（通り芯・壁芯・床の辺）→ 50mm グリッド、の順に効く。
+//     Alt 押下中は吸着も直交も外れて自由配置（角度も長さも自由）。
 //   ・右クリック = Enter（コマンド終了）。連続作図を終えると同時に壁ツール自体を解除し、
 //     最後に描いた壁を選択状態にする（そのまま頂点ハンドルで編集に移れる）。AutoCAD の
 //     LINE コマンドと同じ流儀。別の壁を描くときは内壁/外壁ボタンを押し直す。
 //   ・Escape = 取消。同じくコマンドを終えるが、選択はしない（確定済みの壁は残る）。
-import React, { useRef, useCallback, useEffect } from "react";
+import React, { useRef, useCallback, useEffect, useState } from "react";
 import { useThree } from "@react-three/fiber";
 import { Html, Line } from "@react-three/drei";
 import * as THREE from "three";
@@ -24,16 +25,15 @@ import {
   WALL_KIND_LABEL,
 } from "../../store/useWallStore";
 import { useSlabStore } from "../../store/useSlabStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
+import { resolveDrawSnap } from "../../utils/drawSnap";
+import DrawSnapMarker from "./DrawSnapMarker.jsx";
 
-const SNAP_MM = 50;        // グリッド刻み
-const END_SNAP_MM = 250;   // 既存端点への吸着距離
-const ORTHO_TOL = 0.28;    // 直交スナップの許容（rad ≒ 16°）
 
 const PREVIEW_COLOR = { exterior: "#0f172a", interior: "#475569" };
 
 const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-const snap = (v) => Math.round(v / SNAP_MM) * SNAP_MM;
 
 export default function WallDrawController({ enabled = true }) {
   const gridHeightMm = useEditorModeStore((s) => s.gridHeightMm) || 0;
@@ -47,52 +47,7 @@ export default function WallDrawController({ enabled = true }) {
 
   const active = enabled && !!drawKind;
 
-  /** 既存の壁端点＋床（スラブ）の頂点へ吸着（近い方を優先） */
-  const snapToEnds = useCallback((pt) => {
-    let best = null;
-    let bestD = END_SNAP_MM;
-    const consider = (p) => {
-      const d = Math.hypot(p.x - pt.x, p.z - pt.z);
-      if (d < bestD) { bestD = d; best = p; }
-    };
-    for (const w of useWallStore.getState().walls) { consider(w.start); consider(w.end); }
-    for (const s of useSlabStore.getState().slabs) for (const p of s.points || []) consider(p);
-    return best ? { x: best.x, z: best.z } : null;
-  }, []);
-
-  /** 床（スラブ）の辺へ吸着: 辺までの距離が閾値内なら、辺上の最近点に乗せる。 */
-  const snapToSlabEdges = useCallback((pt) => {
-    let best = null;
-    let bestD = END_SNAP_MM;
-    for (const s of useSlabStore.getState().slabs) {
-      const pts = s.points || [];
-      for (let i = 0; i < pts.length; i++) {
-        const a = pts[i];
-        const b = pts[(i + 1) % pts.length];
-        const ex = b.x - a.x, ez = b.z - a.z;
-        const len2 = ex * ex + ez * ez;
-        if (len2 < 1) continue;
-        let t = ((pt.x - a.x) * ex + (pt.z - a.z) * ez) / len2;
-        t = Math.max(0, Math.min(1, t));
-        const cx = a.x + ex * t, cz = a.z + ez * t;
-        const d = Math.hypot(cx - pt.x, cz - pt.z);
-        if (d < bestD) { bestD = d; best = { x: Math.round(cx), z: Math.round(cz) }; }
-      }
-    }
-    return best;
-  }, []);
-
-  /** 始点からの直交スナップ（Alt で解除） */
-  const applyOrtho = useCallback((start, pt, altKey) => {
-    if (altKey) return pt;
-    const dx = pt.x - start.x;
-    const dz = pt.z - start.z;
-    if (dx === 0 && dz === 0) return pt;
-    const ang = Math.atan2(Math.abs(dz), Math.abs(dx));
-    if (ang < ORTHO_TOL) return { x: pt.x, z: start.z };              // 水平
-    if (ang > Math.PI / 2 - ORTHO_TOL) return { x: start.x, z: pt.z }; // 垂直
-    return pt;
-  }, []);
+  // 吸着（点・通り芯・壁芯・床の辺・グリッド）は utils/drawSnap に集約。
 
   // この連続作図で最後に確定した壁（Enter で選択状態にして編集へ引き渡す）
   const lastWallIdRef = useRef(null);
@@ -136,6 +91,7 @@ export default function WallDrawController({ enabled = true }) {
   useEffect(() => {
     if (active) return;
     lastWallIdRef.current = null;
+    setSnapHint(null);
     if (anchorRef.current) endChain();
   }, [active, endChain]);
 
@@ -155,16 +111,17 @@ export default function WallDrawController({ enabled = true }) {
     return () => el.removeEventListener("contextmenu", onCtx);
   }, [gl]);
 
-  // スナップの優先順位: 壁端点/床頂点（完全吸着）→ 床の辺（辺上の最近点）→ 直交＋グリッド
+  // 今どこへ吸着しているか（マーカー表示用）。
+  const [snapHint, setSnapHint] = useState(null);
+
+  // 吸着は utils/drawSnap に集約（壁ツールと床ツールで同じ挙動にする）。
+  //   点（壁端点・床頂点・通り芯の交点）→ 直交 → 線（通り芯・壁芯・床の辺）→ 50mmグリッド。
+  //   Alt 押下中は吸着も直交も外して自由配置。
   const resolvePoint = useCallback((e, start) => {
-    const raw = { x: e.point.x, z: e.point.z };
-    const ends = snapToEnds(raw);
-    if (ends) return ends;
-    const edge = snapToSlabEdges(raw);
-    if (edge) return edge;
-    const orth = start ? applyOrtho(start, raw, e.altKey) : raw;
-    return { x: snap(orth.x), z: snap(orth.z) };
-  }, [snapToEnds, snapToSlabEdges, applyOrtho]);
+    const r = resolveDrawSnap({ x: e.point.x, z: e.point.z }, start || null, !!e.altKey);
+    setSnapHint(r.kind ? r : null);
+    return { x: r.x, z: r.z };
+  }, []);
 
   // 左クリック連打で連続作図:
   //   1回目 = 始点を置く／2回目以降 = そこまでの壁を確定し、その点を次の始点にして続行。
@@ -190,6 +147,7 @@ export default function WallDrawController({ enabled = true }) {
       // 始点を置く
       useUiSelectionStore.getState().setSelectedItemIds([]);
       useWallStore.getState().setSelectedWallId(null);
+      useSlabStore.getState().setSelectedSlabId(null); // 作図中は他タイプの選択も畳む
       anchorRef.current = pt;
       setDraftLine({ start: pt, end: pt });
       return;
@@ -199,7 +157,8 @@ export default function WallDrawController({ enabled = true }) {
     const len = Math.hypot(pt.x - anchor.x, pt.z - anchor.z);
     if (len < WALL_MIN_LENGTH) return;
 
-    const wall = makeWall(drawKind, anchor, pt);
+    // 作図した時点のアクティブ階を記録する（以後その階の FL に建つ）。
+    const wall = makeWall(drawKind, anchor, pt, useBuildingSpecStore.getState().activeFloorIndex || 0);
     useWallStore.getState().addWall(wall);
     lastWallIdRef.current = wall.id; // Enter で選択して編集へ渡す
     // 確定した終点から続けて次の壁へ（ポリライン）
@@ -209,10 +168,11 @@ export default function WallDrawController({ enabled = true }) {
 
   // 起点が決まっていれば、カーソル位置までをプレビュー（ボタンは押していなくてよい）
   const handlePointerMove = useCallback((e) => {
-    const anchor = anchorRef.current;
-    if (!anchor) return;
     e.stopPropagation();
-    const pt = resolvePoint(e, anchor);
+    const anchor = anchorRef.current;
+    // 始点を置く前もカーソル位置の吸着を解決しておく（どこに乗るか見えないと置けない）。
+    const pt = resolvePoint(e, anchor || null);
+    if (!anchor) return;
     setDraftLine({ start: anchor, end: pt });
   }, [resolvePoint, setDraftLine]);
 
@@ -236,6 +196,9 @@ export default function WallDrawController({ enabled = true }) {
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
       )}
+
+      {/* 吸着マーカー（何に吸着しているかを形と色で示す） */}
+      {active && <DrawSnapMarker snap={snapHint} y={y} />}
 
       {/* ライブプレビュー（壁厚の帯＋長さラベル） */}
       {preview && previewLen > 1 && (

@@ -13,11 +13,14 @@ import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import { ResearchCanvas } from './ResearchCanvas';
 import { MindMapCanvas } from './MindMapCanvas';
+import { publishBoardContext, serveBoardContextRequests, onShowBoard } from '../../features/projects/chat/boardContextBus';
 import {
   ResearchCanvasRepository,
   makeBoardKey,
+  parseBoardKey,
   DEFAULT_BOARD_DOC_ID,
   type ResearchBoardMeta,
+  type MindMapNode,
 } from '../../features/projects/repositories/ResearchCanvasRepository';
 import { registerResearchBoardManager } from '../../features/projects/chat/researchBoardBridge';
 
@@ -58,6 +61,17 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
     setBoardView(v);
     try { localStorage.setItem(`research-board-view:${scope}|${activeDocId}`, v); } catch { /* ignore */ }
   }, [scope, activeDocId]);
+
+  // ポップアウトしたチャット窓は別コンテキストで、このタブを開いていることも
+  // どのビューかも知りようがない。表示状態を配信して、あちらのオーケストレーターが
+  // ボード系ツールとプレイブックを正しく選べるようにする（マウント中＝タブ表示中）。
+  useEffect(() => {
+    if (loadingBoards) return;
+    publishBoardContext({ open: true, view: boardView, boardKey: makeBoardKey(scope, activeDocId) });
+    return () => publishBoardContext({ open: false, view: null, boardKey: null });
+  }, [boardView, scope, activeDocId, loadingBoards]);
+  // 後から開いたチャット窓からの問い合わせに、現在値で応答する。
+  useEffect(() => serveBoardContextRequests(), []);
 
   const toggleBoardList = useCallback(() => {
     setBoardListOpen(open => {
@@ -103,6 +117,17 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
     try { localStorage.setItem(activeStorageKey, docId); } catch { /* ignore */ }
   }, [activeStorageKey]);
 
+  // AI が書き込みを始めたボードを画面に出す（チャットが正）。
+  // プロジェクト・タブの切替は App 側のハンドラが担い、ここでは
+  // 「同じスコープのワークスペースが既に出ている」ときのボード・ビュー切替を受け持つ。
+  useEffect(() => onShowBoard(req => {
+    const target = parseBoardKey(req.boardKey);
+    if (target.scope !== scope) return;
+    switchTo(target.docId);
+    switchBoardView(req.view);
+    refreshBoards().catch(() => { /* 一覧の取りこぼしは次の操作で追いつく */ });
+  }), [scope, switchTo, switchBoardView, refreshBoards]);
+
   // AI（research_board_create verb）からの新規作成＋切替を受ける
   useEffect(() => {
     return registerResearchBoardManager({
@@ -118,6 +143,129 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
 
   const handleCreate = () => setDialog({ mode: 'create', value: '' });
   const handleRename = (b: ResearchBoardMeta) => setDialog({ mode: 'rename', docId: b.id, value: b.title });
+
+  // ─── 子ボード（ドリルダウン）────────────────────────────────────────────────
+  // トピックを配下ごと別マップに切り出す。呼び出し側（MindMapCanvas）から
+  // 「中心トピック＋配下」の木（childMindmap）を受け取り、それを子ボードの初期マップにする。
+  // 親ボードからの配下除去は呼び出し側が担う。随伴する孫ボードは親付け替え。
+  const handleDrillDownTopic = useCallback(async (
+    topicId: string, topicText: string, childMindmap: MindMapNode[],
+  ): Promise<string | null> => {
+    try {
+      const childId = await ResearchCanvasRepository.createBoard(scope, topicText, {
+        nest: { parentBoardId: activeDocId, parentTopicId: topicId },
+        seedMindmap: childMindmap,
+      });
+      // 配下に既にドリルダウン済みのトピック（孫ボードを持つ）があれば、その孫ボードの
+      // 親を新しい子ボードへ付け替える（サイドバーのネストが正しく追随する）。
+      const movedIds = new Set(childMindmap.map(n => n.id));
+      await Promise.all(boards
+        .filter(b => b.parentBoardId === activeDocId && b.parentTopicId && movedIds.has(b.parentTopicId) && b.id !== childId)
+        .map(b => ResearchCanvasRepository.reparentBoard(scope, b.id, childId)));
+      await refreshBoards();
+      return childId;
+    } catch (err) {
+      console.error('[research] 子ボードの作成に失敗:', err);
+      return null;
+    }
+  }, [scope, activeDocId, boards, refreshBoards]);
+
+  const handleOpenChildBoard = useCallback((childBoardId: string) => {
+    switchBoardView('mindmap'); // 子ボードはマインドマップで開く
+    switchTo(childBoardId);
+    refreshBoards().catch(() => { /* 一覧の取りこぼしは次の操作で追いつく */ });
+  }, [switchBoardView, switchTo, refreshBoards]);
+
+  // トピック（部分木）を別ボードへ移す。移動先 doc への追記と随伴子ボードの付け替えを
+  // リポジトリに委譲。移動元からの除去は呼び出し側（MindMapCanvas のライブ state）が担う。
+  const handleMoveTopicToBoard = useCallback(async (
+    targetDocId: string, subtree: MindMapNode[], rootId: string, newOrigin: string | null,
+  ): Promise<boolean> => {
+    try {
+      await ResearchCanvasRepository.moveTopicToBoard(scope, activeDocId, targetDocId, subtree, rootId, newOrigin);
+      await refreshBoards();
+      return true;
+    } catch (err) {
+      console.error('[research] トピックの別ボード移動に失敗:', err);
+      return false;
+    }
+  }, [scope, activeDocId, refreshBoards]);
+
+  // 子ボードを解消: 子ボードの全トピックを返し、その子ボードを削除する
+  // （deleteBoard が孫ボードの親を繰り上げる）。畳み戻しは呼び出し側が担う。
+  const handleDissolveChildBoard = useCallback(async (childDocId: string): Promise<MindMapNode[] | null> => {
+    try {
+      const doc = await ResearchCanvasRepository.load(makeBoardKey(scope, childDocId));
+      await ResearchCanvasRepository.deleteBoard(scope, childDocId);
+      await refreshBoards();
+      return doc.mindmap;
+    } catch (err) {
+      console.error('[research] 子ボードの解消に失敗:', err);
+      return null;
+    }
+  }, [scope, refreshBoards]);
+
+  // 連動①: 子ボードを持つトピックの名前変更 → 子ボードの名前と中心トピックへ反映
+  const handleRenameChildBoard = useCallback(async (childDocId: string, text: string): Promise<void> => {
+    const now = new Date().toISOString();
+    try {
+      await ResearchCanvasRepository.renameBoard(scope, childDocId, text);
+      const doc = await ResearchCanvasRepository.load(makeBoardKey(scope, childDocId));
+      const root = doc.mindmap.find(n => n.parentId == null);
+      if (root && root.text !== text) {
+        const mind = doc.mindmap.map(n => n.id === root.id ? { ...n, text, updatedAt: now } : n);
+        await ResearchCanvasRepository.save(makeBoardKey(scope, childDocId), { mindmap: mind });
+      }
+      await refreshBoards();
+    } catch (err) {
+      console.error('[research] 子ボード名の連動に失敗:', err);
+    }
+  }, [scope, refreshBoards]);
+
+  // 連動②: 子ボードの中心トピックの名前変更 → 親ボードのアンカートピックと自ボード名へ反映
+  const handleRenameSelfBoard = useCallback(async (text: string): Promise<void> => {
+    const cur = boards.find(b => b.id === activeDocId);
+    if (!cur?.parentBoardId || !cur.parentTopicId) return;
+    const now = new Date().toISOString();
+    try {
+      await ResearchCanvasRepository.renameBoard(scope, activeDocId, text);
+      const parent = await ResearchCanvasRepository.load(makeBoardKey(scope, cur.parentBoardId));
+      const mind = parent.mindmap.map(n => n.id === cur.parentTopicId ? { ...n, text, updatedAt: now } : n);
+      await ResearchCanvasRepository.save(makeBoardKey(scope, cur.parentBoardId), { mindmap: mind });
+      await refreshBoards();
+    } catch (err) {
+      console.error('[research] 親トピック名の連動に失敗:', err);
+    }
+  }, [scope, activeDocId, boards, refreshBoards]);
+
+  // 子ボード側から「元のボードに戻す」: このボード(activeDocId)の中身を、親ボードの
+  // アンカートピック(parentTopicId)配下へ戻し、この子ボードを削除して親へ遷移する。
+  const handleDissolveIntoParent = useCallback(async (childTopics: MindMapNode[]): Promise<void> => {
+    const cur = boards.find(b => b.id === activeDocId);
+    if (!cur?.parentBoardId || !cur.parentTopicId) return;
+    const parentDocId = cur.parentBoardId;
+    const anchorId = cur.parentTopicId;
+    const now = new Date().toISOString();
+    try {
+      const parent = await ResearchCanvasRepository.load(makeBoardKey(scope, parentDocId));
+      const childRoot = childTopics.find(n => n.parentId == null);
+      // 子ボードの中心トピックの子たちを親のアンカー配下へ。中心トピック自身は捨てる。
+      const grafted = childTopics
+        .filter(n => n.id !== childRoot?.id)
+        .map(n => (n.parentId === childRoot?.id ? { ...n, parentId: anchorId, updatedAt: now } : { ...n, updatedAt: now }));
+      const parentMind = parent.mindmap
+        .map(n => n.id === anchorId ? { ...n, childBoardId: undefined, updatedAt: now } : n)
+        .concat(grafted);
+      await ResearchCanvasRepository.save(makeBoardKey(scope, parentDocId), { mindmap: parentMind });
+      // 先に親へ遷移してからこの子ボードを削除（マウント中の削除で復活させないよう順序に注意）
+      switchBoardView('mindmap');
+      switchTo(parentDocId);
+      await ResearchCanvasRepository.deleteBoard(scope, activeDocId);
+      await refreshBoards();
+    } catch (err) {
+      console.error('[research] 親への畳み戻しに失敗:', err);
+    }
+  }, [scope, activeDocId, boards, switchBoardView, switchTo, refreshBoards]);
 
   const handleDelete = useCallback(async (b: ResearchBoardMeta) => {
     const isDefault = b.id === DEFAULT_BOARD_DOC_ID;
@@ -162,13 +310,80 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
   }, [dialog, scope, refreshBoards, switchTo]);
 
   const itemSx = (active: boolean) => ({
-    display: 'flex', alignItems: 'center', gap: 0.5, minHeight: 30, px: 1.25, py: 0.5, borderRadius: 2,
+    display: 'flex', alignItems: 'center', gap: 0.25, minHeight: 30, pr: 0.75, py: 0.5, borderRadius: 2,
     cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0,
     bgcolor: active ? 'rgba(0,191,255,0.14)' : 'transparent',
     color: active ? '#00BFFF' : 'rgb(var(--brand-fg-rgb) / 0.6)',
     border: `1px solid ${active ? 'rgba(0,191,255,0.4)' : 'transparent'}`,
     '&:hover': { bgcolor: active ? 'rgba(0,191,255,0.2)' : 'rgb(var(--brand-fg-rgb) / 0.08)' },
   } as const);
+
+  // ボードのツリー構造（parentBoardId）。子ボードは親の下にネストして描く。
+  // 親が一覧に無い（削除直後の繰り上げ前など）子は、はぐれないようトップレベル扱いにする。
+  // 現在ボードの親（子ボードのとき。親ボードへ戻る導線・中心トピック左ボタンに使う）
+  const activeParentBoardId = React.useMemo(() => {
+    const cur = boards.find(b => b.id === activeDocId);
+    const pid = cur?.parentBoardId;
+    return pid && boards.some(b => b.id === pid) ? pid : null;
+  }, [boards, activeDocId]);
+
+  const boardChildren = React.useMemo(() => {
+    const byId = new Set(boards.map(b => b.id));
+    const map = new Map<string, ResearchBoardMeta[]>();
+    for (const b of boards) {
+      const key = b.parentBoardId && byId.has(b.parentBoardId) ? b.parentBoardId : '__root__';
+      (map.get(key) ?? map.set(key, []).get(key)!).push(b);
+    }
+    return map;
+  }, [boards]);
+
+  // 折りたたみ状態（既定は展開）。localStorage には持たせず、セッション内だけ。
+  const [collapsedBoards, setCollapsedBoards] = useState<Set<string>>(new Set());
+  const toggleBoardCollapsed = useCallback((id: string) => {
+    setCollapsedBoards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // ボードツリーの再帰描画。parentKey の子を depth 段インデントして並べる。
+  const renderBoardTree = (parentKey: string, depth: number): React.ReactNode => {
+    const list = boardChildren.get(parentKey) ?? [];
+    return list.map(b => {
+      const active = b.id === activeDocId;
+      const kids = boardChildren.get(b.id) ?? [];
+      const hasKids = kids.length > 0;
+      const collapsed = collapsedBoards.has(b.id);
+      return (
+        <React.Fragment key={b.id}>
+          <Box sx={{ ...itemSx(active), pl: `${6 + depth * 14}px` }} onClick={() => switchTo(b.id)}>
+            {/* 折りたたみ矢印（子ボードがあるときだけ。無いときは同じ幅の余白で字下げを揃える） */}
+            {hasKids ? (
+              <IconButton size="small" onClick={e => { e.stopPropagation(); toggleBoardCollapsed(b.id); }}
+                sx={{ p: 0, width: 16, height: 16, color: 'inherit', flexShrink: 0 }}>
+                <ChevronRightRoundedIcon sx={{ fontSize: 16, transition: 'transform .12s', transform: collapsed ? 'none' : 'rotate(90deg)' }} />
+              </IconButton>
+            ) : (
+              <Box sx={{ width: 16, flexShrink: 0 }} />
+            )}
+            {/* 子ボードは親トピック由来なので、由来が分かるアイコンを添える */}
+            {b.parentBoardId && <AccountTreeRoundedIcon sx={{ fontSize: 12, flexShrink: 0, opacity: 0.6 }} />}
+            <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {b.title}
+            </Box>
+            {active && (
+              <IconButton size="small" onClick={e => { e.stopPropagation(); setMenuAnchor(e.currentTarget); setMenuTarget(b); }}
+                sx={{ p: 0.1, color: 'inherit', flexShrink: 0 }}>
+                <MoreHorizRoundedIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+            )}
+          </Box>
+          {hasKids && !collapsed && renderBoardTree(b.id, depth + 1)}
+        </React.Fragment>
+      );
+    });
+  };
 
   return (
     <Box sx={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0 }}>
@@ -221,22 +436,7 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
           }}>
             {loadingBoards ? (
               <CircularProgress size={14} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.4)', m: 1.5, alignSelf: 'center' }} />
-            ) : boards.map(b => {
-              const active = b.id === activeDocId;
-              return (
-                <Box key={b.id} sx={itemSx(active)} onClick={() => switchTo(b.id)}>
-                  <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {b.title}
-                  </Box>
-                  {active && (
-                    <IconButton size="small" onClick={e => { e.stopPropagation(); setMenuAnchor(e.currentTarget); setMenuTarget(b); }}
-                      sx={{ p: 0.1, ml: 0.25, color: 'inherit', flexShrink: 0 }}>
-                      <MoreHorizRoundedIcon sx={{ fontSize: 15 }} />
-                    </IconButton>
-                  )}
-                </Box>
-              );
-            })}
+            ) : renderBoardTree('__root__', 0)}
           </Box>
         )}
       </Box>
@@ -276,11 +476,39 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
                 );
               })}
             </Box>
+
+            {/* 子ボードのとき、親ボードへ戻るパンくず（ドリルダウンの戻り導線） */}
+            {(() => {
+              const parent = activeParentBoardId ? boards.find(b => b.id === activeParentBoardId) : null;
+              if (!parent) return null;
+              return (
+                <Box onClick={() => switchTo(parent.id)}
+                  sx={{
+                    display: 'flex', alignItems: 'center', gap: 0.5, ml: 1.5, px: 1, py: 0.4,
+                    cursor: 'pointer', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                    color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderRadius: 2,
+                    border: '1px solid rgb(var(--brand-fg-rgb) / 0.15)',
+                    '&:hover': { color: '#00BFFF', borderColor: '#00BFFF' },
+                  }}>
+                  <ChevronLeftRoundedIcon sx={{ fontSize: 15 }} />
+                  {parent.title}
+                </Box>
+              );
+            })()}
           </Box>
 
           <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
             {!loadingBoards && (boardView === 'mindmap'
-              ? <MindMapCanvas boardKey={makeBoardKey(scope, activeDocId)} />
+              ? <MindMapCanvas boardKey={makeBoardKey(scope, activeDocId)}
+                  onDrillDownTopic={handleDrillDownTopic}
+                  onOpenChildBoard={handleOpenChildBoard}
+                  onOpenParentBoard={activeParentBoardId ? () => switchTo(activeParentBoardId) : undefined}
+                  onDissolveIntoParent={activeParentBoardId ? handleDissolveIntoParent : undefined}
+                  onRenameChildBoard={handleRenameChildBoard}
+                  onRenameSelfBoard={activeParentBoardId ? handleRenameSelfBoard : undefined}
+                  moveTargets={boards.map(b => ({ id: b.id, title: b.title }))}
+                  onMoveTopicToBoard={handleMoveTopicToBoard}
+                  onDissolveChildBoard={handleDissolveChildBoard} />
               : <ResearchCanvas boardKey={makeBoardKey(scope, activeDocId)} />)}
           </Box>
         </Box>

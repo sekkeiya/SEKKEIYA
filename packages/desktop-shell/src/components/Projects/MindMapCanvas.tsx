@@ -9,9 +9,16 @@ import '@xyflow/react/dist/style.css';
 import {
   Box, Typography, Button, IconButton, Slider, Tooltip, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  Menu, MenuItem, ListItemIcon, ListItemText,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SubdirectoryArrowRightRoundedIcon from '@mui/icons-material/SubdirectoryArrowRightRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
+import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
+import DriveFileMoveOutlinedIcon from '@mui/icons-material/DriveFileMoveOutlined';
+import UndoRoundedIcon from '@mui/icons-material/UndoRounded';
+import UnfoldLessRoundedIcon from '@mui/icons-material/UnfoldLessRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PaletteOutlinedIcon from '@mui/icons-material/PaletteOutlined';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -192,7 +199,7 @@ function iconsWidth(icons?: string[]): number {
 /** ノードの寸法を測るのに必要な中身だけ（まとめラベルからも渡せるようにした最小の形）。 */
 type MeasureInput = Pick<MindMapNode, 'text' | 'icons' | 'image' | 'imageW' | 'imageH' | 'link' | 'note' | 'refType'>;
 
-/** テキスト行の末尾に並ぶバッジ（リンク・メモ・出典）の数。 */
+/** テキスト行の末尾に並ぶバッジ（リンク・メモ・出典）の数。子ボードのバッジは外側なので数えない。 */
 function badgeCount(n: MeasureInput): number {
   return (n.link ? 1 : 0) + (n.note ? 1 : 0) + (n.refType ? 1 : 0);
 }
@@ -509,6 +516,12 @@ interface MindCtxValue {
   openNote: (id: string) => void;
   /** サムネのダブルクリック（画像・記事のプレビューを開く）。 */
   openPreview: (id: string) => void;
+  /** 潜行バッジのクリック（既存の子ボードへ遷移）。 */
+  openChildBoard: (childBoardId: string) => void;
+  /** 中心トピック左の「親ボードへ戻る」ボタン。子ボードのときだけ設定。 */
+  openParentBoard?: () => void;
+  /** トピックの右クリック（ボード操作メニューを開く）。未対応の文脈では未設定。 */
+  openTopicMenu?: (id: string, x: number, y: number) => void;
   // まとめ
   editingSummaryId: string | null;
   beginEditSummary: (id: string) => void;
@@ -576,6 +589,7 @@ interface MindNodeData {
   refType?: 'library' | 'article';
   refId?: string;
   refTitle?: string;
+  childBoardId?: string;
   [key: string]: unknown;
 }
 
@@ -626,7 +640,9 @@ const MindNode: React.FC<NodeProps> = ({ id, data }) => {
     ? { top: '50%', transform: 'translateY(-50%)', ...(d.side === 1 ? { right: -offset } : { left: -offset }) }
     : { left: '50%', transform: 'translateX(-50%)', ...(d.side === 1 ? { bottom: -offset } : { top: -offset }) });
 
-  const addOffset = d.hasChildren && !d.collapsed ? 34 : 11;
+  // 折りたたみトグル(20)/子ボードを開くボタン(22)が branch 側の外に出るので、
+  // 「+」はさらに外(44)へ逃がして重ならないようにする（末端トピックは付け根の11でよい）。
+  const addOffset = d.hasChildren || d.childBoardId ? 44 : 11;
   const outline = ctx.linkingFrom === id ? RELATION_COLOR
     : selected || isDropTarget ? '#00BFFF'
       : v.border;
@@ -635,7 +651,11 @@ const MindNode: React.FC<NodeProps> = ({ id, data }) => {
     <Box
       className="mind-node"
       onClick={e => { e.stopPropagation(); ctx.clickNode(id, e.ctrlKey || e.metaKey || e.shiftKey); }}
-      onDoubleClick={e => { e.stopPropagation(); if (!ctx.linkingFrom) ctx.beginEdit(id); }}
+      // ダブルクリック編集は React Flow 全体の onNodeDoubleClick で受ける（ラッパーの DOM が
+      // 安定していて確実）。ここで stopPropagation すると dblclick がラッパーへ届かないので付けない。
+      onContextMenu={ctx.openTopicMenu && (d.depth > 0 || !!ctx.openParentBoard)
+        ? e => { e.preventDefault(); e.stopPropagation(); ctx.clickNode(id, false); ctx.openTopicMenu!(id, e.clientX, e.clientY); }
+        : undefined}
       sx={{
         position: 'relative',
         width: d.w, minHeight: d.h,
@@ -672,8 +692,9 @@ const MindNode: React.FC<NodeProps> = ({ id, data }) => {
           src={d.image}
           alt=""
           draggable={false}
-          // クリックは親へ通してトピックを選択させる。ダブルクリックだけはここで捕まえ、
-          // テキスト編集ではなく中身のプレビューを開く。
+          // 画像上は選択のみ（親の自前ダブルクリック検出＝編集を発火させないため伝播を止める）。
+          // ダブルクリックはテキスト編集ではなく中身のプレビューを開く。
+          onClick={e => { e.stopPropagation(); ctx.clickNode(id, e.ctrlKey || e.metaKey || e.shiftKey); }}
           onDoubleClick={e => { e.stopPropagation(); ctx.openPreview(id); }}
           sx={{
             width: img.w, height: img.h, alignSelf: 'center', flexShrink: 0,
@@ -761,13 +782,13 @@ const MindNode: React.FC<NodeProps> = ({ id, data }) => {
         )}
       </Box>
 
-      {/* 折りたたみトグル（枝の付け根に乗る丸。折りたたみ中は子数バッジ） */}
+      {/* 折りたたみトグル（枝の付け根の外。ノード本体のダブルクリック編集を邪魔しないよう外に出す） */}
       {d.hasChildren && (
         <Box
           className="mind-collapse"
           onClick={e => { e.stopPropagation(); ctx.toggleCollapse(id); }}
           sx={{
-            position: 'absolute', ...edgeBadgePos(11),
+            position: 'absolute', ...edgeBadgePos(20),
             width: 18, height: 18, borderRadius: '50%', zIndex: 5,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 10, fontWeight: 800, lineHeight: 1,
@@ -797,6 +818,46 @@ const MindNode: React.FC<NodeProps> = ({ id, data }) => {
         >
           <AddRoundedIcon sx={{ fontSize: 15 }} />
         </Box>
+      )}
+
+      {/* 子ボードを開く（枝の付け根側の外。ノード本体のダブルクリック編集を邪魔しないよう外に出す） */}
+      {d.childBoardId && (
+        <Tooltip title="子ボードを開く">
+          <Box
+            className="nodrag"
+            onClick={e => { e.stopPropagation(); ctx.openChildBoard(d.childBoardId!); }}
+            sx={{
+              position: 'absolute', ...edgeBadgePos(22), zIndex: 5,
+              width: 20, height: 20, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: 'var(--brand-surface)', color: '#00BFFF', cursor: 'pointer',
+              border: '1.5px solid #00BFFF', boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              '&:hover': { bgcolor: '#00BFFF', color: '#012' },
+            }}
+          >
+            <AccountTreeRoundedIcon sx={{ fontSize: 13 }} />
+          </Box>
+        </Tooltip>
+      )}
+
+      {/* 中心トピックの左: 親ボードへ戻る（この地図が子ボードのときだけ） */}
+      {d.depth === 0 && ctx.openParentBoard && (
+        <Tooltip title="親ボードを開く" placement="left">
+          <Box
+            className="nodrag"
+            onClick={e => { e.stopPropagation(); ctx.openParentBoard!(); }}
+            sx={{
+              position: 'absolute', top: '50%', left: -14, transform: 'translate(-100%, -50%)', zIndex: 6,
+              width: 24, height: 24, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: 'var(--brand-surface)', color: '#00BFFF', cursor: 'pointer',
+              border: '1.5px solid #00BFFF', boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              '&:hover': { bgcolor: '#00BFFF', color: '#012' },
+            }}
+          >
+            <AccountTreeRoundedIcon sx={{ fontSize: 14 }} />
+          </Box>
+        </Tooltip>
       )}
     </Box>
   );
@@ -1408,6 +1469,44 @@ const RightPanel: React.FC<{
 interface Props {
   /** ボードキー（scope|docId）。ResearchCanvas と同じボード doc の mindmap フィールドを使う。 */
   boardKey: string;
+  /**
+   * トピックを子ボードとして切り出す（ドリルダウン）。ワークスペースが担う。
+   * 子ボードを作成し、その docId を返す（トピックに紐づけて潜行バッジを出すため）。
+   * 対応していない文脈（ワークスペース外）では未指定。
+   */
+  onDrillDownTopic?: (topicId: string, topicText: string, childMindmap: MindMapNode[]) => Promise<string | null>;
+  /** 既存の子ボードへ潜行する（バッジのクリック）。ワークスペースが画面を切り替える。 */
+  onOpenChildBoard?: (childBoardId: string) => void;
+  /** このボードが子ボードのとき、親ボードへ戻る（中心トピック左のボタン）。トップレベルでは未設定。 */
+  onOpenParentBoard?: () => void;
+  /**
+   * このボード（子ボード）を親へ畳み戻す。子ボードの全トピックを渡し、ワークスペースが
+   * 親ボードのアンカートピック配下へ戻して、この子ボードを削除・親へ遷移する。
+   * 子ボードのときだけ設定。
+   */
+  onDissolveIntoParent?: (childTopics: MindMapNode[]) => Promise<void>;
+  /**
+   * 連動: 子ボードを持つトピックの名前を変えたとき、子ボードの名前と中心トピックへ反映する。
+   */
+  onRenameChildBoard?: (childBoardId: string, text: string) => void;
+  /**
+   * 連動: この子ボードの中心トピックの名前を変えたとき、親ボードのアンカートピックと
+   * この子ボードの名前へ反映する。子ボードのときだけ設定。
+   */
+  onRenameSelfBoard?: (text: string) => void;
+  /** 移動先に選べる他ボード（このボードを除く同スコープの一覧）。 */
+  moveTargets?: Array<{ id: string; title: string }>;
+  /**
+   * トピック（部分木）を別ボードへ移す。移動先 doc への追記はワークスペースが担う。
+   * newOrigin=移動元 docId（戻せるように記録）/ null で origin を消す（＝元へ戻す）。
+   * 成功したら true（呼び出し側＝この画面が、移動元からその部分木を取り除く）。
+   */
+  onMoveTopicToBoard?: (targetDocId: string, subtree: MindMapNode[], rootId: string, newOrigin: string | null) => Promise<boolean>;
+  /**
+   * 子ボードを解消する。子ボードの全トピックを返し（root 含む）、ワークスペースは
+   * その子ボードを削除する。呼び出し側がトピックの下へ畳み戻す。失敗時は null。
+   */
+  onDissolveChildBoard?: (childDocId: string) => Promise<MindMapNode[] | null>;
 }
 
 type MindRFNode = Node<MindNodeData, 'mind'>;
@@ -1427,7 +1526,12 @@ interface MindSnapshot {
   relations: MindMapRelation[];
 }
 
-const MindMapInner: React.FC<Props> = ({ boardKey }) => {
+const MindMapInner: React.FC<Props> = ({
+  boardKey, onDrillDownTopic, onOpenChildBoard, onOpenParentBoard, onDissolveIntoParent,
+  onRenameChildBoard, onRenameSelfBoard,
+  moveTargets, onMoveTopicToBoard, onDissolveChildBoard,
+}) => {
+  const currentDocId = useMemo(() => parseBoardKey(boardKey).docId, [boardKey]);
   // データ/ブリッジは boardKey（ボード単位）、チャット・キックオフは scope（プロジェクト/個人単位）。
   const boardScope = parseBoardKey(boardKey).scope;
   const [mmNodes, setMmNodes] = useState<MindMapNode[]>([]);
@@ -1456,6 +1560,9 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
   const [noteDialog, setNoteDialog] = useState<null | { nodeId: string; text: string }>(null);
   // サムネのダブルクリックで開くプレビュー（記事なら本文、それ以外は画像を大きく）
   const [previewId, setPreviewId] = useState<string | null>(null);
+  // トピック右クリックのコンテキストメニュー（アンカー座標＋対象トピック）
+  const [topicMenu, setTopicMenu] = useState<null | { x: number; y: number; topicId: string }>(null);
+  const [moveSubmenuAnchor, setMoveSubmenuAnchor] = useState<HTMLElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toggleRightPane = useCallback((pane: 'style' | 'drive' | 'knowledge') => {
     setRightPane(cur => (cur === pane ? 'none' : pane));
@@ -1510,7 +1617,11 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
   // ─── 保存（デバウンス・失敗時は自動リトライ） ───────────────────────────────
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flushSaveRef = useRef<() => void>(() => {});
+  // このボードを親へ畳み戻して削除した直後は、アンマウント時の保存を止める
+  // （削除したボードを空/旧内容で復活させないため）。
+  const skipSaveRef = useRef(false);
   const flushSave = useCallback(() => {
+    if (skipSaveRef.current) return;
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     const payload = {
       mindmap: mmRef.current,
@@ -1599,6 +1710,8 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
   }, []);
 
   const editOriginRef = useRef<{ id: string; text: string } | null>(null);
+  /** 自前ダブルクリック判定用: 直近クリックのトピックと時刻（ネイティブ dblclick の取りこぼし対策）。 */
+  const lastClickRef = useRef<{ id: string; t: number } | null>(null);
   const beginEdit = useCallback((id: string) => {
     // 編集中のノード内でのダブルクリック（単語選択）が親へ伝播しても、
     // 編集前テキスト（Escape で戻す値）を編集途中の内容で上書きしない。
@@ -1611,10 +1724,21 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
   }, []);
   const endEdit = useCallback((cancel = false) => {
     const origin = editOriginRef.current;
-    if (cancel && origin) patchNode(origin.id, { text: origin.text });
     editOriginRef.current = null;
     setEditingId(null);
-  }, [patchNode]);
+    if (!origin) return;
+    if (cancel) { patchNode(origin.id, { text: origin.text }); return; }
+    // 確定: テキストが変わっていれば、子ボードとの名前を連動させる。
+    const node = mmRef.current.find(n => n.id === origin.id);
+    if (!node || node.text === origin.text) return;
+    if (node.childBoardId) {
+      // 子ボードを持つトピック → 子ボードの名前・中心トピックへ反映
+      onRenameChildBoard?.(node.childBoardId, node.text);
+    } else if (node.parentId == null) {
+      // この子ボードの中心トピック → 親ボードのアンカー・自ボード名へ反映（子ボードのときだけ有効）
+      onRenameSelfBoard?.(node.text);
+    }
+  }, [patchNode, onRenameChildBoard, onRenameSelfBoard]);
 
   const addChild = useCallback((parentId: string) => {
     const now = new Date().toISOString();
@@ -1762,6 +1886,134 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
     setSelectedIds([id]);
     setPreviewId(id);
   }, []);
+
+  // ─── 子ボード（ドリルダウン）────────────────────────────────────────────────
+  const [drilling, setDrilling] = useState(false);
+  /**
+   * 選択トピックを子ボードとして切り出す。既に子ボードがあればそこへ潜行するだけ。
+   * 無ければワークスペースに作成を委譲し、返った childBoardId をトピックに紐づけてから潜行する。
+   */
+  const drillDownTopic = useCallback(async (id: string) => {
+    if (!onDrillDownTopic) return;
+    const node = mmRef.current.find(n => n.id === id);
+    if (!node || node.parentId == null) return; // 中心トピックは切り出さない（それ自体が1マップ）
+    if (node.childBoardId) { onOpenChildBoard?.(node.childBoardId); return; }
+    setDrilling(true);
+    try {
+      const now = new Date().toISOString();
+      // 子ボードの初期マップ＝このトピック（中心トピック化）＋その配下をまるごと。
+      const subtreeIds = collectSubtree(id, mmRef.current);
+      const childMindmap = mmRef.current
+        .filter(n => subtreeIds.has(n.id))
+        .map(n => n.id === id
+          // 中心トピックにする: 親を外し先頭へ。自分のドリルダウン参照/移動元は引き継がない
+          ? { ...n, parentId: null, rank: 0, childBoardId: undefined, originBoardId: undefined, updatedAt: now }
+          : { ...n, updatedAt: now });
+
+      const childId = await onDrillDownTopic(id, node.text || '無題のトピック', childMindmap);
+      if (!childId) return;
+
+      // 親ボード側: 配下（トピック自身を除く）を取り除き、トピックには子ボードを紐づける。
+      // ぶら下がる関係線・まとめから、外に出た配下トピックへの参照も掃除する。
+      const removed = new Set([...subtreeIds].filter(x => x !== id));
+      setMmNodes(nds => nds
+        .filter(n => !removed.has(n.id))
+        .map(n => n.id === id ? { ...n, childBoardId: childId, updatedAt: now } : n));
+      setRelations(rs => rs.filter(r => !removed.has(r.source) && !removed.has(r.target)));
+      setSummaries(ss => ss
+        .map(s => (s.nodeIds.some(i => removed.has(i)) ? { ...s, nodeIds: s.nodeIds.filter(i => !removed.has(i)) } : s))
+        .filter(s => s.nodeIds.length > 0));
+      // 親ボードの状態が確定してから潜行（保存は debounce＋アンマウント時flushに乗る）
+      setTimeout(() => { flushSaveRef.current(); onOpenChildBoard?.(childId); }, 0);
+    } catch (e) {
+      console.error('[mindmap] 子ボードの作成に失敗:', e);
+    } finally {
+      setDrilling(false);
+    }
+  }, [onDrillDownTopic, onOpenChildBoard, collectSubtree]);
+
+  const openChildBoard = useCallback((childBoardId: string) => {
+    onOpenChildBoard?.(childBoardId);
+  }, [onOpenChildBoard]);
+
+  const [boardOp, setBoardOp] = useState(false); // 別ボード移動・戻す・解消の実行中
+
+  /** ライブ state から部分木を取り除き、随伴する関係線・まとめも掃除する。 */
+  const removeSubtreeLocal = useCallback((rootId: string) => {
+    const ids = collectSubtree(rootId, mmRef.current);
+    const parentId = mmRef.current.find(n => n.id === rootId)?.parentId ?? null;
+    setMmNodes(nds => nds.filter(n => !ids.has(n.id)));
+    setRelations(rs => rs.filter(r => !ids.has(r.source) && !ids.has(r.target)));
+    setSummaries(ss => ss
+      .map(s => (s.nodeIds.some(i => ids.has(i)) ? { ...s, nodeIds: s.nodeIds.filter(i => !ids.has(i)) } : s))
+      .filter(s => s.nodeIds.length > 0));
+    setSelectedIds(parentId ? [parentId] : []);
+  }, [collectSubtree]);
+
+  /** トピック（部分木）を別ボードへ移す。newOrigin=移動元 docId / null で戻す（origin を消す）。 */
+  const moveTopicToBoard = useCallback(async (topicId: string, targetDocId: string, newOrigin: string | null) => {
+    if (!onMoveTopicToBoard || boardOp) return;
+    const node = mmRef.current.find(n => n.id === topicId);
+    if (!node || node.parentId == null) return; // 中心トピックは移動しない
+    const ids = collectSubtree(topicId, mmRef.current);
+    const subtree = mmRef.current.filter(n => ids.has(n.id));
+    setBoardOp(true);
+    try {
+      const ok = await onMoveTopicToBoard(targetDocId, subtree, topicId, newOrigin);
+      if (!ok) return;
+      removeSubtreeLocal(topicId);
+      flushSaveRef.current();
+    } catch (e) {
+      console.error('[mindmap] トピックの移動に失敗:', e);
+    } finally {
+      setBoardOp(false);
+    }
+  }, [onMoveTopicToBoard, boardOp, collectSubtree, removeSubtreeLocal]);
+
+  /** 子ボードを解消し、中身をこのトピックの下へ畳み戻す（子ボード化の取り消し）。 */
+  const dissolveChildBoard = useCallback(async (topicId: string) => {
+    if (!onDissolveChildBoard || boardOp) return;
+    const node = mmRef.current.find(n => n.id === topicId);
+    if (!node?.childBoardId) return;
+    setBoardOp(true);
+    try {
+      const childTopics = await onDissolveChildBoard(node.childBoardId);
+      if (!childTopics) return;
+      const childRoot = childTopics.find(n => n.parentId == null);
+      const now = new Date().toISOString();
+      // 子ボードの中心トピックの子たちを、このトピックの直下へ。中心トピック自身は捨てる
+      // （＝このトピックと同義なので重複を避ける）。孫以下は親子関係のまま持ち込む。
+      const grafted = childTopics
+        .filter(n => n.id !== childRoot?.id)
+        .map(n => (n.parentId === childRoot?.id
+          ? { ...n, parentId: topicId, updatedAt: now }
+          : { ...n, updatedAt: now }));
+      setMmNodes(nds => nds
+        .map(n => n.id === topicId ? { ...n, childBoardId: undefined, updatedAt: now } : n)
+        .concat(grafted));
+      flushSaveRef.current();
+    } catch (e) {
+      console.error('[mindmap] 子ボードの解消に失敗:', e);
+    } finally {
+      setBoardOp(false);
+    }
+  }, [onDissolveChildBoard, boardOp]);
+
+  /** この子ボードを親へ畳み戻す（子ボード側からの取り消し）。ワークスペースが親へ書き戻す。 */
+  const dissolveIntoParent = useCallback(async () => {
+    if (!onDissolveIntoParent || boardOp) return;
+    setBoardOp(true);
+    // 成功すると親へ遷移してこのボードは削除される。アンマウント時の保存が復活させないよう止める。
+    skipSaveRef.current = true;
+    try {
+      await onDissolveIntoParent(mmRef.current);
+    } catch (e) {
+      console.error('[mindmap] 親への畳み戻しに失敗:', e);
+      skipSaveRef.current = false; // 失敗時は保存を再開
+    } finally {
+      setBoardOp(false);
+    }
+  }, [onDissolveIntoParent, boardOp]);
 
   // 空欄で保存＝外す。undefined にして、保存データに空文字を残さない
   const commitNoteDialog = useCallback(() => {
@@ -1956,12 +2208,31 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
       if (id !== linkingFrom) addRelation(linkingFrom, id);
       setLinkingFrom(null);
       setSelectedIds([id]);
+      lastClickRef.current = null;
       return;
+    }
+    // ダブルクリック＝編集開始。React Flow の onNodeDoubleClick（ネイティブ dblclick）は、
+    // 1回目クリックで選択→ノードを組み直す（rfNodes を作り直す）際にクリック対象の DOM が
+    // 差し替わり、Chromium が2回のクリックの共通祖先を辿れず発火を取りこぼす。そこで、毎クリック
+    // 確実に呼ばれるこの関数でクリック時刻を見て、自前でダブルクリックを判定する。
+    // 画像トピックの二度押しは画像側の onDoubleClick（＝プレビュー）に委ねるので対象外。
+    if (!additive) {
+      const now = Date.now();
+      const last = lastClickRef.current;
+      const hasImage = !!mmRef.current.find(n => n.id === id)?.image;
+      if (!hasImage && last && last.id === id && now - last.t < 350) {
+        lastClickRef.current = null;
+        beginEdit(id);
+        return;
+      }
+      lastClickRef.current = { id, t: now };
+    } else {
+      lastClickRef.current = null;
     }
     setSelectedIds(cur => (additive
       ? (cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id])
       : [id]));
-  }, [linkingFrom, addRelation]);
+  }, [linkingFrom, addRelation, beginEdit]);
 
   const patchStyle = useCallback((patch: MindMapStyle) => {
     setStyleState(s => ({ ...s, ...patch }));
@@ -2025,6 +2296,7 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
           image: n.image, imageW: n.imageW, imageH: n.imageH,
           link: n.link, note: n.note,
           refType: n.refType, refId: n.refId, refTitle: n.refTitle,
+          childBoardId: n.childBoardId,
         },
         draggable: r.depth > 0 && editingId !== n.id,
         // 範囲選択（selectionOnDrag）は React Flow の選択機構を使うので selectable が要る。
@@ -2129,14 +2401,43 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
   }, [dropPlan, layout, style.vGap, style.hGap]);
 
   // ─── ドラッグでトピックを動かす（子に付け替え / 兄弟の並び替え / 階層の上げ下げ）──
-  const dragSubtreeRef = useRef<Set<string>>(new Set());
+  // 複数選択中に含まれるトピックを掴んだら、選択全体をまとめて動かす。
+  const dragSubtreeRef = useRef<Set<string>>(new Set()); // 移動対象の部分木の和（＝ドロップ不可の集合）
+  const movingRootsRef = useRef<string[]>([]);           // 実際に付け替えるトピック（選択の最上位のみ・表示順）
   const dropPlanRef = useRef<DropPlan | null>(null);
 
   const onNodeDragStart = useCallback((_: MouseEvent | TouchEvent, node: AnyRFNode) => {
     if (node.type !== 'mind') return;
-    dragSubtreeRef.current = collectSubtree(node.id, mmRef.current);
+    const rootId0 = mmRef.current.find(n => n.parentId == null)?.id ?? null;
+    // 掴んだトピックが複数選択に含まれるなら選択全体、そうでなければ掴んだ1つを動かす。
+    // 中心トピックは動かせないので除外。
+    const base = (selectedIds.length > 1 && selectedIds.includes(node.id)) ? selectedIds : [node.id];
+    const movingSet = new Set(base.filter(id => id !== rootId0));
+
+    // 祖先が同じく移動対象なら、その子は祖先と一緒に動くので「付け替える根」からは外す
+    // （二重付け替えを防ぐ）。親をたどって movingSet に当たるかで判定。
+    const byId = new Map(mmRef.current.map(n => [n.id, n]));
+    const hasMovingAncestor = (id: string): boolean => {
+      let p = byId.get(id)?.parentId ?? null;
+      while (p) { if (movingSet.has(p)) return true; p = byId.get(p)?.parentId ?? null; }
+      return false;
+    };
+    const roots = [...movingSet].filter(id => !hasMovingAncestor(id));
+
+    // 表示順（交差軸の座標）で並べ、まとめて動かしても上下の並びが保たれるようにする
+    const crossOf = (id: string) => {
+      const r = layout.rects.get(id);
+      return r ? (r.axis === 'h' ? r.y : r.x) : 0;
+    };
+    roots.sort((a, b) => crossOf(a) - crossOf(b));
+    movingRootsRef.current = roots;
+
+    // ドロップ不可の集合＝全 root の部分木の和
+    const excl = new Set<string>();
+    for (const r of roots) for (const s of collectSubtree(r, mmRef.current)) excl.add(s);
+    dragSubtreeRef.current = excl;
     dropPlanRef.current = null;
-  }, [collectSubtree]);
+  }, [collectSubtree, selectedIds, layout]);
 
   const onNodeDrag = useCallback((_: MouseEvent | TouchEvent, node: AnyRFNode) => {
     if (node.type !== 'mind') return;
@@ -2204,53 +2505,78 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
   const onNodeDragStop = useCallback((_: MouseEvent | TouchEvent, node: AnyRFNode) => {
     if (node.type !== 'mind') return;
     const plan = dropPlanRef.current;
+    const roots = movingRootsRef.current;
+    // 先にクリア: React Flow が複数選択で onNodeDragStop を複数回呼んでも二度適用しない
     dropPlanRef.current = null;
+    movingRootsRef.current = [];
+    dragSubtreeRef.current = new Set();
     setDropPlanState(null);
     setDropTargetId(null);
-    dragSubtreeRef.current = new Set();
 
     const finish = () => setLayoutNonce(v => v + 1); // レイアウト座標へスナップバック
-    const dragged = mmRef.current.find(n => n.id === node.id);
-    if (!dragged || !plan) { finish(); return; }
+    if (!roots.length || !plan) { finish(); return; }
+    const movingSet = new Set(roots);
 
-    // プランから移動先（親・rank）を確定する
+    // 移動先の親を確定する（プランの target/ref は移動対象の部分木の外にあることが保証済み）
     let newParent: string;
-    let newRank: number;
     if (plan.type === 'child') {
       newParent = plan.parentId;
-      const siblings = mmRef.current.filter(n => n.parentId === newParent && n.id !== node.id);
-      newRank = siblings.length ? Math.max(...siblings.map(s => s.rank)) + 1 : 0;
     } else {
       const ref = mmRef.current.find(n => n.id === plan.refId);
       if (!ref || ref.parentId == null) { finish(); return; }
       newParent = ref.parentId;
-      // 自分を除いた並びの中で、ref の前/後に入る rank を採る（間は中間値）
-      const siblings = mmRef.current
-        .filter(n => n.parentId === newParent && n.id !== node.id)
-        .sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt));
-      const idx = siblings.findIndex(s => s.id === plan.refId);
-      if (idx < 0) { finish(); return; }
-      if (plan.before) {
-        const prev = siblings[idx - 1];
-        newRank = prev ? (prev.rank + ref.rank) / 2 : ref.rank - 1;
-      } else {
-        const next = siblings[idx + 1];
-        newRank = next ? (ref.rank + next.rank) / 2 : ref.rank + 1;
-      }
     }
 
+    // 新しい親の下で、移動対象を除いた既存の兄弟の並び
+    const siblings = mmRef.current
+      .filter(n => n.parentId === newParent && !movingSet.has(n.id))
+      .sort((a, b) => a.rank - b.rank || a.createdAt.localeCompare(b.createdAt));
+
+    // 挿入位置の rank 範囲 [lower, upper] を決める（upper=null は末尾＝上限なし）
+    let lower: number;
+    let upper: number | null;
+    if (plan.type === 'child') {
+      lower = siblings.length ? Math.max(...siblings.map(s => s.rank)) : -1;
+      upper = null; // 末尾に積む
+    } else {
+      const idx = siblings.findIndex(s => s.id === plan.refId);
+      const refRank = mmRef.current.find(n => n.id === plan.refId)!.rank;
+      if (idx < 0) {
+        // ref が移動対象に含まれていた等で見つからない → 末尾扱い
+        lower = siblings.length ? Math.max(...siblings.map(s => s.rank)) : -1;
+        upper = null;
+      } else if (plan.before) {
+        lower = siblings[idx - 1]?.rank ?? refRank - 1;
+        upper = refRank;
+      } else {
+        lower = refRank;
+        upper = siblings[idx + 1]?.rank ?? refRank + 1;
+      }
+    }
+    // roots に連続した rank を割り当てる（グループが1固まりで、表示順のまま入る）
+    const n = roots.length;
+    const rankOf = new Map<string, number>();
+    roots.forEach((id, k) => {
+      rankOf.set(id, upper == null ? lower + 1 + k : lower + ((upper - lower) * (k + 1)) / (n + 1));
+    });
+
     const now = new Date().toISOString();
-    const parentChanged = dragged.parentId !== newParent;
-    setMmNodes(nds => nds.map(n => {
-      if (n.id === node.id) return { ...n, parentId: newParent, rank: newRank, updatedAt: now };
-      if (plan.type === 'child' && n.id === newParent && n.collapsed) return { ...n, collapsed: false, updatedAt: now };
-      return n;
+    const byId = new Map(mmRef.current.map(x => [x.id, x]));
+    // 親が変わった root（同じ親の中の並び替えなら親不変）
+    const reparented = new Set(roots.filter(id => byId.get(id)?.parentId !== newParent));
+
+    setMmNodes(nds => nds.map(x => {
+      if (movingSet.has(x.id)) return { ...x, parentId: newParent, rank: rankOf.get(x.id)!, updatedAt: now };
+      if (plan.type === 'child' && x.id === newParent && x.collapsed) return { ...x, collapsed: false, updatedAt: now };
+      return x;
     }));
     // 親が変わると「同じ親の兄弟をくくる」前提が崩れるので、まとめから外す
-    // （同じ親の中の並び替えなら、まとめの一員のまま）
-    if (parentChanged) {
+    if (reparented.size > 0) {
       setSummaries(ss => ss
-        .map(s => (s.nodeIds.includes(node.id) ? { ...s, nodeIds: s.nodeIds.filter(i => i !== node.id) } : s))
+        .map(s => {
+          const kept = s.nodeIds.filter(i => !reparented.has(i));
+          return kept.length === s.nodeIds.length ? s : { ...s, nodeIds: kept };
+        })
         .filter(s => s.nodeIds.length > 0));
     }
     finish();
@@ -2294,14 +2620,15 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
     selectedIds, editingId, dropTargetId, linkingFrom, style, theme,
     beginEdit, endEdit,
     patchText: (id, text) => patchNode(id, { text }),
-    toggleCollapse, addChild, clickNode, openNote, openPreview,
+    toggleCollapse, addChild, clickNode, openNote, openPreview, openChildBoard, openParentBoard: onOpenParentBoard,
+    openTopicMenu: onDrillDownTopic ? (id, x, y) => setTopicMenu({ topicId: id, x, y }) : undefined,
     editingSummaryId, beginEditSummary, endEditSummary, patchSummaryText, deleteSummary,
     selectedRelationId, editingRelationId,
     selectRelation: setSelectedRelationId,
     beginEditRelation, endEditRelation, patchRelationText, deleteRelation,
   }), [
     selectedIds, editingId, dropTargetId, linkingFrom, style, theme,
-    beginEdit, endEdit, patchNode, toggleCollapse, addChild, clickNode, openNote, openPreview,
+    beginEdit, endEdit, patchNode, toggleCollapse, addChild, clickNode, openNote, openPreview, openChildBoard, onOpenParentBoard, onDrillDownTopic,
     editingSummaryId, beginEditSummary, endEditSummary, patchSummaryText, deleteSummary,
     selectedRelationId, editingRelationId, beginEditRelation, endEditRelation, patchRelationText, deleteRelation,
   ]);
@@ -2356,6 +2683,13 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
           onNodeDragStart={onNodeDragStart}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
+          // 編集開始はフロー全体のラッパーで受ける（＝ React Flow 公式の onNodeDoubleClick）。
+          // ノード内の onDoubleClick は、選択のたびのノード再構築でダブルクリックを取りこぼすため
+          // 頼れない。ラッパーの DOM は id で安定しているので確実に届く。
+          // 画像トピックは画像側の onDoubleClick が stopPropagation してここへ来ない（＝プレビュー）。
+          onNodeDoubleClick={(_, node) => {
+            if (node.type === 'mind' && !linkingFrom) beginEdit(node.id);
+          }}
           onPaneClick={() => {
             setSelectedIds([]);
             setSelectedRelationId(null);
@@ -2434,6 +2768,22 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
                 onClick={deleteSelected}>
                 削除
               </Button>
+
+              {onDrillDownTopic && (
+                <Tooltip title="選んだトピックを子ボード（別マップ）に切り出す。既に子ボードがあれば開く">
+                  <span>
+                    <Button
+                      startIcon={drilling
+                        ? <CircularProgress size={13} sx={{ color: '#00BFFF' }} />
+                        : <AccountTreeRoundedIcon sx={{ fontSize: 15 }} />}
+                      sx={toolButtonSx}
+                      disabled={!primaryId || primaryId === rootId || drilling}
+                      onClick={() => primaryId && drillDownTopic(primaryId)}>
+                      {primaryNode?.childBoardId ? '子ボードを開く' : '子ボードにする'}
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
 
               {/* ── 選択中のトピックに挿入する（ノード画面のツールバーと同じ並び）── */}
               <Box sx={{ width: '1px', height: 20, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.15)', mx: 0.25 }} />
@@ -2527,7 +2877,7 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
               </Typography>
             ) : (
               <Typography sx={{ mt: 0.75, fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
-                クリックで選択・Ctrl+クリックで複数選択・左ドラッグで範囲選択 / Enter: 同じ階層 / Tab: 子トピック / ダブルクリック: 編集（編集中は Shift+Enter・Ctrl+Enter で改行） / Delete: 枝ごと削除 / トピックをドラッグ: 移動（重ねて子に・隙間に入れて並び替え） / 右ドラッグで画面移動 / Ctrl+Zで戻す
+                クリックで選択・Ctrl+クリックで複数選択・左ドラッグで範囲選択 / Enter: 同じ階層 / Tab: 子トピック / ダブルクリック: 編集（編集中は Shift+Enter・Ctrl+Enter で改行） / Delete: 枝ごと削除 / トピックをドラッグ: 移動（重ねて子に・隙間に入れて並び替え。複数選択中はまとめて移動） / 右ドラッグで画面移動 / Ctrl+Zで戻す
               </Typography>
             )}
             {saveError && (
@@ -2580,6 +2930,98 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
             if (f && primaryId) handleImageFile(primaryId, f);
             e.target.value = '';
           }} />
+
+        {/* トピック右クリックのボード操作メニュー */}
+        {(() => {
+          const t = topicMenu ? mmNodes.find(n => n.id === topicMenu.topicId) : null;
+          const close = () => { setTopicMenu(null); setMoveSubmenuAnchor(null); };
+          const targets = (moveTargets ?? []).filter(b => b.id !== currentDocId);
+          return (
+            <Menu
+              open={!!topicMenu && !!t}
+              onClose={close}
+              anchorReference="anchorPosition"
+              anchorPosition={topicMenu ? { top: topicMenu.y, left: topicMenu.x } : undefined}
+              MenuListProps={{ dense: true }}
+              PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', minWidth: 200 } }}
+            >
+              {/* 子ボードの中心トピック: 親ボードへ戻る / このボードを親へ畳み戻す */}
+              {t?.parentId == null && onOpenParentBoard && (
+                <MenuItem onClick={() => { onOpenParentBoard(); close(); }}>
+                  <ListItemIcon><ChevronLeftRoundedIcon sx={{ fontSize: 17, color: '#00BFFF' }} /></ListItemIcon>
+                  <ListItemText>親ボードを開く</ListItemText>
+                </MenuItem>
+              )}
+              {t?.parentId == null && onDissolveIntoParent && (
+                <MenuItem disabled={boardOp} onClick={() => { dissolveIntoParent(); close(); }}>
+                  <ListItemIcon><UnfoldLessRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+                  <ListItemText>元のボードに戻す（親へ畳み戻す）</ListItemText>
+                </MenuItem>
+              )}
+
+              {/* 子ボードにする / 開く（枝トピックのみ） */}
+              {t?.parentId != null && (t.childBoardId ? (
+                <MenuItem onClick={() => { openChildBoard(t.childBoardId!); close(); }}>
+                  <ListItemIcon><AccountTreeRoundedIcon sx={{ fontSize: 17, color: '#00BFFF' }} /></ListItemIcon>
+                  <ListItemText>子ボードを開く</ListItemText>
+                </MenuItem>
+              ) : (
+                <MenuItem disabled={boardOp} onClick={() => { if (t) drillDownTopic(t.id); close(); }}>
+                  <ListItemIcon><SubdirectoryArrowRightRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+                  <ListItemText>子ボードにする</ListItemText>
+                </MenuItem>
+              ))}
+
+              {/* 別のボードへ移動（枝トピック・他ボードがあるときだけ） */}
+              {t?.parentId != null && onMoveTopicToBoard && targets.length > 0 && (
+                <MenuItem disabled={boardOp} onMouseEnter={e => setMoveSubmenuAnchor(e.currentTarget)}>
+                  <ListItemIcon><DriveFileMoveOutlinedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+                  <ListItemText>別のボードへ移動</ListItemText>
+                  <ChevronRightRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} />
+                </MenuItem>
+              )}
+
+              {/* 元のボードへ戻す（移動の取り消し） */}
+              {t?.parentId != null && onMoveTopicToBoard && t?.originBoardId && (moveTargets ?? []).some(b => b.id === t.originBoardId) && (
+                <MenuItem disabled={boardOp} onClick={() => { if (t) moveTopicToBoard(t.id, t.originBoardId!, null); close(); }}>
+                  <ListItemIcon><UndoRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+                  <ListItemText>元のボードへ戻す</ListItemText>
+                </MenuItem>
+              )}
+
+              {/* 子ボードを解消して戻す（子ボード化の取り消し） */}
+              {onDissolveChildBoard && t?.childBoardId && (
+                <MenuItem disabled={boardOp} onClick={() => { if (t) dissolveChildBoard(t.id); close(); }}>
+                  <ListItemIcon><UnfoldLessRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+                  <ListItemText>子ボードを解消して戻す</ListItemText>
+                </MenuItem>
+              )}
+            </Menu>
+          );
+        })()}
+
+        {/* 「別のボードへ移動」のサブメニュー（移動先ボード一覧） */}
+        <Menu
+          open={!!moveSubmenuAnchor && !!topicMenu}
+          anchorEl={moveSubmenuAnchor}
+          onClose={() => setMoveSubmenuAnchor(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          MenuListProps={{ dense: true }}
+          PaperProps={{ sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', maxHeight: 320, minWidth: 180 } }}
+        >
+          {(moveTargets ?? []).filter(b => b.id !== currentDocId).map(b => (
+            <MenuItem key={b.id} disabled={boardOp}
+              onClick={() => {
+                if (topicMenu) moveTopicToBoard(topicMenu.topicId, b.id, currentDocId);
+                setMoveSubmenuAnchor(null); setTopicMenu(null);
+              }}>
+              <ListItemText primaryTypographyProps={{ sx: { fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis' } }}>
+                {b.title}
+              </ListItemText>
+            </MenuItem>
+          ))}
+        </Menu>
 
         {/* サムネのダブルクリック → 中身のプレビュー（記事は本文、それ以外は画像を大きく） */}
         <Dialog open={!!previewNode} onClose={() => setPreviewId(null)}
@@ -2690,9 +3132,9 @@ const MindMapInner: React.FC<Props> = ({ boardKey }) => {
 };
 
 /** GitMind 風マインドマップエディタ。boardKey のボード doc（mindmap フィールド）を編集する。 */
-export const MindMapCanvas: React.FC<Props> = ({ boardKey }) => (
-  <ReactFlowProvider key={boardKey}>
-    <MindMapInner boardKey={boardKey} />
+export const MindMapCanvas: React.FC<Props> = (props) => (
+  <ReactFlowProvider key={props.boardKey}>
+    <MindMapInner {...props} />
   </ReactFlowProvider>
 );
 

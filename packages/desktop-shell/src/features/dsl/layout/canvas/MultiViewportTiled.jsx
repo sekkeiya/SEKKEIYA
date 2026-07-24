@@ -266,6 +266,26 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
     () => viewportsData.find((v) => v.visible)?.id ?? null,
     [viewportsData]
   );
+  // ============================================================
+  // ✅ ビュー切替ディゾルブ（図面ビュー切替＝beginViewTransition 経由）
+  //   平面/立面/断面/展開の切替は「クリップ即適用→リフレーム遅延」の中間フレームや、
+  //   切替先キャンバスの古いフリーズフレーム（frameloop=demand の名残）が一瞬見えてカクつく。
+  //   切替の起点(beginViewTransition)で背景色カバーを一瞬かぶせて溶暗し、全部まとめて覆い隠す。
+  //   ※ この経路ではクロスフェード（旧ビューの重ね表示）は併走させない（多重に見えるため）。
+  // ============================================================
+  const viewTransitionTick = useViewportUiStore((s) => s.viewTransitionTick);
+  const [coverKey, setCoverKey] = useState(0);
+  const prevTransitionRef = useRef(viewTransitionTick);
+  // このレンダーで図面切替が起きたか（クロスフェード抑止の判定に使うので先に計算）。
+  let transitionThisRender = false;
+  if (prevTransitionRef.current !== viewTransitionTick) {
+    prevTransitionRef.current = viewTransitionTick;
+    if (!isWalkthroughMode) {
+      transitionThisRender = true;
+      setCoverKey((k) => k + 1);
+    }
+  }
+
   const [fadeOutViewportId, setFadeOutViewportId] = useState(null);
   const prevVisibleViewportRef = useRef(visibleViewportId);
   // レンダー中に直前ビューとの差分を検知して即座にフェード対象を確定する
@@ -273,7 +293,10 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
   if (prevVisibleViewportRef.current !== visibleViewportId) {
     const prev = prevVisibleViewportRef.current;
     prevVisibleViewportRef.current = visibleViewportId;
-    const canFade = normalizedLayoutMode === LAYOUT_MODES.SINGLE && !isWalkthroughMode;
+    // 図面切替（カバーが担当）ではクロスフェードを出さない。旧ビューの半透明重ねと
+    // カバーが併走すると複数ビューが混ざって見えるため。カメラビュー切替などの
+    // beginViewTransition を通らないキャンバス切替だけ従来のクロスフェードを使う。
+    const canFade = normalizedLayoutMode === LAYOUT_MODES.SINGLE && !isWalkthroughMode && !transitionThisRender;
     setFadeOutViewportId(canFade && prev && prev !== visibleViewportId ? prev : null);
   }
   useEffect(() => {
@@ -536,8 +559,10 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
 
           const active = id === effectiveActiveViewportId;
 
-          // Gizmoは今まで通り Persp/Top でだけ表示
-          const showGizmo = active && (type === VIEW_TYPES.PERSPECTIVE || type === VIEW_TYPES.TOP);
+          // Gizmo: Persp/Top に加え、側面正射（立面/断面/展開＝FRONT/RIGHT）でも表示する。
+          // 側面正射では SingleViewportCanvas 側で「高さ＋画面横」の2軸平行移動に絞る。
+          const isSideOrthoType = type === VIEW_TYPES.FRONT || type === VIEW_TYPES.RIGHT;
+          const showGizmo = active && (type === VIEW_TYPES.PERSPECTIVE || type === VIEW_TYPES.TOP || isSideOrthoType);
           const allowDrop = !materialPicking;
 
           return (
@@ -629,6 +654,27 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
           );
         })}
       </Box>
+
+      {/* ビュー切替ディゾルブ: 切替のたびに再マウントして「不透明→透明」を一発再生し、
+          リフレーム前の中間フレームを覆い隠す。pointer-events:none で操作は透過。 */}
+      {coverKey > 0 && (
+        <Box
+          key={`view-dissolve-${coverKey}`}
+          sx={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 8,
+            pointerEvents: "none",
+            background: "var(--brand-bg)",
+            animation: "dslViewDissolve 260ms ease-out forwards",
+            "@keyframes dslViewDissolve": {
+              "0%": { opacity: 1 },
+              "45%": { opacity: 1 },
+              "100%": { opacity: 0 },
+            },
+          }}
+        />
+      )}
     </Box>
   );
 });

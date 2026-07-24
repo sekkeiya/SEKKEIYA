@@ -93,6 +93,17 @@ export default function SectionPropertiesPanel() {
 
   const applyLine = (line) => {
     setActiveLine(line.id);
+    // ⚠️ クリップの組み替えは「断面ビューを見ているとき」だけ。
+    //   平面・天井・パースを見ている最中に断面用クリップ（水平カットOFF＋鉛直カットON）へ
+    //   変えると、平面図の天井カットが外れて屋根が残り、上から見た灰色の塊になる
+    //   （断面ラインを追加しただけで平面が壊れる、という不具合の原因だった）。
+    //   平面で追加した線は「選択」までにとどめ、実際に断面を開いたときに
+    //   applyEditorViewState("section") がクリップを組む。
+    const vpNow = useViewportUiStore.getState();
+    const curId = vpNow.activeViewportId;
+    const inSectionView = curId === VIEWPORT_IDS.FRONT || curId === VIEWPORT_IDS.RIGHT;
+    if (!inSectionView) return;
+
     // 断面を開いたら展開図ビューのハイライトを解除（同じクリップ機構を共有するため）
     useElevationMarkerStore.getState().setViewActive(false);
     const em = useEditorModeStore.getState();
@@ -102,13 +113,9 @@ export default function SectionPropertiesPanel() {
     em.setSectionClipZEnabled(line.axis === "z");
     if (line.axis === "x") em.setSectionClipX(line.pos); else em.setSectionClipZ(line.pos);
     em.setSectionViewFlip?.(!!line.flip);
-    // 断面ビュー表示中なら、軸に合わせて正面/側面ビューポートも切替えて再フレーミング
-    const vp = useViewportUiStore.getState();
-    const id = vp.activeViewportId;
-    if (id === VIEWPORT_IDS.FRONT || id === VIEWPORT_IDS.RIGHT) {
-      vp.setActiveViewportId(line.axis === "x" ? VIEWPORT_IDS.RIGHT : VIEWPORT_IDS.FRONT);
-      setTimeout(() => vp.requestFrameAll?.(), 140);
-    }
+    // 軸に合わせて正面/側面ビューポートも切替えて再フレーミング（ここは断面ビュー中のみ到達）
+    vpNow.setActiveViewportId(line.axis === "x" ? VIEWPORT_IDS.RIGHT : VIEWPORT_IDS.FRONT);
+    setTimeout(() => vpNow.requestFrameAll?.(), 140);
   };
 
   // 向き反転（矢印＝見る側を逆に）

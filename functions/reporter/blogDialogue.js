@@ -17,6 +17,7 @@ const admin = require("firebase-admin");
 const crypto = require("crypto");
 const { callLLM, getTextModelConfig } = require("./llm");
 const { getDigestLines, buildMemorySection, extractAndSaveUserMemories } = require("./aiMemory");
+const { recordUsage } = require("../usage/recordUsage");
 
 const cleanJson = (raw) =>
   String(raw).replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
@@ -814,6 +815,180 @@ ${context ? `【この画像の前後の本文】\n${context}\n` : ""}
       await Promise.all(images.slice(i, i + 3).map(async (im, j) => { descriptions[i + j] = await describeOne(im); }));
     }
     return { success: true, descriptions };
+  }
+
+  /* ---------- YouTubeチャンネル → RSSフィードURL解決（ソース追加用） ----------
+   * チャンネルURL（@ハンドル / /channel/ / /c/ / 動画URL）から channelId を特定し、
+   * 購読可能な Atom フィード（feeds/videos.xml?channel_id=）とチャンネル名を返す。 */
+  if (mode === "youtubeChannelFeed") {
+    if (!context.auth?.uid) return { success: false, reason: "unauthenticated" };
+    let u;
+    try { u = new URL(String(data.url || "")); } catch { return { success: false, reason: "URLの形式が正しくありません" }; }
+    if (!/(^|\.)(youtube\.com|youtu\.be)$/.test(u.hostname)) return { success: false, reason: "YouTube のURLではありません" };
+    try {
+      const res = await fetch(u.href, { headers: { "User-Agent": BROWSER_UA, "Accept-Language": "ja" }, redirect: "follow" });
+      const html = await res.text();
+      // ⚠️ 先頭の "channelId" はおすすめ欄の別チャンネルを拾うことがある。
+      // ページ自身のIDである externalId / canonical を優先する（実測で確認済みの罠）
+      const cid = (/"externalId":"(UC[\w-]{10,})"/.exec(html)
+        || /rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{10,})"/.exec(html)
+        || /channel_id=(UC[\w-]{10,})/.exec(html)
+        || /"channelId":"(UC[\w-]{10,})"/.exec(html) || [])[1];
+      if (!cid) return { success: false, reason: "チャンネルIDを特定できませんでした（チャンネルページのURLを入力してください）" };
+      const name = decodeEntities((/<meta property="og:title" content="([^"]+)"/.exec(html) || [])[1] || "").slice(0, 40);
+      return { success: true, feed: `https://www.youtube.com/feeds/videos.xml?channel_id=${cid}`, name };
+    } catch (e) {
+      return { success: false, reason: `チャンネル情報の取得に失敗しました: ${e.message}` };
+    }
+  }
+
+  /* ---------- YouTube動画の言語判定（ホームの言語絞り込み用） ----------
+   * 各動画が「日本語音声トラック（多言語吹替）」を持つかを watch ページから検出する。
+   * 結果は videoMeta/{videoId} に永続キャッシュ（30日鮮度）。1回の呼び出しで新規判定は
+   * 8件まで（残りは pending で返し、クライアントが繰り返し呼ぶ）。LLM 不使用・低コスト。 */
+  if (mode === "videoLangs") {
+    if (!context.auth?.uid) return { success: false, reason: "unauthenticated" };
+    const urls = (Array.isArray(data.urls) ? data.urls : []).slice(0, 40).map(String);
+    const ids = [...new Set(urls
+      .map((u) => (/(?:youtube\.com\/(?:watch\?[^#\s]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,20})/.exec(u) || [])[1])
+      .filter(Boolean))];
+    if (!ids.length) return { success: true, map: {}, pending: 0 };
+
+    const col = db.collection("videoMeta");
+    const FRESH = 30 * 24 * 3600e3;
+    const map = {};
+    const missing = [];
+    try {
+      const snaps = await db.getAll(...ids.map((id) => col.doc(id)));
+      snaps.forEach((s, i) => {
+        const d = s.exists ? s.data() : null;
+        if (d && Date.now() - (d.at || 0) < FRESH && typeof d.jaAudio === "boolean") map[ids[i]] = { jaAudio: d.jaAudio };
+        else missing.push(ids[i]);
+      });
+    } catch { missing.push(...ids); }
+
+    const CAP = 8;
+    const toCheck = missing.slice(0, CAP);
+    await Promise.all(toCheck.map(async (id) => {
+      let jaAudio = false;
+      try {
+        const res = await fetch(`https://www.youtube.com/watch?v=${id}`, {
+          headers: { "User-Agent": BROWSER_UA, "Accept-Language": "ja" }, redirect: "follow",
+        });
+        const html = await res.text();
+        // プレイヤー応答内の音声トラック定義（id が "ja..." or 表示名が日本語）を探す
+        jaAudio = /"audioTrack":\{[^{}]*"id":"ja[^"]*"/.test(html)
+          || /"audioTrack":\{"displayName":"日本語[^"]*"/.test(html);
+      } catch { /* 判定不能は false（次回リトライは鮮度切れ後） */ }
+      map[id] = { jaAudio };
+      try { await col.doc(id).set({ jaAudio, at: Date.now() }, { merge: true }); } catch { /* noop */ }
+    }));
+    return { success: true, map, pending: Math.max(0, missing.length - toCheck.length) };
+  }
+
+  /* ---------- YouTube動画の内容理解（Reader 動画ソース用） ----------
+   * Gemini の動画理解に YouTube URL を直接渡し、
+   *  - blocks   : 動画内容を日本語記事に再構成（記事モード表示・読み上げ・AI議論の材料）
+   *  - segments : タイムスタンプ付き日本語字幕 [{s,e,text}]（英語音声は日本語訳）
+   * を生成する。結果は全ユーザー共有キャッシュ videoReadCache/{videoId}（2回目以降は生成なし）。
+   * 字幕スクレイピングではなく公式APIの動画入力なので取得が安定し、規約面もクリーン。 */
+  if (mode === "videoRead") {
+    const uid = context.auth?.uid;
+    if (!uid) return { success: false, reason: "unauthenticated" };
+    const url = String(data.url || "");
+    const idm = /(?:youtube\.com\/(?:watch\?[^#\s]*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,20})/.exec(url);
+    const videoId = idm ? idm[1] : "";
+    if (!videoId) return { success: false, reason: "YouTube の動画URLではありません" };
+
+    const cacheRef = db.collection("videoReadCache").doc(videoId);
+    try {
+      const hit = await cacheRef.get();
+      if (hit.exists && hit.data().v === 1 && hit.data().payload) {
+        return { success: true, cached: true, ...hit.data().payload };
+      }
+    } catch { /* キャッシュ不調でも本処理へ */ }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    const VIDEO_MODEL = "gemini-2.5-flash";
+    const prompt = `
+あなたは建築・デザイン分野の編集者です。このYouTube動画を視聴し、次のJSONだけを出力してください。
+{"title":"動画の内容を表す日本語タイトル(40字以内)",
+ "summary":"2〜3文の日本語要約",
+ "blocks":[{"t":"h","text":"見出し"},{"t":"p","text":"段落"}],
+ "segments":[{"s":開始秒,"e":終了秒,"text":"日本語字幕"}]}
+- blocks: 動画を見なくても内容が分かる日本語記事として再構成する（見出し＋段落で1000〜2000字目安。話者の主張・具体例・数値を保持し、挨拶・宣伝・定型の締めは省く）
+- segments: 動画全体をカバーする字幕。発話に沿って1件3〜8秒で区切り、英語音声は自然な日本語に翻訳する。s/e は秒数（数値）
+- JSON以外のテキストは一切出力しない`.trim();
+
+    let j = null;
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${VIDEO_MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { fileData: { fileUri: `https://www.youtube.com/watch?v=${videoId}` } },
+                { text: prompt },
+              ],
+            }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              maxOutputTokens: 24576,
+              thinkingConfig: { thinkingBudget: 0 },
+            },
+          }),
+        },
+      );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.warn(`[blogDialogue:videoRead] ${videoId} HTTP ${res.status}: ${body.slice(0, 300)}`);
+        return { success: false, reason: res.status === 429
+          ? "動画解析が混み合っています。しばらくして再試行してください"
+          : "動画を解析できませんでした（非公開・年齢制限・長時間の動画は非対応です）" };
+      }
+      j = await res.json();
+    } catch (e) {
+      return { success: false, reason: `動画の解析に失敗しました: ${e.message}` };
+    }
+
+    // 管理者APIモニターへ計上（動画は入力トークンが大きい＝実測 usageMetadata をそのまま記録）
+    try {
+      const um = j?.usageMetadata || {};
+      await recordUsage({
+        uid, email: context.auth?.token?.email || null,
+        feature: "video-read", provider: "gemini", model: VIDEO_MODEL,
+        usage: { inputTokens: um.promptTokenCount || 0, outputTokens: um.candidatesTokenCount || 0 },
+      });
+    } catch { /* 計上失敗は本処理に影響させない */ }
+
+    let out = null;
+    try {
+      out = JSON.parse(cleanJson(String(j?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "")));
+    } catch {
+      return { success: false, reason: "動画の解析結果を読み取れませんでした（再試行で直ることがあります）" };
+    }
+    const blocks = (Array.isArray(out.blocks) ? out.blocks : [])
+      .filter((b) => b && (b.t === "h" || b.t === "p") && typeof b.text === "string" && b.text.trim())
+      .map((b) => ({ t: b.t, text: b.text.trim() }))
+      .slice(0, READER_BLOCK_CAP);
+    const segments = (Array.isArray(out.segments) ? out.segments : [])
+      .map((g) => ({ s: Number(g.s), e: Number(g.e), text: String(g.text || "").trim() }))
+      .filter((g) => Number.isFinite(g.s) && Number.isFinite(g.e) && g.e > g.s && g.text)
+      .slice(0, 800);
+    if (!blocks.length) return { success: false, reason: "動画から本文を生成できませんでした" };
+
+    const payload = {
+      videoId,
+      title: String(out.title || "").slice(0, 80),
+      summary: String(out.summary || "").slice(0, 400),
+      blocks,
+      segments,
+    };
+    try { await cacheRef.set({ v: 1, at: Date.now(), payload }); } catch { /* キャッシュ保存失敗は無視 */ }
+    return { success: true, ...payload };
   }
 
   /* ---------- ニュースフィード（ホーム用・LLM不使用） ----------

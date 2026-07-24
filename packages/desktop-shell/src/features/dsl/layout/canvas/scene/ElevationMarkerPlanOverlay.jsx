@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { Html } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useRoomElevationsStore } from "../../store/useRoomElevationsStore";
@@ -40,6 +41,9 @@ export default function ElevationMarkerPlanOverlay() {
   const sectionClipHeight = useEditorModeStore((s) => s.sectionClipHeight);
   const rotIndex = useEditorModeStore((s) => s.layoutCameraRotationIndex) || 0;
   const viewDeg = rotIndex * -90;
+  // 展開記号はアクティブ階の部屋のぶんだけ出す（矢印＋目＋バッジで大きく、他階に薄く
+  // 重ねると読めないので、ゾーンのトレースとは違い他階は非表示にする）。
+  const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
 
   const isMm = (sceneMaxY || 0) > 100;
   // 平面図の水平カット面の少し下（クリップで消えないように）
@@ -48,6 +52,15 @@ export default function ElevationMarkerPlanOverlay() {
   // 部屋 = Room（roomId でゾーンを束ねる。roomId 無しゾーンは単体で1部屋）
   const rooms = useMemo(() => computeElevationRooms(zones, roomsList), [zones, roomsList]);
   const roomById = useMemo(() => new Map(rooms.map((r) => [r.id, r])), [rooms]);
+  // 部屋の階（Room マスタ優先、無ければ所属ゾーンから）。展開記号の階フィルタに使う。
+  const roomFloorById = useMemo(() => {
+    const m = new Map();
+    rooms.forEach((r) => {
+      const master = (roomsList || []).find((x) => x.id === r.id);
+      m.set(r.id, master?.floorIndex ?? r.zones?.[0]?.floorIndex ?? 0);
+    });
+    return m;
+  }, [rooms, roomsList]);
 
   // 部屋の増減に追従: 新しい部屋に既定4本を用意し、消えた部屋の展開を掃除する
   const roomIdsKey = rooms.map((r) => r.id).join(",");
@@ -64,6 +77,8 @@ export default function ElevationMarkerPlanOverlay() {
       {elevations.map((elev) => {
         const room = roomById.get(elev.roomId);
         if (!room) return null;
+        // アクティブ階の部屋のぶんだけ出す（他階の展開記号は非表示）。
+        if ((roomFloorById.get(room.id) || 0) !== (activeFloorIndex || 0)) return null;
         const pos = markerPos[elev.id] || defaultElevationPos(elev);
         if (!pos) return null;
         return (

@@ -6,6 +6,7 @@ import { VIEW_TYPES } from "../../utils/viewportUtils.js";
 import { useUiSelectionStore } from "../../store/uiSelectionStore";
 import { useStructureLabelStore } from "../../store/useStructureLabelStore";
 import { useHeightSetupStore } from "../../store/useHeightSetupStore";
+import { useEditorModeStore } from "../../store/useEditorModeStore";
 
 /**
  * ✅ フォーカス/フレーム制御（Canvas内）
@@ -199,15 +200,19 @@ export default function ViewportFramingController({
       // ✅ 距離は現状維持
       const dist = cam.position.clone().sub(controls.target).length() || 30;
 
+      // 断面/立面の向き反転（北⇄南 / 東⇄西）。これを無視すると全体フレームのたびに
+      // 反転無し側（+Z/+X）へ戻ってしまい、立面 北と南が同じ絵になる。
+      const flip = !!useEditorModeStore.getState().sectionViewFlip;
+
       // ✅ 向きを固定（ロール防止のため毎回 up + lookAt をやる）
       if (type === VIEW_TYPES.TOP) {
         cam.position.set(center.x, center.y + dist, center.z);
         cam.up.set(0, 0, -1); // Rhinoっぽく「上= -Z」
       } else if (type === VIEW_TYPES.FRONT) {
-        cam.position.set(center.x, center.y, center.z + dist);
+        cam.position.set(center.x, center.y, center.z + (flip ? -dist : dist));
         cam.up.set(0, 1, 0);
       } else if (type === VIEW_TYPES.RIGHT) {
-        cam.position.set(center.x + dist, center.y, center.z);
+        cam.position.set(center.x + (flip ? -dist : dist), center.y, center.z);
         cam.up.set(0, 1, 0);
       }
 

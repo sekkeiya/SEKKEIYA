@@ -16,11 +16,17 @@ import HandymanRoundedIcon from "@mui/icons-material/HandymanRounded";
 import ViewColumnRoundedIcon from "@mui/icons-material/ViewColumnRounded";
 import StraightenRoundedIcon from "@mui/icons-material/StraightenRounded";
 import SquareFootRoundedIcon from "@mui/icons-material/SquareFootRounded";
+import GridOnRoundedIcon from "@mui/icons-material/GridOnRounded";
+import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useEditorModeStore } from "../../../../store/useEditorModeStore";
 import { useToolsStore } from "../../../../store/toolsStore/useToolsStore";
 import { useWallStore } from "../../../../store/useWallStore";
 import { useSlabStore } from "../../../../store/useSlabStore";
+import { useManualDimensionStore } from "../../../../store/useManualDimensionStore";
+import { useGridAxisStore } from "../../../../store/useGridAxisStore";
+import { useDimChainStore } from "../../../../store/useDimChainStore";
+import { useUiRightSidebarStore } from "../../../../store/uiRightSidebarStore";
 import { useAutoLayoutStore } from "../../../../store/useAutoLayoutStore";
 import { useViewportUiStore } from "../../../../store/viewportUiStore";
 import { useAppStore } from "../../../../../../../store/useAppStore";
@@ -59,6 +65,9 @@ export default function LayoutToolbar({ layoutItems = [] }) {
   const wallDrawKind   = useWallStore((s) => s.drawKind);
   const toggleDrawKind = useWallStore((s) => s.toggleDrawKind);
   const slabDrawActive = useSlabStore((s) => s.drawActive);
+  const dimDrawActive  = useManualDimensionStore((s) => s.drawActive);
+  const gridPanelOpen  = useGridAxisStore((s) => s.panelOpen);
+  const chainPanelOpen = useDimChainStore((s) => s.panelOpen);
   const editorViewGroup = useEditorModeStore((s) => s.editorViewGroup);
   const isPlanView = editorViewGroup === "2d";
 
@@ -68,12 +77,46 @@ export default function LayoutToolbar({ layoutItems = [] }) {
 
   const handleWallTool = useCallback((kind) => {
     useSlabStore.getState().setDrawActive(false); // 床ツールと排他
+    useManualDimensionStore.getState().setDrawActive(false); // 寸法ツールと排他
     toggleDrawKind(kind);
   }, [toggleDrawKind]);
 
   const handleSlabTool = useCallback(() => {
     useWallStore.getState().setDrawKind(null); // 壁ツールと排他
+    useManualDimensionStore.getState().setDrawActive(false); // 寸法ツールと排他
     useSlabStore.getState().toggleDraw();
+  }, []);
+
+  // 通り芯は作図ツールではなく管理パネル（＋で追加 → 平面でドラッグして位置決め）。
+  const handleGridAxisTool = useCallback(() => {
+    const st = useGridAxisStore.getState();
+    const next = !st.panelOpen;
+    st.setPanelOpen(next);
+    if (next) {
+      st.setVisible(true);
+      useUiRightSidebarStore.getState().setRightPanel("properties", true);
+    } else {
+      st.setSelectedId(null);
+    }
+  }, []);
+
+  // 寸法列（4辺 × 1〜3列）の構成パネル。通り芯パネルとは排他で開く。
+  const handleDimChainTool = useCallback(() => {
+    const st = useDimChainStore.getState();
+    const next = !st.panelOpen;
+    st.setPanelOpen(next);
+    if (next) {
+      st.setVisible(true);
+      useGridAxisStore.getState().setPanelOpen(false);
+      useGridAxisStore.getState().setSelectedId(null);
+      useUiRightSidebarStore.getState().setRightPanel("properties", true);
+    }
+  }, []);
+
+  const handleDimTool = useCallback(() => {
+    useWallStore.getState().setDrawKind(null); // 壁ツールと排他
+    useSlabStore.getState().setDrawActive(false); // 床ツールと排他
+    useManualDimensionStore.getState().toggleDraw();
   }, []);
 
   const handleOpenDsc = useCallback(() => {
@@ -172,27 +215,49 @@ export default function LayoutToolbar({ layoutItems = [] }) {
 
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.8, borderColor: alpha("#fff", 0.15) }} />
 
-      {/* === 造作家具を作成 (3DSC) === */}
-      <Tooltip title="造作家具を作成・編集 (3DSC)" arrow>
-        <Chip
-          size="small"
-          clickable
-          onClick={handleOpenDsc}
-          icon={<HandymanRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
-          label="造作家具"
-          sx={{
-            height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
-            background: alpha("#ffa726", 0.15),
-            border: `1px solid ${alpha("#ffa726", 0.4)}`,
-            color: "light-dark(rgba(173,103,0,0.95), rgba(255,167,38,0.95))",
-            "&:hover": { background: alpha("#ffa726", 0.28) },
-            transition: "all 0.15s ease",
-          }}
-        />
-      </Tooltip>
+      {/* === 造作家具を作成 (3DSC): 家具サイド＝Plan/Option でのみ表示 === */}
+      {!isBaseOnly && (
+        <Tooltip title="造作家具を作成・編集 (3DSC)" arrow>
+          <Chip
+            size="small"
+            clickable
+            onClick={handleOpenDsc}
+            icon={<HandymanRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+            label="造作家具"
+            sx={{
+              height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+              background: alpha("#ffa726", 0.15),
+              border: `1px solid ${alpha("#ffa726", 0.4)}`,
+              color: "light-dark(rgba(173,103,0,0.95), rgba(255,167,38,0.95))",
+              "&:hover": { background: alpha("#ffa726", 0.28) },
+              transition: "all 0.15s ease",
+            }}
+          />
+        </Tooltip>
+      )}
 
-      {/* === 壁を描く（内壁／外壁）: 平面図(2D配置)のみ。押して左ドラッグで作図 === */}
-      {isPlanView && (
+      {/* === Base（建築）編集中の目印。壁・床・通り芯などは全プラン共通の編集になる === */}
+      {isBaseOnly && (
+        <Tooltip title="Base（建築）を編集中。ここで描く壁・床・通り芯・寸法はすべてのプランに共通です" arrow>
+          <Chip
+            size="small"
+            icon={<GridOnRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+            label="Base編集"
+            sx={{
+              height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+              background: alpha("#0ea5e9", 0.2),
+              border: `1px solid ${alpha("#38bdf8", 0.55)}`,
+              color: "light-dark(#075985, #bae6fd)",
+            }}
+          />
+        </Tooltip>
+      )}
+
+      {/* === 壁を描く（内壁／外壁）: 建築サイド＝Base 編集時のみ・平面図(2D配置)のみ ===
+          壁・床・通り芯・寸法・寸法列は Base の spaceProgram に保存され全プラン共通。
+          Plan/Option を開いている間に出すと「プランを編集しているつもりで全プランを
+          変えてしまう」ため、Base を開いているときだけ出す。 */}
+      {isBaseOnly && isPlanView && (
         <>
           {[
             { kind: "exterior", label: "外壁", color: "#0ea5e9", tip: "外壁を描く（左クリックで連続作図）／既定 t=200mm・高さ=階高" },
@@ -200,7 +265,7 @@ export default function LayoutToolbar({ layoutItems = [] }) {
           ].map(({ kind, label, color, tip }) => {
             const on = wallDrawKind === kind;
             return (
-              <Tooltip key={kind} title={`${tip}／クリックで始点→クリックごとに壁を確定して続行・右クリック（またはEsc）で終了・50mmスナップ・直交スナップ（Altで自由角度）`} arrow>
+              <Tooltip key={kind} title={`${tip}／クリックで始点→クリックごとに壁を確定して続行・右クリック（またはEsc）で終了／スナップは既定ON（通り芯・壁芯・端点・床の辺→50mmグリッド）、Altで解除`} arrow>
                 <Chip
                   size="small"
                   clickable
@@ -219,8 +284,8 @@ export default function LayoutToolbar({ layoutItems = [] }) {
               </Tooltip>
             );
           })}
-          {/* 床（スラブ）: クリックで頂点を置き、右クリック（または始点クリック/Enter）で確定 */}
-          <Tooltip title="床を描く（クリックで頂点→右クリックで確定）／既定 t=150mm・上面=床レベル／50mmスナップ・直交スナップ（Altで自由角度）・Escで取消／作成後はクリックで選択・頂点ドラッグで編集" arrow>
+          {/* 床（スラブ）: 2クリックの矩形（開始点→終点）で確定 */}
+          <Tooltip title="床を描く（クリックで開始点→クリックで終点＝矩形）／既定 t=150mm・上面=床レベル／スナップは既定ON（通り芯・壁芯・端点・床の辺→50mmグリッド）、Altで解除・右クリック（またはEsc）で取消／作成後はクリックで選択・頂点ドラッグや辺の＋で自由な形に編集" arrow>
             <Chip
               size="small"
               clickable
@@ -233,6 +298,61 @@ export default function LayoutToolbar({ layoutItems = [] }) {
                 border: `1px solid ${alpha("#14b8a6", slabDrawActive ? 0.9 : 0.4)}`,
                 color: slabDrawActive ? "#fff" : `light-dark(${alpha("#14b8a6", 0.95)}, ${alpha("#14b8a6", 0.95)})`,
                 "&:hover": { background: alpha("#14b8a6", slabDrawActive ? 0.5 : 0.28) },
+                transition: "all 0.15s ease",
+              }}
+            />
+          </Tooltip>
+          {/* 手動寸法: どの図面ビュー（平面/天井/断面/立面/展開）でも 2点クリックで寸法を作図。
+              作図したビューでのみ表示される。 */}
+          <Tooltip title="寸法を作図（クリックで始点→クリックで終点）／どのビューでも作図でき、そのビューにのみ表示／50mmスナップ・直交スナップ（Altで自由角度）・右クリック（またはEsc）で終了／値はダブルクリックで編集・端点はドラッグで移動・×で削除" arrow>
+            <Chip
+              size="small"
+              clickable
+              onClick={handleDimTool}
+              icon={<StraightenRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+              label="寸法"
+              sx={{
+                height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+                background: alpha("#64748b", dimDrawActive ? 0.5 : 0.15),
+                border: `1px solid ${alpha("#94a3b8", dimDrawActive ? 0.9 : 0.4)}`,
+                color: dimDrawActive ? "#fff" : "color-mix(in srgb, var(--brand-fg) 85%, transparent)",
+                "&:hover": { background: alpha("#64748b", dimDrawActive ? 0.58 : 0.28) },
+                transition: "all 0.15s ease",
+              }}
+            />
+          </Tooltip>
+          {/* 通り芯（構造グリッド）: 寸法の刻み元になる基準線。パネルで追加/生成し、平面でドラッグ配置。 */}
+          <Tooltip title="通り芯（構造グリッド）を管理／壁芯から自動生成・＋で追加し、平面図で線をドラッグして位置決め・記号のダブルクリックで符号を変更。断面・立面にも自動表示されます" arrow>
+            <Chip
+              size="small"
+              clickable
+              onClick={handleGridAxisTool}
+              icon={<GridOnRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+              label="通り芯"
+              sx={{
+                height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+                background: alpha("#0369a1", gridPanelOpen ? 0.5 : 0.15),
+                border: `1px solid ${alpha("#38bdf8", gridPanelOpen ? 0.9 : 0.4)}`,
+                color: gridPanelOpen ? "#fff" : "color-mix(in srgb, var(--brand-fg) 85%, transparent)",
+                "&:hover": { background: alpha("#0369a1", gridPanelOpen ? 0.58 : 0.28) },
+                transition: "all 0.15s ease",
+              }}
+            />
+          </Tooltip>
+          {/* 寸法列: 図面の4辺に「通り芯間 / 壁面 / 階レベル / 総寸法」の列を1〜3列並べる。 */}
+          <Tooltip title="寸法列を構成／図面の4辺に寸法の列を1〜3列並べます。列ごとに刻み元（通り芯間・壁面・階レベル・総寸法）を選べます" arrow>
+            <Chip
+              size="small"
+              clickable
+              onClick={handleDimChainTool}
+              icon={<TableRowsRoundedIcon sx={{ fontSize: 13, ml: "4px !important" }} />}
+              label="寸法列"
+              sx={{
+                height: 26, fontSize: 11.5, fontWeight: 900, borderRadius: 1,
+                background: alpha("#7c3aed", chainPanelOpen ? 0.5 : 0.15),
+                border: `1px solid ${alpha("#a78bfa", chainPanelOpen ? 0.9 : 0.4)}`,
+                color: chainPanelOpen ? "#fff" : "color-mix(in srgb, var(--brand-fg) 85%, transparent)",
+                "&:hover": { background: alpha("#7c3aed", chainPanelOpen ? 0.58 : 0.28) },
                 transition: "all 0.15s ease",
               }}
             />

@@ -89,6 +89,20 @@ interface EditorModeState {
   // Per-axis section clip (X=left-right, Y=height, Z=front-back in Three.js coords)
   sectionClipYEnabled: boolean;       // height clip (maps to existing sectionClipHeight)
   setSectionClipYEnabled: (v: boolean) => void;
+  /**
+   * Y クリップの向き。false = 通常（切断高さより上を消す＝平面図の見下ろし）、
+   * true = 反転（切断高さより下を消す＝天井伏図の見上げ）。
+   */
+  sectionClipYInvert: boolean;
+  /** 平面図で他階の壁・床を薄く重ねるか（トレース用のマスタースイッチ）。 */
+  showOtherFloorsGhost: boolean;
+  setShowOtherFloorsGhost: (v: boolean) => void;
+  setShowOtherFloorsGhost: (v: boolean) => void;
+  /** 他階のうち、透過（ゴースト）表示する階の index。既定は空＝表示中の階以外はすべて非表示。
+   *  右ドックの階の目アイコンをONにした階だけここに入り、薄く重ねて表示する。 */
+  ghostFloors: number[];
+  toggleFloorGhost: (index: number) => void;
+  setSectionClipYInvert: (v: boolean) => void;
   sectionClipXEnabled: boolean;
   setSectionClipXEnabled: (v: boolean) => void;
   sectionClipX: number;               // Three.js world units (same scale as sectionClipHeight)
@@ -242,6 +256,18 @@ export const useEditorModeStore = create<EditorModeState>((set) => ({
 
   sectionClipYEnabled: true,
   setSectionClipYEnabled: (sectionClipYEnabled) => set({ sectionClipYEnabled }),
+  sectionClipYInvert: false,
+  // 平面図で「アクティブ階以外の壁・床」を薄く重ねて見せる（トレース用）。
+  showOtherFloorsGhost: true,
+  setShowOtherFloorsGhost: (showOtherFloorsGhost) => set({ showOtherFloorsGhost }),
+  // 透過表示する他階。既定は空＝表示中の階以外は非表示。目アイコンONで薄く重ねる。
+  ghostFloors: [],
+  toggleFloorGhost: (index) => set((s) => ({
+    ghostFloors: s.ghostFloors.includes(index)
+      ? s.ghostFloors.filter((i) => i !== index)
+      : [...s.ghostFloors, index],
+  })),
+  setSectionClipYInvert: (sectionClipYInvert) => set({ sectionClipYInvert }),
   sectionClipXEnabled: false,
   setSectionClipXEnabled: (sectionClipXEnabled) => set({ sectionClipXEnabled }),
   sectionClipX: 0,

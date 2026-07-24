@@ -4,6 +4,8 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneObjectRegistryStore } from '../../store/sceneObjectRegistryStore';
 import { useLayoutTaskStore } from '../../store/useLayoutTaskStore';
+import { useUiRightSidebarStore } from '../../store/uiRightSidebarStore';
+import { layoutSceneRef } from '../../services/layoutSceneRef';
 import { useEditorModeStore } from '../../store/useEditorModeStore';
 import { useZoningStore } from '../../store/useZoningStore';
 import { useAutoLayoutStore } from '../../store/useAutoLayoutStore';
@@ -35,6 +37,7 @@ const REGION_CURSOR = {
 export default function ZoneActiveGizmo({
   zone, orbitRef, versionLabel = "", isActive = false,
   editable = false, roomBounds = null,
+  ghost = false, // 他階のトレース表示（薄く・触れない）
 }) {
   const { camera, gl } = useThree();
   const baseColliders = useSceneObjectRegistryStore((s) => s.baseColliders) || [];
@@ -63,6 +66,10 @@ export default function ZoneActiveGizmo({
     startZ: 0,
     initialRect: null,
   });
+  // ラベルの自前ダブルクリック判定。drei の Html + R3F ではネイティブ onDoubleClick が
+  // 取りこぼされる（1回目のクリックで再レンダーが挟まりカウンタがリセットされる）ため、
+  // クリック時刻の差で自前判定する（マインドマップでも同じ手法を採用）。
+  const lastLabelClickRef = useRef(0);
 
   const getPointerPos = useCallback(
     (e) => {
@@ -377,7 +384,7 @@ export default function ZoneActiveGizmo({
         <meshBasicMaterial
           color={labelColor}
           transparent
-          opacity={isActive ? 0.40 : hovered ? 0.26 : 0.18}
+          opacity={ghost ? 0.07 : isActive ? 0.40 : hovered ? 0.26 : 0.18}
           depthTest={false}
           depthWrite={false}
         />
@@ -434,32 +441,64 @@ export default function ZoneActiveGizmo({
         </>
       )}
 
-      {/* Center Label: カテゴリ名 + 面積 */}
+      {/* Center Label: カテゴリ名 + 面積。
+          背景をゾーン色にすると（住宅の淡い色や CSS 変数だと）白文字が沈んで読めない。
+          → 白基調のチップ＋濃い文字にし、ゾーン色は左のドットと枠線だけで示す。
+          チップは操作可: シングルクリック＝この部屋(ゾーン)の Properties、
+          ダブルクリック＝この部屋にフォーカス（平面図でパン＋ズーム）。 */}
       <Html
         position={[0, BOX_H + 5, 0]}
         center
         style={{ pointerEvents: "none" }}
       >
-        <div style={{
-          background: labelColor,
-          color: "#fff",
+        <div
+          onClick={ghost ? undefined : (e) => {
+            // ラベルのクリック（Properties表示）は移動権限(editable)とは無関係に常に有効。
+            // ただし他階のトレース（ghost）は「見えるだけ」なので触れない。
+            e.stopPropagation();
+            useLayoutTaskStore.getState().setActiveZoneId(zone.id);
+            useUiRightSidebarStore.getState().setRightPanel?.("properties", true);
+            // 短時間の2連クリック＝ダブルクリック → この部屋にフォーカス（平面図でパン＋ズーム）。
+            const now = e.timeStamp || performance.now();
+            const dt = now - lastLabelClickRef.current;
+            if (dt < 350) {
+              layoutSceneRef.focusRect?.(x, z, width, depth);
+              lastLabelClickRef.current = 0;
+            } else {
+              lastLabelClickRef.current = now;
+            }
+          }}
+          title={ghost ? undefined : `${labelTitle}（クリックで設定 / ダブルクリックでフォーカス）`}
+          style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "rgba(255,255,255,0.96)",
+          color: "#1e293b",
           padding: "3px 9px",
           borderRadius: 8,
           fontSize: 12,
-          fontWeight: 600,
-          textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+          fontWeight: 700,
           whiteSpace: "nowrap",
-          boxShadow: isActive ? `0 0 10px ${labelColor}` : "none",
+          border: `1.5px solid ${labelColor}`,
+          boxShadow: isActive ? "0 2px 8px rgba(0,0,0,0.28)" : "0 1px 3px rgba(0,0,0,0.2)",
           fontFamily: "Inter, sans-serif",
-          opacity: isActive ? (dragInfo.current.type ? 0.6 : 1) : 0.5,
+          opacity: ghost ? 0.32 : isActive ? (dragInfo.current.type ? 0.6 : 1) : 0.72,
           transition: "opacity 0.2s",
+          pointerEvents: ghost ? "none" : "auto",
+          cursor: ghost ? "default" : "pointer",
+          userSelect: "none",
         }}>
-          {catMeta?.icon ? `${catMeta.icon} ` : ''}{labelTitle}{versionLabel}
-          <span style={{ opacity: 0.85, marginLeft: 6, fontSize: 11 }}>
+          {/* ゾーン色のドット（アイコンがあればアイコン優先） */}
+          {catMeta?.icon
+            ? <span>{catMeta.icon}</span>
+            : <span style={{ width: 9, height: 9, borderRadius: "50%", background: labelColor, flex: "0 0 auto" }} />}
+          <span>{labelTitle}{versionLabel}</span>
+          <span style={{ color: "#64748b", fontWeight: 600, fontSize: 11 }}>
             {areaText}
           </span>
           {isActive && (
-            <span style={{ opacity: 0.6, marginLeft: 5, fontSize: 9.5 }}>
+            <span style={{ color: "#94a3b8", fontWeight: 600, fontSize: 9.5 }}>
               {(width / 1000).toFixed(2)}×{(depth / 1000).toFixed(2)}m
             </span>
           )}

@@ -6,12 +6,19 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 
 import { useMaterialPickerStore } from "@layout/features/layout/store/materialPickerStore";
 import { useSceneAssetsStore } from "@layout/features/layout/store/sceneAssetsStore";
+import { useSceneObjectRegistryStore } from "@layout/features/layout/store/sceneObjectRegistryStore";
 
 export default function MaterialLibraryPanel() {
   const commitPick = useMaterialPickerStore((s) => s.commitPick);
 
-  const getUniqueMaterials = useSceneAssetsStore((s) => s.getUniqueMaterials);
-  const materials = useMemo(() => getUniqueMaterials(), [getUniqueMaterials]);
+  // ✅ Fix: store には getUniqueMaterialsFromObjects しか無い。
+  //    registry の Object3D 群から抽出する（map の参照変化で再計算）
+  const objectMap = useSceneObjectRegistryStore((s) => s.map);
+  const getUniqueMaterialsFromObjects = useSceneAssetsStore((s) => s.getUniqueMaterialsFromObjects);
+  const materials = useMemo(
+    () => getUniqueMaterialsFromObjects(Array.from(objectMap?.values?.() || []).filter(Boolean)),
+    [getUniqueMaterialsFromObjects, objectMap]
+  );
 
   const [q, setQ] = useState("");
   const items = useMemo(() => {

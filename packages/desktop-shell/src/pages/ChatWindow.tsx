@@ -21,6 +21,7 @@ import { openDriveWindow } from '../utils/openDriveWindow';
 import { openReaderHome } from '../features/dsb/lib/openReader';
 import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppStore, TEMPLATE_WORKSPACE_NAME } from '../store/useAppStore';
+import { subscribeBoardContext } from '../features/projects/chat/boardContextBus';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAIChatStore } from '../store/useAIChatStore';
 import { fetchUserProjects } from '../features/projects/api/fetchProjects';
@@ -99,6 +100,10 @@ const WindowTopBar = () => {
     });
     return () => { unlisten?.(); };
   }, []);
+
+  // 本体が配信する「Research & Memo の表示状態」を購読する。この窓は別コンテキストで
+  // 本体の useAppStore を見られないため、これが無いとボード系ツールが silo で落ちる。
+  useEffect(() => subscribeBoardContext(), []);
 
   const tabs = pinnedTabIds
     .map(id => ALL_CHILD_TABS.find(t => t.scope === id))

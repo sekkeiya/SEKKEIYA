@@ -1,10 +1,11 @@
 import { create } from "zustand";
 
+// ✅ Library(Models) は左ドック常設に移動したため既定OFF（右= Scene + Properties）
 const DEFAULT_RIGHT_PANELS = {
     scene: true,
     properties: true,
     board: false,
-    library: true,
+    library: false,
 };
 
 function calcVisibleSections(rightPanels) {

@@ -7,6 +7,7 @@ import { alpha } from "@mui/material/styles";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ViewColumnRoundedIcon from "@mui/icons-material/ViewColumnRounded";
 import { useSlabStore, slabAreaMm2 } from "../../../../store/useSlabStore";
+import { useBuildingSpecStore } from "../../../../store/useBuildingSpecStore";
 import { useWallStore, makeWall, WALL_MIN_LENGTH } from "../../../../store/useWallStore";
 
 function SubHeader({ children }) {
@@ -30,6 +31,7 @@ export default function SlabPropertiesPanel() {
   const slabs = useSlabStore((s) => s.slabs);
   const selectedSlabId = useSlabStore((s) => s.selectedSlabId);
   const updateSlab = useSlabStore((s) => s.updateSlab);
+  const floorsList = useBuildingSpecStore((st) => st.floors);
   const removeSlab = useSlabStore((s) => s.removeSlab);
   const selectedEdgeIndices = useSlabStore((s) => s.selectedEdgeIndices);
   const clearEdgeSelection = useSlabStore((s) => s.clearEdgeSelection);
@@ -57,6 +59,39 @@ export default function SlabPropertiesPanel() {
   return (
     <Box sx={{ p: 1.5, height: "100%", overflowY: "auto" }}>
       <Stack spacing={1.5}>
+        {/* この面をどの図面で使うか。「床/天井」にすると同じ輪郭が平面図と天井伏図の
+            両方に出る（部屋の輪郭を1回描けば済む）。天井はその階の CL に貼られる。 */}
+        <Box>
+          <SubHeader>用途</SubHeader>
+          <Stack direction="row" spacing={0.5}>
+            {[
+              { v: "floor", label: "床" },
+              { v: "ceiling", label: "天井" },
+              { v: "both", label: "床/天井" },
+            ].map(({ v, label }) => {
+              const on = (slab.role || "floor") === v;
+              return (
+                <Button
+                  key={v}
+                  size="small"
+                  onClick={() => updateSlab(slab.id, { role: v })}
+                  sx={{
+                    flex: 1, minWidth: 0, fontSize: 11, fontWeight: 700, py: 0.4,
+                    color: on ? "#0f172a" : "var(--brand-fg)",
+                    background: on ? "#34d399" : alpha("#fff", 0.06),
+                    "&:hover": { background: on ? "#34d399" : alpha("#fff", 0.12) },
+                  }}
+                >
+                  {label}
+                </Button>
+              );
+            })}
+          </Stack>
+          <Typography sx={{ mt: 0.5, fontSize: 10, lineHeight: 1.5, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>
+            「床/天井」は同じ輪郭を平面図では床（FL）、天井伏図では天井（その階の CL）として表示します。
+          </Typography>
+        </Box>
+
         <Box>
           <SubHeader>寸法</SubHeader>
           <Row label="スラブ厚">
@@ -65,6 +100,39 @@ export default function SlabPropertiesPanel() {
                 type="number" value={slab.thicknessMm} min={30} max={1000} step={10}
                 onChange={(e) => updateSlab(slab.id, {
                   thicknessMm: Math.max(30, Math.min(1000, Math.round(Number(e.target.value)) || 30)),
+                })}
+                style={{
+                  width: 64, fontSize: 12, textAlign: "right", padding: "3px 6px", borderRadius: 4,
+                  border: `1px solid ${alpha("#fff", 0.15)}`, background: alpha("#000", 0.25),
+                  color: "var(--brand-fg)", outline: "none",
+                }}
+              />
+              <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>mm</Typography>
+            </Stack>
+          </Row>
+          {/* どの階の床か。変えるとその階の FL に敷き直される（平面図の表示階も切替わる）。 */}
+          <Row label="階">
+            <select
+              value={slab.floorIndex || 0}
+              onChange={(e) => updateSlab(slab.id, { floorIndex: Number(e.target.value) || 0 })}
+              style={{
+                width: 96, fontSize: 12, padding: "3px 6px", borderRadius: 4,
+                border: `1px solid ${alpha("#fff", 0.15)}`, background: alpha("#000", 0.25),
+                color: "var(--brand-fg)", outline: "none",
+              }}
+            >
+              {(floorsList || []).map((f, i) => (
+                <option key={i} value={i}>{f.name || `${i + 1}FL`}</option>
+              ))}
+            </select>
+          </Row>
+          {/* FL からの上下オフセット。段差床・スキップフロアに使う（断面ビューで縦ドラッグしても変わる）。 */}
+          <Row label="上下オフセット">
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <input
+                type="number" value={slab.offsetYMm || 0} step={10}
+                onChange={(e) => updateSlab(slab.id, {
+                  offsetYMm: Math.round(Number(e.target.value)) || 0,
                 })}
                 style={{
                   width: 64, fontSize: 12, textAlign: "right", padding: "3px 6px", borderRadius: 4,
@@ -139,9 +207,10 @@ export default function SlabPropertiesPanel() {
         </Button>
 
         <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.5 }}>
-          平面図で床をクリックすると選択できます。面をドラッグで全体移動、辺をドラッグで
-          その辺を伸縮。頂点はドラッグで移動（ドラッグ中は右クリック / Esc で取消）。クリックで
-          選択すると移動ギズモが表示され、X / Z 軸に沿って正確に動かせます。
+          床を選択すると中心に移動ギズモが表示され、床全体を動かせます。面をドラッグでも
+          全体移動、辺をドラッグでその辺を伸縮。頂点はドラッグで移動（ドラッグ中は
+          右クリック / Esc で取消）。頂点をクリックで選択するとギズモがその頂点に移り、
+          X / Z 軸に沿って正確に動かせます。
           移動中に <b>Shift</b> を押すとスナップ（頂点吸着・直交・
           整列・50mmグリッド）が効きます。辺の中点の「＋」で頂点を追加（辺を折る）。
           頂点をクリックして選択（白く強調）した状態で Delete を押すとその頂点だけを削除します

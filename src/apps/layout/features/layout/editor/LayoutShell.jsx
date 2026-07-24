@@ -7,7 +7,11 @@ import ViewportPanel from "../canvas/ViewportPanel.jsx";
 import Bottombar from "./dock/Bottombar.jsx";
 import BottomDock from "./dock/BottomDock.jsx";
 import RightSidebar from "./sidebars/RightSidebar/RightSidebar.jsx";
+import LeftDock from "./sidebars/LeftDock/LeftDock.jsx";
 import SelectBaseModal from "./modals/SelectBaseModal.jsx";
+
+// ✅ 2D/3D エディターモード
+import { useEditorModeStore, EDITOR_MODES } from "@layout/features/layout/store/useEditorModeStore";
 
 import { useWorkspaceTabTitleSync } from "@layout/features/layout/contexts/WorkspaceTabsContext";
 
@@ -249,6 +253,18 @@ export default function LayoutShell({
   const hasRightSidebar = useUiRightSidebarStore((s) => (s.visibleSections?.length ?? 0) > 0);
 
   // ============================================================
+  // ✅ 2D/3D エディターモード
+  // ============================================================
+  const editorMode = useEditorModeStore((s) => s.editorMode);
+  const leftDockOpen = useEditorModeStore((s) => s.leftDockOpen);
+  const leftDockWidth = leftDockOpen ? UI_SIZES.LEFT_SIDEBAR_W : 30;
+
+  // 初回マウント時：現在モード（初期=2D）のビュー制約を適用（TOP固定）
+  useEffect(() => {
+    useEditorModeStore.getState().enforceViewportForCurrentMode();
+  }, []);
+
+  // ============================================================
   // ✅ toolsStore（TopBar/Buttonsのpropsバケツリレー削減）
   // ============================================================
   const materialPicking = useToolsStore((s) => s.materialPicking);
@@ -388,6 +404,11 @@ export default function LayoutShell({
   const [bottomMode, setBottomMode] = useState("media");
   const [bottomOpen, setBottomOpen] = useState(false);
   const toggleBottomOpen = useCallback(() => setBottomOpen((v) => !v), []);
+
+  // ✅ 2D 配置モードに入ったら下部パネルは閉じる（2Dの下部機能は左ドックへ移動済み）
+  useEffect(() => {
+    if (editorMode === EDITOR_MODES.LAYOUT_2D) setBottomOpen(false);
+  }, [editorMode]);
 
   // =========================
   // ✅ Options realtime + selection
@@ -599,8 +620,8 @@ export default function LayoutShell({
       );
       setSelectedItemId(item.id);
 
-      setBottomMode("populate");
-      setBottomOpen(true);
+      // ✅ 配置直後は「選択 + Properties」へ（Populate自動起動は廃止）
+      useUiRightSidebarStore.getState().setRightPanel("properties", true);
     },
     [
       projectId,
@@ -1046,7 +1067,7 @@ export default function LayoutShell({
           minHeight: 0,
           height: "100%",
           display: "grid",
-          gridTemplateColumns: `1fr ${
+          gridTemplateColumns: `${leftDockWidth}px 1fr ${
             hasRightSidebar ? `${UI_SIZES.RIGHT_SIDEBAR_W}px` : "0px"
           } ${globalPanelWidth}px`,
           gap: 0.5,
@@ -1055,6 +1076,17 @@ export default function LayoutShell({
           transition: "grid-template-columns 160ms ease",
         }}
       >
+        {/* ✅ Left Dock（持ち込むもの: 2D=モデル/一括配置, 3D=マテリアル/テクスチャ） */}
+        <Box sx={{ minHeight: 0, height: "100%", overflow: "hidden" }}>
+          <LeftDock
+            projectId={projectId}
+            workspaceId={workspaceId}
+            planId={selectedPlanId}
+            layoutItems={layoutDraft?.items ?? optionDoc?.layout?.items ?? []}
+            canContext={!!(selectedBaseId && selectedPlanId && selectedOptionId)}
+          />
+        </Box>
+
         {/* Main */}
         <Box
           sx={{
@@ -1148,7 +1180,7 @@ export default function LayoutShell({
         open={bottomOpen}
         onChangeOpen={setBottomOpen}
         layoutItems={layoutDraft?.items ?? optionDoc?.layout?.items ?? []}
-        leftSidebarWidth={0}
+        leftSidebarWidth={leftDockWidth}
         rightSidebarWidth={(hasRightSidebar ? UI_SIZES.RIGHT_SIDEBAR_W : 0) + globalPanelWidth}
       />
 

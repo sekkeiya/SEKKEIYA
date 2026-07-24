@@ -38,6 +38,17 @@ export interface Wall {
   thicknessMm: number;
   /** 高さ(mm)。null = 既定（外壁=階高 / 内壁=CL）に従う。 */
   heightMm: number | null;
+  /**
+   * その階の床レベル(FL)からの上下オフセット(mm)。+ で上、− で下。
+   * 未設定/0 なら FL に立つ（従来どおり）。浮き壁・下がり壁に使う。
+   * 断面ビューのギズモを上下にドラッグするとここが変わる。
+   */
+  offsetYMm?: number;
+  /**
+   * どの階の壁か（0=1F）。未設定は 1F 扱い（既存データはそのまま使える）。
+   * 作図した時点のアクティブ階が入り、以後その階の FL に建つ（階を切替えても動かない）。
+   */
+  floorIndex?: number;
   /** 開口部（ドア／窓）。無い場合は undefined/[]。 */
   openings?: WallOpening[];
 }
@@ -63,6 +74,7 @@ export function makeWall(
   kind: WallKind,
   start: { x: number; z: number },
   end: { x: number; z: number },
+  floorIndex = 0,
 ): Wall {
   return {
     id: nextId(),
@@ -71,6 +83,7 @@ export function makeWall(
     end: { x: Math.round(end.x), z: Math.round(end.z) },
     thicknessMm: WALL_DEFAULT_THICKNESS[kind],
     heightMm: null,
+    floorIndex,
   };
 }
 
@@ -163,6 +176,29 @@ interface WallState {
   addOpening: (wallId: string, type: OpeningType) => void;
   updateOpening: (wallId: string, openingId: string, patch: Partial<Omit<WallOpening, "id">>) => void;
   removeOpening: (wallId: string, openingId: string) => void;
+}
+
+/**
+ * 階高 / CL を変える「直前」に呼ぶ。上下オフセットが付いた壁（＝床から立ち上がっていない
+ * 浮き壁・下がり壁）は「その階の全高」ではないので、既定（外壁=階高 / 内壁=CL）への追従から
+ * 外し、変更前の高さを実値として焼き付ける。
+ *   断面ビューで階高の寸法をドラッグすると、部分壁まで一緒に伸び縮みしてしまうため。
+ *   床に立つ通常の壁（オフセット無し）は建物の階高と一体なので、従来どおり追従させる。
+ * 追従に戻したいときは、壁プロパティの「高さ」を既定に戻す（⟲）と null に戻る。
+ * @param prev 変更前の既定値（外壁に使う階高 / 内壁に使う CL）
+ */
+export function pinOffsetWallHeights(prev: { floorHeightMm: number; ceilingHeightMm: number }) {
+  const st = useWallStore.getState();
+  let changed = false;
+  const walls = st.walls.map((w) => {
+    if (w.heightMm != null) return w;  // 既に実値なら影響を受けない
+    if (!w.offsetYMm) return w;        // 床に立つ壁は階高/CL に追従したまま
+    changed = true;
+    return { ...w, heightMm: w.kind === "exterior" ? prev.floorHeightMm : prev.ceilingHeightMm };
+  });
+  if (!changed) return;
+  useWallStore.setState({ walls });
+  persist(walls);
 }
 
 /** 壁配列の変更を Base へ永続化（LayoutShell が購読）。 */

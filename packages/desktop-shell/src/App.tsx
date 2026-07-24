@@ -9,6 +9,8 @@ import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import PublicPresentationShare from './features/dsl/layout/viewer/PublicPresentationShare.jsx';
 import SiteManagementPage from './pages/SiteManagementPage';
 import { useAppStore } from './store/useAppStore';
+import { serveShowBoardRequests, onShowBoard } from './features/projects/chat/boardContextBus';
+import { parseBoardKey as parseResearchBoardKey } from './features/projects/repositories/ResearchCanvasRepository';
 import { useAuthStore } from './store/useAuthStore';
 import { useNotificationsStore } from './store/useNotificationsStore';
 import { markNotificationRead } from './features/teams/api/teamsApi';
@@ -978,6 +980,31 @@ function App() {
       }
     });
 
+    // AI がボードへ書き始めたら該当画面を出す（チャットが正）。
+    // ポップアウト窓からの emit を受け（serve）、このウィンドウをそのプロジェクトの
+    // Research & Memo（指定ビュー）へ切り替える。ボード・ビューの初期値は
+    // ResearchBoardWorkspace が localStorage から読むので、マウント前にキーを書いておく。
+    // 既にワークスペースが出ている場合の切替は ResearchBoardWorkspace 側の onShowBoard が担う。
+    const offServeShowBoard = serveShowBoardRequests();
+    const offShowBoard = onShowBoard(req => {
+      const { scope, docId } = parseResearchBoardKey(req.boardKey);
+      try {
+        localStorage.setItem(`research-active-board:${scope}`, docId);
+        localStorage.setItem(`research-board-view:${scope}|${docId}`, req.view);
+      } catch { /* ignore */ }
+      const s = useAppStore.getState();
+      if (scope === 'account') {
+        // 個人ボード: マイページの Research & Memo タブ
+        if (s.currentMainView !== 'my-site') s.setCurrentMainView('my-site');
+        s.setActiveProjectTab('memo');
+        return;
+      }
+      // プロジェクトボード: プロジェクトホーム（workspace ビュー・子アプリ未選択）の memo タブ
+      if (s.activeProjectId !== scope) s.setActiveProjectId(scope, 'home');
+      else if (s.currentMainView !== 'workspace') s.setCurrentMainView('workspace');
+      s.setActiveProjectTab('memo');
+    });
+
     return () => {
       isMounted = false;
       // Intentionally avoiding unregistering global shortcut here because StrictMode unmount 
@@ -990,6 +1017,8 @@ function App() {
       if (unlistenCaptureReq) unlistenCaptureReq();
       if (unlistenLog) unlistenLog();
       unsubProject();
+      offServeShowBoard();
+      offShowBoard();
     };
   }, []);
 
