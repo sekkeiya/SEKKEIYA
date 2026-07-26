@@ -174,6 +174,16 @@ service firebase.storage {
       allow write: if isSignedIn();
     }
 
+    /* ---------- 開発状況の添付画像（要件27・管理者用の開発ツール） ---------- */
+    // 公開URLで表示するため read 公開、書き込みは署名済み＋画像＋10MB以下。
+    match /devBacklog/{itemId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && request.resource.contentType.matches('image/.*')
+                   && request.resource.size < 10 * 1024 * 1024;
+      allow delete: if isSignedIn();
+    }
+
     /* ---------- fallback（✅ 必ず一番最後） ---------- */
     match /{allPaths=**} {
       allow read, write: if false;

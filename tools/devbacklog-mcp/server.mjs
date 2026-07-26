@@ -64,9 +64,12 @@ const statusOf = (r) => r.status ?? (r.done ? 'done' : ((r.progress || 0) > 0 ? 
 const isDone = (r) => statusOf(r) === 'done';
 // カテゴリ（機能単位。子アプリ scope + 横断カテゴリ）。UI の CATEGORIES と一致。
 const CATEGORIES = [
-  'general', 'chat', 'drive', 'ai', 'web', 'billing',
+  'all', 'general', 'chat', 'drive', 'ai', 'web', 'billing', 'settings',
   '3dss', '3dsl', '3dsp', '3dsc', '3dsd', '3dsr', '3dsi', '3dsq', '3dsf', '3dsk', '3dsb', '3dsm', '3dsmt',
 ];
+// 分類の追加軸（UI の DevStatusPanel と一致）。大項目=プラットフォーム / 種別。
+const PLATFORMS = ['desktop', 'web', 'common', 'backend']; // 大: どのアプリか
+const KINDS = ['uiux', 'feature', 'improve', 'bug', 'perf', 'refactor']; // 種別
 const jstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const addDays = (ymd, n) => {
   const d = new Date(`${ymd}T00:00:00Z`);
@@ -154,7 +157,10 @@ async function boardSnapshot() {
   const today = jstToday();
   const reqSummary = (r) => ({
     key: keyOf(r), id: r.id, title: r.title,
-    status: statusOf(r), done: isDone(r), category: r.category || null,
+    status: statusOf(r), done: isDone(r),
+    category: r.category || null, platform: r.platform || null, screen: r.screen || null, reason: r.reason || null, notes: r.notes || null, kind: r.kind || null,
+    fixes: r.fixes || null,
+    attachments: (r.attachments || []).map((a) => a.url),
     request: r.requestId ? keyOf(all.find((x) => x.id === r.requestId)) : null,
   });
   const requirements = all.filter((i) => i.type === 'requirement');
@@ -175,6 +181,7 @@ async function boardSnapshot() {
         const children = requirements.filter((r) => r.requestId === rq.id);
         return {
           key: keyOf(rq), id: rq.id, title: rq.title,
+          platform: rq.platform || null, category: rq.category || null, // 既定値（子要件が継承）
           done: children.length > 0 && children.every(isDone), // 要件から導出
           requirements: children.map((c) => keyOf(c)),
         };
@@ -191,20 +198,50 @@ server.registerTool('list_backlog', {
   inputSchema: {},
 }, async () => ok(await boardSnapshot()));
 
+server.registerTool('list_queue', {
+  title: '実装/テストのキューを一覧',
+  description: 'アプリのボタンで queue が付いた要件を、実装/テストに必要な文脈込みで返す。' +
+    ' implement=実装依頼、test=テスト作成/実行依頼。処理後は update_item で status を更新し queue=null にクリアする。',
+  inputSchema: {},
+}, async () => {
+  const all = await loadItems();
+  const byId = new Map(all.map((i) => [i.id, i]));
+  const summarize = (r) => ({
+    key: keyOf(r), id: r.id, title: r.title, queue: r.queue,
+    status: statusOf(r),
+    reason: r.reason || null, notes: r.notes || null, kind: r.kind || null,
+    platform: r.platform || null, category: r.category || null, screen: r.screen || null,
+    fixes: r.fixes || null,
+    attachments: (r.attachments || []).map((a) => a.url),
+    request: r.requestId ? keyOf(byId.get(r.requestId)) : null,
+    requestId: r.requestId || null,
+  });
+  const queued = all.filter((i) => i.type === 'requirement' && i.queue);
+  return ok({
+    implement: queued.filter((r) => r.queue === 'implement').map(summarize),
+    test: queued.filter((r) => r.queue === 'test').map(summarize),
+  });
+});
+
 server.registerTool('add_item', {
   title: '項目を追加',
-  description: '要求(request) / 要件(requirement) を追加。要件は requestId（親要求・任意・1対多）・sprintId（省略時はバックログ）・status（未指定は todo）・category を指定できる。期限は持たない（スプリント終了日に一本化）。思い付きレベルのものは要求として追加する。',
+  description: '要求(request) / 要件(requirement) を追加。要件は requestId（親要求・任意・1対多）・sprintId（省略時はバックログ）・status（未指定は todo）・分類4軸（platform 大 / category 子アプリ / screen 画面・自由記述 / kind 種別）を指定できる。要求は既定値として platform / category を持てる（子要件が継承）。期限は持たない（スプリント終了日に一本化）。思い付きレベルのものは要求として追加する。',
   inputSchema: {
     type: z.enum(['request', 'requirement']),
     title: z.string().min(1),
     requestId: z.string().optional(),
     sprintId: z.string().optional(),
-    status: z.enum(['todo', 'doing', 'testing', 'done']).optional(),
-    category: z.string().optional(), // CATEGORIES の id（例: 3dss, chat, drive, general …）
+    status: z.enum(['todo', 'doing', 'testing', 'manualtest', 'rework', 'done', 'archived']).optional(),
+    category: z.string().optional(),  // CATEGORIES の id（例: all, 3dss, chat, drive, general …）
+    platform: z.enum(['desktop', 'web', 'common', 'backend']).optional(), // 大項目
+    screen: z.string().optional(),    // 画面・場所（自由記述・要件向け）
+    reason: z.string().optional(),    // 理由（なぜこの要件か・自由記述・要件向け）
+    notes: z.string().optional(),     // テストメモ／申し送り（不具合の症状・再現手順など・要件向け）
+    kind: z.enum(['uiux', 'feature', 'improve', 'bug', 'perf', 'refactor']).optional(), // 種別（要件向け）
   },
-}, async ({ type, title, requestId, sprintId, status, category }) => {
-  if ((requestId || sprintId || status || category) && type !== 'requirement') {
-    return fail('requestId / sprintId / status / category は要件(requirement)にのみ指定できます');
+}, async ({ type, title, requestId, sprintId, status, category, platform, screen, reason, notes, kind }) => {
+  if ((requestId || sprintId || status || screen || reason || notes || kind) && type !== 'requirement') {
+    return fail('requestId / sprintId / status / screen / reason / notes / kind は要件(requirement)にのみ指定できます');
   }
   if (requestId) {
     const parent = await getItem(requestId);
@@ -222,8 +259,16 @@ server.registerTool('add_item', {
   const seq = nextSeq(all, type);
   const ref = await items().add({
     type, seq, title: title.trim(),
+    // 要求は既定値として platform / category を持てる（子要件が継承する）
+    ...(type === 'request' ? { platform: platform || null, category: category || null } : {}),
     ...(type === 'requirement'
-      ? { status: st, done: st === 'done', category: category || null, requestId: requestId || null, sprintId: sprintId || null }
+      ? {
+          status: st, done: st === 'done',
+          category: category || null, platform: platform || null,
+          screen: screen ? screen.trim() : null, reason: reason ? reason.trim() : null,
+          notes: notes ? notes.trim() : null, kind: kind || null,
+          requestId: requestId || null, sprintId: sprintId || null,
+        }
       : {}),
     createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
   });
@@ -232,14 +277,21 @@ server.registerTool('add_item', {
 
 server.registerTool('update_item', {
   title: '項目を更新',
-  description: 'タイトル・状態・カテゴリを更新（状態/カテゴリは要件向け）。status を done にすると done フラグも同期する（UI と同じ）。',
+  description: 'タイトル・状態・分類4軸（category 子アプリ / platform 大 / screen 画面 / kind 種別）を更新。状態/画面/種別は要件向け、platform/category は要求(既定値)・要件どちらも可。status を done にすると done フラグも同期する（UI と同じ）。各分類は null で解除。',
   inputSchema: {
     id: z.string().min(1),
     title: z.string().min(1).optional(),
-    status: z.enum(['todo', 'doing', 'testing', 'done']).optional(),
+    status: z.enum(['todo', 'doing', 'testing', 'manualtest', 'rework', 'done', 'archived']).optional(),
     category: z.string().nullable().optional(), // null でカテゴリ解除
+    platform: z.enum(['desktop', 'web', 'common', 'backend']).nullable().optional(),
+    screen: z.string().nullable().optional(),   // null で画面解除
+    reason: z.string().nullable().optional(),   // null で理由解除
+    notes: z.string().nullable().optional(),    // null でメモ解除
+    kind: z.enum(['uiux', 'feature', 'improve', 'bug', 'perf', 'refactor']).nullable().optional(),
+    queue: z.enum(['implement', 'test']).nullable().optional(), // null で依頼キューをクリア
+    fixes: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean() })).nullable().optional(), // 要修正の修正項目チェックリスト
   },
-}, async ({ id, title, status, category }) => {
+}, async ({ id, title, status, category, platform, screen, reason, notes, kind, queue, fixes }) => {
   await getItem(id); // 存在確認
   if (category && !CATEGORIES.includes(category)) {
     return fail(`未知のカテゴリ: ${category}（有効: ${CATEGORIES.join(', ')}）`);
@@ -248,9 +300,16 @@ server.registerTool('update_item', {
   if (title !== undefined) data.title = title.trim();
   if (status !== undefined) { data.status = status; data.done = status === 'done'; }
   if (category !== undefined) data.category = category; // null 可
+  if (platform !== undefined) data.platform = platform; // null 可
+  if (screen !== undefined) data.screen = screen === null ? null : screen.trim();
+  if (reason !== undefined) data.reason = reason === null ? null : reason.trim();
+  if (notes !== undefined) data.notes = notes === null ? null : notes.trim();
+  if (kind !== undefined) data.kind = kind; // null 可
+  if (queue !== undefined) data.queue = queue; // null 可（依頼キューをクリア）
+  if (fixes !== undefined) data.fixes = fixes; // 修正項目（配列 or null）
   await items().doc(id).update(data);
   const it = await getItem(id);
-  return ok({ updated: { key: keyOf(it), id, title: it.title, status: statusOf(it), category: it.category || null } });
+  return ok({ updated: { key: keyOf(it), id, title: it.title, status: statusOf(it), category: it.category || null, platform: it.platform || null, screen: it.screen || null, kind: it.kind || null } });
 });
 
 server.registerTool('set_request', {
