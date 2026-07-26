@@ -507,7 +507,9 @@ function ProjectLayoutAccordion({
         useAppStore.getState().setPanelSelection("layout", null);
         try {
           const { useWorkspaceStructureStore } = await import('../../../features/dsl/layout/store/useWorkspaceStructureStore');
-          useWorkspaceStructureStore.getState().setSelectedPlanId?.(null);
+          // setSelectedPlanId は存在せず、selectPlan(null) も内部の if(!planId) return で無効。
+          // 削除後に選択を確実に解除するため setState で直接リセットする。
+          useWorkspaceStructureStore.setState({ selectedPlanId: null });
 
           const { useUiSelectionStore } = await import('../../../features/dsl/layout/store/uiSelectionStore');
           useUiSelectionStore.getState().setSelectedItemIds([]);

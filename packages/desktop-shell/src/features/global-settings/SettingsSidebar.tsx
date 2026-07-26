@@ -16,6 +16,7 @@ import RecordVoiceOverRoundedIcon from '@mui/icons-material/RecordVoiceOverRound
 import SmartToyRoundedIcon from '@mui/icons-material/SmartToyRounded';
 import PsychologyRoundedIcon from '@mui/icons-material/PsychologyRounded';
 import FactCheckRoundedIcon from '@mui/icons-material/FactCheckRounded';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManufacturingRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -84,7 +85,7 @@ export const SETTINGS_NAV: SettingsItem[] = [
   // 管理者
   { id: 'admin',        label: 'AI使用量モニター', icon: <InsightsRoundedIcon />,             admin: true, subItems: OVERVIEW },
   { id: 'admin-git',    label: 'GitHub更新',       icon: <GitHubIcon />,                       admin: true, subItems: OVERVIEW },
-  { id: 'admin-dev',    label: '開発状況',         icon: <FactCheckRoundedIcon />,             admin: true, subItems: OVERVIEW },
+  { id: 'admin-dev',    label: 'SEKKEIYA Code',   icon: <TerminalRoundedIcon />,              admin: true, subItems: OVERVIEW },
   { id: 'learning',     label: 'AI学習モニター',   icon: <PsychologyRoundedIcon />,            admin: true, subItems: LEARNING_SUBS },
   { id: 'model-studio', label: 'モデル製造ライン', icon: <PrecisionManufacturingRoundedIcon />, admin: true, subItems: MODEL_STUDIO_SUBS },
 ];

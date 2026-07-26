@@ -61,9 +61,13 @@ import { GlobalSettingsShell } from './features/global-settings/GlobalSettingsSh
 import { StandaloneWorkspace } from './pages/StandaloneWorkspace';
 import { ChatWindow } from './pages/ChatWindow';
 import { DriveWindow } from './pages/DriveWindow';
+import { CodeWindow } from './pages/CodeWindow';
 import { openDriveWindow } from './utils/openDriveWindow';
 import { openSearchWindow } from './utils/openSearchWindow';
 import { openReaderHome } from './features/dsb/lib/openReader';
+import { openCodeWindow } from './utils/openCodeWindow';
+import { isBlogAdmin } from './features/dsb/lib/blogAdmin';
+import { auth } from './lib/firebase/client';
 import { TeamHomePage } from './features/teams/TeamHomePage';
 import { TeamsManagementPage } from './features/teams/TeamsManagementPage';
 import { useTeamsStore } from './store/useTeamsStore';
@@ -77,8 +81,10 @@ const isStandalone = new URLSearchParams(window.location.search).has('standalone
 const isChatWindow = new URLSearchParams(window.location.search).has('chatWindow');
 // SEKKEIYA Drive（旧 AI Drive）をポップアウトした独立ウィンドウ（/?driveWindow=true）。
 const isDriveWindow = new URLSearchParams(window.location.search).has('driveWindow');
+// SEKKEIYA Code をポップアウトした独立ウィンドウ（/?codeWindow=true）。
+const isCodeWindow = new URLSearchParams(window.location.search).has('codeWindow');
 // 本体以外の子ウィンドウ全般（本体専用の常駐処理はこれらで無効化する）。
-const isChildWindow = isStandalone || isChatWindow || isDriveWindow;
+const isChildWindow = isStandalone || isChatWindow || isDriveWindow || isCodeWindow;
 
 // 起動時の SEKKEIYA OS ウィンドウ自動オープンをプロセスに1回だけにするためのガード。
 let didAutoOpenOsWindow = false;
@@ -899,6 +905,7 @@ function App() {
         await registerAppShortcut('CommandOrControl+Alt+C', 'SEKKEIYA OS (Chat)', () => openChatWindow(useAppStore.getState().activeProjectId ?? null));
         await registerAppShortcut('CommandOrControl+Alt+S', 'SEKKEIYA Search', () => openSearchWindow());
         await registerAppShortcut('CommandOrControl+Alt+R', 'SEKKEIYA Reader', () => openReaderHome());
+        await registerAppShortcut('CommandOrControl+Alt+K', 'SEKKEIYA Code', () => isBlogAdmin(auth.currentUser) ? openCodeWindow() : Promise.resolve());
 
         // 拡張メニュー「スクショを保存」→ localhost /capture → Rust emit。
         // Ctrl+Alt+F（スクショ）と同じく ask モードでキャプチャウィンドウを起動する。
@@ -1039,6 +1046,8 @@ function App() {
               <ChatWindow />
             ) : isDriveWindow ? (
               <DriveWindow />
+            ) : isCodeWindow ? (
+              <CodeWindow />
             ) : (
               <MainAppInitGate>
                 <WorkspaceProvider>

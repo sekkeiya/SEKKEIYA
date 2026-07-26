@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { useAppStore } from '../../../../store/useAppStore';
 
 /** undefined を含まない file payload を作る（サムネ用に size を落とせる） */
 const packFile = (fileObj, { allowSize = true } = {}) => {
@@ -140,7 +141,9 @@ export const useUploadHandlers = ({
         macroCategory: "家具 (既製品)", // default
         mainCategory: "",
         subCategory: "",
-        visibility: "public",
+        // 要件53: Rhino由来（選択アップロード）は意図せず公開されないよう既定を非公開に。
+        // 通常アップロード（Uploadボタン）は従来どおり公開。バルクボタンで一括変更可。
+        visibility: file?.__rhinoSource3dmPath ? "private" : "public",
         thumbnailPreviewUrl: "",
         thumbnailBlob: null,
         status: "parsing",
@@ -802,6 +805,7 @@ export const useUploadHandlers = ({
     if (itemsToProcess.length === 0) return;
 
     setUploading(true);
+    let successCount = 0; // 要件53: 完了後の着地先遷移の判定に使う
 
     // Process serially to avoid overwhelming network/memory
     for (const item of itemsToProcess) {
@@ -990,10 +994,23 @@ export const useUploadHandlers = ({
         }
 
         setters.updateQueueItem(item.id, { status: 'done', progress: 100 });
-        
+        successCount++;
+
       } catch (err) {
         console.error(`Failed to process ${item.filename}:`, err);
         setters.updateQueueItem(item.id, { status: 'error', errorMsg: err.message || "Upload Failed" });
+      }
+    }
+
+    // 要件53: 1件以上成功したら、そのモデルが実際に居る一覧へ自動で切り替える。
+    // 既定ビューは Following（他人のモデルだけ）なので、放置すると自分のアップロードが
+    // 「消えた」ように見える。公開なら Public Models、非公開なら Private Models へ移動。
+    if (successCount > 0) {
+      try {
+        const anyPublic = itemsToProcess.some(it => (it.visibility || 'private') === 'public');
+        useAppStore.getState().setModelsScope(anyPublic ? 'my_public_models' : 'my_private_models');
+      } catch (e) {
+        console.warn('[upload] 着地先スコープの設定に失敗（無視）:', e);
       }
     }
 

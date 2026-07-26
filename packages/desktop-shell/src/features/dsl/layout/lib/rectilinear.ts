@@ -103,7 +103,7 @@ export function unionRing(rects: FinishRegion[]): Pt[] {
       e.used = true;
       ring.push(e.a);
       const cand = startMap.get(keyOf(e.b)) || [];
-      e = cand.find((c) => !c.used);
+      e = cand.find((c: E) => !c.used);
     }
     if (ring.length >= 4) rings.push(simplify(ring));
   }

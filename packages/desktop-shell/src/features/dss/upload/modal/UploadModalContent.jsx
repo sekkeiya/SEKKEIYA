@@ -3,7 +3,7 @@ import {
   Button, Box, Typography, useMediaQuery,
   Switch, FormControlLabel, Stack, FormHelperText,
   ToggleButton, ToggleButtonGroup, Chip, Divider,
-  Menu, MenuItem, IconButton, Snackbar, Alert, CircularProgress, LinearProgress
+  Menu, MenuItem, IconButton, Snackbar, Alert, CircularProgress, LinearProgress, Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
@@ -21,6 +21,9 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import GridViewIcon from '@mui/icons-material/GridView';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
+import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import SaveAltRoundedIcon from '@mui/icons-material/SaveAltRounded';
 import { useAppStore } from '../../../../store/useAppStore';
 import { useAuthStore } from '../../../../store/useAuthStore';
 import { useBatchGenStore } from '../../../../store/useBatchGenStore';
@@ -52,6 +55,7 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
     state, setters,
     handleFilesDrop,
     handleProcessQueue,
+    handleProcessLocal,
     handleRunAI,
     attachRhinoToGhItem,
     uploading,
@@ -211,6 +215,37 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
     setTimeout(() => { onClose(); }, 1500);
   };
 
+  // 要件63: 明示的な保存先セレクタ（全体公開 / 非公開 / ローカル保存）。
+  // public/private を選ぶと全アイテムの visibility を揃える。local は SEKKEIYA Drive へ
+  // ローカル保存（Rhino由来ファイルのみ対応なので、無いときは選択不可）。
+  const [saveTarget, setSaveTarget] = useState('public');
+  React.useEffect(() => {
+    if (open) setSaveTarget(rhinoJob ? 'private' : 'public');
+  }, [open, rhinoJob]);
+  const hasRhinoFile = useMemo(
+    () => (uploadQueue || []).some((it) => it.file?.__rhinoSource3dmPath),
+    [uploadQueue]
+  );
+  const applyVisibilityToAll = (val) => {
+    (uploadQueue || []).forEach((item) => {
+      if (item.status !== 'done' && item.status !== 'error') {
+        setters.updateQueueItem(item.id, { visibility: val });
+      }
+    });
+  };
+  const handleChangeSaveTarget = (_e, val) => {
+    if (!val) return; // トグルの解除操作は無視（常に1つ選択）
+    setSaveTarget(val);
+    if (val === 'public' || val === 'private') applyVisibilityToAll(val);
+  };
+  const handleLocalSave = async () => {
+    if (!canUpload) return;
+    await handleProcessLocal(uploadQueue);
+    setToastMsg('ローカルに保存しました');
+    setToastOpen(true);
+    setTimeout(() => { onClose(); }, 1500);
+  };
+
   // 自動保存ON ＋ 自動フロー（画像→3D生成などで initialFiles 付きで開いた）のときは、
   // AI補完が終わって準備完了になった時点で自動的にアップロードする。
   // 手動で開いた場合（initialFiles 無し）や自動保存OFFのときは従来どおり手動クリック。
@@ -222,7 +257,9 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
   React.useEffect(() => { if (!open) autoUploadedRef.current = false; }, [open]);
   React.useEffect(() => {
     if (!open || autoUploadedRef.current) return;
-    const isAutoFlow = !!(initialFiles && initialFiles.length > 0);
+    // 画像→3D生成などの自動フローだけを対象にする。Rhino選択アップロード（rhinoJob付き）は
+    // initialFiles 経由でも「勝手にアップロード」せず、Uploadボタンの手動実行を待つ。
+    const isAutoFlow = !!(initialFiles && initialFiles.length > 0) && !rhinoJob;
     if (!(autoSaveToModels && isAutoFlow && canUpload)) return;
     autoUploadedRef.current = true;
     (async () => {
@@ -592,6 +629,20 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
               )}
             </Stack>
           )}
+          {hasFiles && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+              <Typography variant="caption" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.6)', fontWeight: 700, whiteSpace: 'nowrap' }}>保存先</Typography>
+              <ToggleButtonGroup size="small" exclusive value={saveTarget} onChange={handleChangeSaveTarget} sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 1, fontSize: 12, textTransform: 'none' } }}>
+                <ToggleButton value="public"><PublicRoundedIcon sx={{ fontSize: 15, mr: 0.5 }} />全体公開</ToggleButton>
+                <ToggleButton value="private"><LockOutlinedIcon sx={{ fontSize: 15, mr: 0.5 }} />非公開（自分のみ）</ToggleButton>
+                <Tooltip title={hasRhinoFile ? 'SEKKEIYA Drive にローカル保存（クラウドに送信しない）' : 'ローカル保存は Rhino 由来のアップロードのみ対応'}>
+                  <span>
+                    <ToggleButton value="local" disabled={!hasRhinoFile}><SaveAltRoundedIcon sx={{ fontSize: 15, mr: 0.5 }} />ローカル保存</ToggleButton>
+                  </span>
+                </Tooltip>
+              </ToggleButtonGroup>
+            </Box>
+          )}
         </Box>
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="body2" sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', fontWeight: 600, mr: { xs: 0, sm: 2 } }}>
@@ -605,10 +656,10 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
             {uploading ? 'バックグラウンドで閉じる' : 'キャンセル'}
           </Button>
           <Button
-            onClick={handleValidatedSave}
+            onClick={saveTarget === 'local' ? handleLocalSave : handleValidatedSave}
             size="small"
             variant="contained"
-            startIcon={<CloudUploadRoundedIcon />}
+            startIcon={saveTarget === 'local' ? <SaveAltRoundedIcon /> : <CloudUploadRoundedIcon />}
             disabled={!canUpload || uploading}
             sx={{
               fontWeight: 700,
@@ -617,7 +668,9 @@ const UploadModalContent = React.forwardRef(({ open, onClose, initialFiles, rhin
               '&:hover': { bgcolor: '#43a047' },
             }}
           >
-            {uploading ? 'アップロード中...' : 'アップロード'}
+            {uploading
+              ? (saveTarget === 'local' ? '保存中...' : 'アップロード中...')
+              : (saveTarget === 'local' ? 'ローカルに保存' : 'アップロード')}
           </Button>
         </Stack>
       </Box>

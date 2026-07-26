@@ -1,14 +1,17 @@
 // AutoActionToast.jsx
 // 「自動○○」アクション（ボトムバーのホバー実行など）の即時フィードバック。
 // useAutoActionStore.toast を監視し、tick が増えるたびに表示し直す。
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Snackbar, Alert } from "@mui/material";
-import { useAutoActionStore } from "../../store/useAutoActionStore";
+import { useAutoActionStore, type AutoActionResult } from "../../store/useAutoActionStore";
+
+// store の toast フィールドと同じ形（AutoActionState は非 export のためここで再掲）
+type ToastState = { severity: AutoActionResult["severity"]; msg: string; tick: number };
 
 export default function AutoActionToast() {
   const toast = useAutoActionStore((s) => s.toast);
   const [open, setOpen] = useState(false);
-  const [shown, setShown] = useState(null);
+  const [shown, setShown] = useState<ToastState | null>(null);
 
   useEffect(() => {
     if (!toast) return;

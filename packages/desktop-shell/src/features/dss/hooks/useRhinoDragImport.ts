@@ -21,7 +21,11 @@ export function useRhinoDragImport() {
   const [isSendingToRhino, setIsSendingToRhino] = useState(false);
   const [openRhinoDocs, setOpenRhinoDocs] = useState<RhinoDocument[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  // 要件51: 自動インポートが成功したとき、どのRhinoファイルに入れたかを通知するための名前。
+  const [importedDocName, setImportedDocName] = useState<string | null>(null);
   const currentModelRef = useRef<CachedModelInfo | null>(null);
+
+  const clearImported = useCallback(() => setImportedDocName(null), []);
 
   const resolveCachedModelInfo = useCallback(async (model: any) => {
     if (!model) return null;
@@ -71,6 +75,7 @@ export function useRhinoDragImport() {
   const startSendToRhino = useCallback(
     async (model: any) => {
       setErrorMessage("");
+      setImportedDocName(null);
       setIsSendingToRhino(true);
 
       try {
@@ -107,6 +112,8 @@ export function useRhinoDragImport() {
                 modelId: info.modelId,
               });
               console.log("[useRhinoDragImport] auto import OK:", targetDoc.id, info.filePath);
+              // 要件51: どのRhinoファイル（アクティブなドキュメント）に入れたかを通知
+              setImportedDocName(targetDoc.name || "アクティブなRhinoファイル");
               return; // Exit here. No dropzone overlay shown!
             } catch (importErr) {
               console.error("[useRhinoDragImport] auto import failed:", importErr);
@@ -185,6 +192,8 @@ export function useRhinoDragImport() {
     isDraggingToRhino,
     openRhinoDocs,
     errorMessage,
+    importedDocName,
+    clearImported,
     handleDropToRhino,
     handleCancelDrop,
     isSendingToRhino,

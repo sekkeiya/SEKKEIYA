@@ -165,7 +165,7 @@ export const OverviewSpaceProgram: React.FC<OverviewSpaceProgramProps> = ({ proj
               onChange={(e) => handleBaseChange(e.target.value)}
               sx={{ color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, width: 140, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}
             >
-              {bases.map(b => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
+              {bases.map((b: { id: string; name: string }) => <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>)}
             </Select>
           </Box>
           <Box>
@@ -178,7 +178,7 @@ export const OverviewSpaceProgram: React.FC<OverviewSpaceProgramProps> = ({ proj
               sx={{ color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)' }, width: 140, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.05)' }}
             >
               <MenuItem value=""><em>選択してください</em></MenuItem>
-              {plansOfSelectedBase.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+              {plansOfSelectedBase.map((p: { id: string; name: string }) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
             </Select>
           </Box>
           <Box>
@@ -191,7 +191,7 @@ export const OverviewSpaceProgram: React.FC<OverviewSpaceProgramProps> = ({ proj
               sx={{ color: 'var(--brand-fg)', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#00BFFF' }, width: 140, bgcolor: 'rgba(0,191,255,0.1)' }}
             >
               <MenuItem value=""><em>選択してください</em></MenuItem>
-              {options.map(o => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
+              {options.map((o: { id: string; name: string }) => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
             </Select>
           </Box>
         </Box>

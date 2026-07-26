@@ -16,9 +16,13 @@ import AlternateEmailRoundedIcon from '@mui/icons-material/AlternateEmailRounded
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import CloudRoundedIcon from '@mui/icons-material/CloudRounded';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import { openSearchWindow } from '../utils/openSearchWindow';
 import { openDriveWindow } from '../utils/openDriveWindow';
 import { openReaderHome } from '../features/dsb/lib/openReader';
+import { openCodeWindow } from '../utils/openCodeWindow';
+import { isBlogAdmin } from '../features/dsb/lib/blogAdmin';
+import { auth } from '../lib/firebase/client';
 import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppStore, TEMPLATE_WORKSPACE_NAME } from '../store/useAppStore';
 import { subscribeBoardContext } from '../features/projects/chat/boardContextBus';
@@ -80,6 +84,8 @@ const WindowTopBar = () => {
   const isChatHistorySidebarOpen = useAppStore(s => s.isChatHistorySidebarOpen);
   const toggleChatHistorySidebar = useAppStore(s => s.toggleChatHistorySidebar);
   const [activeScope, setActiveScope] = useState<string | null>(null);
+  // SEKKEIYA Code（開発状況・要求要件）は admin 限定露出。
+  const isAdmin = isBlogAdmin(auth.currentUser);
   // Reader は購読フィード取得（数秒）を挟んでから窓が開くため、その間ボタンにスピナーを出す。
   const [readerLoading, setReaderLoading] = useState(false);
   const handleOpenReader = async () => {
@@ -159,6 +165,17 @@ const WindowTopBar = () => {
             </IconButton>
           </span>
         </Tooltip>
+        {isAdmin && (
+          <Tooltip title="SEKKEIYA Code（開発状況・要求要件）" placement="bottom">
+            <IconButton
+              size="small"
+              onClick={() => { void openCodeWindow(); }}
+              sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}
+            >
+              <TerminalRoundedIcon sx={{ fontSize: '1.05rem' }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       {/* スペーサ（子アプリアイコンを右寄せ） */}

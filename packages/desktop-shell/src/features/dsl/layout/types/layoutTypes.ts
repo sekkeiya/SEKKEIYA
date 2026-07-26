@@ -15,7 +15,20 @@ export interface LayoutSceneObject {
   id: string; // Unique instance ID
   kind: 'model' | 'group' | 'light' | string;
   modelId?: string;   // Reference to global/local model library
-  
+
+  /** 紐付く 3DSS アセットの ID。追加時に一時マッピングされ、保存後に確定する。 */
+  assetId?: string;
+  /**
+   * 保存時の Batch 処理用の一時メタデータ。追加フローで付与し、useOptionDoc の保存で
+   * 消費して assetId を確定したのち delete される（Firestore には保存されない）。
+   */
+  _assetDraft?: {
+    type: 'revive' | 'existing' | 'new';
+    assetId?: string;
+    payload?: unknown;
+    glbRaw?: unknown;
+  };
+
   title: string;
   name?: string;
   label?: string;

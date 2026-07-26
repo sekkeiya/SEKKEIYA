@@ -8,7 +8,8 @@ import {
   query,
   where,
   serverTimestamp,
-  limit
+  limit,
+  type DocumentData
 } from 'firebase/firestore';
 import { db } from '../../../lib/firebase/client';
 import type { ProjectAssetDoc } from '../types';
@@ -87,18 +88,20 @@ export const projectAssetsApi = {
    * Find an existing project asset by its original source model ID
    * Used to prevent duplicating public models in the project library
    */
-  async findAssetBySourceModelId(projectId: string, sourceModelId: string): Promise<{id: string, status: string} | null> {
+  async findAssetBySourceModelId(projectId: string, sourceModelId: string): Promise<(ProjectAssetDoc & { id: string }) | null> {
     const colRef = getProjectAssetsColRef({ projectId });
     if (!colRef) return null;
 
     const q = query(colRef, where('metadata.sourceModelId', '==', sourceModelId), limit(1));
     const snapshot = await getDocs(q);
-    
+
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
+    const data = doc.data() as ProjectAssetDoc;
     return {
+      ...data,
       id: doc.id,
-      status: doc.data().status || 'active'
+      status: data.status || 'active'
     };
   },
 
@@ -114,7 +117,10 @@ export const projectAssetsApi = {
       updatedAt: serverTimestamp()
     };
 
-    await updateDoc(docRef, payload);
+    // Firestore の UpdateData<T> は入れ子オブジェクト（metadata）を含む型を
+    // 丸ごと渡すと型を拒否する（実行時はフィールド置換で正しく動く）ため、
+    // この 1 箇所だけ DocumentData として渡す。
+    await updateDoc(docRef, payload as DocumentData);
   },
 
   /**

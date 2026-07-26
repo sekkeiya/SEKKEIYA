@@ -3,6 +3,24 @@ import { Box, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import Inventory2RoundedIcon from "@mui/icons-material/Inventory2Rounded";
 
+interface LibraryAssetCardProps {
+  /** ドラッグ/追加時にコールバックへそのまま渡す不透明なモデル参照。 */
+  model?: unknown;
+  modelId?: string;
+  displayName?: string;
+  thumbUrl?: string;
+  isSelected?: boolean;
+  inPlan?: boolean;
+  isFluid?: boolean;
+  fixedSize?: number;
+  cardSize?: string;
+  isAdding?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+  onAddClick?: (e: React.MouseEvent, model: unknown) => void;
+  onDragStart?: (e: React.DragEvent, model: unknown) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+}
+
 function LibraryAssetCard({
   model,
   modelId,
@@ -18,12 +36,12 @@ function LibraryAssetCard({
   onAddClick,
   onDragStart,
   onDragEnd,
-}) {
+}: LibraryAssetCardProps) {
   const theme = useTheme();
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [displayProgress, setDisplayProgress] = useState(0);
-  const progressTimerRef = useRef(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // サムネイル URL が変わったらロード状態をリセット
   useEffect(() => { setImgLoaded(false); }, [thumbUrl]);
@@ -39,7 +57,7 @@ function LibraryAssetCard({
         setDisplayProgress(Math.round(current));
       }, 220);
     } else {
-      clearInterval(progressTimerRef.current);
+      clearInterval(progressTimerRef.current ?? undefined);
       progressTimerRef.current = null;
       if (displayProgress > 0 && displayProgress < 100) {
         setDisplayProgress(100);
@@ -48,7 +66,7 @@ function LibraryAssetCard({
       }
       setDisplayProgress(0);
     }
-    return () => clearInterval(progressTimerRef.current);
+    return () => clearInterval(progressTimerRef.current ?? undefined);
   }, [isAdding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // If no model ID is provided, fallback to a blank visual or just return null
@@ -58,7 +76,7 @@ function LibraryAssetCard({
     <Box
       data-debug-component="LibraryAssetCard"
       onClick={onClick}
-      onPointerDownCapture={(e) => console.log('[LibraryAssetCard] pointer down capture', displayName)}
+      onPointerDownCapture={() => console.log('[LibraryAssetCard] pointer down capture', displayName)}
       onMouseDown={() => console.log('[LibraryAssetCard] mouse down', displayName)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

@@ -881,7 +881,9 @@ export const AiStudioModels: React.FC<{ initialProfileId?: string | null }> = ({
                    </Box>
                    <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.05)', mb: 1.5 }} />
                    <Typography sx={{ color: 'var(--brand-fg)', fontSize: 14 }}>
-                     {ev.content || 'メタデータが修正されました。'}
+                     {/* SaveDataEvent に content は無く（context はオブジェクト）、従来から常に
+                         この固定文言のみ表示されていた。動的表示は actionType/context を使う別対応。 */}
+                     メタデータが修正されました。
                    </Typography>
                 </Paper>
               ))}

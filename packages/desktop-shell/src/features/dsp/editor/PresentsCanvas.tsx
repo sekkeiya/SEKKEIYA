@@ -265,7 +265,7 @@ export const PresentsCanvas: React.FC = () => {
           }
         };
         addElements(selectedPageId, [el]);
-        setToastMessage(`Image Asset dropped: ${el.data.name || 'Unknown'}`);
+        setToastMessage(`Image Asset dropped: ${model.title || model.name || 'AI Drive Image'}`);
       } else {
         const el: PresentationElement = {
           id: `el_${Date.now()}`,
@@ -279,7 +279,7 @@ export const PresentsCanvas: React.FC = () => {
           }
         };
         addElements(selectedPageId, [el]);
-        setToastMessage(`Model Asset dropped: ${el.data.title || 'Untitled'}`);
+        setToastMessage(`Model Asset dropped: ${model.title || model.name || 'Untitled'}`);
       }
       
       consumeDropAsset();
@@ -1077,7 +1077,7 @@ export const PresentsCanvas: React.FC = () => {
                     }
                   };
                   addElements(selectedPageId, [el]);
-                  setToastMessage(`Image Asset dropped: ${el.data.name || 'Unknown'}`);
+                  setToastMessage(`Image Asset dropped: ${model.title || model.name || 'AI Drive Image'}`);
                 } else {
                   const el: PresentationElement = {
                     id: `el_${Date.now()}`,
@@ -1091,7 +1091,7 @@ export const PresentsCanvas: React.FC = () => {
                     }
                   };
                   addElements(selectedPageId, [el]);
-                  setToastMessage(`Model Asset dropped: ${el.data.title || 'Untitled'}`);
+                  setToastMessage(`Model Asset dropped: ${model.title || model.name || 'Untitled'}`);
                 }
                 return;
               }

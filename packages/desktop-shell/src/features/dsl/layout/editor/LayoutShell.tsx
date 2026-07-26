@@ -128,7 +128,7 @@ import { useAppStore } from "../../../../store/useAppStore";
 import { convert3dmToGlb } from "../../../dss/upload/utils/convert3dmToGlb";
 
 import { projectAssetsApi } from "../../../projects/api/projectAssetsApi";
-import type { LayoutSceneObject, LayoutDocument } from "../types/layoutTypes";
+import type { LayoutSceneObject } from "../types/layoutTypes";
 
 // Global panel is managed natively by sekkeiya-desktop now
 
@@ -152,7 +152,9 @@ function safeVec3(v: any, fb: [number, number, number] = [0, 0, 0]): [number, nu
 }
 
 // ✅ LayoutShell 側では「layout 正規化」だけ残す（Save / DnD で使う）
-function normalizeLayout(l: any): LayoutDocument {
+// items をトップレベルに持つ「レイアウトデータ」を返す（LayoutDocument は items を
+// layout.items にネストする別の形なので戻り型に使わない。呼び出し側は base.items を読む）。
+function normalizeLayout(l: any): { items: LayoutSceneObject[] } & Record<string, unknown> {
   const base = l && typeof l === "object" ? l : {};
   const items = Array.isArray(base.items) ? base.items : [];
   return { ...base, items };
@@ -1836,7 +1838,6 @@ export default function LayoutShell({
   // =========================
   const pendingZoneRect = useZoningStore((s) => s.pendingZoneRect);
   const setPendingZoneRect = useZoningStore((s) => s.setPendingZoneRect);
-  const setZoningMode = useZoningStore((s) => s.setZoningMode);
 
   const handleZoneCreateConfirm = useCallback(async (data: any) => {
     if (!baseRef) return;
@@ -1876,11 +1877,13 @@ export default function LayoutShell({
       });
       console.log("[LayoutShell] ✅ Zone created:", newZone);
       setPendingZoneRect(null);
-      setZoningMode(false);
+      // ゾーン作成後は zoning モードを抜けて layout に戻す。
+      // （旧 useZoningStore.setZoningMode(false) の後継。ゾーン On/Off は editorMode に移行済み）
+      useEditorModeStore.getState().setEditorMode("layout");
     } catch (err) {
       console.error("[LayoutShell] Failed to save zone:", err);
     }
-  }, [baseRef, baseDoc, setPendingZoneRect, setZoningMode]);
+  }, [baseRef, baseDoc, setPendingZoneRect]);
 
   const handleZoneCreateCancel = useCallback(() => {
     setPendingZoneRect(null);

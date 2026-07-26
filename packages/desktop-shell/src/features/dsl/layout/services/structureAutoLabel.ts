@@ -197,7 +197,7 @@ export function autoLabelStructure(): AutoLabelResult {
   // levels 昇順。階数 = レベル間のギャップ数（最上面=屋根は階数に数えない）。
   let levels: number[] = [];
   try {
-    levels = (scanFloors({ colliders: meshes }).levels || []).slice().sort((p, q) => p - q);
+    levels = (scanFloors({ colliders: meshes }).levels || []).slice().sort((p: number, q: number) => p - q);
   } catch {
     levels = [];
   }

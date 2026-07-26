@@ -20,6 +20,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useDssUploadBridge } from '../../store/useDssUploadBridge';
 import { useRhinoDragImport } from './hooks/useRhinoDragImport';
 import RhinoDropZone from './components/RhinoDropZone';
+import { RhinoStatusChip } from './components/RhinoStatusChip';
 import { SaveToProjectDialog } from './components/SaveToProjectDialog';
 import { UserProfileDialog } from './components/UserProfileDialog';
 import { DssShareDialog } from './components/DssShareDialog';
@@ -671,13 +672,16 @@ export const DssDashboard: React.FC<{
 
   const handleDeleteConfirm = async (model: any) => {
     try {
+      // 削除先は「表示中のスコープ」で決める。プロジェクトが選択中でも payload.projectId の
+      // 有無で分岐すると、公開/非公開モデル（グローバル assets）の削除が誤って
+      // プロジェクトの workspace item 削除（存在しない＝no-op）に流れ、実体が消えず
+      // 「何回削除しても消えない」不具合になっていた。
       if ((modelsScope === 'project_models' || modelsScope === 'team_project_models') && payload?.projectId) {
         // Phase 12 (SSOT): We delete the asset from the project library instead of workspace items
         await projectAssetsApi.hardDeleteAsset(payload.projectId, model.id);
         console.log('[DssDashboard] Deleted project asset:', model.id);
-      } else if (payload?.workspaceId && payload?.projectId) {
-        await WorkspaceItemRepository.deleteItem(payload.projectId, payload.workspaceId, model.id);
       } else {
+        // 公開/非公開/Explore などグローバルモデルは assets ドキュメントを直接削除する（1回で消える）。
         await WorkspaceItemRepository.deleteGlobalAsset(model.id);
       }
       // Optional: show a success toast here if desired
@@ -1480,7 +1484,6 @@ export const DssDashboard: React.FC<{
 
                 {!isGlobalProjectsScope && (
                   <Box sx={styles.viewBlock}>
-                    <Box sx={styles.miniLabel}>Graph</Box>
                     <ButtonGroup size="small" variant="outlined" sx={styles.densityGroup}>
                       <Button
                         onClick={() => setViewMode('assets')}
@@ -1499,7 +1502,6 @@ export const DssDashboard: React.FC<{
                 )}
 
                 <Box sx={styles.viewBlock}>
-                  <Box sx={styles.miniLabel}>Density</Box>
                   <ButtonGroup size="small" variant="outlined" sx={styles.densityGroup}>
                   <Button
                     onClick={() => applyDensity('compact')}
@@ -1524,6 +1526,8 @@ export const DssDashboard: React.FC<{
               </Box>
               {/* アクション群（詳細表示・3Dモデル生成・Upload・Sort）を 1 行目に統合 */}
               <Box sx={styles.actionsRight}>
+                {/* 要件50: 常時表示の Rhino 接続インジケータ */}
+                <Box sx={{ mr: 2 }}><RhinoStatusChip /></Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
                   <Typography variant="caption" sx={{ color: 'text.secondary', mr: 1, fontWeight: 500 }}>
                     詳細表示

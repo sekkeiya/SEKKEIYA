@@ -35,6 +35,16 @@ export interface AIDriveAsset {
   updatedAt?: number; // timestamp
   memo?: string;
   sourceUrl?: string;
+  /**
+   * 同一アセットが複数プロジェクトに属する場合の集約リスト。Firestore には保存されず、
+   * subscribeToAssets の重複マージ時に projectId から実行時に組み立てる（この store 内で生成）。
+   * 読み取り側が (a as any).projectIds で回避していたのを正式に型付けした。
+   */
+  projectIds?: string[];
+  /** 記事など、name とは別に title を持つアセット用。読み取りは常に name / '無題' 等でフォールバックされる。 */
+  title?: string;
+  /** 外部URL由来のアセット用。プレビュー解決は storageUrl → url の順でフォールバックされる。 */
+  url?: string;
   rating?: number;
   sourceCollection?: 'assets' | 'workFiles' | string;
   isDeleted?: boolean;

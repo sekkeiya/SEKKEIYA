@@ -192,7 +192,7 @@ const useGlobalModelsService = (scope: 'global_models' | 'global_following_model
             // We can return empty array and trigger a CustomEvent or similar, or just return empty for now.
             // A simple approach is importing useAppStore and forcing the scope change:
             import('../../../store/useAppStore').then(m => {
-               m.useAppStore.getState().setGlobalModelsScope('global_models');
+               m.useAppStore.getState().setModelsScope('global_models');
             });
             setData({ status: 'ready', items: [], itemCount: 0, assetCount: 0 });
             setIsInitializing(false);

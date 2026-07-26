@@ -234,6 +234,26 @@ export interface WorkFileLocalBinding {
  * =========================================================*/
 
 /**
+ * 3DSS Asset metadata (denormalized copy of the source model's file info).
+ * Persisted on the Firestore asset doc under `metadata`; `metadata.sourceModelId`
+ * is the key used by findAssetBySourceModelId to prevent duplicate saves.
+ */
+export interface ProjectAssetMetadata {
+  sourceModelId?: string;
+  sourceType?: string;
+  modelUrl?: string;
+  thumbnailUrl?: string;
+  size?: number | null;
+  files?: unknown;
+  size3dm?: number | null;
+  sizeGlb?: number | null;
+  sizeBlend?: number | null;
+  ext?: string | null;
+  format?: string | null;
+  dimensions?: { x: number; y: number; z: number };
+}
+
+/**
  * 3DSS Asset (Project Library)
  * Exists at /projects/{projectId}/assets/{assetId}
  */
@@ -245,6 +265,7 @@ export interface ProjectAssetDoc {
   entityId?: string; // Reference to global master if applicable
   dimensions?: { x: number; y: number; z: number };
   materials?: any; // Configurable materials
+  metadata?: ProjectAssetMetadata; // Denormalized source-model file info
   tags?: string[];
   addedBy: string;
   createdAt: string;

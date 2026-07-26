@@ -52,7 +52,9 @@ async function buildThumb(model: any): Promise<string | null> {
     const buf = await res.arrayBuffer();
     const file = new File([buf], 'preview.glb', { type: 'model/gltf-binary' });
     const { generateThumbnailFromGlb } = await import('../upload/utils/generateThumbnailFromGlb');
-    const { blob } = await generateThumbnailFromGlb(file as any, { width: 512, height: 384 });
+    // 正方形で生成する。カードは正方形で表示し、非正方形は「旧サムネ＝被写体が小さい」と
+    // みなして拡大補正がかかるため、4:3 のまま渡すと過剰に拡大されてしまう。
+    const { blob } = await generateThumbnailFromGlb(file as any, { width: 768, height: 768 });
     return URL.createObjectURL(blob);
   } catch (e) {
     console.warn('[useLocalModelThumbnail] failed', e);

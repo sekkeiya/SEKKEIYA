@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, Slider, ToggleButton, ToggleButtonGroup, Divider, InputAdornment, Chip, IconButton, Autocomplete, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, List, ListItem, ListItemButton, ListItemText, ListItemIcon } from '@mui/material';
+import { Box, Typography, Button, TextField, Select, MenuItem, FormControl, Slider, ToggleButton, ToggleButtonGroup, Divider, InputAdornment, Chip, IconButton, Autocomplete, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, List, ListItem, ListItemButton, ListItemText, ListItemIcon, Snackbar, Alert } from '@mui/material';
 import type { SvgIconProps } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -251,6 +251,8 @@ export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boole
     isDraggingToRhino,
     openRhinoDocs,
     errorMessage,
+    importedDocName,
+    clearImported,
     handleDropToRhino,
     handleCancelDrop,
     isSendingToRhino
@@ -1012,9 +1014,24 @@ export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boole
         onClose={handleCancelDrop}
       />
 
-      {/* Model Preview */}
+      {/* 要件51: どのRhinoファイルに追加したかを通知（アクティブなドキュメントへ自動インポート） */}
+      <Snackbar
+        open={!!importedDocName}
+        autoHideDuration={4000}
+        onClose={clearImported}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={clearImported} severity="success" variant="filled" sx={{ width: '100%' }}>
+          「{importedDocName}」に追加しました
+        </Alert>
+      </Snackbar>
+
+      {/* Model Preview
+          詳細画面（hideViewer=true）では中央に大きな3Dビューアがあり、この枠は同じモデルの
+          重複表示になるため丸ごと出さない。一覧の右パネルでは従来どおり3Dプレビューを出す。 */}
+      {!hideViewer && (
       <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'light-dark(rgba(15,23,42,0.07), rgba(0,0,0,0.2))', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        {!hideViewer && ((versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || (selectedVersionId === latestVersion && effectiveLocalGlbUrl)) ? (
+        {((versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || (selectedVersionId === latestVersion && effectiveLocalGlbUrl)) ? (
           <RightPanelModelViewer
             modelUrl={(versionsObj[selectedVersionId] && versionsObj[selectedVersionId].glbUrl) || effectiveLocalGlbUrl}
             versionId={selectedVersionId}
@@ -1041,6 +1058,7 @@ export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boole
           </Box>
         )}
       </Box>
+      )}
 
       {/* Local Models: クラウド保存（公開/非公開） */}
       {selectedItem.isLocal && (

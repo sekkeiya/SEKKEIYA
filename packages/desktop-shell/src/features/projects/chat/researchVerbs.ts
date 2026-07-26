@@ -231,7 +231,7 @@ export const researchVerbs: VerbDef[] = [
 
       try {
         const { addBoardItems, addBoardEdges } = await import('./researchBoardBridge');
-        const srcIndexes = partials.map(p => p.__srcIndex as number);
+        const srcIndexes = partials.map((p: { __srcIndex: number }) => p.__srcIndex);
         const created = await addBoardItems(projectId, partials.map(({ __srcIndex, ...p }) => p));
 
         // エッジの "#N" 参照（今回追加した items の添字）を実IDに解決して張る

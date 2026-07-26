@@ -165,7 +165,10 @@ export function unionBaseMeshes(): UnionResult {
 
   // 結合ジオメトリは uv を持たないため、テクスチャ非依存のニュートラル材で表示（元の色味に寄せる）。
   let baseColor = 0xbfc3c9;
-  const m0 = Array.isArray(targets[0].material) ? targets[0].material[0] : targets[0].material;
+  // 基底 THREE.Material には color が無いが、実体（MeshStandardMaterial 等）は持つ。
+  // 既存の防御チェック（color と getHex の存在確認）はそのままに、型だけ絞る。
+  const m0 = (Array.isArray(targets[0].material) ? targets[0].material[0] : targets[0].material) as
+    (THREE.Material & { color?: THREE.Color }) | undefined;
   if (m0 && m0.color && typeof m0.color.getHex === "function") baseColor = m0.color.getHex();
   const srcMat = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.9, metalness: 0 });
   const unionMesh = new THREE.Mesh(unionGeo, srcMat);
