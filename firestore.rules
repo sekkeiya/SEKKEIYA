@@ -343,6 +343,14 @@ service cloud.firestore {
       allow delete: if isVerified() && isModelOwnerData(resource.data);
     }
 
+    /* ---- モデルのいいね（assets/{assetId}/likes/{uid}） ----
+       他人のモデルにも押せるため assets 本体とは別のサブコレクションに置く。
+       1人1ドキュメントで、本人だけが自分の分を作成/削除できる。 */
+    match /assets/{assetId}/likes/{userId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
     /* ---- グローバル models ---- */
     match /models/{modelId} {
       // 公開 or オーナー or 共有ユーザー
