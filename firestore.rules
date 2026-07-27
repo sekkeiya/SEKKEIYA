@@ -345,10 +345,13 @@ service cloud.firestore {
 
     /* ---- モデルのいいね（assets/{assetId}/likes/{uid}） ----
        他人のモデルにも押せるため assets 本体とは別のサブコレクションに置く。
-       1人1ドキュメントで、本人だけが自分の分を作成/削除できる。 */
+       1人1ドキュメントのトグル型（following/followers と同型）。本人だけが自分の分を
+       作成/更新/削除できる。update も許可するのは、クライアントが再読み込み前の古い
+       ローカル状態から「既にいいね済みのドキュメントに setDoc」してしまっても
+       （Firestore はこれを create ではなく update と評価する）無害に成功させるため。 */
     match /assets/{assetId}/likes/{userId} {
       allow read: if isSignedIn();
-      allow create, delete: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
     /* ---- グローバル models ---- */
