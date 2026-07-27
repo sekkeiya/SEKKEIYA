@@ -67,8 +67,10 @@ import { openSearchWindow } from './utils/openSearchWindow';
 import { openReaderHome } from './features/dsb/lib/openReader';
 import { openCodeWindow } from './utils/openCodeWindow';
 import { isBlogAdmin } from './features/dsb/lib/blogAdmin';
+import { resolveCodeAccess } from './features/global-settings/panels/backlog/codeAccess';
 import { auth } from './lib/firebase/client';
 import { TeamHomePage } from './features/teams/TeamHomePage';
+import { TeamProjectDetailPage } from './features/teams/TeamProjectDetailPage';
 import { TeamsManagementPage } from './features/teams/TeamsManagementPage';
 import { useTeamsStore } from './store/useTeamsStore';
 import { OPEN_VIEW_EVENT, applyOpenView, type OpenViewPayload } from './shared/navigation/openMainView';
@@ -89,8 +91,11 @@ const isChildWindow = isStandalone || isChatWindow || isDriveWindow || isCodeWin
 // 起動時の SEKKEIYA OS ウィンドウ自動オープンをプロセスに1回だけにするためのガード。
 let didAutoOpenOsWindow = false;
 
+// チーム画面は チーム一覧 → チーム → プロジェクト詳細 の3階層。
 const TeamsView = () => {
   const activeTeamId = useTeamsStore(s => s.activeTeamId);
+  const activeTeamProjectId = useTeamsStore(s => s.activeTeamProjectId);
+  if (activeTeamProjectId) return <TeamProjectDetailPage />;
   if (activeTeamId) return <TeamHomePage />;
   return <TeamsManagementPage />;
 };
@@ -905,7 +910,11 @@ function App() {
         await registerAppShortcut('CommandOrControl+Alt+C', 'SEKKEIYA OS (Chat)', () => openChatWindow(useAppStore.getState().activeProjectId ?? null));
         await registerAppShortcut('CommandOrControl+Alt+S', 'SEKKEIYA Search', () => openSearchWindow());
         await registerAppShortcut('CommandOrControl+Alt+R', 'SEKKEIYA Reader', () => openReaderHome());
-        await registerAppShortcut('CommandOrControl+Alt+K', 'SEKKEIYA Code', () => isBlogAdmin(auth.currentUser) ? openCodeWindow() : Promise.resolve());
+        // 要件74: 一般ユーザーもローカルモードで使えるため、管理者ゲートではなく利用可否で判定する。
+        await registerAppShortcut('CommandOrControl+Alt+K', 'SEKKEIYA Code', () =>
+          resolveCodeAccess({ isAdmin: isBlogAdmin(auth.currentUser), isDesktop: isTauri() }).enabled
+            ? openCodeWindow()
+            : Promise.resolve());
 
         // 拡張メニュー「スクショを保存」→ localhost /capture → Rust emit。
         // Ctrl+Alt+F（スクショ）と同じく ask モードでキャプチャウィンドウを起動する。

@@ -496,6 +496,33 @@ export const fetchTeamProjects = async (teamId: string, userId: string): Promise
     });
 };
 
+// プロジェクト詳細画面（TeamProjectDetailPage）用。一覧の TeamProject は軽いままにしておき、
+// 説明・アイコン・更新日まで要るこの画面だけが projects/{id} を1件読む。
+export interface TeamProjectDetail extends TeamProject {
+  description: string;
+  iconUrl?: string;
+  iconEmoji?: string;
+  updatedAt: string;
+}
+
+export const fetchTeamProjectDetail = async (projectId: string): Promise<TeamProjectDetail | null> => {
+  const snap = await getDoc(doc(db, 'projects', projectId));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    name: data.name ?? '',
+    ownerId: data.ownerId ?? '',
+    teamId: data.teamId ?? '',
+    memberIds: data.memberIds ?? [],
+    createdAt: toIso(data.createdAt),
+    description: data.description ?? '',
+    iconUrl: data.iconUrl,
+    iconEmoji: data.iconEmoji,
+    updatedAt: toIso(data.updatedAt ?? data.createdAt),
+  };
+};
+
 // サイドバー用: ユーザーが属する全チームプロジェクトを1クエリで取得し teamId でグループ化
 export const fetchAllTeamProjectsForUser = async (userId: string): Promise<Record<string, TeamProject[]>> => {
   const q = query(

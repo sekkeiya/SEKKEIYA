@@ -24,8 +24,8 @@ export interface RequestRowProps {
   kids: BacklogItem[];                 // 表示用（ソート/フィルタ適用済み・安定参照）
   expanded: boolean;
   sprints: Sprint[];
-  usedTools: string[];
-  usedScreens: string[];
+  toolOptions: string[];
+  screenOptions: string[];
   // 要求チェックボックスの tri-state（autoCheckIds ∩ checked セットから DevStatusPanel 側で算出済み）。
   // プリミティブにすることで checked セット全体の参照変化がこの行の再描画を引き起こさないようにする。
   csChecked: boolean;
@@ -51,7 +51,7 @@ export interface RequestRowProps {
 }
 
 const RequestRowImpl: React.FC<RequestRowProps> = ({
-  req, allKids, kids, expanded, sprints, usedTools, usedScreens,
+  req, allKids, kids, expanded, sprints, toolOptions, screenOptions,
   csChecked, csIndeterminate, checkedIdsCsv, fixCollapsedIdsCsv, onToggleRequestCheck, onToggleCollapse, onToggleCheck,
   onToggleFixCollapse, onPatch, onRemove, onOpenDetail, onOpenAttach,
   onAddFix, onToggleFix, onUpdateFixText, onRemoveFix, onAddChild,
@@ -105,7 +105,7 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
         </TableCell>
         <TableCell>
           <EditableCell display={<ToolDisplay value={req.category} placeholder="既定ツール" />}>
-            {(close) => <CategorySelect value={req.category} options={usedTools} placeholder="既定ツール" autoOpen onClose={close} onChange={(v) => onPatch(req.id, { category: v })} />}
+            {(close) => <CategorySelect value={req.category} options={toolOptions} placeholder="既定ツール" autoOpen onClose={close} onChange={(v) => onPatch(req.id, { category: v })} />}
           </EditableCell>
         </TableCell>
         <TableCell><Dash /></TableCell>
@@ -129,8 +129,8 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
           sprints={sprints}
           parentPlatform={parentPlatform}
           parentCategory={parentCategory}
-          usedTools={usedTools}
-          usedScreens={usedScreens}
+          toolOptions={toolOptions}
+          screenOptions={screenOptions}
           checked={checkedSet.has(k.id)}
           fixCheckedBits={(k.fixes ?? []).map(f => checkedSet.has(f.id) ? '1' : '0').join('')}
           fixCollapsed={fixCollapsedSet.has(k.id)}

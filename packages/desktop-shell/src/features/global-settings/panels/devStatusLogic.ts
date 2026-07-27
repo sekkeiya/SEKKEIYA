@@ -105,10 +105,41 @@ export const CATEGORIES: { id: string; label: string; color: string }[] = [
   { id: '3dsm',    label: 'S.Movie',     color: '#C98A4B' },
   { id: '3dsmt',   label: 'S.Material',  color: '#ec407a' },
 ];
-export const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c])) as Record<string, typeof CATEGORIES[number]>;
 export const CATEGORY_IDS = CATEGORIES.map(c => c.id);
+
+// ── 要件79: SEKKEIYA と無関係なアプリを開発するプロジェクト向けの汎用語彙 ──
+// 上の CATEGORIES は SEKKEIYA 本体の子アプリ scope（S.Model / S.Layout …）で、
+// 他人のアプリの要求・要件に出しても意味が通らない。ローカルプロジェクトではこちらを候補にする。
+// id は CATEGORIES と衝突しない（general のみ同義で重複するため再利用する）ようにしてある。
+export const GENERIC_CATEGORIES: { id: string; label: string; color: string }[] = [
+  { id: 'general',  label: '基盤',         color: '#78909c' },
+  { id: 'ui',       label: 'UI',           color: '#42a5f5' },
+  { id: 'logic',    label: 'ロジック',      color: '#00bcd4' },
+  { id: 'api',      label: 'API',          color: '#66bb6a' },
+  { id: 'data',     label: 'データ',        color: '#26a69a' },
+  { id: 'infra',    label: 'インフラ',      color: '#90a4ae' },
+  { id: 'docs',     label: 'ドキュメント',  color: '#b0bec5' },
+];
+
+// 汎用の画面候補。SEKKEIYA 固有の画面名（開発状況 / モデル製造ライン …）は出さない。
+export const GENERIC_SCREENS = ['ホーム', '一覧', '詳細', '設定', '認証'];
+// SEKKEIYA 本体（クラウド）の画面候補。
+export const SEKKEIYA_SCREENS = ['開発状況', 'モデル製造ライン', 'AI使用量モニター', 'AI学習モニター', 'コネクタ', '一般'];
+
+// ラベル/色の解決は「どのプロジェクトの値か」に関係なく引けてほしいので、両方を混ぜた辞書を使う。
+// （先勝ち＝SEKKEIYA 側を優先。general は同じ内容なので差は出ない）
+export const CAT_MAP = Object.fromEntries(
+  [...GENERIC_CATEGORIES, ...CATEGORIES].map(c => [c.id, c]),
+) as Record<string, typeof CATEGORIES[number]>;
 export const toolLabel = (v?: string | null) => v ? (CAT_MAP[v]?.label ?? v) : '';
 export const toolColor = (v?: string | null) => v ? (CAT_MAP[v]?.color ?? 'transparent') : 'transparent';
+
+/** 要件79: プロジェクト種別ごとの選択候補（自由入力なので、実データの既出値は呼び出し側で足す）。 */
+export interface Vocabulary { categoryIds: string[]; screens: string[]; }
+export function vocabularyFor(kind: 'cloud' | 'local' | null): Vocabulary {
+  if (kind === 'cloud') return { categoryIds: CATEGORY_IDS, screens: SEKKEIYA_SCREENS };
+  return { categoryIds: GENERIC_CATEGORIES.map(c => c.id), screens: GENERIC_SCREENS };
+}
 
 // ── ソート/フィルタ（要件12: ヘッダーで並び替え / 要件14: ヘッダーメニューで絞り込み） ──
 // 対象列。並び替え・絞り込みできる 6 列。

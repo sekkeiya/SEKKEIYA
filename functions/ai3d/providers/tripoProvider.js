@@ -32,7 +32,9 @@ async function tripoFetchJson(label, url, options, attempts = 3) {
     }
     console.warn(`[${label}] attempt ${i + 1}/${attempts} failed:`, lastErr.message);
   }
-  throw lastErr;
+  // 裸の "fetch failed" ではどの Tripo 呼び出しか分からないため、ラベルを付けて投げる。
+  // permanent フラグは維持（credits/rate-limit 判定の正規表現は substring 検索なので prefix があってもマッチする）。
+  throw Object.assign(new Error(`${label}: ${lastErr?.message || lastErr}`), { permanent: lastErr?.permanent });
 }
 
 async function runTripoProvider(jobId, uid, data) {
@@ -51,8 +53,14 @@ async function runTripoProvider(jobId, uid, data) {
 
     // 1.5 Download the image and upload to Tripo first to avoid URL validation errors
     console.log("Downloading image from storage...");
-    const imageRes = await fetch(data.inputImageUrl);
-    if (!imageRes.ok) throw new Error("Failed to download input image from storage: " + imageRes.statusText);
+    let imageRes;
+    try {
+      imageRes = await fetch(data.inputImageUrl);
+    } catch (e) {
+      // どのステップで落ちたかを errorMessage から特定できるようラベルを付ける（裸の "fetch failed" 対策）。
+      throw new Error(`入力画像のダウンロードに失敗（URLへ到達不可）: ${e?.message || e} / url=${String(data.inputImageUrl || "").slice(0, 100)}`);
+    }
+    if (!imageRes.ok) throw new Error(`入力画像のダウンロードに失敗: ${imageRes.status} ${imageRes.statusText}`);
     const imageBlob = await imageRes.blob();
 
     console.log("Uploading image to Tripo API...");

@@ -57,4 +57,10 @@ export const firestoreBacklogStore: BacklogStore = {
     try { await deleteObject(storageRef(storage, att.path)); } catch { /* 既に無い場合は無視 */ }
     await updateDoc(doc(db, ITEMS, itemId), { attachments: arrayRemove(att), updatedAt: serverTimestamp() });
   },
+  now() { return serverTimestamp(); },
+  async getAttachmentUrl(att) {
+    // クラウド添付は Storage のダウンロード URL をそのまま使う。url 未設定は異常データ。
+    if (!att.url) throw new Error('添付 URL がありません');
+    return att.url;
+  },
 };

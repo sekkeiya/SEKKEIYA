@@ -193,8 +193,8 @@ const TeamSettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ 
 // ── TeamHomePage 本体 ──────────────────────────────────
 export const TeamHomePage: React.FC = () => {
   const currentUser = useAuthStore(s => s.currentUser);
-  const { teams, activeTeamId, setActiveTeamId } = useTeamsStore();
-  const { setActiveProjectId, setCurrentMainView } = useAppStore();
+  const { teams, activeTeamId, setActiveTeamId, setActiveTeamProjectId } = useTeamsStore();
+  const { setCurrentMainView } = useAppStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [teamProjects, setTeamProjects] = useState<TeamProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
@@ -253,9 +253,10 @@ export const TeamHomePage: React.FC = () => {
     }
   };
 
+  // チーム画面ではプロジェクトサイトを直接開かず、まずプロジェクト詳細（TeamProjectDetailPage）へ。
+  // サイトやファイル一覧はその詳細画面のカードから開く。
   const handleOpenProject = (projectId: string) => {
-    setActiveProjectId(projectId, 'home');
-    setCurrentMainView('workspace');
+    setActiveTeamProjectId(projectId);
   };
 
   return (

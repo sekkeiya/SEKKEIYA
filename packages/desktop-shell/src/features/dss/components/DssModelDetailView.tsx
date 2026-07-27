@@ -6,27 +6,20 @@ import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
-import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ImageIcon from '@mui/icons-material/Image';
-import StraightenIcon from '@mui/icons-material/Straighten';
 import { RightPanelModelViewer, type MaterialPreviewState } from './RightPanelModelViewer';
 import type { EnumeratedSlot } from '../../shared/material/applyMaterial';
 import { DssWalkthroughViewer } from './DssWalkthroughViewer';
-import { DssDetailStudio, DssStudioTabs, type DetailTab } from './DssDetailStudio';
+import { DssDetailStudio, type DetailTab } from './DssDetailStudio';
+import { DssViewerStrip, countStripItems, type StripKind } from './DssViewerStrip';
 import { DssModelInfoPanel } from './DssRightPanel';
 import { normalizeGimmicks } from '../../shared/walkthrough/gimmicks';
 import { readMaterialPresets, readMaterialVariants, expandVariantSelection, type MaterialVariant } from '../../shared/material/materialPresets';
-import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import { DssVariantGallery } from './DssVariantGallery';
 import { DeferUntilVisible } from './DeferUntilVisible';
 import LaunchRoundedIcon from '@mui/icons-material/LaunchRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import ImageSearchRoundedIcon from '@mui/icons-material/ImageSearchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import AutoAwesomeMotionRoundedIcon from '@mui/icons-material/AutoAwesomeMotionRounded';
-import ThreeDRotationRoundedIcon from '@mui/icons-material/ThreeDRotationRounded';
 import { useAppStore } from '../../../store/useAppStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useDssLiveDimensionsStore } from '../../../store/useDssLiveDimensionsStore';
@@ -34,6 +27,7 @@ import { getDownloadUrlForModel, getCanonicalModelId } from '../utils/modelUtils
 import { prefetchModelGlb } from '../utils/prefetchModelGlb';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { DssModelCard } from '../DssModelCard';
+import { DssDetailActionBar, type DetailActions } from './DssDetailActionBar';
 
 interface UsageLocation {
   optionId: string;
@@ -62,19 +56,8 @@ interface Props {
   canImageSearch?: boolean;
   imgSearchBusy?: boolean;
   onCameraClick?: (el: HTMLElement) => void;
-  // 表示中の 1 モデルに対するアクション（関連URL/カタログ/AI入力/Rhino/Blender）。
-  // これまで画面下のフロートバーにあったものを右ペインへ移設するために配線する。
-  detailActions?: {
-    canRegister: boolean;
-    canRhino: boolean;
-    canBlender: boolean;
-    dccBusy: 'rhino' | 'blender' | null;
-    onRegisterLinks: () => void;
-    onCatalog: () => void;
-    onAutoFill: () => void;
-    onRhino: () => void;
-    onBlender: () => void;
-  };
+  // 表示中の 1 モデルに対するアクション（ダウンロード/関連URL/カタログ/AI入力/Rhino/Blender/保存/共有/削除）。
+  detailActions?: DetailActions;
 }
 
 /**
@@ -216,6 +199,14 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   const handleMaterialSlots = useCallback((slots: EnumeratedSlot[]) => { matSlotsRef.current?.(slots); }, []);
   // 家具置き換えタブで選択された差し替え先（メインビューアに表示）。null=元モデル。
   const [swapSel, setSwapSel] = useState<{ url: string; dims: any } | null>(null);
+  // 帯側で選択中の置き換え候補 index（null=元モデル）。
+  const [swapIndex, setSwapIndex] = useState<number | null>(null);
+  const handleSelectSwapIndex = useCallback((i: number | null) => {
+    setSwapIndex(i);
+    const list: any[] = Array.isArray(model?.extendedMetadata?.swapModels) ? model.extendedMetadata.swapModels : [];
+    const s = i === null ? null : list[i];
+    setSwapSel(s ? { url: s.glbUrl, dims: s.dimensions || null } : null);
+  }, [model]);
 
   // 素材バリエーション・ギャラリーで選択中のパターン（null=元の見た目）。
   const [galleryVariantId, setGalleryVariantId] = useState<string | null>(null);
@@ -228,7 +219,6 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   }, [galleryVariantId, model]);
   const handleGallerySelect = useCallback((variant: MaterialVariant | null) => {
     setGalleryVariantId(variant?.id ?? null);
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   // パターンのサムネイル生成用：メインビューアの描画を取り出す
@@ -271,7 +261,18 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   const [walkthroughDirty, setWalkthroughDirty] = useState(false);
   // ページ全体の表示モード（編集 / プレビュー）＋ 設定タブ（マテリアル/ウォークスルー/情報）
   const [walkthroughMode, setWalkthroughMode] = useState<'edit' | 'preview'>('edit');
-  const [detailTab, setDetailTab] = useState<DetailTab>('overview');
+  // ビューア下の帯で選択中の種類（null = 帯を出さない）。既定は素材、素材が無ければ選択なし。
+  const [stripKind, setStripKind] = useState<StripKind | null>(null);
+  useEffect(() => {
+    const c = countStripItems(model);
+    setStripKind(c.material > 0 ? 'material' : null);
+  }, [model]);
+  // Task 8 で「整える」パネルに接続する。それまでは何もしない。
+  const [, setEditOpen] = useState(false);
+  const [, setEditFocus] = useState<StripKind | null>(null);
+  // DssDetailStudio（右パネルの旧タブ内容。Task 9 で「整える」へ再編するまでの暫定）へ渡す
+  // 旧 detailTab 相当。帯の選択が無ければ概要、'anim' は旧 'walkthrough' 値に対応させる。
+  const legacyDetailTab: DetailTab = stripKind === 'anim' ? 'walkthrough' : (stripKind ?? 'overview');
 
 
   // 変更は自動保存する（設計原則 State Synchronization）。連続操作をまとめるため少し待つ。
@@ -324,24 +325,6 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
     model?.ownerId === currentUser.uid ||
     model?.createdBy === currentUser.uid
   );
-
-  // 表示するタブ。作成者には常に4つ、閲覧者には中身のあるタブだけを出す（空タブを見せない）。
-  // isAuthor を参照するため、必ずその宣言より後に置くこと（useMemo は描画中に実行されるため）。
-  const visibleTabs = useMemo<DetailTab[]>(() => {
-    if (isAuthor) return ['overview', 'material', 'swap', 'walkthrough'];
-    const tabs: DetailTab[] = ['overview'];
-    const hasMaterial = readMaterialVariants(model).length > 0 || readMaterialPresets(model).length > 0;
-    if (hasMaterial) tabs.push('material');
-    if ((model.extendedMetadata?.swapModels?.length ?? 0) > 0) tabs.push('swap');
-    const hasAnim = normalizeGimmicks(model.extendedMetadata).length > 0 || !!model.extendedMetadata?.anim;
-    if (hasAnim) tabs.push('walkthrough');
-    return tabs;
-  }, [isAuthor, model]);
-
-  // 表示できないタブが選ばれた状態（モデル切替直後など）は概要へ戻す
-  useEffect(() => {
-    if (!visibleTabs.includes(detailTab)) setDetailTab('overview');
-  }, [visibleTabs, detailTab]);
 
   // Model Info パネルで編集中の寸法があれば即時反映、なければ保存済み寸法を使う
   const liveDims = useDssLiveDimensionsStore(s => s.liveDimensions[model.id]);
@@ -409,44 +392,12 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {/* 寸法表示トグル（アニメーションタブでは対象外なので隠す） */}
-            {glbUrl && detailTab !== 'walkthrough' && (
-              <Paper
-                sx={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  background: 'rgb(var(--brand-fg-rgb) / 0.9)',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  zIndex: 10
-                }}
-              >
-                <Button
-                  variant={showDimensions ? 'contained' : 'text'}
-                  size="small"
-                  startIcon={<StraightenIcon fontSize="small" />}
-                  onClick={() => setShowDimensions(v => !v)}
-                  sx={{
-                    textTransform: 'none',
-                    color: showDimensions ? 'var(--brand-fg)' : '#000',
-                    bgcolor: showDimensions ? 'var(--brand-bg)' : 'transparent',
-                    borderRadius: 0,
-                    px: 2,
-                    '&:hover': { bgcolor: showDimensions ? '#333' : 'light-dark(rgba(15,23,42,0.02), rgba(0,0,0,0.05))' }
-                  }}
-                >
-                  寸法
-                </Button>
-              </Paper>
-            )}
-
             {/* 常に3D表示。GLBが無いモデルだけサムネイルで代替する（2D/3Dの手動切替は廃止）。
                 3Dの読み込み中はサムネイルをつなぎとして出すのでビューアが空白にならない。 */}
             {glbUrl ? (
               <ErrorBoundary>
-                 {detailTab === 'walkthrough' ? (
-                   /* アニメーションタブ：実績あるウォークスルービューアをメイン枠いっぱいに表示 */
+                 {stripKind === 'anim' ? (
+                   /* アニメーション：実績あるウォークスルービューアをメイン枠いっぱいに表示 */
                    <DssWalkthroughViewer
                      fill
                      glbUrl={glbUrl}
@@ -457,10 +408,10 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
                    />
                  ) : (
                    <RightPanelModelViewer
-                     modelUrl={detailTab === 'swap' && swapSel ? swapSel.url : (glbUrl as string)}
-                     targetDimensions={detailTab === 'swap' && swapSel ? swapSel.dims : targetDimensions}
+                     modelUrl={stripKind === 'swap' && swapSel ? swapSel.url : (glbUrl as string)}
+                     targetDimensions={stripKind === 'swap' && swapSel ? swapSel.dims : targetDimensions}
                      showDimensions={showDimensions}
-                     materialPreview={detailTab === 'material' ? matPreview : galleryPreview}
+                     materialPreview={stripKind === 'material' ? (matPreview ?? galleryPreview) : null}
                      onMaterialPick={handleMaterialPick}
                      onMaterialSlots={handleMaterialSlots}
                      captureRef={viewerCaptureRef}
@@ -489,51 +440,20 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
             )}
           </Box>
           
-          {/* Bottom Thumbnails */}
-          <Box sx={{ height: 60, display: 'flex', gap: 1 }}>
-            <Box 
-              sx={{ 
-                width: 60, 
-                height: 60, 
-                borderRadius: '8px', 
-                bgcolor: 'var(--brand-bg)', 
-                border: '2px solid #3b82f6',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              {thumbnailUrl ? (
-                <Box 
-                   component="img" 
-                   src={thumbnailUrl} 
-                   sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <ImageIcon sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.2)', fontSize: 24 }} />
-              )}
-            </Box>
-            <Box 
-              sx={{ 
-                width: 60, 
-                height: 60, 
-                borderRadius: '8px', 
-                border: '1px dashed rgb(var(--brand-fg-rgb) / 0.2)',
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: '#3b82f6',
-                cursor: 'pointer',
-                fontSize: 10,
-                flexDirection: 'column'
-              }}
-            >
-               <ImageIcon fontSize="small" sx={{ mb: 0.5 }} />
-               ADD
-            </Box>
-          </Box>
+          {/* ビューア直下の帯：素材/置き換え/アニメの切替＋寸法トグル（旧サムネ列を統合） */}
+          <DssViewerStrip
+            model={model}
+            isAuthor={isAuthor}
+            active={stripKind}
+            onChangeActive={setStripKind}
+            selectedVariantId={galleryVariantId}
+            onSelectVariant={handleGallerySelect}
+            selectedSwapIndex={swapIndex}
+            onSelectSwap={handleSelectSwapIndex}
+            showDimensions={showDimensions}
+            onToggleDimensions={() => setShowDimensions((v) => !v)}
+            onRequestEdit={(k) => { setEditOpen(true); setEditFocus(k); }}
+          />
         </Box>
 
         {/* Right Side: Details Pane（タブUIをここに集約） */}
@@ -553,70 +473,17 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           overflow: 'hidden',
         }}>
            {/* アクションバー（常用操作・タブに依らず常時表示） */}
-           <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
-             <Button
-               variant="contained"
-               startIcon={<ExpandMoreIcon />}
-               sx={{ flex: 1, minWidth: 0, bgcolor: '#3b82f6', color: 'var(--brand-fg)', textTransform: 'none', fontSize: 12.5, fontWeight: 700, justifyContent: 'space-between', px: 1.5, '&:hover': { bgcolor: '#2563eb' } }}
-             >
-               Download
-             </Button>
-             {detailActions && (
-               <>
-                 <Tooltip title="Rhino へ配置（開いて取り込み）" arrow>
-                   <span>
-                     <Button size="small" variant="contained" disabled={!detailActions.canRhino || detailActions.dccBusy !== null}
-                       startIcon={detailActions.dccBusy === 'rhino' ? <CircularProgress size={13} sx={{ color: 'var(--brand-fg)' }} /> : <AutoAwesomeMotionRoundedIcon sx={{ fontSize: 15 }} />}
-                       onClick={detailActions.onRhino}
-                       sx={{ textTransform: 'none', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', minWidth: 0, px: 1.1, bgcolor: '#0d9488', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0f766e' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
-                       Rhino
-                     </Button>
-                   </span>
-                 </Tooltip>
-                 <Tooltip title="Blender へ配置（開いて取り込み）" arrow>
-                   <span>
-                     <Button size="small" variant="contained" disabled={!detailActions.canBlender || detailActions.dccBusy !== null}
-                       startIcon={detailActions.dccBusy === 'blender' ? <CircularProgress size={13} sx={{ color: 'var(--brand-fg)' }} /> : <ThreeDRotationRoundedIcon sx={{ fontSize: 15 }} />}
-                       onClick={detailActions.onBlender}
-                       sx={{ textTransform: 'none', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', minWidth: 0, px: 1.1, bgcolor: '#ea7317', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#c2620f' }, '&.Mui-disabled': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.08)', color: 'rgb(var(--brand-fg-rgb) / 0.3)' } }}>
-                       Blender
-                     </Button>
-                   </span>
-                 </Tooltip>
-               </>
-             )}
-             <IconButton size="small" sx={{ border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', color: 'var(--brand-fg)', borderRadius: '8px', flexShrink: 0 }}>
-               <BookmarkBorderIcon sx={{ fontSize: 18 }} />
-             </IconButton>
-             <IconButton size="small" sx={{ border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', color: 'var(--brand-fg)', borderRadius: '8px', flexShrink: 0 }}>
-               <FavoriteBorderIcon sx={{ fontSize: 18 }} />
-             </IconButton>
-             {/* 常設だった「編集/プレビュー」トグルは廃止（作成者は常時編集＋自動保存）。
-                 閲覧者にどう見えるかの確認だけを、控えめな切り替えとして残す。 */}
-             {isAuthor && (
-               <Tooltip title={walkthroughMode === 'preview' ? '編集に戻る' : '閲覧者の見え方を確認'} arrow>
-                 <IconButton
-                   size="small"
-                   onClick={() => setWalkthroughMode(walkthroughMode === 'preview' ? 'edit' : 'preview')}
-                   sx={{
-                     border: '1px solid rgb(var(--brand-fg-rgb) / 0.12)', borderRadius: '8px', flexShrink: 0,
-                     color: walkthroughMode === 'preview' ? 'light-dark(#003fad, #9ec1ff)' : 'var(--brand-fg)',
-                     bgcolor: walkthroughMode === 'preview' ? 'rgba(79,140,255,0.22)' : 'transparent',
-                     borderColor: walkthroughMode === 'preview' ? 'rgba(79,140,255,0.55)' : undefined,
-                   }}
-                 >
-                   <VisibilityRoundedIcon sx={{ fontSize: 18 }} />
-                 </IconButton>
-               </Tooltip>
-             )}
-           </Box>
+           <DssDetailActionBar
+             model={model}
+             actions={detailActions}
+             isAuthor={isAuthor}
+             previewMode={walkthroughMode === 'preview'}
+             onTogglePreview={() => setWalkthroughMode(walkthroughMode === 'preview' ? 'edit' : 'preview')}
+           />
 
-           {/* タブ（パネル上部・固定）：下の詳細内容を切り替える */}
-           <DssStudioTabs detailTab={detailTab} setDetailTab={setDetailTab} visibleTabs={visibleTabs} />
-
-           {/* タブ内容（この部分だけ内部スクロール。アクションバーとタブは上に固定） */}
+           {/* 内容（この部分だけ内部スクロール。アクションバーは上に固定） */}
            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 2, pr: 0.5 }}>
-           {detailTab === 'overview' && (<>
+           {legacyDetailTab === 'overview' && (<>
              {/* レイアウトでの使用状況（Model Info には無い情報なので残す） */}
              {(() => {
                const raw = usageMap?.[model.id];
@@ -707,13 +574,14 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
 
              {/* モデル情報（旧・最右 Model Info パネル）をここに一本化。
                  仕様/素材/タグ/説明/タイトルはこのパネルが持つため、重複表示は廃止した。 */}
-             <DssModelInfoPanel selectedItem={model} hideViewer />
+             <DssModelInfoPanel selectedItem={model} hideViewer hideRhinoButton />
            </>)}
            {/* 概要以外のタブ内容（マテリアル/家具置き換え/アニメーション）— 3Dは左のメインビューアに集約 */}
            <DssDetailStudio
              model={model} isAuthor={isAuthor} projectId={activeProjectId || undefined}
              glbUrl={glbUrl || null} title={title}
-             detailTab={detailTab} setDetailTab={setDetailTab}
+             detailTab={legacyDetailTab}
+             setDetailTab={() => { /* 帯が選択を持つため、ここからは変更しない */ }}
              walkthroughMode={walkthroughMode} setWalkthroughMode={setWalkthroughMode}
              setMatPreview={setMatPreview} matPickRef={matPickRef} matSlotsRef={matSlotsRef}
              onSelectSwap={setSwapSel}

@@ -9,6 +9,7 @@ import {
   sortByLanding, partitionHistory, isRequestAtRisk, groupRequests,
   type Span,
   DEFAULT_PROJECT_KEY, normalizeProjectKey,
+  vocabularyFor, GENERIC_CATEGORIES, GENERIC_SCREENS,
 } from './devStatusLogic';
 
 const ms = (ymd: string) => new Date(`${ymd}T00:00:00Z`).getTime();
@@ -325,5 +326,46 @@ describe('normalizeProjectKey', () => {
   });
   it('値があれば trim して返す', () => {
     expect(normalizeProjectKey('  other-app ')).toBe('other-app');
+  });
+});
+
+// ── 要件79: プロジェクト種別ごとの語彙 ──
+describe('vocabularyFor', () => {
+  it('クラウド（SEKKEIYA 本体）は子アプリ scope をそのまま候補にする', () => {
+    const v = vocabularyFor('cloud');
+    expect(v.categoryIds).toEqual(CATEGORY_IDS);
+    expect(v.categoryIds).toContain('3dss');
+    expect(v.screens).toContain('モデル製造ライン');
+  });
+  it('ローカルは SEKKEIYA 固有の語彙を出さない（無関係なアプリでも意味が通る候補）', () => {
+    const v = vocabularyFor('local');
+    expect(v.categoryIds).not.toContain('3dss');
+    expect(v.categoryIds.some(id => id.startsWith('3ds'))).toBe(false);
+    expect(v.categoryIds).toEqual(GENERIC_CATEGORIES.map(c => c.id));
+    expect(v.screens).toEqual(GENERIC_SCREENS);
+    expect(v.screens).not.toContain('モデル製造ライン');
+    expect(v.screens).not.toContain('AI学習モニター');
+  });
+  it('プロジェクト未選択（null）はローカルと同じ汎用語彙にする', () => {
+    expect(vocabularyFor(null)).toEqual(vocabularyFor('local'));
+  });
+  it('汎用分類にも 全て(all) のような SEKKEIYA 固有の枠は入れない', () => {
+    expect(vocabularyFor('local').categoryIds).not.toContain('all');
+  });
+});
+
+describe('CAT_MAP（要件79: 両方の語彙を引ける）', () => {
+  it('SEKKEIYA の子アプリ scope を引ける', () => {
+    expect(toolLabel('3dsl')).toBe('S.Layout');
+  });
+  it('汎用分類も引ける（ローカルプロジェクトの値がラベル無しにならない）', () => {
+    expect(toolLabel('ui')).toBe('UI');
+    expect(toolLabel('docs')).toBe('ドキュメント');
+  });
+  it('未知の値は入力文字列をそのまま返す（自由入力）', () => {
+    expect(toolLabel('なにか')).toBe('なにか');
+  });
+  it('id が重複する general は SEKKEIYA 側の定義が勝つ', () => {
+    expect(toolLabel('general')).toBe('基盤');
   });
 });

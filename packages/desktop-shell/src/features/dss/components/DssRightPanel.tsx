@@ -121,7 +121,7 @@ const DssProjectInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) 
 };
 
 /** モデル情報（台帳）パネル。詳細画面では「概要」タブの中身として直接利用する。 */
-export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boolean }> = ({ selectedItem: propSelectedItem, hideViewer }) => {
+export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boolean; hideRhinoButton?: boolean }> = ({ selectedItem: propSelectedItem, hideViewer, hideRhinoButton }) => {
   // カテゴリの一覧は描画時に useUserSettingsStore.getState() から直接引いているため、
   // ここで保持する必要はない。
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
@@ -972,36 +972,38 @@ export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boole
             </Button>
           )}
 
-          <Button 
-            size="small" 
-            variant="contained"
-            disabled={isSendingToRhino}
-            startIcon={rhinoStatus === 'connected' ? <SendRoundedIcon sx={{ fontSize: 12 }} /> : <ErrorOutlineRoundedIcon sx={{ fontSize: 12 }}/>} 
-            onClick={() => {
-              if (rhinoStatus !== 'connected') {
-                openSetupModal('rhino');
-                return;
-              }
-              const targetModel = selectedVersionId === latestVersion 
-                ? selectedItem 
-                : { ...selectedItem, ...versionsObj[selectedVersionId] };
-              startSendToRhino(targetModel);
-            }}
-            sx={{ 
-              textTransform: 'none', 
-              fontSize: 10, 
-              height: 24, 
-              minWidth: 0, 
-              px: 1, 
-              borderRadius: 1, 
-              bgcolor: rhinoStatus === 'connected' ? 'rgba(22,163,74,0.9)' : 'rgba(245, 158, 11, 0.9)', 
-              color: 'var(--brand-fg)', 
-              whiteSpace: 'nowrap',
-              '&:hover': { bgcolor: rhinoStatus === 'connected' ? 'rgba(22,163,74,1)' : 'rgba(245, 158, 11, 1)' } 
-            }}
-          >
-            {isSendingToRhino ? '読込中...' : (rhinoStatus === 'connected' ? 'Rhinoへ' : 'セットアップ')}
-          </Button>
+          {!hideRhinoButton && (
+            <Button
+              size="small"
+              variant="contained"
+              disabled={isSendingToRhino}
+              startIcon={rhinoStatus === 'connected' ? <SendRoundedIcon sx={{ fontSize: 12 }} /> : <ErrorOutlineRoundedIcon sx={{ fontSize: 12 }}/>}
+              onClick={() => {
+                if (rhinoStatus !== 'connected') {
+                  openSetupModal('rhino');
+                  return;
+                }
+                const targetModel = selectedVersionId === latestVersion
+                  ? selectedItem
+                  : { ...selectedItem, ...versionsObj[selectedVersionId] };
+                startSendToRhino(targetModel);
+              }}
+              sx={{
+                textTransform: 'none',
+                fontSize: 10,
+                height: 24,
+                minWidth: 0,
+                px: 1,
+                borderRadius: 1,
+                bgcolor: rhinoStatus === 'connected' ? 'rgba(22,163,74,0.9)' : 'rgba(245, 158, 11, 0.9)',
+                color: 'var(--brand-fg)',
+                whiteSpace: 'nowrap',
+                '&:hover': { bgcolor: rhinoStatus === 'connected' ? 'rgba(22,163,74,1)' : 'rgba(245, 158, 11, 1)' }
+              }}
+            >
+              {isSendingToRhino ? '読込中...' : (rhinoStatus === 'connected' ? 'Rhinoへ' : 'セットアップ')}
+            </Button>
+          )}
         </Box>
       </Box>
 

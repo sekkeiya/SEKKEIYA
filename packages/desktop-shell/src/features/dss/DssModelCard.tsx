@@ -37,7 +37,10 @@ export const DssModelCard: React.FC<{
   onDelete?: (model: any) => void;
   onAuthorClick?: (model: any) => void;
   onDoubleClick?: (model: any) => void;
-  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels";
+  // グリッドから渡されるが本体では未使用の付随カウント（型として受理し excess-property エラーを避ける）
+  usageCount?: number;
+  layoutCount?: number;
+  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels" | "localModels";
 }> = ({ model, isSelected, onClick, onDragStart, badgeColor, showDetails, cardContext, onSave, onShare, onDelete, onAuthorClick, onDoubleClick }) => {
   // (Cache state no longer needed)
   const [busyMode, setBusyMode] = useState<"caching" | "opening" | null>(null);

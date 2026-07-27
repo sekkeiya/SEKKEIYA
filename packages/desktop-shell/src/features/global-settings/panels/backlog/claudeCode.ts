@@ -1,0 +1,42 @@
+// 要件75: Claude Code の導入状況（React / Tauri 非依存の純ロジック）。
+// 実行ループは「SEKKEIYA Code でキューを積む → ユーザーの PC の Claude Code が /queue で処理する」で
+// 成立するため、Claude Code が入っていないと /queue スキルを配っても何も起きない。
+// 実際の検出（`claude --version` の実行）は Rust 側の check_claude_code コマンド。
+
+/** Rust の check_claude_code が返す形（src-tauri/src/devtools.rs と対応）。 */
+export interface ClaudeCodeStatus {
+  installed: boolean;
+  /** 検出できたバージョン文字列（例 "1.0.30"）。取れなければ null。 */
+  version: string | null;
+  /** 実行ファイルの場所。取れなければ null。 */
+  path: string | null;
+  /** 検出に失敗したときの理由（installed=false のときだけ意味がある）。 */
+  error: string | null;
+}
+
+export const CLAUDE_CODE_INSTALL_COMMAND = 'npm install -g @anthropic-ai/claude-code';
+export const CLAUDE_CODE_DOCS_URL = 'https://docs.claude.com/en/docs/claude-code/overview';
+
+/**
+ * `claude --version` の出力からバージョンを取り出す。
+ * 出力例: "1.0.30 (Claude Code)" / "claude 1.2.3" / 前後に空行が入ることもある。
+ */
+export function parseClaudeVersion(stdout: string): string | null {
+  const m = /(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/.exec(stdout ?? '');
+  return m ? m[1] : null;
+}
+
+/** 未導入のときに UI へ出す案内文（コマンドは別途コピー可能な形で見せる）。 */
+export function installGuidance(status: ClaudeCodeStatus): string {
+  if (status.installed) return '';
+  return status.error
+    ? `Claude Code を検出できませんでした（${status.error}）。下のコマンドでインストールしてください。`
+    : 'Claude Code が見つかりませんでした。下のコマンドでインストールしてください。';
+}
+
+/** ヘッダーのチップに出す短いラベル。 */
+export function statusLabel(status: ClaudeCodeStatus | null): string {
+  if (!status) return 'Claude Code: 確認中…';
+  if (!status.installed) return 'Claude Code: 未導入';
+  return status.version ? `Claude Code: v${status.version}` : 'Claude Code: 導入済み';
+}

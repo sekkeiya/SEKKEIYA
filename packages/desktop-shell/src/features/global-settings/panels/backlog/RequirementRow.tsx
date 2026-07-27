@@ -26,8 +26,8 @@ export interface RequirementRowProps {
   sprints: Sprint[];
   parentPlatform: Platform | null;   // 親要求からの継承（PF）。孤立要件は null。
   parentCategory: string | null;     // 親要求からの継承（ツール）。孤立要件は null。
-  usedTools: string[];
-  usedScreens: string[];
+  toolOptions: string[];
+  screenOptions: string[];
   checked: boolean;                  // この要件自身が実装/テスト依頼で選択されているか（プリミティブ）
   // 修正項目ごとのチェック状態を item.fixes と同じ並びのビット文字列で渡す（'1'=選択中）。
   // 呼び出し側（DevStatusPanel / RequestRow）が checked セットから都度その場で作る、この行専用の値。
@@ -47,7 +47,7 @@ export interface RequirementRowProps {
 }
 
 const RequirementRowImpl: React.FC<RequirementRowProps> = ({
-  item, indented, sprints, parentPlatform, parentCategory, usedTools, usedScreens,
+  item, indented, sprints, parentPlatform, parentCategory, toolOptions, screenOptions,
   checked, fixCheckedBits, fixCollapsed, onToggleCheck, onToggleFixCollapse, onPatch, onRemove,
   onOpenDetail, onOpenAttach, onAddFix, onToggleFix, onUpdateFixText, onRemoveFix,
 }) => {
@@ -107,12 +107,12 @@ const RequirementRowImpl: React.FC<RequirementRowProps> = ({
         </TableCell>
         <TableCell>
           <EditableCell display={<ToolDisplay value={item.category} inherited={parentCategory} />}>
-            {(close) => <CategorySelect value={item.category} inherited={parentCategory} options={usedTools} autoOpen onClose={close} onChange={(v) => onPatch(item.id, { category: v })} />}
+            {(close) => <CategorySelect value={item.category} inherited={parentCategory} options={toolOptions} autoOpen onClose={close} onChange={(v) => onPatch(item.id, { category: v })} />}
           </EditableCell>
         </TableCell>
         <TableCell>
           <EditableCell display={<ScreenDisplay value={item.screen} />}>
-            {(close) => <ScreenSelect value={item.screen} options={usedScreens} autoOpen onClose={close} onChange={(v) => onPatch(item.id, { screen: v })} />}
+            {(close) => <ScreenSelect value={item.screen} options={screenOptions} autoOpen onClose={close} onChange={(v) => onPatch(item.id, { screen: v })} />}
           </EditableCell>
         </TableCell>
         <TableCell>

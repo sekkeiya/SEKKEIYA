@@ -37,21 +37,43 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-// serverTimestamp は queuedAt/archivedAt などデータ値の sentinel 生成にのみ使う（直 DB 呼びは無し）。
-// Firestore/Storage の読み書きはすべて BacklogStore（./backlog/FirestoreBacklogStore）経由。
-import { serverTimestamp } from 'firebase/firestore';
-import { firestoreBacklogStore as store } from './backlog/FirestoreBacklogStore';
+// データの読み書きはすべて BacklogStore 経由。実装（クラウド/ローカル）は
+// createBacklogStore(projectRef) が解決する（Phase 2: ローカルモード）。
+import { createBacklogStore, projectLabel } from './backlog/createBacklogStore';
+import type { ProjectRef } from './backlog/createBacklogStore';
 import { isTauri } from '../../../lib/platform';
+import { open as openDialog, confirm as confirmDialog } from '@tauri-apps/plugin-dialog';
+import { exists as fsExists, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
+import { homeDir } from '@tauri-apps/api/path';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { validateProjectName, buildDevProjectPath } from './backlog/projectPaths';
+import { QUEUE_SKILL_MD } from './backlog/queueSkillTemplate';
+import { resolveCodeAccess, initialProjectRef } from './backlog/codeAccess';
+import {
+  PROJECT_TEMPLATES, DEFAULT_TEMPLATE_ID, templateById, type TemplateId,
+} from './backlog/projectTemplates';
+import {
+  PROJECT_CONFIG_PATH, emptyProjectConfig, parseProjectConfig, serializeProjectConfig,
+  normalizeVerify, validateVerifyCommand, type ProjectConfig, type VerifyCommand,
+} from './backlog/projectConfig';
+import {
+  CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_DOCS_URL, installGuidance, statusLabel,
+  type ClaudeCodeStatus,
+} from './backlog/claudeCode';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
+import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
+import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
+import { ProjectSidebar } from './backlog/ProjectSidebar';
+import { GitHubSyncPanel } from './GitHubSyncPanel';
 import {
   statusOf, isDone, resolveEffective, resizeWidth, autoCheckIds, queueTargetIds,
-  CATEGORIES, CAT_MAP, toolLabel,
+  CAT_MAP, toolLabel,
   sortRequirements, filterRequirements, type SortKey, type SortState, type FilterState,
   allFixesDone, addFix, toggleFix, updateFixText, removeFix, type Fix,
   timelineTicks, PX_PER_DAY, SCALE_LABEL, type TimeScale,
   sprintRangeById, requestSpan, statusBreakdown, completionRate,
   sortByLanding, partitionHistory, isRequestAtRisk, groupRequests, type GroupKey,
-  DEFAULT_PROJECT_KEY,
+  DEFAULT_PROJECT_KEY, vocabularyFor,
 } from './devStatusLogic';
 // 行/セルの共有定義（型・定数・スタイル・小ヘルパー）と presentational コンポーネントは
 // backlog/ 配下に切り出し、メモ化した行コンポーネント（RequirementRow / RequestRow）を組む。
@@ -69,9 +91,10 @@ import {
 import { RequirementRow } from './backlog/RequirementRow';
 import { RequestRow } from './backlog/RequestRow';
 
-type ViewMode = 'board' | 'table' | 'timeline' | 'features';
+type ViewMode = 'board' | 'table' | 'timeline' | 'features' | 'github';
 
-export interface Attachment { url: string; path: string; name: string; }
+// url はクラウド（Storage）添付のみ。ローカルモードは path から blob URL を解決するため optional。
+export interface Attachment { url?: string; path: string; name: string; }
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
 const guessImageMime = (name: string): string => ({
@@ -201,11 +224,13 @@ const isContainerId = (id: string) =>
 interface RequirementCardProps {
   item: BacklogItem;
   parent?: BacklogItem;
+  /** 要件79: ツールの候補 id。プロジェクト種別で語彙が変わるので親から渡す。 */
+  categoryIds: string[];
   onPatch: (id: string, data: Record<string, unknown>) => void;
   onRemove: (item: BacklogItem) => void;
   onOpenDetail: (item: BacklogItem) => void;
 }
-const RequirementCard: React.FC<RequirementCardProps> = ({ item, parent, onPatch, onRemove, onOpenDetail }) => {
+const RequirementCard: React.FC<RequirementCardProps> = ({ item, parent, categoryIds, onPatch, onRemove, onOpenDetail }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition: sortableTransition(transition) };
   const st = statusOf(item);
@@ -230,9 +255,9 @@ const RequirementCard: React.FC<RequirementCardProps> = ({ item, parent, onPatch
           sx={{ ...SELECT_SX, minWidth: 96, flexShrink: 0 }}
         >
           <MenuItem value=""><em>未分類</em></MenuItem>
-          {CATEGORIES.map(c => (
-            <MenuItem key={c.id} value={c.id}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={c.id} /> {c.label}</Box>
+          {categoryIds.map(id => (
+            <MenuItem key={id} value={id}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={id} /> {toolLabel(id)}</Box>
             </MenuItem>
           ))}
         </Select>
@@ -348,8 +373,90 @@ const DroppableZone: React.FC<{ droppableId: string; children: React.ReactNode }
   );
 };
 
+// ── 添付サムネイル ────────────────────────────────────────────────
+// store.getAttachmentUrl で URL を解決してから描画（クラウド=URL直/ローカル=blob）。
+const AttachmentThumb: React.FC<{
+  att: Attachment; resolve: (att: Attachment) => Promise<string>;
+  onOpen: (url: string) => void;
+}> = ({ att, resolve, onOpen }) => {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    resolve(att).then(u => { if (alive) setUrl(u); }).catch(() => { if (alive) setUrl(null); });
+    return () => { alive = false; };
+  }, [att, resolve]);
+  if (!url) return <Box sx={{ height: 88, width: 88, borderRadius: 1, bgcolor: 'action.hover' }} />;
+  return (
+    <Box component="img" src={url} alt={att.name} onClick={() => onOpen(url)}
+      sx={{ height: 88, maxWidth: 180, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', cursor: 'zoom-in', display: 'block' }} />
+  );
+};
 
-export const DevStatusPanel = () => {
+
+// プロジェクトセレクタの「最近開いたローカルフォルダ」永続化（最大10件・新しい順）。
+// 登録済みローカルプロジェクト一覧（サイドバー表示用）。
+// 「開くたびに先頭へ並び替え」はサイドバーだと項目が跳ねて邪魔なので、追加時のみ先頭に入れて以後は安定順。
+const RECENT_PROJECTS_KEY = 'sekkeiyaCode.recentProjects';
+const loadProjects = (): string[] => { try { return JSON.parse(localStorage.getItem(RECENT_PROJECTS_KEY) || '[]'); } catch { return []; } };
+const saveProjects = (list: string[]): string[] => {
+  try { localStorage.setItem(RECENT_PROJECTS_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+  return list;
+};
+const addProjectToList = (path: string): string[] => {
+  const cur = loadProjects();
+  if (cur.includes(path)) return cur;
+  return saveProjects([path, ...cur].slice(0, 30));
+};
+const removeProjectFromList = (path: string): string[] => saveProjects(loadProjects().filter(p => p !== path));
+
+// 要件74: isAdmin はクラウド（SEKKEIYA 本体の開発バックログ）を出すかどうかだけに使う。
+// 一般ユーザーはローカルプロジェクトのみで、クラウドの存在自体が見えない。
+export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
+  const access = useMemo(() => resolveCodeAccess({ isAdmin, isDesktop: isTauri() }), [isAdmin]);
+  // プロジェクトセレクタ（ヘッダー）: メニューの開閉アンカーと最近開いたローカルフォルダ一覧。
+  const [projects, setProjects] = useState<string[]>(loadProjects);
+  // 対象プロジェクト。store は projectRef からのみ導出する（ローカルは同一パスなら同一インスタンス）。
+  // null＝未選択（一般ユーザーがまだ1つも作っていない）で、本文の代わりに作成導線を出す。
+  const [projectRef, setProjectRef] = useState<ProjectRef | null>(() => initialProjectRef(access, loadProjects()));
+  // Claude Code 連携セットアップ（/queue スキル書き込み）の完了トースト。3秒で自動的に消す。
+  const [setupDone, setSetupDone] = useState(false);
+  // 新規プロジェクト作成ダイアログ（%USERPROFILE%\SEKKEIYA\Dev\<名前>\ に作る）。
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectTemplate, setNewProjectTemplate] = useState<TemplateId>(DEFAULT_TEMPLATE_ID); // 要件76
+  const [newProjectBusy, setNewProjectBusy] = useState(false);
+  // 要件75: Claude Code の導入状況（null = 未確認）。
+  const [claudeStatus, setClaudeStatus] = useState<ClaudeCodeStatus | null>(null);
+  const [claudeOpen, setClaudeOpen] = useState(false);
+  // 要件78: プロジェクト設定（検証コマンド）ダイアログ。
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyDraft, setVerifyDraft] = useState<VerifyCommand[]>([]);
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  useEffect(() => {
+    if (!setupDone) return;
+    const t = setTimeout(() => setSetupDone(false), 3000);
+    return () => clearTimeout(t);
+  }, [setupDone]);
+
+  // 要件75: 起動時に一度だけ Claude Code の有無を調べる（Tauri 専用。Web では確認しない）。
+  useEffect(() => {
+    if (!isTauri()) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const s = await invoke<ClaudeCodeStatus>('check_claude_code');
+        if (alive) setClaudeStatus(s);
+      } catch (e) {
+        // コマンド未登録（Rust 未リビルド）などもここに来る。UI は「未導入」として案内を出す。
+        if (alive) setClaudeStatus({ installed: false, version: null, path: null, error: String((e as { message?: string })?.message || e) });
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+  const store = useMemo(() => createBacklogStore(projectRef), [projectRef]);
+  // AttachmentThumb へ安定した参照で渡す（インラインラムダだと毎レンダーで再解決してしまう）。
+  const resolveAttachment = useCallback((att: Attachment) => store.getAttachmentUrl(att), [store]);
   const [items, setItems] = useState<BacklogItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [loaded, setLoaded] = useState({ items: false, sprints: false });
@@ -380,8 +487,12 @@ export const DevStatusPanel = () => {
   detailDraftRef.current = detailDraft;
   const [previewImg, setPreviewImg] = useState<string | null>(null); // 添付の拡大表示
   const [attachTargetId, setAttachTargetId] = useState<string | null>(null); // 添付ダイアログの対象
-  const [view, setView] = useState<ViewMode>(
-    () => (localStorage.getItem(VIEW_STORAGE_KEY) as ViewMode) || 'board');
+  const [view, setView] = useState<ViewMode>(() => {
+    const stored = localStorage.getItem(VIEW_STORAGE_KEY) as ViewMode | null;
+    // GitHub ビューは Tauri 専用（git.rs 経由）。Web で復元されたら board に落とす。
+    if (stored === 'github' && !isTauri()) return 'board';
+    return stored || 'board';
+  });
   const [timeScale, setTimeScale] = useState<TimeScale>(
     () => (localStorage.getItem(TIMESCALE_STORAGE_KEY) as TimeScale) || 'month'); // 要件16: 横軸の粒度
   const [expandedTlGroups, setExpandedTlGroups] = useState<Set<string>>(new Set()); // 要件29: タイムラインで展開中の要求（既定=閉じる＝要件を隠す）
@@ -413,6 +524,21 @@ export const DevStatusPanel = () => {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
+    // プロジェクト切替リセット: 前プロジェクトのデータ・進捗・「他プロジェクトの id を握った状態」を
+    // 持ち越さない（新 store の初回通知が来るまで前の一覧が残るのを防ぐ意味もある）。
+    // 表示設定（view / timeScale / 列幅 / 折りたたみ）は localStorage 相当の UI 設定なので保持する。
+    setItems([]); setSprints([]);
+    setLoaded({ items: false, sprints: false });
+    setError(null);
+    setChecked(new Set());        // 実装/テスト依頼の選択（要件 id）
+    setFilters({});               // 許可リストに sprint id を含むため、残すと新プロジェクトが全件非表示になる
+    setDetailId(null); setDetailDraft('');
+    setPreviewImg(null);
+    setAttachTargetId(null);
+    setDateEditId(null);          // スプリント id
+    setNewReqParent('');          // 追加フォームの親要求 id（残すと存在しない要求に紐づけてしまう）
+    setConfirm(null);             // 前 store を捕まえた action クロージャを持つため必ず捨てる
+
     const u1 = store.subscribeItems(
       (list) => {
         setItems(list);
@@ -428,17 +554,111 @@ export const DevStatusPanel = () => {
       (e) => { setError((e as { message?: string })?.message || 'スプリントの読み込みに失敗しました'); setLoaded(s => ({ ...s, sprints: true })); },
     );
     return () => { u1(); u2(); };
-  }, []);
+  }, [store]);
 
   // メモ化した行コンポーネントに渡すハンドラは useCallback で参照安定化する（列幅ドラッグ等の
-  // 高頻度再描画で行が再レンダーしないため）。store/setError はモジュール/setState で安定。
+  // 高頻度再描画で行が再レンダーしないため）。setError は setState で安定、store は
+  // projectRef が変わったときだけ変わる（＝プロジェクト切替時のみ再生成）。
   const patchItem = useCallback((id: string, data: Record<string, unknown>) => {
     store.updateItem(id, data)
       .catch((e) => setError((e as { message?: string })?.message || '更新に失敗しました'));
-  }, []);
+  }, [store]);
   const patchSprint = (id: string, data: Record<string, unknown>) => {
     store.updateSprint(id, data)
       .catch((e) => setError((e as { message?: string })?.message || '更新に失敗しました'));
+  };
+
+  // Claude Code 連携セットアップ: 対象リポに /queue スキル（.claude/skills/queue/SKILL.md）を書き込む。
+  // 既存ファイルがあれば上書き確認を挟む（ユーザーが手を加えている可能性があるため）。
+  const setupClaudeSkill = async (root: string) => {
+    try {
+      const dir = `${root}/.claude/skills/queue`;
+      const file = `${dir}/SKILL.md`;
+      if (await fsExists(file)) {
+        const ok = await confirmDialog('既に /queue スキルがあります。上書きしますか？', { title: 'SEKKEIYA Code' });
+        if (!ok) return;
+      }
+      await mkdir(dir, { recursive: true });
+      await writeTextFile(file, QUEUE_SKILL_MD);
+      setError(null);
+      setSetupDone(true);
+    } catch (e) { setError(e instanceof Error ? e.message : 'スキルの書き込みに失敗しました'); }
+  };
+
+  // 要件78: プロジェクト設定（検証コマンド）の読み書き。
+  // 置き場所は backlog.json と同じ .claude/sekkeiya-code/。
+  const readProjectConfig = async (root: string): Promise<ProjectConfig> => {
+    const file = `${root}/${PROJECT_CONFIG_PATH}`;
+    if (!(await fsExists(file))) return emptyProjectConfig();
+    return parseProjectConfig(await readTextFile(file));
+  };
+  const writeProjectConfig = async (root: string, cfg: ProjectConfig) => {
+    const file = `${root}/${PROJECT_CONFIG_PATH}`;
+    await mkdir(file.slice(0, file.lastIndexOf('/')), { recursive: true });
+    await writeTextFile(file, serializeProjectConfig(cfg));
+  };
+
+  // 新規プロジェクト作成: %USERPROFILE%\SEKKEIYA\Dev\<名前>\ を作り、選んだテンプレート（要件76）を
+  // 展開してからそのまま開き、/queue スキルと検証コマンド（要件78）まで書き込む
+  // （backlog.json は store が初回購読時に自動生成する）。
+  const createDevProject = async () => {
+    const name = newProjectName.trim();
+    if (validateProjectName(name)) return; // ボタンは無効化済み。念のため。
+    setNewProjectBusy(true);
+    try {
+      const root = buildDevProjectPath(await homeDir(), name);
+      if (await fsExists(root)) {
+        setError(`同名のプロジェクトが既にあります: ${root}`);
+        return;
+      }
+      await mkdir(root, { recursive: true });
+
+      // テンプレートのファイルを展開する（サブフォルダは先に作る）。
+      const template = templateById(newProjectTemplate);
+      for (const f of template.files(name)) {
+        const target = `${root}/${f.path}`;
+        const slash = target.lastIndexOf('/');
+        if (slash > root.length) await mkdir(target.slice(0, slash), { recursive: true });
+        await writeTextFile(target, f.content);
+      }
+      // テンプレート既定の検証コマンドを project.json に入れる。
+      await writeProjectConfig(root, { version: 1, verify: template.verify });
+
+      setProjectRef({ kind: 'local', path: root });
+      setProjects(addProjectToList(root));
+      setNewProjectOpen(false);
+      setNewProjectName('');
+      await setupClaudeSkill(root);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'プロジェクトの作成に失敗しました');
+    } finally {
+      setNewProjectBusy(false);
+    }
+  };
+
+  // 要件78: 「検証コマンド」ダイアログを現在の project.json で開く。
+  const openVerifySettings = async () => {
+    if (projectRef?.kind !== 'local') return;
+    try {
+      const cfg = await readProjectConfig(projectRef.path);
+      setVerifyDraft(cfg.verify.length ? cfg.verify : [{ label: '', command: '' }]);
+      setVerifyOpen(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '検証コマンドの読み込みに失敗しました');
+    }
+  };
+  const saveVerifySettings = async () => {
+    if (projectRef?.kind !== 'local') return;
+    setVerifyBusy(true);
+    try {
+      await writeProjectConfig(projectRef.path, { version: 1, verify: normalizeVerify(verifyDraft) });
+      setVerifyOpen(false);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '検証コマンドの保存に失敗しました');
+    } finally {
+      setVerifyBusy(false);
+    }
   };
 
   const today = jstToday();
@@ -472,6 +692,12 @@ export const DevStatusPanel = () => {
   // 要件3/6: 自由入力で増えたツール/画面の既出値を候補に足す
   const usedTools = useMemo(() => [...new Set(items.map(i => i.category).filter((v): v is string => !!v && !CAT_MAP[v]))], [items]);
   const usedScreens = useMemo(() => [...new Set(requirements.map(r => r.screen).filter((v): v is string => !!v))], [requirements]);
+  // 要件79: 候補の基本セットはプロジェクト種別で変える。
+  // クラウド（SEKKEIYA 本体）は子アプリ scope、それ以外は汎用の分類・画面。
+  // 選択肢は「基本セット＋そのプロジェクトの実データにある値」を丸ごと下位コンポーネントへ渡す。
+  const vocab = useMemo(() => vocabularyFor(projectRef?.kind ?? null), [projectRef]);
+  const toolOptions = useMemo(() => [...new Set([...vocab.categoryIds, ...usedTools])], [vocab, usedTools]);
+  const screenOptions = useMemo(() => [...new Set([...vocab.screens, ...usedScreens])], [vocab, usedScreens]);
 
   // 実装/テスト依頼の選択操作
   const toggleItemCheck = useCallback((id: string) =>
@@ -498,8 +724,8 @@ export const DevStatusPanel = () => {
   const implAll = useMemo(() => [...new Set([...implTargets, ...fixParentIds])], [implTargets, fixParentIds]);
   // 1ボタンで統合: 選択のうち実装対象は implement、テスト対象は test をまとめて依頼する。
   const enqueueSelected = () => {
-    implAll.forEach(id => patchItem(id, { queue: 'implement', queuedAt: serverTimestamp() }));
-    testTargets.forEach(id => patchItem(id, { queue: 'test', queuedAt: serverTimestamp() }));
+    implAll.forEach(id => patchItem(id, { queue: 'implement', queuedAt: store.now() }));
+    testTargets.forEach(id => patchItem(id, { queue: 'test', queuedAt: store.now() }));
     setChecked(new Set()); // 依頼後は選択をクリア
   };
   // ボタン表示: 実装だけ/テストだけ/両方 で文言を切り替える
@@ -657,7 +883,7 @@ export const DevStatusPanel = () => {
         projectKey: DEFAULT_PROJECT_KEY,
       });
     } catch (e) { setError(e instanceof Error ? e.message : '追加に失敗しました'); }
-  }, [nextSeq]);
+  }, [nextSeq, store]);
   const createRequirement = useCallback(async (rawTitle: string, extra: Partial<BacklogItem>) => {
     const title = rawTitle.trim();
     if (!title) return;
@@ -674,7 +900,7 @@ export const DevStatusPanel = () => {
         projectKey: DEFAULT_PROJECT_KEY,
       });
     } catch (e) { setError(e instanceof Error ? e.message : '追加に失敗しました'); }
-  }, [nextSeq]);
+  }, [nextSeq, store]);
 
   // ボード用フォーム
   const addRequest = async () => { const t = newReqTitleReq.trim(); if (!t) return; setNewReqTitleReq(''); await createRequest(t); };
@@ -695,12 +921,13 @@ export const DevStatusPanel = () => {
   const updateFixTextOf = useCallback((item: BacklogItem, id: string, text: string) => applyFixes(item, updateFixText(item.fixes ?? [], id, text)), [applyFixes]);
   const removeFixOf = useCallback((item: BacklogItem, id: string) => applyFixes(item, removeFix(item.fixes ?? [], id)), [applyFixes]);
 
-  // 添付画像（要件27・Firebase Storage）。arrayUnion/arrayRemove で競合なく追加/削除。
-  const uploadAttachment = async (itemId: string, file: File | Blob, name: string) => {
+  // 添付画像（要件27）。クラウドは Storage + arrayUnion/arrayRemove、ローカルはファイル書き出し。
+  // Tauri の onDragDrop effect が参照するため useCallback で安定化する（store 切替時のみ作り直す）。
+  const uploadAttachment = useCallback(async (itemId: string, file: File | Blob, name: string) => {
     try {
       await store.uploadAttachment(itemId, file, name);
     } catch (e) { setError(e instanceof Error ? e.message : '添付のアップロードに失敗しました'); }
-  };
+  }, [store]);
   const removeAttachment = (itemId: string, att: Attachment) => {
     store.removeAttachment(itemId, att)
       .catch(e => setError(e instanceof Error ? e.message : '添付の削除に失敗しました'));
@@ -746,7 +973,7 @@ export const DevStatusPanel = () => {
       } catch (e) { console.warn('[DevStatus] onDragDrop wiring failed:', e); }
     })();
     return () => { setAttachDragOver(false); if (unlisten) unlisten(); };
-  }, [attachTargetId]);
+  }, [attachTargetId, uploadAttachment]);
 
   const addChildText = useCallback((req: BacklogItem, text: string) =>
     void createRequirement(text, { requestId: req.id, platform: req.platform ?? null, category: req.category ?? null }), [createRequirement]);
@@ -764,7 +991,7 @@ export const DevStatusPanel = () => {
         store.removeItem(item.id).catch((e) => setError((e as { message?: string })?.message || '削除に失敗しました'));
       },
     });
-  }, [requirements, patchItem]);
+  }, [requirements, patchItem, store]);
 
   /** スプリント作成ダイアログを開く（期間は自動入力・編集可） */
   const openCreateSprint = () => {
@@ -798,7 +1025,7 @@ export const DevStatusPanel = () => {
       actionLabel: '完了する', color: 'success',
       action: () => {
         unfinished.forEach(r => patchItem(r.id, { sprintId: null }));
-        patchSprint(s.id, { archived: true, archivedAt: serverTimestamp() });
+        patchSprint(s.id, { archived: true, archivedAt: store.now() });
       },
     });
   };
@@ -905,6 +1132,7 @@ export const DevStatusPanel = () => {
     <RequirementCard
       key={item.id} item={item}
       parent={item.requestId ? byId.get(item.requestId) : undefined}
+      categoryIds={toolOptions}
       onPatch={patchItem} onRemove={remove} onOpenDetail={openDetail}
     />
   );
@@ -1004,8 +1232,8 @@ export const DevStatusPanel = () => {
                   kids={kids}
                   expanded={isExpanded(req.id)}
                   sprints={sprints}
-                  usedTools={usedTools}
-                  usedScreens={usedScreens}
+                  toolOptions={toolOptions}
+                  screenOptions={screenOptions}
                   csChecked={csChecked}
                   csIndeterminate={csIndeterminate}
                   checkedIdsCsv={checkedIdsCsv}
@@ -1042,8 +1270,8 @@ export const DevStatusPanel = () => {
                     sprints={sprints}
                     parentPlatform={null}
                     parentCategory={null}
-                    usedTools={usedTools}
-                    usedScreens={usedScreens}
+                    toolOptions={toolOptions}
+                    screenOptions={screenOptions}
                     checked={checked.has(k.id)}
                     fixCheckedBits={(k.fixes ?? []).map(f => checked.has(f.id) ? '1' : '0').join('')}
                     fixCollapsed={fixCollapsed.has(k.id)}
@@ -1107,7 +1335,7 @@ export const DevStatusPanel = () => {
           const catIds = [...new Set(g.list.map(r => effCategory(r) || 'none'))];
           // 既知ツール順 → 自由入力ツール → 未分類
           const catOrder = [
-            ...CATEGORIES.map(c => c.id).filter(id => catIds.includes(id)),
+            ...vocab.categoryIds.filter(id => catIds.includes(id)),
             ...catIds.filter(id => id !== 'none' && !CAT_MAP[id]),
             ...(catIds.includes('none') ? ['none'] : []),
           ];
@@ -1190,8 +1418,8 @@ export const DevStatusPanel = () => {
               <Box>{fieldLabel('状態')}<StatusSelect value={statusOf(it)} onChange={(v) => patchItem(it.id, { status: v, done: v === 'done' })} /></Box>
               <Box>{fieldLabel('種別')}<KindSelect value={it.kind} onChange={(v) => patchItem(it.id, { kind: v })} /></Box>
               <Box>{fieldLabel('プラットフォーム')}<PlatformSelect value={it.platform} inherited={parentOf(it)?.platform ?? null} onChange={(v) => patchItem(it.id, { platform: v })} /></Box>
-              <Box sx={{ width: 160 }}>{fieldLabel('ツール')}<CategorySelect value={it.category} inherited={parentOf(it)?.category ?? null} options={usedTools} onChange={(v) => patchItem(it.id, { category: v })} /></Box>
-              <Box sx={{ width: 160 }}>{fieldLabel('画面・場所')}<ScreenSelect value={it.screen} options={usedScreens} onChange={(v) => patchItem(it.id, { screen: v })} /></Box>
+              <Box sx={{ width: 160 }}>{fieldLabel('ツール')}<CategorySelect value={it.category} inherited={parentOf(it)?.category ?? null} options={toolOptions} onChange={(v) => patchItem(it.id, { category: v })} /></Box>
+              <Box sx={{ width: 160 }}>{fieldLabel('画面・場所')}<ScreenSelect value={it.screen} options={screenOptions} onChange={(v) => patchItem(it.id, { screen: v })} /></Box>
               <Box sx={{ width: 240 }}>{fieldLabel('理由')}<InlineText value={it.reason} placeholder="理由…" onCommit={(v) => patchItem(it.id, { reason: v })} /></Box>
               <Box>
                 {fieldLabel('親要求')}
@@ -1227,7 +1455,7 @@ export const DevStatusPanel = () => {
             <>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2 }}>
                 <Box>{fieldLabel('既定プラットフォーム')}<PlatformSelect value={it.platform} onChange={(v) => patchItem(it.id, { platform: v })} /></Box>
-                <Box sx={{ width: 160 }}>{fieldLabel('既定のツール')}<CategorySelect value={it.category} options={usedTools} onChange={(v) => patchItem(it.id, { category: v })} /></Box>
+                <Box sx={{ width: 160 }}>{fieldLabel('既定のツール')}<CategorySelect value={it.category} options={toolOptions} onChange={(v) => patchItem(it.id, { category: v })} /></Box>
               </Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
                 既定値は、この要求に新しく追加する要件へ引き継がれます。
@@ -1797,9 +2025,9 @@ export const DevStatusPanel = () => {
               sx={{ height: 40, minWidth: 120, fontSize: 13 }}
             >
               <MenuItem value=""><em>カテゴリなし</em></MenuItem>
-              {CATEGORIES.map(c => (
-                <MenuItem key={c.id} value={c.id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={c.id} /> {c.label}</Box>
+              {toolOptions.map(id => (
+                <MenuItem key={id} value={id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={id} /> {toolLabel(id)}</Box>
                 </MenuItem>
               ))}
             </Select>
@@ -1854,11 +2082,73 @@ export const DevStatusPanel = () => {
   const loading = !loaded.items || !loaded.sprints;
   const attachItem = attachTargetId ? byId.get(attachTargetId) : undefined;
 
+  // 「フォルダを開く…」: 任意の場所のリポをプロジェクトとして登録する。
+  // recursive: true が無いと <root> と <root>/* しか許可されず、
+  // <root>/.claude/sekkeiya-code/backlog.json（3階層下）が forbidden path になる。
+  const openFolderPicker = async () => {
+    const picked = await openDialog({ directory: true, multiple: false, recursive: true });
+    if (typeof picked === 'string') { setProjectRef({ kind: 'local', path: picked }); setProjects(addProjectToList(picked)); }
+  };
+  // サイドバーの「削除」= 一覧から外すだけ（フォルダはディスクに残る）。
+  // 選択中を外したら、使える範囲での既定（管理者=クラウド / 一般=残りの先頭 or 未選択）へ戻す。
+  const removeProject = (path: string) => {
+    const next = removeProjectFromList(path);
+    setProjects(next);
+    if (projectRef?.kind === 'local' && projectRef.path === path) setProjectRef(initialProjectRef(access, next));
+  };
+
   return (
+    <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {isTauri() && (
+        <ProjectSidebar
+          projectRef={projectRef}
+          projects={projects}
+          showCloud={access.cloud}
+          onSelectCloud={() => setProjectRef({ kind: 'cloud' })}
+          onSelectLocal={(p) => setProjectRef({ kind: 'local', path: p })}
+          onRemove={removeProject}
+          onCreateNew={() => { setNewProjectName(''); setNewProjectTemplate(DEFAULT_TEMPLATE_ID); setNewProjectOpen(true); }}
+          onOpenFolder={() => void openFolderPicker()}
+        />
+      )}
     <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 2.5, flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', flexShrink: 0 }}>
         <FactCheckRoundedIcon sx={{ color: 'light-dark(#0875a6, #4fc3f7)' }} />
         <Typography variant="h5" sx={{ fontWeight: 700 }}>SEKKEIYA Code</Typography>
+        {isTauri() && projectRef?.kind === 'local' && (
+          <Chip size="small" variant="outlined" icon={<FolderRoundedIcon sx={{ fontSize: 14 }} />}
+            label={projectLabel(projectRef)} sx={{ height: 22, fontSize: 12 }} />
+        )}
+        {/* 要件75: Claude Code の導入状況。未導入ならクリックでインストール手順を出す。 */}
+        {isTauri() && (
+          <Tooltip title={claudeStatus?.path || 'Claude Code の導入状況'} arrow>
+            <Chip
+              size="small" clickable onClick={() => setClaudeOpen(true)}
+              color={claudeStatus?.installed ? 'success' : (claudeStatus ? 'warning' : 'default')}
+              variant={claudeStatus?.installed ? 'outlined' : 'filled'}
+              label={statusLabel(claudeStatus)}
+              sx={{ height: 22, fontSize: 12 }}
+            />
+          </Tooltip>
+        )}
+        {isTauri() && projectRef?.kind === 'local' && (
+          <Tooltip title="このプロジェクトに /queue スキル（.claude/skills/queue/SKILL.md）を書き込みます" arrow>
+            <Button size="small" variant="text" onClick={() => void setupClaudeSkill(projectRef.path)} sx={{ textTransform: 'none' }}>
+              Claude Code 連携をセットアップ
+            </Button>
+          </Tooltip>
+        )}
+        {/* 要件78: /queue の実装後に流す検証コマンドの登録。 */}
+        {isTauri() && projectRef?.kind === 'local' && (
+          <Tooltip title="実装後に実行するテスト/リンタ/ビルドのコマンドを登録します" arrow>
+            <Button size="small" variant="text" onClick={() => void openVerifySettings()} sx={{ textTransform: 'none' }}>
+              検証コマンド
+            </Button>
+          </Tooltip>
+        )}
+        {setupDone && (
+          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>セットアップ完了</Typography>
+        )}
         <ToggleButtonGroup
           size="small" exclusive value={view}
           onChange={(_, v) => changeView(v)}
@@ -1868,6 +2158,7 @@ export const DevStatusPanel = () => {
           <ToggleButton value="table"><ViewListRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />要求・要件</ToggleButton>
           <ToggleButton value="timeline"><ViewTimelineRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />タイムライン</ToggleButton>
           <ToggleButton value="features"><AppsRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />機能一覧</ToggleButton>
+          {isTauri() && <ToggleButton value="github"><CloudUploadRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />GitHub</ToggleButton>}
         </ToggleButtonGroup>
         <Box sx={{ flex: 1 }} />
         {view === 'table' && (
@@ -1895,7 +2186,25 @@ export const DevStatusPanel = () => {
       )}
 
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: view === 'table' ? 'hidden' : 'auto' }}>
-        {loading ? (
+        {projectRef === null ? (
+          // 要件74: 一般ユーザーがまだ 1 つもプロジェクトを持っていない状態。
+          <Box sx={{ m: 'auto', textAlign: 'center', maxWidth: 460, px: 2 }}>
+            <FolderRoundedIcon sx={{ fontSize: 44, color: 'text.disabled' }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, mt: 1 }}>プロジェクトがありません</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+              左の「新規プロジェクトを作成」から始めるか、既存のフォルダを開いてください。
+              要求・要件を書いて「実装/テスト実行」を押すと、お使いの PC の Claude Code が
+              <code> /queue </code>で実装します。
+            </Typography>
+            <Button variant="contained" disableElevation startIcon={<AddRoundedIcon />} sx={{ mt: 2.5, textTransform: 'none' }}
+              onClick={() => { setNewProjectName(''); setNewProjectTemplate(DEFAULT_TEMPLATE_ID); setNewProjectOpen(true); }}>
+              新規プロジェクトを作成
+            </Button>
+          </Box>
+        ) : view === 'github' ? (
+          // GitHub 更新はバックログのロードを待たない（git.rs 経由で独立に動く）
+          <GitHubSyncPanel embedded activeProjectPath={projectRef.kind === 'local' ? projectRef.path : undefined} />
+        ) : loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
         ) : view === 'timeline' ? (
           renderTimeline()
@@ -1911,6 +2220,148 @@ export const DevStatusPanel = () => {
       {/* 要求/要件の詳細ダイアログ */}
       {renderDetailDialog()}
 
+      {/* 新規プロジェクト作成（%USERPROFILE%\SEKKEIYA\Dev\<名前>\） */}
+      <Dialog open={newProjectOpen} onClose={() => !newProjectBusy && setNewProjectOpen(false)} maxWidth="sm" fullWidth slotProps={{ paper: { sx: DIALOG_PAPER_SX } }}>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>新規プロジェクトを作成</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth autoFocus size="small" label="プロジェクト名" value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !validateProjectName(newProjectName) && !newProjectBusy) void createDevProject(); }}
+            error={!!newProjectName && !!validateProjectName(newProjectName)}
+            helperText={(newProjectName && validateProjectName(newProjectName)) || ' '}
+            sx={{ mt: 1 }}
+          />
+          {/* 要件76: プロジェクト種別のテンプレート */}
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5, fontWeight: 600 }}>
+            テンプレート
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            {PROJECT_TEMPLATES.map(t => {
+              const selected = newProjectTemplate === t.id;
+              return (
+                <Paper
+                  key={t.id} elevation={0}
+                  onClick={() => !newProjectBusy && setNewProjectTemplate(t.id)}
+                  sx={{
+                    ...SECTION_SX, p: 1.25, cursor: 'pointer',
+                    borderColor: selected ? 'light-dark(#0875a6, #4fc3f7)' : 'divider',
+                    bgcolor: selected ? 'light-dark(rgba(8,117,166,0.08), rgba(79,195,247,0.10))' : 'transparent',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{t.label}</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>{t.description}</Typography>
+                  {t.verify.length > 0 && (
+                    <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.25, fontFamily: 'monospace' }}>
+                      検証: {t.verify.map(v => v.command).join(' / ')}
+                    </Typography>
+                  )}
+                </Paper>
+              );
+            })}
+          </Box>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
+            SEKKEIYA\Dev\{newProjectName.trim() || '<名前>'}\ に作成し、要求・要件の保存先（.claude/sekkeiya-code）と
+            Claude Code 用の /queue スキルを用意します。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNewProjectOpen(false)} disabled={newProjectBusy} sx={{ textTransform: 'none' }}>キャンセル</Button>
+          <Button variant="contained" disableElevation onClick={() => void createDevProject()}
+            disabled={newProjectBusy || !!validateProjectName(newProjectName)} sx={{ textTransform: 'none' }}>
+            {newProjectBusy ? '作成中…' : '作成'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 要件75: Claude Code の導入状況とインストール手順 */}
+      <Dialog open={claudeOpen} onClose={() => setClaudeOpen(false)} maxWidth="sm" fullWidth slotProps={{ paper: { sx: DIALOG_PAPER_SX } }}>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>Claude Code の導入状況</DialogTitle>
+        <DialogContent>
+          {claudeStatus?.installed ? (
+            <>
+              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                導入済みです{claudeStatus.version ? `（v${claudeStatus.version}）` : ''}。
+              </Typography>
+              {claudeStatus.path && (
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5, wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                  {claudeStatus.path}
+                </Typography>
+              )}
+              <Typography variant="body2" sx={{ mt: 2 }}>
+                プロジェクトのフォルダで <code>claude</code> を起動し、<code>/queue</code> を実行すると、
+                積んだ実装/テスト依頼を処理します。
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ color: 'warning.main' }}>
+                {installGuidance(claudeStatus ?? { installed: false, version: null, path: null, error: null })}
+              </Typography>
+              <Box component="pre" sx={{ mt: 1.5, mb: 0, p: 1.5, borderRadius: 2, bgcolor: 'action.hover', fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                {CLAUDE_CODE_INSTALL_COMMAND}
+              </Box>
+              <Button size="small" sx={{ mt: 1, textTransform: 'none' }}
+                onClick={() => { void navigator.clipboard?.writeText(CLAUDE_CODE_INSTALL_COMMAND); }}>
+                コマンドをコピー
+              </Button>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
+                Node.js が必要です。インストール後、このウィンドウを開き直すと再検出します。
+                詳しい手順: {CLAUDE_CODE_DOCS_URL}
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClaudeOpen(false)} sx={{ textTransform: 'none' }}>閉じる</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 要件78: 検証コマンドの登録（.claude/sekkeiya-code/project.json） */}
+      <Dialog open={verifyOpen} onClose={() => !verifyBusy && setVerifyOpen(false)} maxWidth="sm" fullWidth slotProps={{ paper: { sx: DIALOG_PAPER_SX } }}>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>検証コマンド</DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+            /queue が実装したあと、ここに登録した順にプロジェクトのルートで実行します。
+            すべて成功したら「完了」、失敗したら「要修正」になります。
+          </Typography>
+          {verifyDraft.map((v, i) => (
+            <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1 }}>
+              <TextField
+                size="small" label="ラベル" value={v.label} sx={{ width: 140 }}
+                onChange={(e) => setVerifyDraft(d => d.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
+              />
+              <TextField
+                size="small" label="コマンド" value={v.command} fullWidth
+                placeholder="npm test"
+                error={!!v.command && !!validateVerifyCommand(v.command)}
+                helperText={(v.command && validateVerifyCommand(v.command)) || ' '}
+                onChange={(e) => setVerifyDraft(d => d.map((x, j) => j === i ? { ...x, command: e.target.value } : x))}
+              />
+              <Tooltip title="この行を削除">
+                <IconButton size="small" sx={{ mt: 0.5 }} onClick={() => setVerifyDraft(d => d.filter((_, j) => j !== i))}>
+                  <DeleteOutlineRoundedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ))}
+          <Button size="small" startIcon={<AddRoundedIcon />} sx={{ textTransform: 'none' }}
+            onClick={() => setVerifyDraft(d => [...d, { label: '', command: '' }])}>
+            コマンドを追加
+          </Button>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVerifyOpen(false)} disabled={verifyBusy} sx={{ textTransform: 'none' }}>キャンセル</Button>
+          <Button
+            variant="contained" disableElevation onClick={() => void saveVerifySettings()}
+            disabled={verifyBusy || verifyDraft.some(v => !!v.command && !!validateVerifyCommand(v.command))}
+            sx={{ textTransform: 'none' }}
+          >
+            {verifyBusy ? '保存中…' : '保存'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* 添付ダイアログ（要件27: D&D／クリックで選択／Ctrl+V 貼り付け） */}
       <Dialog open={!!attachItem} onClose={() => setAttachTargetId(null)} maxWidth="sm" fullWidth slotProps={{ paper: { sx: DIALOG_PAPER_SX } }}>
         {attachItem && (
@@ -1924,7 +2375,7 @@ export const DevStatusPanel = () => {
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                   {attachItem.attachments!.map(att => (
                     <Box key={att.path} sx={{ position: 'relative', '&:hover .att-del': { opacity: 1 } }}>
-                      <Box component="img" src={att.url} alt={att.name} onClick={() => setPreviewImg(att.url)} sx={{ height: 88, maxWidth: 180, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', cursor: 'zoom-in', display: 'block' }} />
+                      <AttachmentThumb att={att} resolve={resolveAttachment} onOpen={setPreviewImg} />
                       <IconButton className="att-del" size="small" onClick={() => void removeAttachment(attachItem.id, att)} sx={{ position: 'absolute', top: -10, right: -10, opacity: 0, bgcolor: 'var(--brand-glass)', border: '1px solid', borderColor: 'divider', '&:hover': { bgcolor: 'var(--brand-glass)' } }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton>
                     </Box>
                   ))}
@@ -2016,6 +2467,7 @@ export const DevStatusPanel = () => {
           </Button>
         </DialogActions>
       </Dialog>
+    </Box>
     </Box>
   );
 };

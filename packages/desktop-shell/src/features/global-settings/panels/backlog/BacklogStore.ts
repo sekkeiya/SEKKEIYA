@@ -26,4 +26,8 @@ export interface BacklogStore {
   uploadAttachment(itemId: string, file: File | Blob, name: string): Promise<void>;
   /** Storage の実体を削除し attachments から arrayRemove で除去。 */
   removeAttachment(itemId: string, att: Attachment): Promise<void>;
+  /** データ値として埋めるタイムスタンプ・センチネル（Firestore: serverTimestamp() / ローカル: ISO 文字列）。 */
+  now(): unknown;
+  /** 添付の表示用 URL を解決（Firestore: att.url / ローカル: readFile→blob URL）。 */
+  getAttachmentUrl(att: Attachment): Promise<string>;
 }

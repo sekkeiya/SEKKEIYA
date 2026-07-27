@@ -10,12 +10,13 @@ import { GeneralSettingsPanel }    from './panels/GeneralSettingsPanel';
 import { VoiceSettingsPanel }      from './panels/VoiceSettingsPanel';
 import { AiSettingsPanel }         from './panels/AiSettingsPanel';
 import { AdminSettingsPanel }      from './panels/AdminSettingsPanel';
-import { GitHubSyncPanel }         from './panels/GitHubSyncPanel';
 import { DevStatusPanel }          from './panels/DevStatusPanel';
 import { LearningSettingsPanel }   from './panels/LearningSettingsPanel';
 import { ModelStudioPanel }        from './panels/ModelStudioPanel';
 import { useAuthStore }            from '../../store/useAuthStore';
 import { isBlogAdmin }             from '../dsb/lib/blogAdmin';
+import { resolveCodeAccess }       from './panels/backlog/codeAccess';
+import { isTauri }                 from '../../lib/platform';
 
 export const GlobalSettingsShell = () => {
   const [activeApp, setActiveApp] = useState<SettingsAppId>('general');
@@ -25,6 +26,8 @@ export const GlobalSettingsShell = () => {
   const [navCollapsed, setNavCollapsed] = useState(false);
   const currentUser = useAuthStore((s: any) => s.currentUser);
   const isAdmin = isBlogAdmin(currentUser);
+  // 要件74: SEKKEIYA Code は一般ユーザーにも開く（ローカルモードのみ・クラウドは非表示）。
+  const codeAccess = resolveCodeAccess({ isAdmin, isDesktop: isTauri() });
 
   const selectApp = (id: SettingsAppId) => {
     setActiveApp(id);
@@ -36,6 +39,7 @@ export const GlobalSettingsShell = () => {
   return (
     <Box sx={theme => ({ display: 'flex', width: '100%', height: '100%', bgcolor: theme.palette.mode === 'dark' ? 'var(--brand-surface)' : '#f4f5f7', color: 'text.primary', overflow: 'hidden' })}>
       <SettingsSidebar activeApp={activeApp} activeSub={activeSub} onSelectApp={selectApp} onSelectSub={setActiveSub} isAdmin={isAdmin}
+        codeEnabled={codeAccess.enabled}
         collapsed={navCollapsed} onToggleCollapsed={() => setNavCollapsed(v => !v)} />
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {activeApp === 'general'    && <GeneralSettingsPanel />}
@@ -48,11 +52,12 @@ export const GlobalSettingsShell = () => {
         {activeApp === 'ai'         && <AiSettingsPanel section={activeSub as 'models' | 'image'} />}
         {/* 二重ガード: admin 判定を満たす場合のみ描画（サイドバー非表示だけに依存しない） */}
         {activeApp === 'admin'      && isAdmin && <AdminSettingsPanel />}
-        {activeApp === 'admin-git'  && isAdmin && <GitHubSyncPanel />}
-        {activeApp === 'admin-dev'  && isAdmin && <DevStatusPanel />}
+        {activeApp === 'admin-dev'  && codeAccess.enabled && <DevStatusPanel isAdmin={isAdmin} />}
         {activeApp === 'learning'   && isAdmin && <LearningSettingsPanel section={activeSub} onSectionChange={setActiveSub} />}
         {activeApp === 'model-studio' && isAdmin && <ModelStudioPanel section={activeSub} />}
-        {!KNOWN.includes(activeApp) && !((activeApp === 'admin' || activeApp === 'admin-git' || activeApp === 'admin-dev' || activeApp === 'learning' || activeApp === 'model-studio') && isAdmin) && (
+        {!KNOWN.includes(activeApp)
+          && !((activeApp === 'admin' || activeApp === 'learning' || activeApp === 'model-studio') && isAdmin)
+          && !(activeApp === 'admin-dev' && codeAccess.enabled) && (
           <Box sx={{ p: 4, opacity: 0.5 }}>
             このアプリの設定パラメータは現在利用できません。
           </Box>

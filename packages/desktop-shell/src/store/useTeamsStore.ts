@@ -12,9 +12,16 @@ import {
 interface TeamsState {
   teams: Team[];
   activeTeamId: string | null;
+  /**
+   * チーム画面で開いているプロジェクト詳細（TeamProjectDetailPage）の対象。
+   * activeProjectId とは別物 — あちらは setActiveProjectId が currentMainView を
+   * 'workspace' に飛ばしてしまうため、チーム画面内に留まる選択状態として独立させている。
+   */
+  activeTeamProjectId: string | null;
   isLoading: boolean;
 
   setActiveTeamId: (id: string | null) => void;
+  setActiveTeamProjectId: (id: string | null) => void;
   loadTeams: (userId: string) => Promise<void>;
   addTeam: (params: {
     ownerId: string;
@@ -34,9 +41,13 @@ interface TeamsState {
 export const useTeamsStore = create<TeamsState>((set) => ({
   teams: [],
   activeTeamId: null,
+  activeTeamProjectId: null,
   isLoading: false,
 
-  setActiveTeamId: (id) => set({ activeTeamId: id }),
+  // チームを切り替える／一覧に戻るときは、開いていたプロジェクト詳細も閉じる。
+  setActiveTeamId: (id) => set({ activeTeamId: id, activeTeamProjectId: null }),
+
+  setActiveTeamProjectId: (id) => set({ activeTeamProjectId: id }),
 
   loadTeams: async (userId) => {
     set({ isLoading: true });
@@ -68,6 +79,7 @@ export const useTeamsStore = create<TeamsState>((set) => ({
     set(s => ({
       teams: s.teams.filter(t => t.id !== teamId),
       activeTeamId: s.activeTeamId === teamId ? null : s.activeTeamId,
+      activeTeamProjectId: s.activeTeamId === teamId ? null : s.activeTeamProjectId,
     }));
   },
 
@@ -87,6 +99,7 @@ export const useTeamsStore = create<TeamsState>((set) => ({
     set(s => ({
       teams: s.teams.filter(t => t.id !== teamId),
       activeTeamId: s.activeTeamId === teamId ? null : s.activeTeamId,
+      activeTeamProjectId: s.activeTeamId === teamId ? null : s.activeTeamProjectId,
     }));
   },
 }));

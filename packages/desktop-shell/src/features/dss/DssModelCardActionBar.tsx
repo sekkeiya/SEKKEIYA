@@ -8,10 +8,11 @@ import ShareRoundedIcon from "@mui/icons-material/ShareRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import { useAuthStore } from "../../store/useAuthStore";
+import { useModelLike } from "./hooks/useModelLike";
 
 interface DssModelCardActionBarProps {
   model: any;
-  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels";
+  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels" | "localModels";
   isBusy?: boolean;
   onSave?: (model: any) => void;
   onShare?: (model: any) => void;
@@ -71,18 +72,24 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
     ? currentUser.photoURL
     : (resolvedAvatarUrl || initialAvatarUrl);
 
-  const [liked, setLiked] = useState<boolean>(
-    Boolean(model.isFavorite || model.likedByCurrentUser)
-  );
-  const [favoriteCount, setFavoriteCount] = useState<number>(
-    typeof model.favoriteCount === "number" ? model.favoriteCount : 0
-  );
+  // いいねの読み取りは1カードにつき getCountFromServer + getDoc の2回のFirestore読み取りが発生する。
+  // 一覧にはカードが多数並び、react-window の仮想化で画面外のカードはマウントされないが、
+  // 画面内のカードは常時マウントされていてCSSでホバー時のみ可視化しているだけ
+  // （DssModelCard.tsx の `.DssModelCard-details`）。マウント時に即読みに行くと
+  // 画面内のカード数だけ読み取りが走ってしまうため、実際にホバーされてから読みに行く。
+  const [warmed, setWarmed] = useState(false);
+  const { liked, favoriteCount, loading: likeLoading, toggling: likeBusy, toggleLike } = useModelLike({
+    model,
+    uid: currentUser?.uid ?? null,
+    enabled: warmed,
+  });
 
   const isModels = cardContext === "models";
   const isBoards = cardContext === "boards";
   const isPublicModels = cardContext === "publicModels";
   const isPrivateModels = cardContext === "privateModels";
   const isBoardModels = cardContext === "boardModels";
+  const isLocalModels = cardContext === "localModels";
 
   const showLike =
     isModels ||
@@ -104,17 +111,15 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
     isPrivateModels ||
     isBoardModels;
 
-  const showDelete = isPublicModels || isPrivateModels || isBoardModels;
+  const showDelete = isPublicModels || isPrivateModels || isBoardModels || isLocalModels;
 
   const showDuplicate = isBoards;
 
   const handleToggleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (isBusy) return;
-
-    setLiked((prev) => !prev);
-    setFavoriteCount((prev) => (liked ? Math.max(prev - 1, 0) : prev + 1));
+    if (isBusy || likeBusy || likeLoading || !currentUser?.uid) return;
+    void toggleLike();
   };
 
   const handleSave = (e: React.MouseEvent) => {
@@ -148,6 +153,7 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
 
   return (
     <Box
+      onMouseEnter={() => setWarmed(true)}
       sx={{
         position: "absolute",
         left: 0,
@@ -233,12 +239,12 @@ export const DssModelCardActionBar: React.FC<DssModelCardActionBarProps> = ({
         }}
       >
         {showLike && (
-          <Tooltip title="いいね">
+          <Tooltip title={currentUser ? "いいね" : "ログインすると押せます"}>
             <span>
               <IconButton
                 size="small"
                 onClick={handleToggleLike}
-                disabled={isBusy}
+                disabled={isBusy || likeBusy || likeLoading || !currentUser}
                 sx={{
                   p: 0.5,
                   "& .fav-count": {

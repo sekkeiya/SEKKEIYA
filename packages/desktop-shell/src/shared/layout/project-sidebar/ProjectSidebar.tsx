@@ -223,7 +223,10 @@ export const ProjectSidebar: React.FC = () => {
     isProjectSidebarOpen, currentMainView, setCurrentMainView,
   } = useAppStore();
 
-  const { teams, activeTeamId, isLoading: teamsLoading, loadTeams, setActiveTeamId } = useTeamsStore();
+  const {
+    teams, activeTeamId, activeTeamProjectId, isLoading: teamsLoading,
+    loadTeams, setActiveTeamId, setActiveTeamProjectId,
+  } = useTeamsStore();
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -271,10 +274,34 @@ export const ProjectSidebar: React.FC = () => {
     return q ? teams.filter(t => t.name.toLowerCase().includes(q)) : teams;
   }, [teams, searchQuery]);
 
+  // チーム管理画面ではサイドバーもチーム文脈に切り替える。
+  // MY PROJECTS は隠し、「ダッシュボード」はチーム一覧（TeamsManagementPage）へ戻す。
+  const isTeamView = currentMainView === 'teams';
+  const dashboardActive = isTeamView ? activeTeamId === null : currentMainView === 'my-site';
+
   // ── ハンドラ ──────────────────────────────
+  const handleDashboardClick = () => {
+    // チーム画面では activeTeamId を外すだけで TeamsManagementPage（チームカード一覧）に戻る。
+    if (isTeamView) { setActiveTeamId(null); return; }
+    setActiveProjectId(null, 'home');
+    setCurrentMainView('my-site');
+  };
+
   const handleTeamClick = (team: Team) => {
     setActiveTeamId(team.id);
     setCurrentMainView('teams');
+  };
+
+  // チーム画面にいる間はプロジェクト詳細（TeamProjectDetailPage）へ。
+  // それ以外の画面からはこれまでどおりワークスペースを直接開く。
+  const handleTeamProjectClick = (proj: { id: string; teamId?: string }) => {
+    if (isTeamView) {
+      if (proj.teamId) setActiveTeamId(proj.teamId); // setActiveTeamId は詳細をクリアするので先に呼ぶ
+      setActiveTeamProjectId(proj.id);
+      return;
+    }
+    setActiveProjectId(proj.id, 'home');
+    setCurrentMainView('workspace');
   };
 
 
@@ -320,7 +347,7 @@ export const ProjectSidebar: React.FC = () => {
     }}>
       <Box sx={{ px: 2, mb: 2 }}>
         <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: 'rgb(var(--brand-fg-rgb) / 0.45)', textTransform: 'uppercase', mb: 1.5 }}>
-          Projects
+          {isTeamView ? 'Teams' : 'Projects'}
         </Typography>
 
         {/* 検索 */}
@@ -332,29 +359,29 @@ export const ProjectSidebar: React.FC = () => {
         }}>
           <SearchRoundedIcon sx={{ fontSize: 16, color: 'rgb(var(--brand-fg-rgb) / 0.4)', mr: 1 }} />
           <InputBase
-            placeholder="プロジェクトを検索..."
+            placeholder={isTeamView ? 'チームを検索...' : 'プロジェクトを検索...'}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             sx={{ color: 'var(--brand-fg)', fontSize: 12, flex: 1 }}
           />
         </Box>
 
-        {/* ダッシュボード（＝アカウントサイト／マイページ） */}
+        {/* ダッシュボード（通常＝アカウントサイト／マイページ、チーム画面＝チーム一覧） */}
         <CardActionArea
-          onClick={() => { setActiveProjectId(null, 'home'); setCurrentMainView('my-site'); }}
+          onClick={handleDashboardClick}
           sx={{
             display: 'flex', alignItems: 'center',
             px: 1.25, py: 0.75, borderRadius: 2,
-            bgcolor: currentMainView === 'my-site' ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
+            bgcolor: dashboardActive ? 'rgb(var(--brand-fg-rgb) / 0.08)' : 'transparent',
             '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' }, mb: 2,
           }}
         >
           <Box sx={{ width: 20, height: 20, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1, flexShrink: 0 }}>
-            <DashboardRoundedIcon sx={{ fontSize: 16, color: currentMainView === 'my-site' ? '#3498db' : 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
+            <DashboardRoundedIcon sx={{ fontSize: 16, color: dashboardActive ? '#3498db' : 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
           </Box>
           <Typography sx={{
-            color: currentMainView === 'my-site' ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
-            fontSize: 12, fontWeight: currentMainView === 'my-site' ? 600 : 500,
+            color: dashboardActive ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.7)',
+            fontSize: 12, fontWeight: dashboardActive ? 600 : 500,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
           }}>
             ダッシュボード
@@ -363,26 +390,29 @@ export const ProjectSidebar: React.FC = () => {
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
-        {/* MY PROJECTS */}
-        <Box sx={{ mb: 2, minWidth: 200 }}>
-          <SectionHeader label="My Projects" />
-          {myProjects.length === 0 ? (
-            <Typography sx={{ px: 3, py: 1, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
-              プロジェクトがありません
-            </Typography>
-          ) : (
-            myProjects.map(p => (
-              <ProjectListItem
-                key={p.id}
-                project={p}
-                active={p.id === activeProjectId && currentMainView !== 'app-hub' && currentMainView !== 'teams'}
-                onClick={() => { setActiveProjectId(p.id, 'home'); setCurrentMainView('workspace'); }}
-                onRenameClick={proj => { setActiveRenameProject(proj); setRenameValue(proj.name); }}
-                onDeleteClick={proj => setActiveDeleteProject(proj)}
-              />
-            ))
-          )}
-        </Box>
+        {/* MY PROJECTS（チーム画面では文脈外のため非表示） */}
+        {!isTeamView && (
+          <Box sx={{ mb: 2, minWidth: 200 }}>
+            <SectionHeader label="My Projects" />
+            {myProjects.length === 0 ? (
+              <Typography sx={{ px: 3, py: 1, fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.25)' }}>
+                プロジェクトがありません
+              </Typography>
+            ) : (
+              myProjects.map(p => (
+                <ProjectListItem
+                  key={p.id}
+                  project={p}
+                  // このブロックは !isTeamView のときだけ描画されるため、チーム画面の除外は不要
+                  active={p.id === activeProjectId}
+                  onClick={() => { setActiveProjectId(p.id, 'home'); setCurrentMainView('workspace'); }}
+                  onRenameClick={proj => { setActiveRenameProject(proj); setRenameValue(proj.name); }}
+                  onDeleteClick={proj => setActiveDeleteProject(proj)}
+                />
+              ))
+            )}
+          </Box>
+        )}
 
         {/* TEAM PROJECTS */}
         <Box sx={{ mb: 2, minWidth: 200 }}>
@@ -415,8 +445,8 @@ export const ProjectSidebar: React.FC = () => {
                       <TeamProjectListItem
                         key={proj.id}
                         project={proj}
-                        active={proj.id === activeProjectId}
-                        onClick={() => { setActiveProjectId(proj.id, 'home'); setCurrentMainView('workspace'); }}
+                        active={isTeamView ? proj.id === activeTeamProjectId : proj.id === activeProjectId}
+                        onClick={() => handleTeamProjectClick(proj)}
                       />
                     ))
                   )}
@@ -427,9 +457,9 @@ export const ProjectSidebar: React.FC = () => {
         </Box>
 
         {/* 検索結果なし */}
-        {searchQuery && myProjects.length === 0 && filteredTeams.length === 0 && (
+        {searchQuery && (isTeamView || myProjects.length === 0) && filteredTeams.length === 0 && (
           <Typography sx={{ textAlign: 'center', mt: 2, fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.3)' }}>
-            一致するプロジェクトがありません
+            {isTeamView ? '一致するチームがありません' : '一致するプロジェクトがありません'}
           </Typography>
         )}
       </Box>

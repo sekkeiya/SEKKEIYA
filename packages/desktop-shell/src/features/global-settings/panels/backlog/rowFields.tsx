@@ -6,9 +6,9 @@ import {
   Box, Typography, TextField, Button, IconButton, Tooltip, Select, MenuItem, Autocomplete, TableCell, Badge,
 } from '@mui/material';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
-import { CAT_MAP, CATEGORY_IDS, toolLabel, toolColor } from '../devStatusLogic';
+import { CAT_MAP, toolLabel, toolColor } from '../devStatusLogic';
 import {
-  STATUSES, STATUS_MAP, PLATFORMS, PLATFORM_MAP, KINDS, KIND_MAP, KNOWN_SCREENS,
+  STATUSES, STATUS_MAP, PLATFORMS, PLATFORM_MAP, KINDS, KIND_MAP,
   SELECT_SX, MENU_PROPS, AC_SLOT_PROPS, AC_COMPACT_SX,
   type Platform, type Kind, type ReqStatus,
 } from './rowConstants';
@@ -71,12 +71,14 @@ export const ToolDot: React.FC<{ id?: string | null }> = ({ id }) => {
   return <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: known ? toolColor(id) : 'transparent', border: known ? 'none' : '1px solid', borderColor: 'text.disabled' }} />;
 };
 // ツール選択（既知=色つき候補 / 自由入力で追加可 / 親要求からの継承はゴースト表示）
+// 要件79: 候補は options で丸ごと受け取る（プロジェクト種別で語彙が変わるため、ここで
+// SEKKEIYA の子アプリ一覧を混ぜない）。呼び出し側が「基本候補＋実データの既出値」を渡す。
 export const CategorySelect: React.FC<{
   value?: string | null; onChange: (v: string | null) => void;
   placeholder?: string; options?: string[]; inherited?: string | null;
   autoOpen?: boolean; onClose?: () => void;
 }> = ({ value, onChange, placeholder, options = [], inherited, autoOpen, onClose }) => {
-  const opts = [...new Set([...CATEGORY_IDS, ...options])];
+  const opts = [...new Set(options)];
   const ph = toolPlaceholder(value, inherited, placeholder);
   // Autocomplete には defaultOpen が無いので open を自前で持つ（初期値＝autoOpen）。
   // onOpen/onClose をそのまま反映するだけなので、autoOpen なしの挙動は非制御時と同一。
@@ -110,7 +112,7 @@ export const CategorySelect: React.FC<{
 
 // 画面選択（既知候補＋自由入力）
 export const ScreenSelect: React.FC<{ value?: string | null; onChange: (v: string | null) => void; options?: string[]; autoOpen?: boolean; onClose?: () => void }> = ({ value, onChange, options = [], autoOpen, onClose }) => {
-  const opts = [...new Set([...KNOWN_SCREENS, ...options])];
+  const opts = [...new Set(options)];
   const [open, setOpen] = useState(!!autoOpen);
   return (
     <Autocomplete

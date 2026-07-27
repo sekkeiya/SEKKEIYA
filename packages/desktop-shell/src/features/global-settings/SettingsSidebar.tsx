@@ -3,7 +3,6 @@ import { Box, Typography, List, ListItemButton, ListItemText, ListItemIcon, Butt
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import InsightsRoundedIcon from '@mui/icons-material/InsightsRounded';
-import GitHubIcon from '@mui/icons-material/GitHub';
 import ViewInArRoundedIcon from '@mui/icons-material/ViewInArRounded';
 import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import PresentToAllRoundedIcon from '@mui/icons-material/PresentToAllRounded';
@@ -24,7 +23,7 @@ import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { BRAND } from '../../styles/theme';
 import { CATEGORIES, REGISTRY } from './panels/learningRegistry';
 
-export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-git' | 'admin-dev' | 'learning' | 'model-studio';
+export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-dev' | 'learning' | 'model-studio';
 
 /** 各項目の Lv2 サブ項目。単一パネルの項目は overview 1件（暫定）。 */
 export interface SettingsSubItem {
@@ -42,6 +41,11 @@ export interface SettingsItem {
   icon: React.ReactNode;
   /** 管理者のみ表示（Lv1レールで区切り線の下に配置）。 */
   admin?: boolean;
+  /**
+   * 要件74: 管理者でなくても、SEKKEIYA Code が使える環境（デスクトップ）なら表示する。
+   * admin と併記された項目は「管理者 or Code 利用可」で出る。
+   */
+  code?: boolean;
   subItems: SettingsSubItem[];
 }
 
@@ -84,8 +88,7 @@ export const SETTINGS_NAV: SettingsItem[] = [
   { id: '3dsb',       label: 'S.Blog',    icon: <ArticleRoundedIcon />,         subItems: OVERVIEW },
   // 管理者
   { id: 'admin',        label: 'AI使用量モニター', icon: <InsightsRoundedIcon />,             admin: true, subItems: OVERVIEW },
-  { id: 'admin-git',    label: 'GitHub更新',       icon: <GitHubIcon />,                       admin: true, subItems: OVERVIEW },
-  { id: 'admin-dev',    label: 'SEKKEIYA Code',   icon: <TerminalRoundedIcon />,              admin: true, subItems: OVERVIEW },
+  { id: 'admin-dev',    label: 'SEKKEIYA Code',   icon: <TerminalRoundedIcon />,              admin: true, code: true, subItems: OVERVIEW },
   { id: 'learning',     label: 'AI学習モニター',   icon: <PsychologyRoundedIcon />,            admin: true, subItems: LEARNING_SUBS },
   { id: 'model-studio', label: 'モデル製造ライン', icon: <PrecisionManufacturingRoundedIcon />, admin: true, subItems: MODEL_STUDIO_SUBS },
 ];
@@ -103,6 +106,8 @@ interface Props {
   onSelectSub: (sub: string) => void;
   /** 管理者のみ、管理者項目を表示する。 */
   isAdmin?: boolean;
+  /** 要件74: SEKKEIYA Code を使える環境なら、管理者でなくても項目を表示する。 */
+  codeEnabled?: boolean;
   /** Lv2 サブ項目サイドバーを畳む（アイコンレールだけ残す）。 */
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
@@ -114,9 +119,10 @@ const ACC_BG_HOVER  = 'rgba(79, 195, 247, 0.24)';
 const ACC_BORDER    = 'rgba(79, 195, 247, 0.45)';
 const ACC_TEXT      = 'light-dark(#0d6ba8, #7fd3fb)';
 
-export const SettingsSidebar: React.FC<Props> = ({ activeApp, activeSub, onSelectApp, onSelectSub, isAdmin = false, collapsed = false, onToggleCollapsed }) => {
-  const items = SETTINGS_NAV.filter(i => !i.admin || isAdmin);
-  const firstAdminIdx = items.findIndex(i => i.admin);
+export const SettingsSidebar: React.FC<Props> = ({ activeApp, activeSub, onSelectApp, onSelectSub, isAdmin = false, codeEnabled = false, collapsed = false, onToggleCollapsed }) => {
+  const items = SETTINGS_NAV.filter(i => (!i.admin || isAdmin) || (i.code && codeEnabled));
+  // 区切り線は「一般設定」と「ツール（管理者項目 / SEKKEIYA Code）」の境目に引く。
+  const firstAdminIdx = items.findIndex(i => i.admin || i.code);
 
   const subItemSx = () => ({
     borderRadius: 2,

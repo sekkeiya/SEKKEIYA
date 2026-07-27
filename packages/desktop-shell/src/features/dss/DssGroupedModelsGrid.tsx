@@ -17,7 +17,7 @@ export interface DssGroupedModelsGridProps {
   onDelete?: (model: any) => void;
   onAuthorClick?: (model: any) => void;
   onDoubleClick?: (model: any) => void;
-  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels";
+  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels" | "localModels";
 }
 
 export const DssGroupedModelsGrid: React.FC<DssGroupedModelsGridProps> = ({

@@ -25,7 +25,7 @@ interface DssModelsGridProps {
   onDelete?: (model: any) => void;
   onAuthorClick?: (model: any) => void;
   onDoubleClick?: (model: any) => void;
-  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels";
+  cardContext?: "models" | "boards" | "publicModels" | "privateModels" | "boardModels" | "localModels";
   usageMap?: Record<string, UsageInfo | number>;
   /** ピッカーモード: 設定時はカードにチェックオーバーレイを表示する。 */
   pickerSelectedIds?: string[];

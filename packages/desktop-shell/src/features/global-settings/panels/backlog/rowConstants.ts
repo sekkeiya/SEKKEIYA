@@ -2,7 +2,7 @@
 // 行コンポーネント（RequirementRow / RequestRow）と DevStatusPanel の双方から参照する単一定義。
 // ※ React コンポーネントはここに置かない（→ rowFields.tsx）。react-refresh の
 //    only-export-components 警告を避けるため、この .ts は「値・型」だけを持つ。
-import { CATEGORIES } from '../devStatusLogic';
+import { CATEGORIES, GENERIC_CATEGORIES } from '../devStatusLogic';
 import type { BacklogItem } from '../DevStatusPanel';
 
 // ── 分類の軸となる小さな union 型（BacklogItem はこれらを参照する） ──
@@ -47,10 +47,13 @@ export const KIND_MAP = Object.fromEntries(KINDS.map(k => [k.id, k])) as Record<
 export const STATUS_ORDER = Object.fromEntries(STATUSES.map((s, i) => [s.id, i])) as Record<string, number>;
 export const KIND_ORDER = Object.fromEntries(KINDS.map((k, i) => [k.id, i])) as Record<string, number>;
 export const PLATFORM_ORDER = Object.fromEntries(PLATFORMS.map((p, i) => [p.id, i])) as Record<string, number>;
-export const CATEGORY_ORDER = Object.fromEntries(CATEGORIES.map((c, i) => [c.id, i])) as Record<string, number>;
-
-// 画面の既知候補（自由入力可・データ内の既出値も候補に足す）
-export const KNOWN_SCREENS = ['開発状況', 'モデル製造ライン', 'AI使用量モニター', 'AI学習モニター', 'コネクタ', '一般'];
+// 要件79: ローカルプロジェクト用の汎用分類も並び順に含める（含めないと undefined でソートが崩れる）。
+// id が重複する 'general' は SEKKEIYA 側の位置を優先する。
+const CATEGORY_ORDER_SOURCE = [
+  ...CATEGORIES,
+  ...GENERIC_CATEGORIES.filter(g => !CATEGORIES.some(c => c.id === g.id)),
+];
+export const CATEGORY_ORDER = Object.fromEntries(CATEGORY_ORDER_SOURCE.map((c, i) => [c.id, i])) as Record<string, number>;
 
 // ── 小さなセレクトの共有スタイル ─────────────────────────────────
 export const SELECT_SX = { height: 24, fontSize: 12, '& .MuiSelect-select': { py: 0.25, pl: 0.75, pr: '8px !important' }, '& .MuiSelect-icon': { display: 'none' } } as const;

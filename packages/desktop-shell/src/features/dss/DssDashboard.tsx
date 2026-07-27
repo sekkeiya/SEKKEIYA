@@ -666,6 +666,7 @@ export const DssDashboard: React.FC<{
     if (modelsScope === 'my_public_models') return 'publicModels';
     if (modelsScope === 'my_private_models') return 'privateModels';
     if (modelsScope === 'project_models' || modelsScope === 'team_project_models') return 'boardModels';
+    if (modelsScope === 'local_models') return 'localModels';
     return 'models';
   }, [modelsScope]);
 
@@ -676,7 +677,15 @@ export const DssDashboard: React.FC<{
       // 有無で分岐すると、公開/非公開モデル（グローバル assets）の削除が誤って
       // プロジェクトの workspace item 削除（存在しない＝no-op）に流れ、実体が消えず
       // 「何回削除しても消えない」不具合になっていた。
-      if ((modelsScope === 'project_models' || modelsScope === 'team_project_models') && payload?.projectId) {
+      if (model?.isLocal || modelsScope === 'local_models') {
+        // ローカルモデル: Firestore ではなく実ファイル（＋コンパニオンGLB）を削除し、一覧を再スキャン。
+        const { invoke } = await import('@tauri-apps/api/core');
+        const paths = [...new Set([model?.localPath, model?.files?.glb?.path].filter((p) => !!p))];
+        if (paths.length) await invoke('delete_local_files', { paths });
+        useModelSourcesStore.setState((s) => ({ reloadKey: s.reloadKey + 1 }));
+        if (payload?.workspaceId) setPanelSelection(payload.workspaceId, null);
+        console.log('[DssDashboard] Deleted local model file(s):', paths);
+      } else if ((modelsScope === 'project_models' || modelsScope === 'team_project_models') && payload?.projectId) {
         // Phase 12 (SSOT): We delete the asset from the project library instead of workspace items
         await projectAssetsApi.hardDeleteAsset(payload.projectId, model.id);
         console.log('[DssDashboard] Deleted project asset:', model.id);
@@ -774,7 +783,7 @@ export const DssDashboard: React.FC<{
 
   // ── 選択中モデルの一括削除 ──────────────────────────────────────────
   // 削除アイコンと同じ条件（公開/非公開/ボード）でのみ有効。
-  const canBulkDelete = cardContext === 'publicModels' || cardContext === 'privateModels' || cardContext === 'boardModels';
+  const canBulkDelete = cardContext === 'publicModels' || cardContext === 'privateModels' || cardContext === 'boardModels' || cardContext === 'localModels';
   const bulkDeletableCount = useMemo(
     () => (canBulkDelete ? gridItemsRef.current.filter((m) => selectedIds.includes(m.id)).length : 0),
     [selectedIds, canBulkDelete],
@@ -1192,12 +1201,16 @@ export const DssDashboard: React.FC<{
                     canRegister: isAuthorOf(detailModel) && !detailModel.isProjectItem,
                     canRhino: canPlaceInDcc(detailModel, 'rhino'),
                     canBlender: canPlaceInDcc(detailModel, 'blender'),
+                    canDelete: isAuthorOf(detailModel),
                     dccBusy,
                     onRegisterLinks: () => handleBulkRegister([detailModel]),
                     onCatalog: () => handleBulkCatalog([detailModel]),
                     onAutoFill: () => handleBulkAutoFill([detailModel]),
                     onRhino: () => handlePlaceInDcc('rhino', [detailModel]),
                     onBlender: () => handlePlaceInDcc('blender', [detailModel]),
+                    onSave: () => setSaveToProjectModel(detailModel),
+                    onShare: () => setShareModel(detailModel),
+                    onDelete: () => setDeleteModel(detailModel),
                   }}
                 />
               </motion.div>

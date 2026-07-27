@@ -35,9 +35,11 @@ export const DssDeleteConfirmDialog: React.FC<{
         
         <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(249,115,22,0.1)', borderRadius: 1, border: '1px dashed rgba(249,115,22,0.3)' }}>
           <Typography variant="caption" sx={{ color: 'rgba(249,115,22,0.8)' }}>
-            {isBoardModels 
-              ? '※モデル自体は削除されず、このボード（プロジェクト）との共有リンクが解除されます。' 
-              : '※将来的に 30 日間の一時保存エリア（ゴミ箱）へ送られるようになる予定ですが、現在はすぐにリストから非表示になります。'}
+            {isBoardModels
+              ? '※モデル自体は削除されず、このボード（プロジェクト）との共有リンクが解除されます。'
+              : model?.isLocal
+                ? '※パソコン上の実ファイル（およびプレビュー用GLB）を削除します。元に戻せません。'
+                : '※将来的に 30 日間の一時保存エリア（ゴミ箱）へ送られるようになる予定ですが、現在はすぐにリストから非表示になります。'}
           </Typography>
         </Box>
       </DialogContent>

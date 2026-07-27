@@ -22,6 +22,8 @@ import { openDriveWindow } from '../utils/openDriveWindow';
 import { openReaderHome } from '../features/dsb/lib/openReader';
 import { openCodeWindow } from '../utils/openCodeWindow';
 import { isBlogAdmin } from '../features/dsb/lib/blogAdmin';
+import { resolveCodeAccess } from '../features/global-settings/panels/backlog/codeAccess';
+import { isTauri } from '../lib/platform';
 import { auth } from '../lib/firebase/client';
 import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppStore, TEMPLATE_WORKSPACE_NAME } from '../store/useAppStore';
@@ -84,8 +86,8 @@ const WindowTopBar = () => {
   const isChatHistorySidebarOpen = useAppStore(s => s.isChatHistorySidebarOpen);
   const toggleChatHistorySidebar = useAppStore(s => s.toggleChatHistorySidebar);
   const [activeScope, setActiveScope] = useState<string | null>(null);
-  // SEKKEIYA Code（開発状況・要求要件）は admin 限定露出。
-  const isAdmin = isBlogAdmin(auth.currentUser);
+  // 要件74: SEKKEIYA Code は一般ユーザーにもローカルモードで開放する（クラウドは管理者のみ）。
+  const codeAccess = resolveCodeAccess({ isAdmin: isBlogAdmin(auth.currentUser), isDesktop: isTauri() });
   // Reader は購読フィード取得（数秒）を挟んでから窓が開くため、その間ボタンにスピナーを出す。
   const [readerLoading, setReaderLoading] = useState(false);
   const handleOpenReader = async () => {
@@ -165,8 +167,8 @@ const WindowTopBar = () => {
             </IconButton>
           </span>
         </Tooltip>
-        {isAdmin && (
-          <Tooltip title="SEKKEIYA Code（開発状況・要求要件）" placement="bottom">
+        {codeAccess.enabled && (
+          <Tooltip title="SEKKEIYA Code（開発プロジェクト・要求要件）" placement="bottom">
             <IconButton
               size="small"
               onClick={() => { void openCodeWindow(); }}
