@@ -481,7 +481,7 @@ server.registerTool('research_list_boards', {
 
 server.registerTool('research_get_board', {
   title: 'ボードの中身を取得',
-  description: '指定ボードのノードビュー（メモ・エッジ）とマインドマップ（トピック・関係線）を返す。boardId 省略時はメインボード(canvas)。マインドマップだけが欲しいときは mindmap_get のほうが軽い。',
+  description: '指定ボードのノードビュー（メモ・エッジ）とマインドマップ（トピック・関係線）を返す。boardId 省略時はメインボード(canvas)。ノードの id はエッジ作成・更新・削除で使う。マインドマップだけが欲しいときは mindmap_get のほうが軽い。',
   inputSchema: { boardId: z.string().optional() },
 }, async ({ boardId }) => {
   const { items, edges, title, mindmap, mindmapRelations } = await loadBoard(boardId);
@@ -613,6 +613,72 @@ server.registerTool('research_delete_board', {
   if (boardId === RESEARCH_DEFAULT_BOARD) return fail('メインボードは削除できません（中身を空にするには research_remove を使ってください）');
   await (await researchDocRef(boardId)).delete();
   return ok({ deleted: { id: boardId } });
+});
+
+// ── マインドマップ（Research & Memo の既定ビュー） ───────────────────────
+// ⚠ 意味論の写し元: sekkeiya-desktop/src/features/projects/chat/mindmapVerbs.ts
+//    片方を変えたらもう片方も揃えること。木の操作の実体は ./mindmap.mjs。
+
+server.registerTool('mindmap_get', {
+  title: 'マインドマップを読む',
+  description: 'ボードのマインドマップ（トピックの木と関係線）を返す。boardId 省略時はメインボード(canvas)。parentId が null のものが中心トピック。rank は兄弟内の並び順。ここで得た id を mindmap_add_topics の parent や mindmap_update_topic の id に使う。',
+  inputSchema: { boardId: z.string().optional() },
+}, async ({ boardId }) => {
+  const { mindmap, mindmapRelations, title } = await loadBoard(boardId);
+  return ok({
+    boardId: boardId || RESEARCH_DEFAULT_BOARD,
+    title: title || (boardId && boardId !== RESEARCH_DEFAULT_BOARD ? '無題のボード' : 'メインボード'),
+    topics: mindmap.map(topicSummary),
+    relations: mindmapRelations.map(relationSummary),
+  });
+});
+
+server.registerTool('mindmap_add_topics', {
+  title: 'マインドマップにトピックを追加',
+  description: 'トピックを複数まとめて生やす（関係線も同時に張れる）。parent に既存トピックの id を渡すとその子に、"#0" 形式（topics 配列の添字）で今回追加分の子にでき、1回の呼び出しで部分木を組める。parent 省略は中心トピック直下。中心トピックが無いボードでは自動で作る。長い補足は text に詰めず note に入れる（トピックは短い見出し、note が本文）。image は https の実URLのみ（data: URL は不可）。追加した id を返すので、続けて mindmap_connect_topics でつなげる。',
+  inputSchema: {
+    boardId: z.string().optional(),
+    topics: z.array(z.object({
+      text: z.string().min(1),
+      parent: z.string().optional(),
+      note: z.string().optional(),
+      link: z.string().optional(),
+      image: z.string().optional(),
+      refType: z.enum(['library', 'article']).optional(),
+      refId: z.string().optional(),
+      refTitle: z.string().optional(),
+    })).min(1),
+    relations: z.array(z.object({
+      source: z.string().min(1),
+      target: z.string().min(1),
+      text: z.string().optional(),
+    })).optional(),
+  },
+}, async ({ boardId, topics, relations: relInputs }) => {
+  const board = await loadBoard(boardId);
+  const now = new Date().toISOString();
+  const res = addTopics({ nodes: board.mindmap, topics, now, newId: rNewId });
+
+  const patch = { mindmap: res.nodes };
+  let relResult = { created: [], skipped: [] };
+  if (Array.isArray(relInputs) && relInputs.length > 0) {
+    const ids = new Set(res.nodes.map((n) => n.id));
+    const resolve = (ref) => {
+      if (typeof ref !== 'string') return null;
+      if (ref.startsWith('#')) return res.batchIds.get(ref) || null;
+      return ids.has(ref) ? ref : null;
+    };
+    relResult = addRelations({ relations: board.mindmapRelations, inputs: relInputs, resolve, now, newId: rNewId });
+    patch.mindmapRelations = relResult.relations;
+  }
+
+  await saveBoard(boardId, patch);
+  return ok({
+    added: res.created.map((c) => ({ id: c.id, parentId: c.parentId, text: c.text })),
+    errors: res.errors,
+    relationsAdded: relResult.created.map(relationSummary),
+    relationsSkipped: relResult.skipped,
+  });
 });
 
 // ── 公式記事（officialArticles）ツール ─────────────────────────────
