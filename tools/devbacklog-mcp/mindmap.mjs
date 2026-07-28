@@ -10,7 +10,7 @@ export const CENTER_TEXT = '中心トピック';
 const compact = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 const trimOrUndef = (v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
 
-/** 中心トピック（parentId===null）を返す。無ければ作って nodes に足したものを返す。 */
+/** 中心トピック（parentId が null または undefined のもの）を返す。無ければ作って nodes に足したものを返す。 */
 export function ensureCenter(nodes, now, newId) {
   const found = nodes.find((n) => n.parentId === null || n.parentId === undefined);
   if (found) return { nodes, center: found };
@@ -127,6 +127,9 @@ export function addRelations({ relations, inputs, resolve, now, newId }) {
 export function updateTopic({ nodes, id, patch, now }) {
   const target = nodes.find((n) => n.id === id);
   if (!target) return { nodes, updated: null, error: `トピックが見つかりません: ${id}` };
+  if (Object.keys(patch).length === 0) {
+    return { nodes, updated: null, error: '更新内容（text/note/link/parent/collapsed）が必要です' };
+  }
 
   const next = { ...target, updatedAt: now };
 

@@ -161,6 +161,18 @@ test('updateTopic: 本文と note を更新し、空文字の note は削除', (
   assert.ok(!('note' in r2.updated));
 });
 
+test('updateTopic: 更新内容が無い patch は拒否する', () => {
+  const nodes = [
+    { id: 'c', parentId: null, rank: 0, text: 'c', createdAt: NOW, updatedAt: NOW },
+    { id: 'a', parentId: 'c', rank: 0, text: 'a', createdAt: NOW, updatedAt: NOW },
+  ];
+  const res = updateTopic({ nodes, id: 'a', patch: {}, now: NOW });
+  assert.equal(res.updated, null);
+  assert.equal(res.error, '更新内容（text/note/link/parent/collapsed）が必要です');
+  // nodes はそのまま返す（書き込みが起きないことの保証）
+  assert.equal(res.nodes, nodes);
+});
+
 test('updateTopic: 自分の子孫へは移動できない（循環防止）', () => {
   const nodes = [
     { id: 'c', parentId: null, rank: 0, text: 'c', createdAt: NOW, updatedAt: NOW },

@@ -659,7 +659,6 @@ server.registerTool('mindmap_add_topics', {
   const now = new Date().toISOString();
   const res = addTopics({ nodes: board.mindmap, topics, now, newId: rNewId });
 
-  const patch = { mindmap: res.nodes };
   let relResult = { created: [], skipped: [] };
   if (Array.isArray(relInputs) && relInputs.length > 0) {
     const ids = new Set(res.nodes.map((n) => n.id));
@@ -669,10 +668,17 @@ server.registerTool('mindmap_add_topics', {
       return ids.has(ref) ? ref : null;
     };
     relResult = addRelations({ relations: board.mindmapRelations, inputs: relInputs, resolve, now, newId: rNewId });
-    patch.mindmapRelations = relResult.relations;
   }
 
-  await saveBoard(boardId, patch);
+  // 何も作られなかった呼び出し（全トピック却下・関係線も0件）は書き込まない。
+  // mindmapRelations も、実際に関係線が作られたときだけ patch に含める
+  // （全件スキップなら board.mindmapRelations は素通しのままにする）。
+  if (res.created.length > 0 || relResult.created.length > 0) {
+    const patch = {};
+    if (res.created.length > 0) patch.mindmap = res.nodes;
+    if (relResult.created.length > 0) patch.mindmapRelations = relResult.relations;
+    await saveBoard(boardId, patch);
+  }
   return ok({
     added: res.created.map((c) => ({ id: c.id, parentId: c.parentId, text: c.text })),
     errors: res.errors,
@@ -707,7 +713,8 @@ server.registerTool('mindmap_update_topic', {
 
 server.registerTool('mindmap_remove_topics', {
   title: 'トピックを削除',
-  description: 'トピックを削除する。指定した id の配下は部分木ごと消え、消えたトピックに繋がっていた関係線も一緒に消える。中心トピックは削除できない（ボードを空にしたいときはその子を全部消す）。見つからない id はスキップして理由を返す。',
+  description: 'トピックを削除する。指定した id の配下は部分木ごと消え、消えたトピックに繋がっていた関係線も一緒に消える。中心トピックは削除できない（ボードを空にしたいときはその子を全部消す）。見つからない id はスキップして理由を返す。' +
+    ' ユーザーの思考の痕跡を消す不可逆な操作なので、ユーザーが明確に削除を求めたときだけ使うこと（整理したいだけなら削除ではなく mindmap_update_topic の parent 移動を優先する）。',
   inputSchema: {
     boardId: z.string().optional(),
     ids: z.array(z.string().min(1)).min(1),
