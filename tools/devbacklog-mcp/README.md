@@ -112,3 +112,24 @@ node server.mjs --smoke   # 接続確認
   `users/{公式uid}/research` `/officialArticles`（読取: `/categories`）と
   Storage `officialArticles/covers|inline/{公式uid}/` のみ。
 - クライアントUI用に `firestore.rules` へ `/devSprints`（isAdmin のみ）を追加済み — **ルールのデプロイが必要**。
+
+## マインドマップ（Research & Memo の既定ビュー）
+
+Research & Memo の1ボードは、ノードビュー（`items` / `edges`）とマインドマップ
+（`mindmap` / `mindmapRelations`）の両方を同じドキュメントに持つ。既定で表示されるのは
+マインドマップのほう。
+
+| ツール | 用途 |
+|---|---|
+| `mindmap_get` | トピックの木と関係線を読む |
+| `mindmap_add_topics` | トピックを追加。`parent` に `"#0"` 形式で同じ呼び出し内の添字を指せるので、1回で部分木を組める |
+| `mindmap_update_topic` | 本文・補足メモ・リンク・親・折りたたみを更新 |
+| `mindmap_remove_topics` | 部分木ごと削除（中心トピックは不可） |
+| `mindmap_connect_topics` | 木の親子とは別の横断的な関係線を張る |
+
+木の操作の実体は `mindmap.mjs`（Firestore に依存しない純粋関数）にあり、`node --test`
+で検証できる。
+
+意味論はデスクトップアプリの
+`src/features/projects/chat/mindmapVerbs.ts`（SEKKEIYA Chat の AI 用 verb）の写しである。
+ランタイムが違うためコードは共有していない。**片方を変えたらもう片方も揃えること。**

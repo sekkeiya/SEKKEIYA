@@ -635,7 +635,7 @@ server.registerTool('mindmap_get', {
 
 server.registerTool('mindmap_add_topics', {
   title: 'マインドマップにトピックを追加',
-  description: 'トピックを複数まとめて生やす（関係線も同時に張れる）。parent に既存トピックの id を渡すとその子に、"#0" 形式（topics 配列の添字）で今回追加分の子にでき、1回の呼び出しで部分木を組める。parent 省略は中心トピック直下。中心トピックが無いボードでは自動で作る。長い補足は text に詰めず note に入れる（トピックは短い見出し、note が本文）。image は https の実URLのみ（data: URL は不可）。追加した id を返すので、続けて mindmap_connect_topics でつなげる。',
+  description: 'トピックを複数まとめて生やす（関係線も同時に張れる）。parent に既存トピックの id を渡すとその子に、"#0" 形式（topics 配列の添字）で今回追加分の子にでき、1回の呼び出しで部分木を組める。parent 省略は中心トピック直下。中心トピックが無いボードでは自動で作る。長い補足は text に詰めず note に入れる（トピックは短い見出し、note が本文）。image は https の実URLのみ（data: URL は不可）。relations の source/target にも同じ "#N" 形式が使え、今回まとめて追加したトピック同士をその場で線でつなげる（既存トピックを指すときはそのまま id）。追加した id を返すので、続けて mindmap_connect_topics でつなげる。',
   inputSchema: {
     boardId: z.string().optional(),
     topics: z.array(z.object({
@@ -679,6 +679,69 @@ server.registerTool('mindmap_add_topics', {
     relationsAdded: relResult.created.map(relationSummary),
     relationsSkipped: relResult.skipped,
   });
+});
+
+server.registerTool('mindmap_update_topic', {
+  title: 'トピックを更新',
+  description: 'トピック1件の本文・補足メモ・リンク・親・折りたたみを更新する。id は mindmap_get で得たもの。note と link は空文字を渡すと削除。parent を渡すと移動する（移動先の末尾に付く）。中心トピックの親は変えられず、自分の子孫へも移動できない。',
+  inputSchema: {
+    boardId: z.string().optional(),
+    id: z.string().min(1),
+    text: z.string().optional(),
+    note: z.string().optional(),
+    link: z.string().optional(),
+    parent: z.string().optional(),
+    collapsed: z.boolean().optional(),
+  },
+}, async ({ boardId, id, text, note, link, parent, collapsed }) => {
+  const board = await loadBoard(boardId);
+  const now = new Date().toISOString();
+  const res = updateTopic({
+    nodes: board.mindmap, id, now,
+    patch: compact({ text, note, link, parent, collapsed }),
+  });
+  if (res.error) return fail(res.error);
+  await saveBoard(boardId, { mindmap: res.nodes });
+  return ok({ updated: topicSummary(res.updated) });
+});
+
+server.registerTool('mindmap_remove_topics', {
+  title: 'トピックを削除',
+  description: 'トピックを削除する。指定した id の配下は部分木ごと消え、消えたトピックに繋がっていた関係線も一緒に消える。中心トピックは削除できない（ボードを空にしたいときはその子を全部消す）。見つからない id はスキップして理由を返す。',
+  inputSchema: {
+    boardId: z.string().optional(),
+    ids: z.array(z.string().min(1)).min(1),
+  },
+}, async ({ boardId, ids }) => {
+  const board = await loadBoard(boardId);
+  const res = removeTopics({ nodes: board.mindmap, relations: board.mindmapRelations, ids });
+  if (res.removed.length > 0) {
+    await saveBoard(boardId, { mindmap: res.nodes, mindmapRelations: res.relations });
+  }
+  return ok({ removed: res.removed, errors: res.errors });
+});
+
+server.registerTool('mindmap_connect_topics', {
+  title: 'トピック間に関係線を張る',
+  description: '木の親子とは別に、離れたトピック同士を線でつなぐ。source/target には mindmap_get で得た id を使う。text は線の上に出る一言（例: トレードオフ / 同じ根拠）。自己ループ・重複・不明な id はスキップして理由を返す。',
+  inputSchema: {
+    boardId: z.string().optional(),
+    relations: z.array(z.object({
+      source: z.string().min(1),
+      target: z.string().min(1),
+      text: z.string().optional(),
+    })).min(1),
+  },
+}, async ({ boardId, relations: inputs }) => {
+  const board = await loadBoard(boardId);
+  const ids = new Set(board.mindmap.map((n) => n.id));
+  const resolve = (ref) => (ids.has(ref) ? ref : null);
+  const res = addRelations({
+    relations: board.mindmapRelations, inputs, resolve,
+    now: new Date().toISOString(), newId: rNewId,
+  });
+  if (res.created.length > 0) await saveBoard(boardId, { mindmapRelations: res.relations });
+  return ok({ connected: res.created.map(relationSummary), skipped: res.skipped });
 });
 
 // ── 公式記事（officialArticles）ツール ─────────────────────────────
