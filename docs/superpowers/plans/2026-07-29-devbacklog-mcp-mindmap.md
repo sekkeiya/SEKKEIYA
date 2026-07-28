@@ -91,7 +91,9 @@ import {
 } from './mindmap.mjs';
 
 const NOW = '2026-07-29T00:00:00.000Z';
-// テストでは決定的な id を使う（本番は rNewId）
+// テストでは決定的な id を使う（本番は rNewId）。
+// ⚠ 1つのテスト内では必ず同じ生成器を使い回すこと。テストごとに作り直すと
+//    中心トピックと追加トピックが同じ id になり、木が壊れたまま assert が通ってしまう。
 const idGen = () => { let n = 0; return () => `n${++n}`; };
 
 test('ensureCenter: 空なら中心トピックを作る', () => {
@@ -122,7 +124,8 @@ test('nextRankOf: 親ごとに 兄弟の最大+1、兄弟なしは0', () => {
 });
 
 test('addTopics: "#N" で1回の呼び出しで部分木が組める', () => {
-  const { nodes: base } = ensureCenter([], NOW, idGen());
+  const newId = idGen();
+  const { nodes: base } = ensureCenter([], NOW, newId);
   const { nodes, created, errors } = addTopics({
     nodes: base,
     topics: [
@@ -131,23 +134,28 @@ test('addTopics: "#N" で1回の呼び出しで部分木が組める', () => {
       { text: '孫', parent: '#1' },
     ],
     now: NOW,
-    newId: idGen(),
+    newId,
   });
   assert.deepEqual(errors, []);
   assert.equal(created.length, 3);
   assert.equal(created[1].parentId, created[0].id);
   assert.equal(created[2].parentId, created[1].id);
   assert.equal(nodes.length, 4); // 中心 + 3
+  // id が重複していないこと（生成器を使い回している証明でもある）
+  assert.equal(new Set(nodes.map((n) => n.id)).size, 4);
 });
 
 test('addTopics: parent 省略は中心トピック直下', () => {
-  const { nodes: base, center } = ensureCenter([], NOW, idGen());
-  const { created } = addTopics({ nodes: base, topics: [{ text: 'x' }], now: NOW, newId: idGen() });
+  const newId = idGen();
+  const { nodes: base, center } = ensureCenter([], NOW, newId);
+  const { created } = addTopics({ nodes: base, topics: [{ text: 'x' }], now: NOW, newId });
   assert.equal(created[0].parentId, center.id);
+  assert.notEqual(created[0].id, center.id);
 });
 
 test('addTopics: text が空、data: URL、存在しない parent は理由つきで弾く', () => {
-  const { nodes: base } = ensureCenter([], NOW, idGen());
+  const newId = idGen();
+  const { nodes: base } = ensureCenter([], NOW, newId);
   const { created, errors } = addTopics({
     nodes: base,
     topics: [
@@ -156,7 +164,7 @@ test('addTopics: text が空、data: URL、存在しない parent は理由つ�
       { text: 'ok2', parent: 'nope' },
     ],
     now: NOW,
-    newId: idGen(),
+    newId,
   });
   assert.equal(created.length, 0);
   assert.equal(errors.length, 3);
@@ -165,13 +173,31 @@ test('addTopics: text が空、data: URL、存在しない parent は理由つ�
   assert.match(errors[2], /parent/);
 });
 
+test('addTopics: 弾かれたトピックの "#N" は後続から参照できない', () => {
+  const newId = idGen();
+  const { nodes: base } = ensureCenter([], NOW, newId);
+  const { created, errors } = addTopics({
+    nodes: base,
+    topics: [
+      { text: '' },              // #0 は作られない
+      { text: '子', parent: '#0' }, // よって解決できない
+    ],
+    now: NOW,
+    newId,
+  });
+  assert.equal(created.length, 0);
+  assert.equal(errors.length, 2);
+  assert.match(errors[1], /#0/);
+});
+
 test('addTopics: note/link/refType は保存され、undefined は落ちる', () => {
-  const { nodes: base } = ensureCenter([], NOW, idGen());
+  const newId = idGen();
+  const { nodes: base } = ensureCenter([], NOW, newId);
   const { created } = addTopics({
     nodes: base,
     topics: [{ text: 't', note: 'n', link: 'https://e.com', refType: 'article', refId: 'a1', refTitle: 'T' }],
     now: NOW,
-    newId: idGen(),
+    newId,
   });
   assert.equal(created[0].note, 'n');
   assert.equal(created[0].refType, 'article');
