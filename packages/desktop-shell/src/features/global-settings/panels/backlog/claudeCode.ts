@@ -10,6 +10,12 @@ export interface ClaudeCodeStatus {
   version: string | null;
   /** 実行ファイルの場所。取れなければ null。 */
   path: string | null;
+  /**
+   * PATH から `claude` で起動できるか。
+   * ネイティブインストーラは ~/.local/bin に置くだけで PATH を通さないことがあり、
+   * その場合 installed=true / onPath=false になる（ターミナルで `claude` と打てない状態）。
+   */
+  onPath: boolean;
   /** 検出に失敗したときの理由（installed=false のときだけ意味がある）。 */
   error: string | null;
 }
@@ -38,5 +44,14 @@ export function installGuidance(status: ClaudeCodeStatus): string {
 export function statusLabel(status: ClaudeCodeStatus | null): string {
   if (!status) return 'Claude Code: 確認中…';
   if (!status.installed) return 'Claude Code: 未導入';
-  return status.version ? `Claude Code: v${status.version}` : 'Claude Code: 導入済み';
+  const base = status.version ? `Claude Code: v${status.version}` : 'Claude Code: 導入済み';
+  // PATH に無いと `claude` とタイプして起動できないので、その一点だけ知らせる。
+  return status.onPath ? base : `${base}（PATH 未設定）`;
+}
+
+/** PATH に通っていないときの案内（導入済みだがターミナルから起動できない状態）。 */
+export function pathGuidance(status: ClaudeCodeStatus): string {
+  if (!status.installed || status.onPath) return '';
+  return 'インストールはされていますが、PATH に登録されていないためターミナルで `claude` と打っても起動しません。'
+    + '実行ファイルのあるフォルダを PATH に追加するか、フルパスで起動してください。';
 }

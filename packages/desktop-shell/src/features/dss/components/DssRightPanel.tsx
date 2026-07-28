@@ -120,8 +120,14 @@ const DssProjectInfoPanel: React.FC<{ selectedItem: any }> = ({ selectedItem }) 
   );
 };
 
-/** モデル情報（台帳）パネル。詳細画面では「概要」タブの中身として直接利用する。 */
-export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boolean; hideRhinoButton?: boolean }> = ({ selectedItem: propSelectedItem, hideViewer, hideRhinoButton }) => {
+/** モデル情報（台帳）パネル。詳細画面では「整える」の中身として直接利用する。 */
+export const DssModelInfoPanel: React.FC<{
+  selectedItem: any;
+  hideViewer?: boolean;
+  hideRhinoButton?: boolean;
+  /** true なら編集フォームを2カラムで並べる。詳細画面の「整える」用（600px 幅）。既定は1カラム（一覧画面と同じ）。 */
+  twoColumn?: boolean;
+}> = ({ selectedItem: propSelectedItem, hideViewer, hideRhinoButton, twoColumn }) => {
   // カテゴリの一覧は描画時に useUserSettingsStore.getState() から直接引いているため、
   // ここで保持する必要はない。
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
@@ -932,7 +938,17 @@ export const DssModelInfoPanel: React.FC<{ selectedItem: any; hideViewer?: boole
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pb: 2 }}>
+    <Box sx={{
+      display: 'flex', flexDirection: 'column', gap: 2, pb: 2,
+      // twoColumn（詳細画面の「整える」・600px幅）のときだけ CSS multi-column で2カラム化する。
+      // column-count は flex コンテナには効かない（仕様上フレックスは対象外）ため、
+      // このときだけ display を block に切り替える必要がある。セクションの順序や中身は変えない。
+      // 注意: gap は flex/grid/multi-column コンテナに効くが、multi-column では「カラム間の
+      // 溝」を指すだけで、ブロック要素どうしの縦方向の間隔（row-gap 相当）にはならない。
+      // display:block の間は上の gap:2 が縦間隔として効かないため、直接の子に marginBottom を
+      // 与えて代替する（columnGap は引き続きカラムの溝として機能させる）。
+      ...(twoColumn ? { display: 'block', columnCount: 2, columnGap: '16px', '& > *': { breakInside: 'avoid', mb: 2 } } : {}),
+    }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pb: 1.5, mb: -0.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>

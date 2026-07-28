@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Chip, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
 import TouchAppRoundedIcon from '@mui/icons-material/TouchAppRounded';
 import { DssMaterialPresets } from './DssMaterialPresets';
 import { DssFurnitureSwap } from './DssFurnitureSwap';
@@ -7,16 +7,14 @@ import WalkthroughMetadataEditor from './WalkthroughMetadataEditor';
 import type { MaterialPreviewState } from './RightPanelModelViewer';
 import type { EnumeratedSlot } from '../../shared/material/applyMaterial';
 
-export type DetailTab = 'overview' | 'material' | 'swap' | 'walkthrough';
-
 interface Props {
   model: any;
   isAuthor: boolean;
   projectId?: string;
   glbUrl: string | null;
   title: string;
-  detailTab: DetailTab;
-  setDetailTab: (t: DetailTab) => void;
+  /** 開いた直後にどのセクションへ注目させるか。null なら全セクションを並べる。 */
+  section: 'material' | 'swap' | 'anim' | null;
   walkthroughMode: 'edit' | 'preview';
   setWalkthroughMode: (m: 'edit' | 'preview') => void;
   // マテリアル：メインビューアへ委譲する配線
@@ -42,36 +40,17 @@ interface Props {
   captureThumb?: () => string | null;
 }
 
-/** タブ列（マテリアル/家具置き換え/アニメーション/情報）＋作成者向け 編集/プレビュー トグル。
- *  パネル上部に単独で配置し、下の DssDetailStudio 内容を切り替える。 */
-export const DssStudioTabs: React.FC<{
-  detailTab: DetailTab;
-  setDetailTab: (t: DetailTab) => void;
-  /** 表示するタブ。閲覧者には中身のあるタブだけを渡す（空タブを見せない）。 */
-  visibleTabs: DetailTab[];
-}> = ({ detailTab, setDetailTab, visibleTabs }) => {
-  const labels: Record<DetailTab, string> = {
-    overview: '概要', material: 'マテリアル', swap: '置き換え', walkthrough: 'アニメ',
-  };
-  // タブが1つだけ（＝概要のみ）なら、タブ列自体を出さない
-  if (visibleTabs.length <= 1) return null;
-  return (
-    <Tabs value={detailTab} onChange={(_e, v) => setDetailTab(v)}
-      variant="fullWidth"
-      sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, minWidth: 0, px: 0.25, fontSize: 12, fontWeight: 700, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.6)' }, '& .Mui-selected': { color: '#fff !important' }, '& .MuiTabs-indicator': { bgcolor: '#4fc3f7' } }}>
-      {visibleTabs.map((t) => <Tab key={t} value={t} label={labels[t]} />)}
-    </Tabs>
-  );
-};
+const sectionBoxSx = { borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.4)' } as const;
 
 /**
- * モデル詳細の「詳細スタジオ」内容（マテリアル/家具置き換え/アニメーション/情報）。
- * タブ列は DssStudioTabs としてパネル上部に分離。各タブの3Dは上部のメインビューア1枚に集約するため
- * ここでは Canvas を持たず操作パネルのみを描画する。
+ * 「整える」パネルの中身（マテリアル/家具置き換え/アニメーション/アイテム情報の編集）。
+ * `section` が指定されていれば（ビューア下の帯の「＋」から開いた場合）そのセクションだけを、
+ * `section === null`（「整える」ボタンから開いた場合）なら全セクションを縦に並べて表示する。
+ * 各タブの3Dは上部のメインビューア1枚に集約するため、ここでは Canvas を持たず操作パネルのみを描画する。
  */
 export const DssDetailStudio: React.FC<Props> = ({
   model, isAuthor, projectId, glbUrl,
-  detailTab, walkthroughMode,
+  section, walkthroughMode,
   setMatPreview, matPickRef, matSlotsRef, onSelectSwap,
   walkthroughChar, setWalkthroughChar, walkthroughGimmicks, setWalkthroughGimmicks,
   walkthroughAnim, setWalkthroughAnim, walkthroughInfo, setWalkthroughInfo,
@@ -85,14 +64,11 @@ export const DssDetailStudio: React.FC<Props> = ({
     </Typography>
   ) : null;
 
-  // 概要タブの表示（仕様/素材/タグ/説明/購入先）はパネル側の既定表示に集約。
-  // 作成者の編集時のみ、ここに情報エディタ（説明・参考リンク）を出す。それ以外は何も描画しない。
-  if (detailTab === 'overview' && !(isAuthor && walkthroughMode === 'edit')) return null;
-
   return (
-    <Box sx={{ borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.06)', bgcolor: 'rgb(var(--slate-panel-rgb) / 0.4)' }}>
-        {/* === マテリアル === */}
-        {detailTab === 'material' && (
+    <>
+      {/* === マテリアル === */}
+      {(section === null || section === 'material') && (
+        <Box sx={sectionBoxSx}>
           <DssMaterialPresets
             model={model} isAuthor={isAuthor} projectId={projectId} mode={walkthroughMode} hideToggle section="both"
             externalViewer
@@ -101,15 +77,19 @@ export const DssDetailStudio: React.FC<Props> = ({
             slotsHandlerRef={matSlotsRef}
             captureThumb={captureThumb}
           />
-        )}
+        </Box>
+      )}
 
-        {/* === 家具置き換え === */}
-        {detailTab === 'swap' && (
+      {/* === 家具置き換え === */}
+      {(section === null || section === 'swap') && (
+        <Box sx={sectionBoxSx}>
           <DssFurnitureSwap model={model} isAuthor={isAuthor} mode={walkthroughMode} externalViewer onSelectSwap={onSelectSwap} />
-        )}
+        </Box>
+      )}
 
-        {/* === アニメーション（プレビューは上部メインビューアに表示） === */}
-        {detailTab === 'walkthrough' && (
+      {/* === アニメーション（プレビューは上部メインビューアに表示） === */}
+      {(section === null || section === 'anim') && (
+        <Box sx={sectionBoxSx}>
           <Box sx={{ p: 1.5 }}>
             {isAuthor && walkthroughMode === 'edit' ? (
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -164,10 +144,12 @@ export const DssDetailStudio: React.FC<Props> = ({
               </Box>
             )}
           </Box>
-        )}
+        </Box>
+      )}
 
-        {/* === 概要（作成者の編集時のみ：説明・参考リンクの編集。読み取り表示はパネル側に集約） === */}
-        {detailTab === 'overview' && isAuthor && walkthroughMode === 'edit' && (
+      {/* === アイテム情報（説明・参考リンク）の編集：全セクション表示のときだけ === */}
+      {section === null && (
+        <Box sx={sectionBoxSx}>
           <Box sx={{ p: 2 }}>
             <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'rgb(var(--brand-fg-rgb) / 0.6)', mb: 1 }}>アイテム情報（説明・参考リンク）を編集</Typography>
             <WalkthroughMetadataEditor
@@ -179,7 +161,8 @@ export const DssDetailStudio: React.FC<Props> = ({
             />
             {saveBtn}
           </Box>
-        )}
-      </Box>
+        </Box>
+      )}
+    </>
   );
 };

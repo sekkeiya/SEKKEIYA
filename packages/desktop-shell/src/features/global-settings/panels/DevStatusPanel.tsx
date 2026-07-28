@@ -57,7 +57,7 @@ import {
   normalizeVerify, validateVerifyCommand, type ProjectConfig, type VerifyCommand,
 } from './backlog/projectConfig';
 import {
-  CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_DOCS_URL, installGuidance, statusLabel,
+  CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_DOCS_URL, installGuidance, pathGuidance, statusLabel,
   type ClaudeCodeStatus,
 } from './backlog/claudeCode';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
@@ -449,7 +449,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
         if (alive) setClaudeStatus(s);
       } catch (e) {
         // コマンド未登録（Rust 未リビルド）などもここに来る。UI は「未導入」として案内を出す。
-        if (alive) setClaudeStatus({ installed: false, version: null, path: null, error: String((e as { message?: string })?.message || e) });
+        if (alive) setClaudeStatus({ installed: false, version: null, path: null, onPath: false, error: String((e as { message?: string })?.message || e) });
       }
     })();
     return () => { alive = false; };
@@ -2124,7 +2124,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
           <Tooltip title={claudeStatus?.path || 'Claude Code の導入状況'} arrow>
             <Chip
               size="small" clickable onClick={() => setClaudeOpen(true)}
-              color={claudeStatus?.installed ? 'success' : (claudeStatus ? 'warning' : 'default')}
+              color={claudeStatus?.installed ? (claudeStatus.onPath ? 'success' : 'warning') : (claudeStatus ? 'warning' : 'default')}
               variant={claudeStatus?.installed ? 'outlined' : 'filled'}
               label={statusLabel(claudeStatus)}
               sx={{ height: 22, fontSize: 12 }}
@@ -2288,6 +2288,11 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
                   {claudeStatus.path}
                 </Typography>
               )}
+              {!claudeStatus.onPath && (
+                <Typography variant="body2" sx={{ color: 'warning.main', mt: 1.5 }}>
+                  {pathGuidance(claudeStatus)}
+                </Typography>
+              )}
               <Typography variant="body2" sx={{ mt: 2 }}>
                 プロジェクトのフォルダで <code>claude</code> を起動し、<code>/queue</code> を実行すると、
                 積んだ実装/テスト依頼を処理します。
@@ -2296,7 +2301,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
           ) : (
             <>
               <Typography variant="body2" sx={{ color: 'warning.main' }}>
-                {installGuidance(claudeStatus ?? { installed: false, version: null, path: null, error: null })}
+                {installGuidance(claudeStatus ?? { installed: false, version: null, path: null, onPath: false, error: null })}
               </Typography>
               <Box component="pre" sx={{ mt: 1.5, mb: 0, p: 1.5, borderRadius: 2, bgcolor: 'action.hover', fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
                 {CLAUDE_CODE_INSTALL_COMMAND}
