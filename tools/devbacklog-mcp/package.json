@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "smoke": "node server.mjs --smoke"
+    "smoke": "node server.mjs --smoke",
+    "test": "node --test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
