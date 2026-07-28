@@ -29,6 +29,10 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
+import {
+  ensureCenter, addTopics, addRelations, updateTopic, removeTopics,
+  topicSummary, relationSummary,
+} from './mindmap.mjs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -137,14 +141,22 @@ function autoPositions(existing, count) {
 }
 async function loadBoard(boardId) {
   const snap = await (await researchDocRef(boardId)).get();
-  if (!snap.exists) return { items: [], edges: [], title: null };
+  if (!snap.exists) return { items: [], edges: [], title: null, mindmap: [], mindmapRelations: [] };
   const d = snap.data();
-  return { items: Array.isArray(d.items) ? d.items : [], edges: Array.isArray(d.edges) ? d.edges : [], title: d.title || null };
+  return {
+    items: Array.isArray(d.items) ? d.items : [],
+    edges: Array.isArray(d.edges) ? d.edges : [],
+    title: d.title || null,
+    mindmap: Array.isArray(d.mindmap) ? d.mindmap : [],
+    mindmapRelations: Array.isArray(d.mindmapRelations) ? d.mindmapRelations : [],
+  };
 }
 async function saveBoard(boardId, data) {
   const payload = { updatedAt: FieldValue.serverTimestamp() };
   if (data.items) payload.items = data.items.map(compact);
   if (data.edges) payload.edges = data.edges.map(compact);
+  if (data.mindmap) payload.mindmap = data.mindmap.map(compact);
+  if (data.mindmapRelations) payload.mindmapRelations = data.mindmapRelations.map(compact);
   if (data.title !== undefined) payload.title = data.title;
   await (await researchDocRef(boardId)).set(payload, { merge: true });
 }
@@ -446,7 +458,7 @@ server.registerTool('delete_item', {
 // ── Research & Memo ツール ────────────────────────────────────────
 server.registerTool('research_list_boards', {
   title: 'Research & Memo のボード一覧',
-  description: `${RESEARCH_ACCOUNT_EMAIL} のアカウントサイト Research & Memo のボード一覧（メインボード＋追加ボード）を、ノード数・エッジ数つきで返す。`,
+  description: `${RESEARCH_ACCOUNT_EMAIL} のアカウントサイト Research & Memo のボード一覧（メインボード＋追加ボード）を返す。notes/edges はノードビュー、topics/relations はマインドマップの件数。マインドマップが既定のビューなので、topics が 0 でなければ中身は mindmap_get で読むこと。`,
   inputSchema: {},
 }, async () => {
   const snap = await (await researchCol()).get();
@@ -457,25 +469,29 @@ server.registerTool('research_list_boards', {
       title: (typeof x.title === 'string' && x.title.trim()) ? x.title : (d.id === RESEARCH_DEFAULT_BOARD ? 'メインボード' : '無題のボード'),
       notes: Array.isArray(x.items) ? x.items.length : 0,
       edges: Array.isArray(x.edges) ? x.edges.length : 0,
+      topics: Array.isArray(x.mindmap) ? x.mindmap.length : 0,
+      relations: Array.isArray(x.mindmapRelations) ? x.mindmapRelations.length : 0,
     };
   });
   if (!metas.some((m) => m.id === RESEARCH_DEFAULT_BOARD)) {
-    metas.unshift({ id: RESEARCH_DEFAULT_BOARD, title: 'メインボード', notes: 0, edges: 0 });
+    metas.unshift({ id: RESEARCH_DEFAULT_BOARD, title: 'メインボード', notes: 0, edges: 0, topics: 0, relations: 0 });
   }
   return ok({ account: RESEARCH_ACCOUNT_EMAIL, boards: metas });
 });
 
 server.registerTool('research_get_board', {
   title: 'ボードの中身を取得',
-  description: '指定ボードのノード（メモ等）とエッジ（接続）を返す。boardId 省略時はメインボード(canvas)。ノードの id はエッジ作成・更新・削除で使う。',
+  description: '指定ボードのノードビュー（メモ・エッジ）とマインドマップ（トピック・関係線）を返す。boardId 省略時はメインボード(canvas)。マインドマップだけが欲しいときは mindmap_get のほうが軽い。',
   inputSchema: { boardId: z.string().optional() },
 }, async ({ boardId }) => {
-  const { items, edges, title } = await loadBoard(boardId);
+  const { items, edges, title, mindmap, mindmapRelations } = await loadBoard(boardId);
   return ok({
     boardId: boardId || RESEARCH_DEFAULT_BOARD,
     title: title || (boardId && boardId !== RESEARCH_DEFAULT_BOARD ? '無題のボード' : 'メインボード'),
     notes: items.map(noteSummary),
     edges: edges.map(edgeSummary),
+    mindmap: mindmap.map(topicSummary),
+    mindmapRelations: mindmapRelations.map(relationSummary),
   });
 });
 
