@@ -17,21 +17,17 @@ import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import LineEndHandle from "./LineEndHandle.jsx";
 import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
 import { isBaseEditMode, useBaseEditMode } from "../../utils/baseEditMode";
+import { useDimChainStore } from "../../store/useDimChainStore";
+import { axisExtendMm, sideOffsetMm } from "../../utils/planBounds";
 
 // 通り芯は「基準線」なので、断面線（濃いスレート）より一段淡い青寄りのグレーにして
 // 図面の主役（躯体・寸法）を邪魔しない。選択中だけアクセント色で濃くする。
 const AXIS_COLOR = "#94a3b8";
 const AXIS_ACTIVE = "#0369a1";
 
-/**
- * 通り芯の線を、建物の外形からどれだけ外へ伸ばすか(mm)。
- * 建物のすぐ外（+200mm 付近）は断面記号（A / A'）の場所。
- * 寸法列は建物外形から 1000mm の位置に1列目を置き、以降 420mm ずつ外へ並ぶ（最大3列）。
- * 記号（X0/Y0…）は寸法列よりさらに外に出したいので、3列ぶん＋ラベル分を越える長さにする。
- *   1000 + 420×2 + ラベル 150 ＝ 1990 → 余裕を見て 2400。
- * 数値は utils/planBounds の DIM_COL_OFFSET_MM / DIM_COL_GAP_MM と揃えること。
- */
-const AXIS_EXTEND_MM = 2400;
+// 通り芯の線を建物の外形からどれだけ外へ伸ばすかは、寸法列の余白に追従する。
+// 記号（X0/Y0…）は寸法列のさらに外に置きたいので、その辺の余白 + 列ぶん + ラベル分を越える長さにする。
+// 計算は utils/planBounds の axisExtendMm に集約（既定の余白 1000 では従来と同じ 2400）。
 /** 線の端から記号までの距離(mm)。 */
 const BADGE_GAP_MM = 380;
 
@@ -100,7 +96,9 @@ function AxisBadge({ axis, active, position }) {
             title={`通り芯 ${axis.name}（クリックで選択 / ダブルクリックで改名）`}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
-              minWidth: 21, height: 21, padding: "0 5px", borderRadius: "50%",
+              // 通り芯記号は正円。高さを固定すると "X10" のような長い符号で横に伸びて楕円になるため、
+              // 幅は中身に任せ、aspect-ratio で高さを幅に追従させる（符号が伸びても円のまま）。
+              boxSizing: "border-box", minWidth: 21, aspectRatio: "1 / 1", padding: "0 5px", borderRadius: "50%",
               fontSize: 10, fontWeight: 700, letterSpacing: "0.3px", whiteSpace: "nowrap",
               fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
               color: active ? "#f8fafc" : "#334155",
@@ -282,8 +280,11 @@ function SideAxis({ axis, active, hAxis, topY, botY }) {
  * mode="plan"  … 平面図(Top)。両方向の通り芯を編集可能で描く。
  * mode="side"  … 断面/立面。hAxis（画面横の world 軸）に一致する向きの通りだけ表示。
  */
-export default function GridAxisOverlay({ mode = "plan", hAxis = null }) {
+export default function GridAxisOverlay({ mode = "plan", hAxis = null, viewKey = null }) {
   const axes = useGridAxisStore((s) => s.axes);
+  // 寸法列の余白（辺ごと）。通り芯はこれに追従して伸びる＝記号が寸法列の内側に入らない。
+  const dimConfigs = useDimChainStore((s) => s.configs);
+  const chainOffsets = (viewKey && dimConfigs[viewKey]?.offsets) || null;
   const selectedId = useGridAxisStore((s) => s.selectedId);
   const visible = useGridAxisStore((s) => s.visible);
   const sceneExtentXZ = useEditorModeStore((s) => s.sceneExtentXZ);
@@ -318,15 +319,16 @@ export default function GridAxisOverlay({ mode = "plan", hAxis = null }) {
     return { minX: box.min.x, maxX: box.max.x, minZ: box.min.z, maxZ: box.max.z };
   }, [baseColliders, walls, half, isMm]);
 
-  /** 通り芯の既定の長さ。建物外形＋寸法列を越える余白まで伸ばす（記号は寸法の外に出る）。 */
+  /** 通り芯の既定の長さ。建物外形＋寸法列を越える余白まで伸ばす（記号は寸法の外に出る）。
+   *  端ごとに、その端が向いている辺の余白を使う（上下・左右で余白が違っても正しく伸びる）。 */
   const autoSpan = useMemo(() => {
-    const ext = w(AXIS_EXTEND_MM);
+    const ext = (side) => w(axisExtendMm(sideOffsetMm(chainOffsets, side)));
     return (dir) => (dir === "x"
-      // X通り（平面で縦線）は Z 方向に伸びる
-      ? { from: bounds.minZ - ext, to: bounds.maxZ + ext }
-      // Y通り（横線）は X 方向に伸びる
-      : { from: bounds.minX - ext, to: bounds.maxX + ext });
-  }, [bounds, isMm]);
+      // X通り（平面で縦線）は Z 方向に伸びる。画面の上が −Z なので −Z 端＝上辺・+Z 端＝下辺。
+      ? { from: bounds.minZ - ext("top"), to: bounds.maxZ + ext("bottom") }
+      // Y通り（横線）は X 方向に伸びる。−X 端＝左辺・+X 端＝右辺。
+      : { from: bounds.minX - ext("left"), to: bounds.maxX + ext("right") });
+  }, [bounds, isMm, chainOffsets]);
 
   const shown = useMemo(() => {
     if (!visible) return [];
@@ -354,7 +356,8 @@ export default function GridAxisOverlay({ mode = "plan", hAxis = null }) {
   }
 
   // 断面/立面: 建物の高さいっぱい＋寸法列を越える余白まで伸ばし、上端に符号を置く。
-  const topY = Math.max(sceneMaxY || 0, w(3000)) + w(AXIS_EXTEND_MM);
+  // 符号は上端に出るので、そのビューの上辺の余白に追従させる。
+  const topY = Math.max(sceneMaxY || 0, w(3000)) + w(axisExtendMm(sideOffsetMm(chainOffsets, "top")));
   const botY = -w(1200);
   return (
     <group userData={{ ignoreClipping: true, isDrawnStructure: true }}>

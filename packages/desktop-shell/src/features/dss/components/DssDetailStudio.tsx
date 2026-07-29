@@ -12,11 +12,9 @@ interface Props {
   isAuthor: boolean;
   projectId?: string;
   glbUrl: string | null;
-  title: string;
   /** 開いた直後にどのセクションへ注目させるか。null なら全セクションを並べる。 */
   section: 'material' | 'swap' | 'anim' | null;
   walkthroughMode: 'edit' | 'preview';
-  setWalkthroughMode: (m: 'edit' | 'preview') => void;
   // マテリアル：メインビューアへ委譲する配線
   setMatPreview: (s: MaterialPreviewState | null) => void;
   matPickRef: React.MutableRefObject<((meshName: string) => void) | null>;
@@ -35,7 +33,6 @@ interface Props {
   walkthroughDirty: boolean;
   setWalkthroughDirty: (v: boolean) => void;
   isSavingWalkthrough: boolean;
-  saveWalkthroughSettings: () => void;
   /** パターン保存時にメインビューアの描画をJPEGデータURLで取得する（サムネイル生成用）。 */
   captureThumb?: () => string | null;
 }
@@ -56,6 +53,10 @@ export const DssDetailStudio: React.FC<Props> = ({
   walkthroughAnim, setWalkthroughAnim, walkthroughInfo, setWalkthroughInfo,
   walkthroughDirty, setWalkthroughDirty, isSavingWalkthrough, captureThumb,
 }) => {
+  // ここは作成者の編集面。閲覧者、および「閲覧者の見え方を確認」中は何も出さない
+  // （呼び出し側の条件だけに頼らず、このコンポーネント自身でも閉じておく）。
+  if (!isAuthor || walkthroughMode === 'preview') return null;
+
   // 保存ボタンは廃止（設計原則 State Synchronization に合わせて自動保存）。
   // 状態だけを控えめに示す。
   const saveBtn = (isSavingWalkthrough || walkthroughDirty) ? (

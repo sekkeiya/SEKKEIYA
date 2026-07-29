@@ -41,7 +41,8 @@ export default function EditorBasePlanOptionTree() {
   const selectPlan = useWorkspaceStructureStore((s: any) => s.selectPlan);
   const selectOption = useWorkspaceStructureStore((s: any) => s.selectOption);
 
-  const createBase = useWorkspaceStructureStore((s: any) => s.createBase);
+  const openLayout = useWorkspaceStructureStore((s: any) => s.openLayout);
+
   const createPlan = useWorkspaceStructureStore((s: any) => s.createPlan);
   const createOption = useWorkspaceStructureStore((s: any) => s.createOption);
 
@@ -92,18 +93,33 @@ export default function EditorBasePlanOptionTree() {
     [openConfirm]
   );
 
-  const safeBases = useMemo(() => (Array.isArray(bases) ? bases : []), [bases]);
+  // エディター内には「いま開いている Base」しか出さない。別 Base への切替は
+  // Exit → Layout Dashboard から行う（ヘッダーのパンくずも同じ方針）。
+  const safeBases = useMemo(
+    () => (Array.isArray(bases) ? bases.filter((b) => b?.id && b.id === selectedBaseId) : []),
+    [bases, selectedBaseId]
+  );
   const safePlans = useMemo(() => (Array.isArray(plansOfSelectedBase) ? plansOfSelectedBase : []), [plansOfSelectedBase]);
   const safeOptions = useMemo(() => (Array.isArray(options) ? options : []), [options]);
 
+  // Plan/Option を開いていない＝躯体編集モード。Plan が 0 件の Base は戻り先が無いのでトグル不可。
+  const isBaseOnly = !selectedPlanId && !selectedOptionId;
+  const baseToggleDisabled = isBaseOnly && safePlans.length === 0;
+
+  // Base 行＝躯体編集モードのトグル（ヘッダーのパンくずと同じ挙動）。
+  //  通常時    → Plan / Option の選択を解除して躯体のみ表示
+  //  躯体モード → 直前に開いていた Plan（無ければ先頭 Plan）へ戻る
   const handleSelectBase = useCallback(
     (baseId: string) => {
       if (!baseId) return;
-      // Base クリックは常に「Base（躯体）のみ表示」へ。
-      // 同じ Base でも Plan / Option の選択を解除する（selectBase → onSelectBase が子をクリア）。
-      selectBase(baseId);
+      if (isBaseOnly) {
+        if (baseToggleDisabled) return; // 戻り先が無い（Plan 0 件の Base）
+        openLayout(baseId);
+      } else {
+        selectBase(baseId);
+      }
     },
-    [selectBase]
+    [selectBase, openLayout, isBaseOnly, baseToggleDisabled]
   );
 
   const handleSelectPlan = useCallback(
@@ -193,11 +209,7 @@ export default function EditorBasePlanOptionTree() {
               </Typography>
             </ListItemButton>
           </Tooltip>
-          <Tooltip title="New Base" placement="top">
-            <IconButton size="small" onClick={() => createBase && createBase()}>
-              <AddRoundedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {/* 新規 Base の作成は Layout Dashboard に一本化（エディター内では Base を切り替えない）。 */}
         </Stack>
 
         <Divider sx={{ opacity: 0.2 }} />
@@ -205,7 +217,7 @@ export default function EditorBasePlanOptionTree() {
         <Collapse in timeout="auto">
           {safeBases.length === 0 ? (
             <Typography variant="caption" sx={{ opacity: 0.7, px: 1 }}>
-              No bases available. Click + to create.
+              Base が開かれていません。プロジェクト名をクリックして一覧へ戻ってください。
             </Typography>
           ) : (
           <List dense disablePadding sx={{ mt: 0.25 }}>
@@ -217,16 +229,21 @@ export default function EditorBasePlanOptionTree() {
                 <Box key={b.id} sx={{ borderBottom: `1px solid ${border}`, pb: 0.25, mb: 0.25 }}>
                   {/* === Base === */}
                   <Stack direction="row" alignItems="center" sx={{ pr: 1 }}>
-                    <ListItemButton
-                      onClick={() => handleSelectBase(b.id)}
-                      selected={openBase}
-                      sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 28 }}
+                    <Tooltip
+                      title={baseToggleDisabled ? "Plan がありません" : isBaseOnly ? "Plan に戻る" : "躯体を編集（Base のみ表示）"}
+                      placement="top"
                     >
-                      <ListItemText
-                        primary={`Base: ${humanBaseName}`}
-                        primaryTypographyProps={{ fontSize: 12.5, fontWeight: openBase ? 700 : 500, lineHeight: 1.2 }}
-                      />
-                    </ListItemButton>
+                      <ListItemButton
+                        onClick={() => handleSelectBase(b.id)}
+                        selected={isBaseOnly}
+                        sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 28, opacity: baseToggleDisabled ? 0.5 : 1 }}
+                      >
+                        <ListItemText
+                          primary={`Base: ${humanBaseName}`}
+                          primaryTypographyProps={{ fontSize: 12.5, fontWeight: openBase ? 700 : 500, lineHeight: 1.2 }}
+                        />
+                      </ListItemButton>
+                    </Tooltip>
                     {renderChatJump("base", b.id)}
                     {/* Action icons appear on hover ideally, but always visible is safer for MVP */}
                     <Box sx={{ display: "flex", gap: 0.25, opacity: openBase ? 1 : 0.3 }}>

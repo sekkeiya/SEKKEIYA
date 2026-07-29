@@ -40,6 +40,7 @@ import { BRAND } from '../../../styles/theme';
 import { openChildWindow } from '../../../utils/openChildWindow';
 import { isTauri } from '../../../lib/platform';
 import { UnsavedFilesIndicator } from './UnsavedFilesIndicator';
+import { usePluginRegistry } from '../../../features/plugins/registry/usePluginRegistry';
 
 export type TabDef = { scope: string; id: string | null; label: string; color: string; icon?: string };
 
@@ -65,6 +66,40 @@ export const ALL_CHILD_TABS: TabDef[] = [
   { scope: '3dsm', id: 'movie',    label: 'S.Movie',         color: '#C98A4B',  icon: iconMovie    },
   { scope: '3dsmt', id: 'material', label: 'S.Material',     color: '#ec407a',  icon: iconMaterial },
 ];
+
+// 要件65: プラグイン由来のタブ。ALL_CHILD_TABS(本体同梱)と合成して表示する。
+// scope はプラグイン id そのもの(逆ドメイン)。本体の短い scope コードとは衝突しない。
+// id(workspaceId)は WorkspacePanelContainer が PluginFrame へ振り分けるためのキー。
+export const PLUGIN_TAB_PREFIX = 'plugin:';
+
+// プラグインタブ判定。WorkspacePanelContainer.tsx / RightPanelHost.tsx と同じく
+// tab.id の prefix で判定する(scope は逆ドメイン idで ALL_CHILD_TABS には無いので
+// どちらの方法でも判定できるが、既存箇所と揃える)。
+// ⧉「新しいウィンドウで開く」と ×「タブを閉じる」はプラグインタブでは出さない:
+//   ⧉ は openChildWindow.ts の SCOPE_TO_LABEL / StandaloneWorkspace.tsx の SCOPE_TO_WS に
+//     逆ドメイン scope が無く、別アプリ(ProjectHome)を開いてしまうため。
+//   × は togglePinnedTab(tab.scope) が pinnedTabIds に無い id を追加側へ倒し、
+//     逆ドメイン id が localStorage に永続化されてしまう(押しても閉じない上にゴミが残る)ため。
+function isPluginTab(tab: TabDef): boolean {
+  return tab.id?.startsWith(PLUGIN_TAB_PREFIX) ?? false;
+}
+
+// ALL_CHILD_TABS と同じく、この行は react-refresh/only-export-components の対象になる
+// (コンポーネントファイルからの非コンポーネントの関数エクスポート)。既存の ALL_CHILD_TABS
+// も同じ理由で違反しており、この 1 ファイルに限った既知の許容パターン。
+// eslint-disable-next-line react-refresh/only-export-components
+export function pluginTabs(
+  plugins: { manifest: { id: string; color?: string; contributes?: { tab?: { label: string } } } }[],
+): TabDef[] {
+  return plugins
+    .filter(p => !!p.manifest.contributes?.tab)
+    .map(p => ({
+      scope: p.manifest.id,
+      id: `${PLUGIN_TAB_PREFIX}${p.manifest.id}`,
+      label: p.manifest.contributes!.tab!.label,
+      color: p.manifest.color ?? '#90a4ae',
+    }));
+}
 
 const TabIcon: React.FC<{ src?: string; color?: string }> = ({ src, color }) => {
   const [err, setErr] = React.useState(false);
@@ -136,6 +171,7 @@ interface SortableTabProps {
   tab: TabDef;
   isActive: boolean;
   isDirty: boolean;
+  isPlugin: boolean;
   onActivate: () => void;
   onClose: () => void;
   onOpenNew: () => void;
@@ -143,7 +179,7 @@ interface SortableTabProps {
 }
 
 const SortableTab: React.FC<SortableTabProps> = ({
-  tab, isActive, isDirty, onActivate, onClose, onOpenNew, onContextMenu,
+  tab, isActive, isDirty, isPlugin, onActivate, onClose, onOpenNew, onContextMenu,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tab.scope });
 
@@ -206,40 +242,42 @@ const SortableTab: React.FC<SortableTabProps> = ({
             }}
           />
         )}
-        {/* Action buttons — appear on hover */}
-        <Box
-          className="tab-actions"
-          sx={{
-            opacity: 0, pointerEvents: 'none',
-            position: 'absolute', top: '50%', right: 0,
-            transform: 'translateY(-50%)',
-            display: 'flex', alignItems: 'center', gap: 0.25,
-            transition: 'opacity 0.15s',
-          }}
-        >
+        {/* Action buttons — appear on hover。プラグインタブは ⧉/× とも出さない(C1/C2 参照)。 */}
+        {!isPlugin && (
           <Box
-            onClick={(e) => { e.stopPropagation(); onOpenNew(); }}
+            className="tab-actions"
             sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 14, height: 14, borderRadius: '3px',
-              transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: BRAND.panel2 },
+              opacity: 0, pointerEvents: 'none',
+              position: 'absolute', top: '50%', right: 0,
+              transform: 'translateY(-50%)',
+              display: 'flex', alignItems: 'center', gap: 0.25,
+              transition: 'opacity 0.15s',
             }}
           >
-            <OpenInNewIcon sx={{ fontSize: 10 }} />
+            <Box
+              onClick={(e) => { e.stopPropagation(); onOpenNew(); }}
+              sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 14, height: 14, borderRadius: '3px',
+                transition: 'background-color 0.15s',
+                '&:hover': { bgcolor: BRAND.panel2 },
+              }}
+            >
+              <OpenInNewIcon sx={{ fontSize: 10 }} />
+            </Box>
+            <Box
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 14, height: 14, borderRadius: '50%',
+                transition: 'background-color 0.15s',
+                '&:hover': { bgcolor: BRAND.panel2 },
+              }}
+            >
+              <CloseIcon sx={{ fontSize: 10 }} />
+            </Box>
           </Box>
-          <Box
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 14, height: 14, borderRadius: '50%',
-              transition: 'background-color 0.15s',
-              '&:hover': { bgcolor: BRAND.panel2 },
-            }}
-          >
-            <CloseIcon sx={{ fontSize: 10 }} />
-          </Box>
-        </Box>
+        )}
       </Box>
     </Box>
   );
@@ -272,9 +310,17 @@ export const WorkspaceTabBar: React.FC = () => {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  const visibleTabs = pinnedTabIds
-    .map(id => ALL_CHILD_TABS.find(t => t.scope === id))
-    .filter((t): t is TabDef => !!t);
+  // 要件65: プラグインのタブは pinnedTabIds に載らない(ユーザーが並べ替えた履歴が無いため)。
+  // 入れたらすぐ見えてほしいので、ピン留めタブの後ろに常に並べる。
+  const { plugins } = usePluginRegistry();
+  const installedTabs = React.useMemo(() => pluginTabs(plugins), [plugins]);
+
+  const visibleTabs = [
+    ...pinnedTabIds
+      .map(id => ALL_CHILD_TABS.find(t => t.scope === id))
+      .filter((t): t is TabDef => !!t),
+    ...installedTabs,
+  ];
 
   const hiddenTabs = ALL_CHILD_TABS.filter(t => !pinnedTabIds.includes(t.scope));
 
@@ -283,6 +329,10 @@ export const WorkspaceTabBar: React.FC = () => {
     if (!over || active.id === over.id) return;
     const oldIdx = pinnedTabIds.indexOf(active.id as string);
     const newIdx = pinnedTabIds.indexOf(over.id as string);
+    // プラグインタブは pinnedTabIds に載らないため並べ替え対象外(常に末尾固定)。
+    // indexOf が -1 を返すと arrayMove が末尾要素とみなして誤動作するため、
+    // どちらかが本体同梱タブでなければ何もしない。
+    if (oldIdx === -1 || newIdx === -1) return;
     setPinnedTabIds(arrayMove(pinnedTabIds, oldIdx, newIdx));
   };
 
@@ -409,11 +459,15 @@ export const WorkspaceTabBar: React.FC = () => {
               tab={tab}
               isActive={tab.id === activeWorkspaceId}
               isDirty={Boolean(dirtyScopes[tab.scope])}
+              isPlugin={isPluginTab(tab)}
               onActivate={() => activateTab(tab)}
               onClose={() => togglePinnedTab(tab.scope)}
               onOpenNew={() => handleOpenNew(tab)}
               onContextMenu={(e) => {
                 e.preventDefault();
+                // プラグインタブは ⧉/× とも出せることが無い(C1/C2 参照)ので、
+                // 中身の無いメニューを開かず、右クリック自体を何もしないことにする。
+                if (isPluginTab(tab)) return;
                 setContextMenu({ x: e.clientX, y: e.clientY, tab });
               }}
             />

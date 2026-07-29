@@ -22,7 +22,7 @@ import { useDimChainStore, defaultChainsFor, markKey } from "../../store/useDimC
 import { useDrawToolActive } from "../../utils/drawToolActive";
 import { useBaseEditMode } from "../../utils/baseEditMode";
 import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
-import { measureXZBounds, DIM_COL_OFFSET_MM, DIM_COL_GAP_MM } from "../../utils/planBounds";
+import { measureXZBounds, chainSpan, sideOffsetMm, DIM_COL_GAP_MM } from "../../utils/planBounds";
 
 const INK = "#475569";      // 寸法線
 const INK_DARK = "#0f172a"; // 数値
@@ -42,8 +42,9 @@ const tagStyle = (strong, hovered) => ({
 });
 
 /** 寸法値のバッジ。刻み元から自動計算した値なので数値そのものは表示専用。
- *  ホバーすると × が出て、その寸法を作っている「区切り」を消せる（両隣の寸法が統合される）。 */
-function ChainTag({ position, valueMm, strong, title, onDelete }) {
+ *  ホバーすると × が出て、その寸法を作っている「区切り」を消せる（両隣の寸法が統合される）。
+ *  rotateDeg … 寸法線に沿わせる回転（製図の作法。縦列は下から上へ読ませる＝ -90°）。 */
+function ChainTag({ position, valueMm, strong, title, onDelete, rotateDeg = 0 }) {
   const [hover, setHover] = useState(false);
   // 作図中は寸法がクリックを吸わないようにする（点を置けなくなるため）。
   // Plan/Option（家具サイド）でも操作不可（寸法列は Base 共通＝編集は Base で）。
@@ -69,7 +70,12 @@ function ChainTag({ position, valueMm, strong, title, onDelete }) {
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        style={{ position: "relative", display: "inline-block", pointerEvents: drawing ? "none" : "auto" }}
+        style={{
+          position: "relative", display: "inline-block",
+          pointerEvents: drawing ? "none" : "auto",
+          // 数値を寸法線と同じ向きに寝かせる。× ごと回すので当たり判定もラベルに追従する。
+          transform: rotateDeg ? `rotate(${rotateDeg}deg)` : undefined,
+        }}
       >
         <div
           onPointerDown={(e) => e.stopPropagation()}
@@ -272,8 +278,7 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
     if (source === "total") {
       // 総寸法は「最初の通り芯 → 最後の通り芯」。製図では通り芯の総長を打つ。
       // 通り芯が無い（または1本だけの）向きは、建物の外形で代用する。
-      const g = gridValues(along);
-      return g.length >= 2 ? [g[0], g[g.length - 1]] : [lo, hi];
+      return chainSpan(gridValues(along), lo, hi);
     }
 
     if (source === "grid") {
@@ -338,7 +343,10 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
         }
       });
       if (!vals.length) return [];
-      return normalizeMarks(vals, lo, hi, w(120));
+      // 端は建物の外形ではなく通り芯の総長にそろえる。躯体 GLB の箱は庇や基礎を含んで
+      // 通り芯より外に出るので、そのまま端にすると壁面列だけが通り芯を突き抜ける。
+      const [sLo, sHi] = chainSpan(gridValues(along), lo, hi);
+      return normalizeMarks(vals, sLo, sHi, w(120));
     }
     return [];
   };
@@ -410,7 +418,8 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
 
   // 断面線の既定長さもこの値を基準にする（utils/planBounds に集約）
   const gap = w(DIM_COL_GAP_MM);   // 列の間隔
-  const off0 = w(DIM_COL_OFFSET_MM);  // 図面から1列目までの距離
+  // 図面から1列目までの距離は辺ごとに設定できる（寸法列パネルの余白欄）。
+  const off0For = (side) => w(sideOffsetMm(chains.offsets, side));
   const tick = w(70);
   const lblGap = w(150);
   const lineCommon = {
@@ -440,7 +449,7 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
         (chains[side] || []).map((column, ci) => {
           const marks = applyRemoved(marksFor(column.source, along, lo, hi), side, column.source);
           if (marks.length < 2) return null;
-          const at = base + sign * (off0 + gap * ci);       // この列の位置（列軸に直交する方向）
+          const at = base + sign * (off0For(side) + gap * ci); // この列の位置（列軸に直交する方向）
           const lbl = at + sign * lblGap;
           // 列軸に沿った点 → world。along="h" なら (t, at)、"v" なら (at, t)。
           const pt = (t, cross) => (along === "h" ? P(t, cross) : P(cross, t));
@@ -484,6 +493,8 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
                     position={pt((a + b) / 2, lbl)}
                     valueMm={toMm(b - a)}
                     strong={strong}
+                    // 縦の列（左右）は数値も縦に寝かせ、下から上へ読ませる（製図の作法）。
+                    rotateDeg={along === "v" ? -90 : 0}
                     title={`${CHAIN_TITLE[column.source]}（${SIDE_TITLE[side]}）`}
                     onDelete={isEnd ? undefined : () =>
                       useDimChainStore.getState().removeMark(markKey(viewKey, side, column.source, toMm(cut)))}

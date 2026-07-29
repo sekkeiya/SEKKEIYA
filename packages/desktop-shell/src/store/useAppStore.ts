@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { DesktopProject, WorkspacePayload, WorkspaceLaunchPayload, ActivityItem } from '../features/projects/types';
 import type { AppScope } from '../shared/layout/workspace/types';
+import { CHILD_APP_SCOPES } from '../shared/layout/workspace/types';
 export type ModelsScope = 'global_models' | 'global_following_models' | 'global_projects' | 'global_following_projects' | 'my_public_models' | 'my_private_models' | 'project_models' | 'team_project_models' | 'view_public_project_models' | 'local_models';
 export type DspScope = 'global_presentations' | 'global_projects' | 'my_public_presentations' | 'my_private_presentations' | 'project_presentations' | 'team_project_presentations' | 'my_templates';
 
@@ -311,6 +312,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastActiveAppScope: null,
   pinnedTabIds: loadPinnedTabs(),
   togglePinnedTab: (id) => set((state) => {
+    // プラグインタブ等、ALL_CHILD_TABS に無い scope はピン留め対象外。
+    // WorkspaceTabBar 側でプラグインタブに ×/⧉ を出さないようにしているが、
+    // 万一呼ばれても localStorage に逆ドメイン id が永続化されないよう二重に守る
+    // (handleDragEnd の -1 ガードと同じ考え方)。
+    if (!CHILD_APP_SCOPES.includes(id)) return state;
     const next = state.pinnedTabIds.includes(id)
       ? state.pinnedTabIds.filter(i => i !== id)
       : [...state.pinnedTabIds, id];

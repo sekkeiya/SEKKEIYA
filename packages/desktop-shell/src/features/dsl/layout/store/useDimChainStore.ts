@@ -20,7 +20,18 @@ export interface ChainColumn {
   source: ChainSource;
 }
 
-export type ViewChains = Record<ChainSide, ChainColumn[]>;
+export interface ViewChains {
+  top: ChainColumn[];
+  bottom: ChainColumn[];
+  left: ChainColumn[];
+  right: ChainColumn[];
+  /**
+   * 建物外形から1列目の寸法線までの距離(mm)。辺ごとに設定でき、未設定の辺は
+   * 既定 DIM_COL_OFFSET_MM。通り芯の伸ばし量と断面記号のクリアランスもこの値に追従する。
+   * 既存の保存データにはこのキーが無く undefined＝既定なので、マイグレーションは不要。
+   */
+  offsets?: Partial<Record<ChainSide, number>>;
+}
 
 export const CHAIN_SIDES: ChainSide[] = ["top", "bottom", "left", "right"];
 
@@ -127,7 +138,9 @@ interface DimChainState {
   addColumn: (viewKey: string, side: ChainSide, source: ChainSource) => void;
   removeColumn: (viewKey: string, side: ChainSide, id: string) => void;
   setColumnSource: (viewKey: string, side: ChainSide, id: string, source: ChainSource) => void;
-  /** そのビューを既定構成に戻す。 */
+  /** その辺の余白(mm)＝建物外形から1列目の寸法線までの距離を設定する。 */
+  setSideOffset: (viewKey: string, side: ChainSide, mm: number) => void;
+  /** そのビューを既定構成に戻す（余白も既定へ戻る）。 */
   resetView: (viewKey: string) => void;
 }
 
@@ -193,6 +206,14 @@ export const useDimChainStore = create<DimChainState>((set, get) => {
         ...v,
         [side]: (v[side] || []).map((c) => (c.id === id ? { ...c, source } : c)),
       })),
+
+    setSideOffset: (viewKey, side, mm) =>
+      mutate(viewKey, (v) => {
+        // 負値・NaN は保存しない（読み出し側の sideOffsetMm でも既定へ落ちるが、
+        // 不正値をドキュメントに残さない）。
+        const n = Math.max(0, Math.round(Number(mm) || 0));
+        return { ...v, offsets: { ...(v.offsets || {}), [side]: n } };
+      }),
 
     resetView: (viewKey) => mutate(viewKey, () => defaultChainsFor(viewKey)),
   };

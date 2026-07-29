@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { useAppStore } from '../../../store/useAppStore';
 import ProjectHome from '../../../pages/ProjectHome';
 import { DssAdapter, DslAdapter, DspAdapter, DscAdapter, AiCanvasAdapter, DsdAdapter, DsrAdapter, DsiAdapter, DsqAdapter, DsfAdapter, DskAdapter, DsbAdapter, DsmAdapter, DsmtAdapter } from './Adapters';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { PluginFrame } from '../../../features/plugins/host/PluginFrame';
+import { usePluginRegistry } from '../../../features/plugins/registry/usePluginRegistry';
+import { PLUGIN_TAB_PREFIX } from './WorkspaceTabBar';
 const FIXED_PANELS = [
   { id: 'models', type: 'ModelsPanel' },
   { id: 'layout', type: 'LayoutPanel' },
@@ -37,6 +41,14 @@ export const WorkspacePanelContainer: React.FC = () => {
   const activeProjectId = useAppStore(s => s.activeProjectId);
   const getActiveWorkspace = useAppStore(s => s.getActiveWorkspace);
   const dirtyScopes = useAppStore(s => s.dirtyScopes);
+
+  // 要件65: プラグインのタブはここで描画する。ALL_CHILD_TABS 由来の固定パネルとは
+  // 別扱いにする（KeepAlive の対象にせず、タブを離れたらアンマウントして iframe を解放する）。
+  const { plugins, loading: pluginsLoading } = usePluginRegistry();
+  const isPluginTab = !!activeWorkspaceId?.startsWith(PLUGIN_TAB_PREFIX);
+  const activePlugin = isPluginTab
+    ? plugins.find(p => `${PLUGIN_TAB_PREFIX}${p.manifest.id}` === activeWorkspaceId) ?? null
+    : null;
 
   // 直近にアクティブだったパネル順（先頭が最新）。KEEP_RECENT 件までマウント維持。
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -88,6 +100,37 @@ export const WorkspacePanelContainer: React.FC = () => {
       return { ...prev, [activeWorkspaceId]: payload };
     });
   }, [activeWorkspaceId, activeProjectId, getActiveWorkspace]);
+
+  if (activePlugin) {
+    // ErrorBoundary で包む: プラグイン起因の描画例外が本体全体を落とさないようにする。
+    // PluginFrame 内の state で拾えるのは読み込み失敗と RPC エラーだけで、
+    // 描画中に投げられた例外はここでしか止められない。
+    return (
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, bgcolor: 'background.default' }}>
+        <ErrorBoundary key={activePlugin.manifest.id}>
+          <PluginFrame plugin={activePlugin} projectId={activeProjectId || ''} />
+        </ErrorBoundary>
+      </Box>
+    );
+  }
+
+  if (isPluginTab) {
+    // activeWorkspaceId は plugin: prefix を持つのに activePlugin が見つからない取りこぼしケース。
+    // usePluginRegistry の共有キャッシュ化で通常は起きなくなるが、将来また競合状態が
+    // 起きたときに FIXED_PANELS.map まで落ちて「エラーも読み込み中表示も出ない空白」に
+    // なるのを避けるため、専用の受け皿を残す（レビュー指摘）。
+    return (
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, bgcolor: 'background.default' }}>
+        {pluginsLoading ? (
+          <CircularProgress />
+        ) : (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            プラグインが見つかりません（{activeWorkspaceId}）
+          </Typography>
+        )}
+      </Box>
+    );
+  }
 
   if (!activeWorkspaceId) {
     // If no specific workspace tab is open, we can show the Overview or an empty state

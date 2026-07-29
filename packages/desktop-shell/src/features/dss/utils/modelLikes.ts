@@ -9,7 +9,12 @@ function likesPath(model: any): string | null {
 }
 
 /**
- * 自分がいいね済みか、と総件数を読む。未ログインでも件数だけは読める。
+ * 自分がいいね済みか、と総件数を読む。
+ *
+ * 件数の集計（getCountFromServer）にもサインインが要る（firestore.rules は
+ * likes を `allow read: if isSignedIn()`）。uid が null でも件数だけは読めるが、
+ * それは匿名認証でサインイン済みの場合。完全に未サインインだと、uid の分岐に
+ * 入る前に permission-denied で throw する。
  *
  * モデルIDが解決できない（＝そもそもいいね対象が存在しない）場合だけ
  * { liked: false, count: 0 } を返す。オフライン等でサーバーに読みに行けなかった

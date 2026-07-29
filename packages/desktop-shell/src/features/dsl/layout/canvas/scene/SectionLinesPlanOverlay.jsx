@@ -16,7 +16,8 @@ import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStor
 import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import LineEndHandle from "./LineEndHandle.jsx";
 import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
-import { measureXZBounds, defaultSectionSpan } from "../../utils/planBounds";
+import { measureXZBounds, defaultSectionSpan, sideOffsetMm } from "../../utils/planBounds";
+import { useDimChainStore } from "../../store/useDimChainStore";
 
 // 落ち着いたモノクロ基調（建築図面らしい無駄のないスタイル）。
 //   非選択 = ミディアムスレート / 選択 = ほぼ黒。装飾（グロー等）は入れない。
@@ -400,8 +401,11 @@ const sectionCtrlBtnStyle = {
   userSelect: "none",
 };
 
-export default function SectionLinesPlanOverlay() {
+export default function SectionLinesPlanOverlay({ viewKey = null }) {
   const lines = useSectionLinesStore((s) => s.lines);
+  // 寸法列の余白（辺ごと）。断面記号のクリアランスをこれに合わせる。
+  const dimConfigs = useDimChainStore((s) => s.configs);
+  const chainOffsets = (viewKey && dimConfigs[viewKey]?.offsets) || null;
   const activeLineId = useSectionLinesStore((s) => s.activeLineId);
   const arrowStyle = useSectionLinesStore((s) => s.arrowStyle);
   const walls = useWallStore((s) => s.walls);
@@ -428,11 +432,15 @@ export default function SectionLinesPlanOverlay() {
     () => measureXZBounds(structureColliders, walls, w),
     [structureColliders, walls, isMm],
   );
+  // 1列目の寸法線に被らないためのクリアランスは、その断面線の両端が向いている 2 辺の
+  // 余白のうち小さい方に合わせる（安全弁なので狭い側が効く）。
+  const minOffsetMm = (a, b) => Math.min(sideOffsetMm(chainOffsets, a), sideOffsetMm(chainOffsets, b));
   const autoSpan = useMemo(() => ({
-    // axis="z"（横断面線）は X 方向に伸びる／axis="x"（縦断面線）は Z 方向。
-    z: defaultSectionSpan(bounds, "x", w, half, labelGap),
-    x: defaultSectionSpan(bounds, "z", w, half, labelGap),
-  }), [bounds, half, labelGap, isMm]);
+    // axis="z"（横断面線）は X 方向に伸びる → 端は左辺・右辺を向く。
+    z: defaultSectionSpan(bounds, "x", w, half, labelGap, minOffsetMm("left", "right")),
+    // axis="x"（縦断面線）は Z 方向に伸びる → 端は上辺・下辺を向く。
+    x: defaultSectionSpan(bounds, "z", w, half, labelGap, minOffsetMm("top", "bottom")),
+  }), [bounds, half, labelGap, isMm, chainOffsets]);
 
   if (!lines.length) return null;
   // 平面図の水平カット面の少し下に描く（クリップで消えないように）

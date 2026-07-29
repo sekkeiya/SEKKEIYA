@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Box, Typography, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
+import { Box, Typography, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Tooltip } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -9,9 +9,11 @@ import HomeWorkRoundedIcon from "@mui/icons-material/HomeWorkRounded";
 
 import { useWorkspaceStructureStore } from "../../../store/useWorkspaceStructureStore";
 
-// ヘッダーの Base / Plan / Option メニュー。
-// 「Base: 01 › Plan 1 › Option 1」の各セグメントがドロップダウンになっており、
-//  - Base   … プロジェクトに登録されている Base から 1 つだけ選択（切替は最後の Plan を自動で開く）
+// ヘッダーの Base / Plan / Option パンくず。
+//  - Base   … ドロップダウンではなく「躯体編集モードのトグル」。
+//             通常時にクリック → 躯体のみ表示（Plan/Option を解除）。
+//             躯体モード中にクリック → 直前に開いていた Plan へ戻る。
+//             別 Base への切替はここではできない（Exit → Layout Dashboard から選ぶ）。
 //  - Plan   … 選択中 Base 配下の Plan を選択／新規作成（配置パターンを複数作れる）
 //  - Option … 選択中 Plan 配下の Option を選択／新規作成（マテリアルパターンを複数作れる）
 // Plan/Option 未選択（=Base のみ開いている）ときは躯体編集バッジを表示。
@@ -24,11 +26,14 @@ const menuPaperSx = {
   "& .MuiMenuItem-root": { fontSize: 12.5, py: 0.75 },
 };
 
-function Segment({ label, strong, onClick }) {
-  return (
+// endIcon 未指定なら ▼（ドロップダウンであることの表示）。Base のようにメニューを持たない
+// セグメントは endIcon を渡して ▼ を消す。
+function Segment({ label, strong, onClick, tooltip, endIcon, disabled }) {
+  const body = (
     <Box
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       role="button"
+      aria-disabled={disabled || undefined}
       sx={{
         display: "flex",
         alignItems: "center",
@@ -36,10 +41,11 @@ function Segment({ label, strong, onClick }) {
         px: 0.6,
         py: 0.2,
         borderRadius: 0.75,
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.45 : 1,
         userSelect: "none",
         transition: "color 0.12s, background 0.12s",
-        "&:hover": { background: alpha("#fff", 0.08) },
+        "&:hover": disabled ? undefined : { background: alpha("#fff", 0.08) },
       }}
     >
       <Typography
@@ -55,8 +61,15 @@ function Segment({ label, strong, onClick }) {
       >
         {label}
       </Typography>
-      <ExpandMoreRoundedIcon sx={{ fontSize: 15, color: alpha("#fff", 0.5), flexShrink: 0 }} />
+      {endIcon ?? <ExpandMoreRoundedIcon sx={{ fontSize: 15, color: alpha("#fff", 0.5), flexShrink: 0 }} />}
     </Box>
+  );
+  return tooltip ? (
+    <Tooltip title={tooltip} placement="bottom">
+      {body}
+    </Tooltip>
+  ) : (
+    body
   );
 }
 
@@ -98,18 +111,56 @@ export default function StructureBreadcrumb() {
     ? optionList.find((o) => o?.id === selectedOptionId)?.name || "Option"
     : null;
 
-  if (!selectedBaseId) return null;
+  // Plan/Option を開いていない＝Base 編集（躯体モード）。
+  const isBaseOnly = !selectedPlanId && !selectedOptionId;
+  const hasPlans = planList.length > 0;
+  // Plan が 1 件も無い Base は常に躯体モードなので、戻り先が無い＝トグル不可。
+  const baseToggleDisabled = isBaseOnly && !hasPlans;
 
-  // Plan/Option を開いていない＝Base 編集（躯体モード相当）であることを示すバッジ。
-  const isBaseOnly = !planName && !optionName;
+  // Base セグメント＝躯体編集モードのトグル。別 Base への切替はここではできない
+  // （Exit → Layout Dashboard から選ぶ）。
+  const handleBaseClick = useCallback(() => {
+    if (!selectedBaseId) return;
+    if (isBaseOnly) {
+      // 躯体モード中 → 直前に開いていた Plan（無ければ先頭 Plan）へ戻る。
+      if (!hasPlans) return;
+      openLayout(selectedBaseId);
+    } else {
+      // Plan/Option を解除して躯体のみ表示。
+      selectBase(selectedBaseId);
+    }
+  }, [selectedBaseId, isBaseOnly, hasPlans, openLayout, selectBase]);
+
+  if (!selectedBaseId) return null;
 
   const check = <CheckRoundedIcon sx={{ fontSize: 16, color: "light-dark(#0aa5c2, #22d3ee)" }} />;
   const checkPlaceholder = <Box sx={{ width: 16 }} />;
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, minWidth: 0, overflow: "hidden" }}>
-      {/* ── Base ── */}
-      <Segment label={`Base: ${baseName}`} strong={isBaseOnly} onClick={openMenu("base")} />
+      {/* ── Base（ドロップダウンではなく躯体編集トグル）── */}
+      <Segment
+        label={`Base: ${baseName}`}
+        strong={isBaseOnly}
+        onClick={handleBaseClick}
+        disabled={baseToggleDisabled}
+        tooltip={
+          baseToggleDisabled
+            ? "Plan がありません"
+            : isBaseOnly
+              ? "Plan に戻る"
+              : "躯体を編集（Base のみ表示）"
+        }
+        endIcon={
+          <HomeWorkRoundedIcon
+            sx={{
+              fontSize: 15,
+              flexShrink: 0,
+              color: isBaseOnly ? "light-dark(#0aa5c2, #22d3ee)" : alpha("#fff", 0.5),
+            }}
+          />
+        }
+      />
 
       {/* ── Plan ── */}
       <ChevronRightRoundedIcon sx={{ fontSize: 16, color: "color-mix(in srgb, var(--brand-fg) 35%, transparent)", flexShrink: 0 }} />
@@ -134,37 +185,6 @@ export default function StructureBreadcrumb() {
           躯体編集
         </Box>
       )}
-
-      {/* ── Base メニュー: プロジェクト内の Base から 1 つ選択 ── */}
-      <Menu
-        anchorEl={anchorEl}
-        open={menuKey === "base"}
-        onClose={closeMenu}
-        slotProps={{ paper: { sx: menuPaperSx } }}
-      >
-        {baseList.map((b) => (
-          <MenuItem
-            key={b.id}
-            onClick={() => {
-              closeMenu();
-              if (b.id !== selectedBaseId) openLayout(b.id);
-            }}
-          >
-            <ListItemIcon>{b.id === selectedBaseId ? check : checkPlaceholder}</ListItemIcon>
-            <ListItemText primaryTypographyProps={{ fontSize: 12.5, noWrap: true }}>{b.name || "Base"}</ListItemText>
-          </MenuItem>
-        ))}
-        <Divider sx={{ borderColor: "rgb(var(--brand-fg-rgb) / 0.08)" }} />
-        <MenuItem
-          onClick={() => {
-            closeMenu();
-            selectBase(selectedBaseId); // Plan/Option を解除して躯体のみ表示
-          }}
-        >
-          <ListItemIcon><HomeWorkRoundedIcon sx={{ fontSize: 16, color: "light-dark(#0aa5c2, #22d3ee)" }} /></ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: 12.5 }}>躯体を編集（Base のみ表示）</ListItemText>
-        </MenuItem>
-      </Menu>
 
       {/* ── Plan メニュー: Base 配下の Plan を選択／新規作成 ── */}
       <Menu

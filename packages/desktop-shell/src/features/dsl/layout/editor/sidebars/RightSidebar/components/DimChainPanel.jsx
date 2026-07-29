@@ -1,8 +1,8 @@
 // DimChainPanel — 図面の寸法列（4辺 × 1〜3列）の構成を編集する。
 //   辺ごとに列を足し、各列の「刻み元」を選ぶ。列は内側から外側の順に並ぶ。
 //   構成はビュー（平面/天井/断面/立面）ごとに保存される。
-import React, { useEffect } from "react";
-import { Box, Typography, Stack, IconButton, Tooltip, Select, MenuItem, Chip, Divider, Button } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, Typography, Stack, IconButton, Tooltip, Select, MenuItem, Chip, Divider, Button, TextField } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -17,8 +17,40 @@ import {
   MAX_COLUMNS_PER_SIDE,
 } from "../../../../store/useDimChainStore";
 import { useViewportUiStore } from "../../../../store/viewportUiStore";
+import { sideOffsetMm } from "../../../../utils/planBounds";
 
 const SOURCES = ["total", "grid", "wall", "level"];
+
+/** 余白(mm)の入力欄。1文字ごとに保存すると Firestore を連打するので、
+ *  入力中はローカル draft を持ち、Enter か blur で確定する。 */
+function OffsetField({ valueMm, onCommit }) {
+  const [draft, setDraft] = useState(null);
+  const shown = draft ?? String(valueMm);
+  const commit = () => {
+    if (draft === null) return;
+    const n = Number(draft);
+    // 空欄や不正入力は元の値へ戻す（未設定という状態は作らない）。
+    if (draft.trim() !== "" && Number.isFinite(n)) onCommit(Math.max(0, Math.round(n)));
+    setDraft(null);
+  };
+  return (
+    <Tooltip title="建物の外形から1列目の寸法線までの余白(mm)" arrow>
+      <TextField
+        size="small" variant="standard" type="number" value={shown}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.currentTarget.blur(); }
+          else if (e.key === "Escape") { setDraft(null); e.currentTarget.blur(); }
+          // ← → などがキャンバスのショートカットに吸われないようにする。
+          e.stopPropagation();
+        }}
+        inputProps={{ min: 0, step: 50, style: { textAlign: "right", fontSize: 11, padding: "1px 2px" } }}
+        sx={{ width: 62, "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": { WebkitAppearance: "none", margin: 0 } }}
+      />
+    </Tooltip>
+  );
+}
 
 export default function DimChainPanel() {
   const configs = useDimChainStore((s) => s.configs);
@@ -27,6 +59,7 @@ export default function DimChainPanel() {
   const addColumn = useDimChainStore((s) => s.addColumn);
   const removeColumn = useDimChainStore((s) => s.removeColumn);
   const setColumnSource = useDimChainStore((s) => s.setColumnSource);
+  const setSideOffset = useDimChainStore((s) => s.setSideOffset);
   const resetView = useDimChainStore((s) => s.resetView);
   const removedMarks = useDimChainStore((s) => s.removedMarks);
   const restoreMarksFor = useDimChainStore((s) => s.restoreMarksFor);
@@ -69,17 +102,23 @@ export default function DimChainPanel() {
           <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
             {CHAIN_SIDE_LABEL[side]}辺
           </Typography>
-          <Tooltip title={cols.length >= MAX_COLUMNS_PER_SIDE ? "1辺に置ける列は3つまでです" : "この辺に寸法列を足す"} arrow>
-            <span>
-              <IconButton
-                size="small" disabled={cols.length >= MAX_COLUMNS_PER_SIDE}
-                onClick={() => addColumn(viewKey, side, side === "left" || side === "right" ? "level" : "grid")}
-                sx={{ width: 22, height: 22 }}
-              >
-                <AddRoundedIcon sx={{ fontSize: 15 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <OffsetField
+              valueMm={sideOffsetMm(chains.offsets, side)}
+              onCommit={(mm) => setSideOffset(viewKey, side, mm)}
+            />
+            <Tooltip title={cols.length >= MAX_COLUMNS_PER_SIDE ? "1辺に置ける列は3つまでです" : "この辺に寸法列を足す"} arrow>
+              <span>
+                <IconButton
+                  size="small" disabled={cols.length >= MAX_COLUMNS_PER_SIDE}
+                  onClick={() => addColumn(viewKey, side, side === "left" || side === "right" ? "level" : "grid")}
+                  sx={{ width: 22, height: 22 }}
+                >
+                  <AddRoundedIcon sx={{ fontSize: 15 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
         </Stack>
         {cols.length === 0 ? (
           <Typography sx={{ fontSize: 10, pl: 0.5, color: "color-mix(in srgb, var(--brand-fg) 38%, transparent)" }}>
@@ -142,7 +181,8 @@ export default function DimChainPanel() {
 
       <Typography sx={{ fontSize: 10.5, lineHeight: 1.5, mb: 1.25, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
         辺ごとに寸法列を 3 つまで並べられます。上から順に図面の内側 → 外側です。製図では
-        内側に細かい刻み（壁面・通り芯間）、外側に総寸法を置きます。
+        内側に細かい刻み（壁面・通り芯間）、外側に総寸法を置きます。辺名の右の数値は、建物の
+        外形から 1 列目の寸法線までの余白(mm)です。通り芯と断面記号もこの値に合わせて動きます。
       </Typography>
 
       {/* × で消した区切りの復元（このビュー分だけ戻す）。辺リストの上に置いて常に見えるようにする。 */}

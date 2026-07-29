@@ -199,10 +199,35 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   // 旧生成はモデル外接球の約1.74倍の距離から撮っていたため、その分だけ拡大して打ち消す。
   const [thumbIsLegacy, setThumbIsLegacy] = useState(true);
 
+  // ── ビューア下の帯と「整える」の開閉状態 ──
+  // stripKind は「ビューアが今どの種類を映しているか」の唯一の正。帯のハイライトも
+  // メインビューアの中身も必ずこの値から導出するので、両者が食い違うことがない。
+  // 編集側の操作（＋・整える・置き換えの候補選択・素材の編集）は、この値を書き換える形で
+  // ビューアへ反映する（別系統の state を増やして二重管理にしない）。
+  const [stripKind, setStripKind] = useState<StripKind | null>(null);
+  // 作成者が「整える」を開いているか。開くと右パネルが 600px に広がる。
+  const [editOpen, setEditOpen] = useState(false);
+  const [editFocus, setEditFocus] = useState<StripKind | null>(null);
+
   // ── マテリアルタブの3Dプレビューをメインビューアへ集約するための配線 ──
   // DssMaterialPresets が Canvas を持たず、選択状態をメインビューアに反映し、
   // メインビューアでのパーツクリック/スロット列挙を ref 経由でタブ側へ返す。
   const [matPreview, setMatPreview] = useState<MaterialPreviewState | null>(null);
+  // DssMaterialPresets はマウント時に一度通知し、アンマウント時に null を返す。
+  // つまり matPreview が非 null であること自体が「マテリアル編集が生きている」印になる。
+  // そのうえで、部位選択や素材の割り当てが実際に動いたときだけ帯を素材へ引き戻す
+  // （マウント直後の初回通知で切り替えると、「＋」や帯で選んだ種類を奪ってしまうため）。
+  const matPreviewPrevRef = useRef<MaterialPreviewState | null>(null);
+  const handleMatPreviewState = useCallback((st: MaterialPreviewState | null) => {
+    const prev = matPreviewPrevRef.current;
+    matPreviewPrevRef.current = st;
+    setMatPreview(st);
+    if (!st || !prev) return;
+    const changed =
+      JSON.stringify(prev.selection) !== JSON.stringify(st.selection) ||
+      prev.highlight.join('|') !== st.highlight.join('|');
+    if (changed) setStripKind('material');
+  }, []);
   const matPickRef = useRef<((meshName: string) => void) | null>(null);
   const matSlotsRef = useRef<((slots: EnumeratedSlot[]) => void) | null>(null);
   const handleMaterialPick = useCallback((meshName: string) => { matPickRef.current?.(meshName); }, []);
@@ -212,6 +237,12 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   // 帯・DssFurnitureSwap のどちらから選ばれても同じ state を経由するので、
   // セグメント往復（アンマウント→リマウント）で帯とビューアの表示が食い違うことがない。
   const [swapSel, setSwapSel] = useState<{ url: string; dims: any } | null>(null);
+  // 「整える」の置き換えエディタで候補が選ばれたときは、帯の選択（stripKind）も置き換えへ寄せる。
+  // 寄せないと「帯は素材を指しているのにビューアは別GLBを映している」食い違いが起きる。
+  const handleStudioSelectSwap = useCallback((sel: { url: string; dims: any } | null) => {
+    setSwapSel(sel);
+    if (sel) setStripKind('swap');
+  }, []);
   const handleSelectSwapIndex = useCallback((i: number | null) => {
     const list: any[] = Array.isArray(model?.extendedMetadata?.swapModels) ? model.extendedMetadata.swapModels : [];
     const s = i === null ? null : list[i];
@@ -279,15 +310,17 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   const [walkthroughDirty, setWalkthroughDirty] = useState(false);
   // ページ全体の表示モード（編集 / プレビュー）＋ 設定タブ（マテリアル/ウォークスルー/情報）
   const [walkthroughMode, setWalkthroughMode] = useState<'edit' | 'preview'>('edit');
-  // ビューア下の帯で選択中の種類（null = 帯を出さない）。既定は素材、素材が無ければ選択なし。
-  const [stripKind, setStripKind] = useState<StripKind | null>(null);
+  // 表示モデルが変わったら、帯の既定（素材があれば素材／無ければ選択なし）へ戻すと同時に
+  // 編集・選択の状態も全部リセットする。残すと、帯は「元」を指しているのにビューアが
+  // 前のモデルの差し替えGLBを映し続ける、といった食い違いが起きる。
   useEffect(() => {
     const c = countStripItems(model);
     setStripKind(c.material > 0 ? 'material' : null);
+    setEditOpen(false);
+    setEditFocus(null);
+    setSwapSel(null);
+    setGalleryVariantId(null);
   }, [model]);
-  // 作成者が「整える」を開いているか。開くと右パネルが 600px に広がる。
-  const [editOpen, setEditOpen] = useState(false);
-  const [editFocus, setEditFocus] = useState<StripKind | null>(null);
 
 
   // 変更は自動保存する（設計原則 State Synchronization）。連続操作をまとめるため少し待つ。
@@ -344,6 +377,24 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
   // 「閲覧者の見え方を確認」中なら見る（スペック表）に戻す。パネル幅もこれに揃える
   // （揃えないと、確認モード中だけ 600px の余白ができてしまう）。
   const showEditPanel = editOpen && isAuthor && walkthroughMode !== 'preview';
+
+  // メインビューアへ渡す素材プレビュー。
+  // ・置き換えを表示中は別GLBで部位名が一致しないため、素材プレビューは当てない。
+  // ・それ以外は「生きているマテリアルエディタ（matPreview）」を最優先にする。
+  //   これにより、パターンが1つも無いモデルで「整える」を開いた場合でも pickable が立ち、
+  //   3Dビューアのメッシュクリックで部位を選べる（＝エディタの前提が成立する）。
+  // ・エディタが動いていないときだけ、帯で選んだパターン（galleryPreview）を使う。
+  const materialPreview = useMemo<MaterialPreviewState | null>(() => {
+    if (stripKind === 'swap' && swapSel) return null;
+    return matPreview ?? (stripKind === 'material' ? galleryPreview : null);
+  }, [stripKind, swapSel, matPreview, galleryPreview]);
+
+  // 帯のセグメント切替。「整える」で 1 セクションだけ開いているときは編集セクションも
+  // 追従させ、帯・ビューア・編集フォームの 3 者が常に同じ種類を指すようにする。
+  const handleChangeStripKind = useCallback((k: StripKind | null) => {
+    setStripKind(k);
+    setEditFocus((f) => (f && k ? k : f));
+  }, []);
 
   // Model Info パネルで編集中の寸法があれば即時反映、なければ保存済み寸法を使う
   const liveDims = useDssLiveDimensionsStore(s => s.liveDimensions[model.id]);
@@ -423,7 +474,7 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
                      modelUrl={stripKind === 'swap' && swapSel ? swapSel.url : (glbUrl as string)}
                      targetDimensions={stripKind === 'swap' && swapSel ? swapSel.dims : targetDimensions}
                      showDimensions={showDimensions}
-                     materialPreview={stripKind === 'material' ? (matPreview ?? galleryPreview) : null}
+                     materialPreview={materialPreview}
                      onMaterialPick={handleMaterialPick}
                      onMaterialSlots={handleMaterialSlots}
                      captureRef={viewerCaptureRef}
@@ -456,15 +507,17 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
           <DssViewerStrip
             model={model}
             isAuthor={isAuthor}
+            previewMode={walkthroughMode === 'preview'}
             active={stripKind}
-            onChangeActive={setStripKind}
+            onChangeActive={handleChangeStripKind}
             selectedVariantId={galleryVariantId}
             onSelectVariant={handleGallerySelect}
             selectedSwapIndex={swapIndex}
             onSelectSwap={handleSelectSwapIndex}
             showDimensions={showDimensions}
             onToggleDimensions={() => setShowDimensions((v) => !v)}
-            onRequestEdit={(k) => { setEditOpen(true); setEditFocus(k); }}
+            /* 「＋」から開いたときは、そのセクションをビューアにも映す（編集対象＝見えているもの）。 */
+            onRequestEdit={(k) => { setEditOpen(true); setEditFocus(k); setStripKind(k); }}
           />
         </Box>
 
@@ -505,7 +558,10 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
                    <Button
                      fullWidth size="small" variant="outlined"
                      startIcon={<EditRoundedIcon sx={{ fontSize: 15 }} />}
-                     onClick={() => { setEditOpen(true); setEditFocus(null); }}
+                     /* 全セクションを開く。帯が未選択（＝パターンが1つも無いモデル）のときは
+                        素材へ寄せる。そうしないとビューアに素材プレビューが当たらず、
+                        マテリアル編集の前提（メッシュをクリックして部位を選ぶ）が成立しない。 */
+                     onClick={() => { setEditOpen(true); setEditFocus(null); setStripKind((k) => k ?? 'material'); }}
                      sx={{ textTransform: 'none', fontSize: 12, fontWeight: 600, color: 'light-dark(#0352aa, #93c5fd)', borderColor: 'rgba(96,165,250,0.5)', '&:hover': { borderColor: 'rgba(96,165,250,0.9)', bgcolor: 'rgba(96,165,250,0.12)' } }}
                    >
                      整える
@@ -580,17 +636,17 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
 
                  <DssDetailStudio
                    model={model} isAuthor={isAuthor} projectId={activeProjectId || undefined}
-                   glbUrl={glbUrl || null} title={title}
+                   glbUrl={glbUrl || null}
                    section={editFocus}
-                   walkthroughMode={walkthroughMode} setWalkthroughMode={setWalkthroughMode}
-                   setMatPreview={setMatPreview} matPickRef={matPickRef} matSlotsRef={matSlotsRef}
-                   onSelectSwap={setSwapSel}
+                   walkthroughMode={walkthroughMode}
+                   setMatPreview={handleMatPreviewState} matPickRef={matPickRef} matSlotsRef={matSlotsRef}
+                   onSelectSwap={handleStudioSelectSwap}
                    walkthroughChar={walkthroughChar} setWalkthroughChar={setWalkthroughChar}
                    walkthroughGimmicks={walkthroughGimmicks} setWalkthroughGimmicks={setWalkthroughGimmicks}
                    walkthroughAnim={walkthroughAnim} setWalkthroughAnim={setWalkthroughAnim}
                    walkthroughInfo={walkthroughInfo} setWalkthroughInfo={setWalkthroughInfo}
                    walkthroughDirty={walkthroughDirty} setWalkthroughDirty={setWalkthroughDirty}
-                   isSavingWalkthrough={isSavingWalkthrough} saveWalkthroughSettings={saveWalkthroughSettings}
+                   isSavingWalkthrough={isSavingWalkthrough}
                    captureThumb={captureThumb}
                  />
                </>

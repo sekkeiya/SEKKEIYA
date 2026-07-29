@@ -2379,6 +2379,30 @@ export default function SingleViewportCanvas({
   const manualDimSectionId = useSectionLinesStore((s) => s.activeLineId);
   const manualDimElevationId = useRoomElevationsStore((s) => s.activeElevationId);
 
+  // このビューポートが編集している図面のキー。手動寸法・寸法列・通り芯が共通で使う。
+  // （通り芯は寸法列の余白に追従して伸びるので、JSX 内ではなくここで一度だけ決める。）
+  const dimViewKey = useMemo(() => {
+    if (effectiveType === VIEW_TYPES.TOP) {
+      return `${effectiveSubMode === "ceiling_top" ? "ceil" : "plan"}:${manualDimFloorIndex || 0}`;
+    }
+    if (!isSideOrtho) return null;
+    if (elevChipOn) return `elev:${manualDimElevationId || elevChipDir || "elev"}`;
+    // 図面グリッドの断面ペインはラベル（"断面 A-A'" 等）から断面ラインを引き当てる
+    // （グローバルの activeLineId は全ペイン共通なので使えない）。単体断面ビューと
+    // 同じ sect:{lineId} キーに揃え、どちらで作図しても同じ断面に表示されるようにする。
+    if (paneDrawing?.cap) {
+      const paneLine = useSectionLinesStore.getState().lines.find((l) => (paneDrawing.label || "").includes(l.name));
+      return `sect:${paneLine?.id || paneDrawing.label || "pane"}`;
+    }
+    const isSectView = paneDrawing ? !!paneDrawing.cap : (sectionClipEnabledForLight && !sectionClipYEnabledForLight);
+    if (isSectView) return `sect:${manualDimSectionId || (effectiveType === VIEW_TYPES.FRONT ? "z" : "x")}`;
+    return `facade:${effectiveType === VIEW_TYPES.FRONT ? "front" : "right"}`;
+  }, [
+    effectiveType, effectiveSubMode, isSideOrtho, elevChipOn, elevChipDir,
+    manualDimFloorIndex, manualDimSectionId, manualDimElevationId,
+    paneDrawing, sectionClipEnabledForLight, sectionClipYEnabledForLight,
+  ]);
+
   const chipLabel = useMemo(() => {
     let label = String(type).charAt(0).toUpperCase() + String(type).slice(1);
     // ウォークスルー専用画面ではビュー名を "Walkthrough" と表示する
@@ -3679,15 +3703,15 @@ return (
       {/* 断面線（A-A' / B-B'…）: 平面図(Top)に切断線＋矢印＋ラベルで表示。
           線ドラッグで位置移動、ラベルクリックで選択。 */}
       {symOn("section") && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
-        <SectionLinesPlanOverlay />
+        <SectionLinesPlanOverlay viewKey={dimViewKey} />
       )}
       {/* 通り芯（構造グリッド）: 平面では両方向を編集可能に、断面/立面では画面横方向の通りを縦線で。
           寸法列の刻み元になる基準線なので、記号トグル ON のときに図面へ重ねる。 */}
       {symOn("grid") && effectiveType === VIEW_TYPES.TOP && !isMaterialMode && !isMapMode && !isWalkthrough && (
-        <GridAxisOverlay mode="plan" />
+        <GridAxisOverlay mode="plan" viewKey={dimViewKey} />
       )}
       {symOn("grid") && isSideOrtho && !isMaterialMode && !isMapMode && !isWalkthrough && (
-        <GridAxisOverlay mode="side" hAxis={effectiveType === VIEW_TYPES.FRONT ? "x" : "z"} />
+        <GridAxisOverlay mode="side" hAxis={effectiveType === VIEW_TYPES.FRONT ? "x" : "z"} viewKey={dimViewKey} />
       )}
       {/* 展開記号: どこから見た展開図かを図示（中心=目 / 四方=展開A〜D）。
           矢印クリックでその向きの展開図（Material 一人称）を開く。中心ドラッグで移動。 */}
@@ -3986,23 +4010,7 @@ return (
             {/* 手動寸法（ヘッダー「寸法」ツール）: 2点クリックで作図し、
                 作図したビュー（平面/天井/断面/立面/展開）でのみ表示・編集する。 */}
             {(() => {
-              const isSectView = isSideOrtho &&
-                (paneDrawing ? !!paneDrawing.cap : (sectionClipEnabledForLight && !sectionClipYEnabledForLight));
-              let dimViewKey = null;
-              if (effectiveType === VIEW_TYPES.TOP) {
-                dimViewKey = `${effectiveSubMode === "ceiling_top" ? "ceil" : "plan"}:${manualDimFloorIndex || 0}`;
-              } else if (isSideOrtho) {
-                if (elevChipOn) dimViewKey = `elev:${manualDimElevationId || elevChipDir || "elev"}`;
-                // 図面グリッドの断面ペインはラベル（"断面 A-A'" 等）から断面ラインを引き当てる
-                // （グローバルの activeLineId は全ペイン共通なので使えない）。単体断面ビューと
-                // 同じ sect:{lineId} キーに揃え、どちらで作図しても同じ断面に表示されるようにする。
-                else if (paneDrawing?.cap) {
-                  const paneLine = useSectionLinesStore.getState().lines.find((l) => (paneDrawing.label || "").includes(l.name));
-                  dimViewKey = `sect:${paneLine?.id || paneDrawing.label || "pane"}`;
-                }
-                else if (isSectView) dimViewKey = `sect:${manualDimSectionId || (effectiveType === VIEW_TYPES.FRONT ? "z" : "x")}`;
-                else dimViewKey = `facade:${effectiveType === VIEW_TYPES.FRONT ? "front" : "right"}`;
-              }
+              // dimViewKey は本体で一度だけ決める（通り芯オーバーレイも同じ値を使うため）。
               return (
                 <>
                   <ManualDimensionController

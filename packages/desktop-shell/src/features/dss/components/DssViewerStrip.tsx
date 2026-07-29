@@ -25,6 +25,13 @@ export function countStripItems(model: any): StripCounts {
 interface StripProps {
   model: any;
   isAuthor: boolean;
+  /**
+   * 「閲覧者の見え方を確認」中かどうか。true の間は作成者にも閲覧者と同じ帯を見せる
+   * （0 件のセグメントと「＋」を出さない）。確認モードは右パネルの編集面も閉じているので、
+   * ここで「＋」を押せてしまうと、押しても何も起きないうえに確認モードを抜けた瞬間に
+   * 「整える」が勝手に開く、という分かりにくい挙動になる。
+   */
+  previewMode: boolean;
   /** 選択中の種類。null なら帯を出さない。 */
   active: StripKind | null;
   onChangeActive: (k: StripKind | null) => void;
@@ -65,7 +72,7 @@ const cellSx = (selected: boolean) => ({
  * 「ビューアの見え方を変える操作」をここに集約する。3Dは上のメインビューア1枚のまま。
  */
 export const DssViewerStrip: React.FC<StripProps> = ({
-  model, isAuthor, active, onChangeActive,
+  model, isAuthor, previewMode, active, onChangeActive,
   selectedVariantId, onSelectVariant, selectedSwapIndex, onSelectSwap,
   showDimensions, onToggleDimensions, onRequestEdit,
 }) => {
@@ -78,9 +85,13 @@ export const DssViewerStrip: React.FC<StripProps> = ({
   );
   const gimmicks = useMemo(() => normalizeGimmicks(model?.extendedMetadata), [model]);
 
+  // 「整える」への導線（0 件セグメントと「＋」）を出してよいのは、作成者かつ確認モードでないとき。
+  const canEdit = isAuthor && !previewMode;
   // 閲覧者には 0 件の種類を出さない。作成者には淡色で出す（そこから追加できるため）。
   const kinds: StripKind[] = (['material', 'swap', 'anim'] as StripKind[])
-    .filter((k) => isAuthor || counts[k] > 0);
+    .filter((k) => canEdit || counts[k] > 0);
+  // 出していないセグメントのサムネ列は開かない（確認モードで 0 件の種類が選ばれたままの場合）。
+  const activeKind = active && kinds.includes(active) ? active : null;
 
   const baseThumb = model?.thumbnailUrl || model?.thumbnail || '';
 
@@ -108,7 +119,7 @@ export const DssViewerStrip: React.FC<StripProps> = ({
         </Tooltip>
       </Box>
 
-      {active === 'material' && (
+      {activeKind === 'material' && (
         <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5 }}>
           <Tooltip title="元の見た目" arrow>
             <Box onClick={() => onSelectVariant(null)} sx={cellSx(selectedVariantId === null)}>
@@ -126,7 +137,7 @@ export const DssViewerStrip: React.FC<StripProps> = ({
               </Box>
             </Tooltip>
           ))}
-          {isAuthor && (
+          {canEdit && (
             <Tooltip title="パターンを追加（整えるを開きます）" arrow>
               <Box onClick={() => onRequestEdit('material')} sx={{ ...cellSx(false), borderStyle: 'dashed', bgcolor: 'transparent' }}>
                 <AddRoundedIcon sx={{ fontSize: 20, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
@@ -136,7 +147,7 @@ export const DssViewerStrip: React.FC<StripProps> = ({
         </Box>
       )}
 
-      {active === 'swap' && (
+      {activeKind === 'swap' && (
         <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 0.5 }}>
           <Tooltip title="元のモデル" arrow>
             <Box onClick={() => onSelectSwap(null)} sx={cellSx(selectedSwapIndex === null)}>
@@ -154,7 +165,7 @@ export const DssViewerStrip: React.FC<StripProps> = ({
               </Box>
             </Tooltip>
           ))}
-          {isAuthor && (
+          {canEdit && (
             <Tooltip title="置き換え候補を追加（整えるを開きます）" arrow>
               <Box onClick={() => onRequestEdit('swap')} sx={{ ...cellSx(false), borderStyle: 'dashed', bgcolor: 'transparent' }}>
                 <AddRoundedIcon sx={{ fontSize: 20, color: 'rgb(var(--brand-fg-rgb) / 0.5)' }} />
@@ -164,7 +175,7 @@ export const DssViewerStrip: React.FC<StripProps> = ({
         </Box>
       )}
 
-      {active === 'anim' && (
+      {activeKind === 'anim' && (
         <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', flexWrap: 'wrap', pb: 0.5 }}>
           {gimmicks.map((g: any) => (
             <Chip key={g.id} size="small" label={g.label || g.type}
@@ -177,7 +188,7 @@ export const DssViewerStrip: React.FC<StripProps> = ({
           <Typography sx={{ fontSize: 10.5, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>
             上の3Dビューアでモデルをクリックすると操作アイコンが表示されます。
           </Typography>
-          {isAuthor && (
+          {canEdit && (
             <Chip size="small" icon={<AddRoundedIcon sx={{ fontSize: 14 }} />} label="設定"
               onClick={() => onRequestEdit('anim')}
               sx={{ fontSize: 11, cursor: 'pointer', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.3)', bgcolor: 'transparent', color: 'rgb(var(--brand-fg-rgb) / 0.6)' }} />

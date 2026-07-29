@@ -18,6 +18,7 @@ import { usePlanOptions } from '../../../features/dsl/layout/hooks/usePlanOption
 import { useBasePlans } from '../../../features/dsl/layout/hooks/useBasePlans';
 import { useWorkspaceStructureStore } from '../../../features/dsl/layout/store/useWorkspaceStructureStore';
 import { useDslWorkspaceContextStore } from '../../../features/dsl/layout/store/useDslWorkspaceContextStore';
+import { PLUGIN_TAB_PREFIX } from './WorkspaceTabBar';
 
 export const RightPanelHost: React.FC = () => {
   const activeProjectId = useAppStore((s: any) => s.activeProjectId);
@@ -132,7 +133,17 @@ export const RightPanelHost: React.FC = () => {
   const isDslDashboard = scope === '3dsl' && !selectedLayoutId;
   const is3dslWorkspace = scope === '3dsl' && !isDslDashboard;
 
-  const isVisible = scope !== 'sekkeiya'
+  // プラグインのタブ（plugin:<id>）は computedScope のどの else if にも一致せず
+  // lastActiveAppScope（プラグインの逆ドメイン id）にフォールバックしてしまうため、
+  // 下の scope !== '...' 系の除外条件は一つも効かず isVisible が true のままになる。
+  // isVisible をここで明示的に false にしないと、下の useEffect が
+  // setAiTaskInnerRight(320) を呼び続け、実際には表示されない右パネル分の幅が
+  // 予約されたままになる（末尾の return null は JSX を止めるだけで、
+  // それより前に登録済みの useEffect はフック規則上スキップできない）。
+  const isPluginWorkspace = !!activeWorkspaceId?.startsWith(PLUGIN_TAB_PREFIX);
+
+  const isVisible = !isPluginWorkspace
+    && scope !== 'sekkeiya'
     && (!is3dslWorkspace || hasDslPanels)
     && (scope !== '3dsp' || showDspRightSidebar)
     && (scope !== '3dsp' || isMobileRightPanel) // デスクトップの S.Slide は右パネルを DspDashboard 内へ埋め込むため外部は非表示
@@ -159,6 +170,14 @@ export const RightPanelHost: React.FC = () => {
     setAiTaskInnerRight(320);
     return () => setAiTaskInnerRight(0);
   }, [isVisible, setAiTaskInnerRight]);
+
+  // プラグインのタブは自分の UI を iframe 内に完結して持つため、この汎用パネルは出さない。
+  // activeWorkspaceId（plugin:<id>）はプラグインが setSelection したデータを指すだけで、
+  // WorkspaceItemRepository が書き込める実データが無い。汎用パネルの編集・削除を出すと
+  // 実データの無いスコープに対して updateItem/deleteItem が走ってしまう（レビュー指摘）。
+  if (activeWorkspaceId?.startsWith(PLUGIN_TAB_PREFIX)) {
+    return null;
+  }
 
   // If we are on the project overview, hide the right panel.
   if (scope === 'sekkeiya') {

@@ -84,9 +84,12 @@ export const DssDetailActionBar: React.FC<Props> = ({ model, actions, isAuthor, 
   };
 
   return (
-    <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0, alignItems: 'center' }}>
+    // 作成者・Rhino/Blender 対応モデルでは最大 8 個の操作が並ぶ。380px の右パネルには
+    // 収まらないので折り返す（折り返さないと Download だけが潰れて最後は行が欠ける）。
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, flexShrink: 0, alignItems: 'center' }}>
+      {/* Download は伸縮するが、文字が読めなくなるところまでは縮ませない。 */}
       <Tooltip title={formats.length === 0 ? 'ダウンロードできるファイルがありません' : 'モデルファイルをダウンロード'} arrow>
-        <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ flex: '1 1 140px', minWidth: 140 }}>
           <Button
             fullWidth
             variant="contained"
