@@ -1777,6 +1777,34 @@
         }
       ],
       "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "modelSets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "companionModelIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "visibility",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "modelSets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "companionModelIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ownerId",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
