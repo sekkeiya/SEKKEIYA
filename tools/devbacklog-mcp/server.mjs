@@ -206,7 +206,7 @@ async function boardSnapshot() {
 }
 
 // ── MCP サーバー定義 ──────────────────────────────────────────────
-const server = new McpServer({ name: 'sekkeiya-devbacklog', version: '2.5.0' });
+const server = new McpServer({ name: 'sekkeiya-devbacklog', version: '2.6.0' });
 
 server.registerTool('list_backlog', {
   title: '開発ボードを一覧',
