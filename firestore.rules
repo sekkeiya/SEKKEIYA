@@ -1186,6 +1186,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    /* 設計図（SEKKEIYA Code「図」ビュー: system/er/screens/flow の Mermaid）。管理者のみ読み書き。 */
+    match /devDiagrams/{diagramType} {
+      allow read, write: if isAdmin();
+    }
+
     /* LoRA モデル台帳（モデル製造ライン / LoRA Studio）。管理者のみ。
        用途別LoRAの状態（教材→学習→配信→運用）と配信フラグ・重みURLを持つ。 */
     match /loraModels/{modelId} {

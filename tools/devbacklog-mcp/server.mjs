@@ -52,11 +52,15 @@ initializeApp({ credential: cert(serviceAccount), storageBucket: 'shapeshare3d.f
 const db = getFirestore();
 const items = () => db.collection('devBacklog');
 const sprintsCol = () => db.collection('devSprints');
+const diagramsCol = () => db.collection('devDiagrams');
+// 設計図（「図」ビュー）。doc ID = type の 4 doc 固定。
+const DIAGRAM_TYPES = ['system', 'er', 'screens', 'flow'];
+const DIAGRAM_LABELS = { system: 'システム構成図', er: 'ER図', screens: '画面遷移図', flow: 'フロー図' };
 
 // 接続状態の可視化: コネクタ画面（管理者向け「Claude Code」カード）が読むハートビート。
 // サーバー稼働中は60秒ごとに lastSeenAt を更新 → UI 側は「3分以内なら接続中」と表示する。
 const touchHeartbeat = () => db.collection('devMeta').doc('claudeMcp')
-  .set({ lastSeenAt: FieldValue.serverTimestamp(), version: '2.5.0' }, { merge: true })
+  .set({ lastSeenAt: FieldValue.serverTimestamp(), version: '2.6.0' }, { merge: true })
   .catch(() => { /* ハートビートは失敗しても本処理に影響させない */ });
 
 // ── ヘルパー（UI と同じ規約） ─────────────────────────────────────
@@ -213,7 +217,8 @@ server.registerTool('list_backlog', {
 server.registerTool('list_queue', {
   title: '実装/テストのキューを一覧',
   description: 'アプリのボタンで queue が付いた要件を、実装/テストに必要な文脈込みで返す。' +
-    ' implement=実装依頼、test=テスト作成/実行依頼。処理後は update_item で status を更新し queue=null にクリアする。',
+    ' implement=実装依頼、test=テスト作成/実行依頼。処理後は update_item で status を更新し queue=null にクリアする。' +
+    ' diagram=図の生成依頼（diagram_get で現状を読み diagram_update で保存する）。',
   inputSchema: {},
 }, async () => {
   const all = await loadItems();
@@ -229,9 +234,14 @@ server.registerTool('list_queue', {
     requestId: r.requestId || null,
   });
   const queued = all.filter((i) => i.type === 'requirement' && i.queue);
+  const dSnap = await diagramsCol().get();
+  const diagramQueue = dSnap.docs
+    .filter((d) => DIAGRAM_TYPES.includes(d.id) && d.data().queue === 'generate')
+    .map((d) => ({ type: d.id, label: DIAGRAM_LABELS[d.id], queueNote: d.data().queueNote || null }));
   return ok({
     implement: queued.filter((r) => r.queue === 'implement').map(summarize),
     test: queued.filter((r) => r.queue === 'test').map(summarize),
+    diagram: diagramQueue,
   });
 });
 
@@ -322,6 +332,35 @@ server.registerTool('update_item', {
   await items().doc(id).update(data);
   const it = await getItem(id);
   return ok({ updated: { key: keyOf(it), id, title: it.title, status: statusOf(it), category: it.category || null, platform: it.platform || null, screen: it.screen || null, kind: it.kind || null } });
+});
+
+server.registerTool('diagram_get', {
+  title: '図の取得',
+  description: '設計図（system=システム構成図 / er=ER図 / screens=画面遷移図 / flow=フロー図）の Mermaid ソースとキュー状態を返す。',
+  inputSchema: { type: z.enum(['system', 'er', 'screens', 'flow']) },
+}, async ({ type }) => {
+  await touchHeartbeat();
+  const d = await diagramsCol().doc(type).get();
+  const data = d.exists ? d.data() : {};
+  return ok({ type, label: DIAGRAM_LABELS[type], mermaid: data.mermaid || '', queue: data.queue || null, queueNote: data.queueNote || null });
+});
+
+server.registerTool('diagram_update', {
+  title: '図の保存',
+  description: '設計図の Mermaid ソースを保存する。既定でキュー（生成依頼）をクリアする。' +
+    ' 生成規約: 出力は Mermaid のみ / screens はバックログの「画面」列の名称をノード名にそのまま使う /' +
+    ' 既存図がある場合は全置換ではなく差分更新（手修正を尊重）。',
+  inputSchema: {
+    type: z.enum(['system', 'er', 'screens', 'flow']),
+    mermaid: z.string().min(1),
+    clearQueue: z.boolean().optional(), // 既定 true
+  },
+}, async ({ type, mermaid, clearQueue }) => {
+  await touchHeartbeat();
+  const patch = { mermaid, updatedAt: FieldValue.serverTimestamp() };
+  if (clearQueue !== false) { patch.queue = null; patch.queueNote = null; }
+  await diagramsCol().doc(type).set(patch, { merge: true });
+  return ok({ saved: { type, label: DIAGRAM_LABELS[type], bytes: mermaid.length, clearedQueue: clearQueue !== false } });
 });
 
 server.registerTool('set_request', {
