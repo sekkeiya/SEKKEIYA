@@ -5,11 +5,11 @@
 import * as THREE from "three";
 
 /**
- * 図面から1列目の寸法線までの距離(mm)。DimensionChainsOverlay の off0 と一致させること。
- * 建物のすぐ外は断面記号（A / A'）の場所なので、そのぶん外へ逃がしてある。
- * 外側は通り芯の記号（GridAxisOverlay の AXIS_EXTEND_MM + BADGE_GAP_MM）が上限。
+ * 最外の通り芯から1列目の寸法線までの距離(mm)の既定値。辺ごとに寸法列パネルで変更できる。
+ * 建物と寸法線の間は断面記号（A / A'）の場所なので、そのぶん外へ逃がしてある。
+ * 通り芯の記号（X0/Y0…）は axisExtendMm でこの値の外に出る。
  */
-export const DIM_COL_OFFSET_MM = 1000;
+export const DIM_COL_OFFSET_MM = 2000;
 /** 寸法列どうしの間隔(mm)。DimensionChainsOverlay の gap と一致させること。 */
 export const DIM_COL_GAP_MM = 420;
 
@@ -52,6 +52,9 @@ export interface XZBounds {
 
 /**
  * 躯体(GLB)＋作図した壁から範囲を測る。
+ * ⚠️ 歩行モードの自動床スキャンが作る不可視の床板(userData.isScannedFloor)は「建物」ではない。
+ *    建物より大きかったり片側に寄っていたりするので、注記の基準に混ぜると寸法線・断面記号・
+ *    通り芯の端が遠くへ飛ぶ。呼び手ごとに除外し忘れないよう、ここ（発生源）で落とす。
  * ⚠️ Box3.setFromObject は GLB のシーングラフを丸ごと走査するので重い。
  *    XZ と Y を別々に測ろうとして 2 回走査すると体感で分かるほど遅くなるため、
  *    1 回で 3 軸ぶん返し、呼び手が必要な軸だけ使うこと。
@@ -69,6 +72,7 @@ export function measureXZBounds(
   let has = false;
   (baseColliders || []).forEach((o) => {
     if (!o) return;
+    if (o.userData?.isScannedFloor) return;   // 自動床スキャンの板は建物ではない
     const b = new THREE.Box3();
     try { b.setFromObject(o); } catch { return; }
     if (b.isEmpty()) return;
@@ -102,12 +106,24 @@ export function chainSpan(gridValues: number[], lo: number, hi: number): [number
 }
 
 /**
- * 断面記号（A / A' のラベル）を建物の外形からどれだけ外に置くか(mm)。
- * ⚠️ 寸法列の位置から逆算しないこと。逆算にすると寸法列を外へ動かしたときに
- *    断面記号も一緒に外へ移動してしまい、間の余白がいつまでも広がらない。
+ * 断面線の既定位置＝その軸方向の建物中心（world）。
+ * axis="x"（平面で縦線）は X 座標、axis="z"（横線）は Z 座標で位置を持つ。
+ * 線を作るとき（EditorAngleBar のシード）と「初期位置に戻す」で同じ規則を使う。
+ * 建物が測れないときは 0（原点）。
  */
-export const SECTION_MARK_OUT_MM = 200;
-/** 断面記号と1列目の寸法線の間に最低限空ける距離(mm)。両者が近づきすぎたときの安全弁。 */
+export function defaultSectionPos(bounds: XZBounds | null | undefined, axis: "x" | "z"): number {
+  if (!bounds) return 0;
+  return axis === "x"
+    ? (bounds.minX + bounds.maxX) / 2
+    : (bounds.minZ + bounds.maxZ) / 2;
+}
+
+/**
+ * 断面記号（A / A' のラベル）を1列目の寸法線からどれだけ内側に置くか(mm)。
+ * 記号は「寸法線から一定の距離」に置く。基準が通り芯になり余白も辺ごとに変えられる今、
+ * 建物基準にすると庇の出や余白の設定しだいで記号の位置が図面ごとにばらついて読みにくい。
+ * （2026-07-29 に建物基準から変更。以前は SECTION_MARK_OUT_MM=200 で建物の外形から測っていた。）
+ */
 export const SECTION_LABEL_CLEARANCE_MM = 460;
 /** 断面線が建物の輪郭より内側へ引っ込んでよい上限(mm)。引っ込みすぎると図から浮いて読めない。 */
 const SECTION_MAX_INSET_MM = 700;
@@ -117,14 +133,19 @@ const SECTION_MAX_INSET_MM = 700;
  * 「線をどこまで伸ばすか」ではなく「A / A' のラベルをどこに置くか」から逆算する。
  *   ラベルは線端から labelOffset だけ外側に出るので、
  *     ラベル位置 = 建物の端 + out + labelOffset
- *   これが SECTION_MARK_OUT_MM になるよう out を決める（建物基準で固定）。
+ *   これが「1列目の寸法線から SECTION_LABEL_CLEARANCE_MM だけ内側」になるよう out を決める。
  *   矢印の長さはシーンの大きさで変わるため、線の長さを固定値で決めると
  *   縮尺によってラベルの位置がばらつく。
- *   併せて「1列目の寸法線から SECTION_LABEL_CLEARANCE_MM 以内に入らない」も満たす
- *   （寸法列を内側に詰めた場合の安全弁）。
+ *   引っ込みすぎ（寸法列を建物に寄せすぎた場合）だけ SECTION_MAX_INSET_MM で止める。
  * @param labelOffset 線端からラベル中心までの距離(world)
- * @param firstColOffsetMm 1列目の寸法線までの余白(mm)。断面線の両端が向いている2辺のうち
- *   小さい方を渡す（安全弁なので狭い側に合わせる）。既定は従来どおり DIM_COL_OFFSET_MM。
+ * @param firstColOut 建物の外形から1列目の寸法線までの実距離(world)を端ごとに。
+ *   lo = 座標の小さい側（左 / 上）、hi = 大きい側（右 / 下）。
+ *   ⚠️ 両端に同じ値を使ってはいけない。寸法列の基準は通り芯で、建物のバウンディング
+ *      ボックスは通り芯に対して偏りうる（Rhino 躯体が片側だけはみ出す等）。片方の値を
+ *      両端に使うと、狭い側でしか「寸法線から一定の距離」を満たせない。
+ *   ⚠️ 余白(mm)ではなく実距離で受けること。通り芯が建物の内側にあると「建物からの距離」は
+ *      余白の値より小さくなる。mm で渡すと過大評価して断面記号が寸法線に被る。
+ *   省略時は両端とも既定の余白ぶん離れているものとみなす。
  */
 export function defaultSectionSpan(
   bounds: XZBounds | null,
@@ -132,14 +153,16 @@ export function defaultSectionSpan(
   w: (mm: number) => number,
   fallbackHalf: number,
   labelOffset = 0,
-  firstColOffsetMm: number = DIM_COL_OFFSET_MM,
+  firstColOut?: { lo: number; hi: number },
 ): { from: number; to: number } {
   if (!bounds) return { from: -fallbackHalf, to: fallbackHalf };
   const lo = axisDir === "x" ? bounds.minX : bounds.minZ;
   const hi = axisDir === "x" ? bounds.maxX : bounds.maxZ;
-  // 建物基準の位置と、寸法線に寄りすぎない位置の、内側（小さい方）を採る。
-  const wanted = w(SECTION_MARK_OUT_MM) - labelOffset;
-  const clear = w(firstColOffsetMm) - w(SECTION_LABEL_CLEARANCE_MM) - labelOffset;
-  const out = Math.max(Math.min(wanted, clear), -w(SECTION_MAX_INSET_MM));
-  return { from: lo - out, to: hi + out };
+  const fallback = w(DIM_COL_OFFSET_MM);
+  const colOut = (v: number | undefined) =>
+    (typeof v === "number" && Number.isFinite(v) ? v : fallback);
+  // ラベルを1列目の寸法線から一定の距離だけ内側に置く。端ごとに独立して求める。
+  const outFor = (v: number | undefined) =>
+    Math.max(colOut(v) - w(SECTION_LABEL_CLEARANCE_MM) - labelOffset, -w(SECTION_MAX_INSET_MM));
+  return { from: lo - outFor(firstColOut?.lo), to: hi + outFor(firstColOut?.hi) };
 }

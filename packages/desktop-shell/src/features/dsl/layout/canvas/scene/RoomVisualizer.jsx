@@ -9,9 +9,17 @@ import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
-import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
+import { useBuildingSpecStore, ceilingHeightOf } from "../../store/useBuildingSpecStore";
 import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStore";
+import { useSlabStore } from "../../store/useSlabStore";
 import { snapZoneRectMove, snapZoneCoordX, snapZoneCoordZ } from "../../utils/drawSnap";
+import {
+  ceilingSlabsOfRoom,
+  slabCeilingHeightMm,
+  roomCeilingLabel,
+  rectAreaM2,
+  rectToPoints,
+} from "../../utils/ceilingHeight";
 
 const H = 8; // 塗り箱の薄さ（mm スケールで見える程度）
 const MIN_SIZE = 300; // mm
@@ -27,16 +35,31 @@ const REGION_CURSOR = {
   center: "move",
 };
 
-/** 部屋の rect を rooms 配列へ反映（永続化）。 */
+/** 部屋の rect を rooms 配列へ反映（永続化）。天井も一緒に追従させる。 */
 function commitRoomRect(id, rect) {
   const st = useLayoutTaskStore.getState();
   const rooms = (st.rooms || []).map((r) => (r.id === id ? { ...r, rect } : r));
   window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms } }));
+  // 自動で立った天井（まだ形を触っていないもの）は部屋に付いていく。
+  // 手で形を変えた天井（shapeEdited）は動かさない。
+  useSlabStore.getState().syncRoomCeilingPoints(id, rectToPoints(rect));
 }
 
 /** 部屋1つぶんの表示＋編集ギズモ。 */
-function RoomRectItem({ id, name, rect, color, selected, editable, orbitRef, onSelect, gridHeightMm }) {
+function RoomRectItem({ id, name, rect, color, selected, editable, orbitRef, onSelect, gridHeightMm, floorIndex = 0 }) {
   const { camera, gl } = useThree();
+  // 平面ラベルの 2 行目。天井高の正は天井の面なので、その部屋の天井から読む。
+  //   天井が 1 枚も無ければ null＝行ごと出さない（吹き抜け）。
+  const slabs = useSlabStore((s) => s.slabs);
+  const defaultClMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
+  const floorsSpec = useBuildingSpecStore((s) => s.floors);
+  const chLabel = useMemo(() => {
+    const def = ceilingHeightOf(useBuildingSpecStore.getState(), floorIndex);
+    const mine = ceilingSlabsOfRoom(slabs, { id, floorIndex, rect }, def);
+    return roomCeilingLabel(mine.map((s) => slabCeilingHeightMm(s, def)));
+    // defaultClMm / floorsSpec は既定値の購読（getState だけだと再レンダーされない）
+  }, [slabs, id, floorIndex, rect, defaultClMm, floorsSpec]);
+  const areaM2 = rectAreaM2(rect);
   const baseColliders = useSceneObjectRegistryStore((s) => s.baseColliders) || [];
   const [dr, setDr] = useState(null); // ドラッグ中のローカル rect
   const [hovered, setHovered] = useState(false);
@@ -283,7 +306,7 @@ function RoomRectItem({ id, name, rect, color, selected, editable, orbitRef, onS
           onClick={(e) => { e.stopPropagation(); onSelect(id); }}
           title={`${name || "部屋"}（クリックで選択 / 枠をドラッグで移動・リサイズ）`}
           style={{
-            display: "flex", alignItems: "center", gap: 6,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 1,
             background: "rgba(255,255,255,0.94)", color: "#1e293b",
             padding: "3px 9px", borderRadius: 8, fontSize: 12, fontWeight: 700,
             whiteSpace: "nowrap", border: `1.5px solid ${c}`,
@@ -292,12 +315,20 @@ function RoomRectItem({ id, name, rect, color, selected, editable, orbitRef, onS
             opacity: selected ? (dragInfo.current.type ? 0.6 : 1) : 0.85, transition: "opacity 0.2s",
           }}
         >
-          <span style={{ width: 9, height: 9, borderRadius: 2, background: c, flexShrink: 0 }} />
-          {name || "部屋"}
-          {selected && (
-            <span style={{ color: "#94a3b8", fontWeight: 600, fontSize: 9.5 }}>
-              {(w / 1000).toFixed(2)}×{(d / 1000).toFixed(2)}m
-            </span>
+          {/* 1行目: 色チップ ＋ 部屋名 ＋ 面積（選択中は寸法も） */}
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 2, background: c, flexShrink: 0 }} />
+            {name || "部屋"}
+            <span style={{ color: "#475569", fontWeight: 600 }}>{areaM2.toFixed(2)}㎡</span>
+            {selected && (
+              <span style={{ color: "#94a3b8", fontWeight: 600, fontSize: 9.5 }}>
+                {(w / 1000).toFixed(2)}×{(d / 1000).toFixed(2)}m
+              </span>
+            )}
+          </span>
+          {/* 2行目: 天井高。天井が無い部屋（吹き抜け）は出さない。 */}
+          {chLabel && (
+            <span style={{ color: "#475569", fontWeight: 600, fontSize: 10 }}>{chLabel}</span>
           )}
         </div>
       </Html>
@@ -322,7 +353,10 @@ export default function RoomVisualizer({ orbitRef = null, isTopView = false }) {
     // 部屋は常に矩形の枠で描く。ゾーンはこの上にバブルで重なる（表現が別なので二重にならない）。
     return (rooms || [])
       .filter((r) => r?.rect && (r.floorIndex || 0) === activeFloorIndex)
-      .map((r) => ({ id: r.id, name: r.name, rect: r.rect, color: r.color || null }));
+      .map((r) => ({
+        id: r.id, name: r.name, rect: r.rect, color: r.color || null,
+        floorIndex: r.floorIndex || 0,
+      }));
   }, [rooms, activeFloorIndex]);
 
   if (!isVisibleMode || !items.length) return null;

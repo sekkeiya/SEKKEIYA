@@ -8,10 +8,13 @@ import { create } from "zustand";
 
 /** 寸法列の刻み元。 */
 export type ChainSource =
-  | "total"   // 総寸法（両端だけの1本）
-  | "grid"    // 通り芯間
-  | "wall"    // 躯体の壁面・壁芯で刻む
-  | "level";  // 階レベル（GL / FL / CL / 階高）※縦方向の列のみ
+  | "total"       // 総寸法（両端だけの1本）
+  | "grid"        // 通り芯間
+  | "wall"        // 躯体の壁面・壁芯で刻む
+  | "levelFloor"  // 階高・GL（GL / 各階 FL / 最上部）※縦方向の列のみ
+  | "level";      // 旧「階レベル」（GL/FL/CL を1列に混ぜる）。保存済みデータ用に残す
+// 天井高は寸法列では扱わない。断面を切る位置で変わる（＝部屋ごとに違う）ので、
+// 図面の中に室ごとの寸法として立てる（canvas/scene/SectionCeilingDimensions）。
 
 export type ChainSide = "top" | "bottom" | "left" | "right";
 
@@ -26,11 +29,44 @@ export interface ViewChains {
   left: ChainColumn[];
   right: ChainColumn[];
   /**
-   * 建物外形から1列目の寸法線までの距離(mm)。辺ごとに設定でき、未設定の辺は
-   * 既定 DIM_COL_OFFSET_MM。通り芯の伸ばし量と断面記号のクリアランスもこの値に追従する。
+   * 最外の通り芯から1列目の寸法線までの距離(mm)。辺ごとに設定でき、未設定の辺は
+   * 既定 DIM_COL_OFFSET_MM。通り芯の伸ばし量と断面記号の位置もこの値に追従する。
    * 既存の保存データにはこのキーが無く undefined＝既定なので、マイグレーションは不要。
    */
   offsets?: Partial<Record<ChainSide, number>>;
+  /**
+   * 余白を他の辺と連動させるか。未設定＝リンク（既定は 4 辺そろって動く）。
+   * false にした辺は独立し、自分を編集しても他へ波及せず、他の辺の連動にも巻き込まれない。
+   */
+  offsetLinks?: Partial<Record<ChainSide, boolean>>;
+}
+
+/** その辺の余白が他と連動するか。未設定はリンク扱い（既定は連動）。 */
+export function isSideLinked(
+  links: Partial<Record<ChainSide, boolean>> | undefined | null,
+  side: ChainSide,
+): boolean {
+  return links?.[side] !== false;
+}
+
+/**
+ * 余白を 1 辺に入力したときの、4 辺ぶんの新しい値。
+ * 編集した辺がリンクされていればリンクされた全辺へ、外れていればその辺だけへ入れる。
+ * 元のオブジェクトは書き換えない。
+ */
+export function applyOffsetToLinkedSides(
+  offsets: Partial<Record<ChainSide, number>> | undefined | null,
+  links: Partial<Record<ChainSide, boolean>> | undefined | null,
+  side: ChainSide,
+  mm: number,
+): Partial<Record<ChainSide, number>> {
+  const n = Math.max(0, Math.round(Number(mm) || 0));
+  const next = { ...(offsets || {}) };
+  const targets = isSideLinked(links, side)
+    ? CHAIN_SIDES.filter((s) => isSideLinked(links, s))
+    : [side];
+  targets.forEach((s) => { next[s] = n; });
+  return next;
 }
 
 export const CHAIN_SIDES: ChainSide[] = ["top", "bottom", "left", "right"];
@@ -39,8 +75,12 @@ export const CHAIN_SOURCE_LABEL: Record<ChainSource, string> = {
   total: "総寸法",
   grid: "通り芯間",
   wall: "壁面",
-  level: "階レベル",
+  levelFloor: "階高・GL",
+  level: "階レベル（旧）",
 };
+
+/** 縦の列（左右辺）でしか意味を持たない刻み元。 */
+export const VERTICAL_ONLY_SOURCES: ChainSource[] = ["levelFloor", "level"];
 
 export const CHAIN_SIDE_LABEL: Record<ChainSide, string> = {
   top: "上",
@@ -62,7 +102,8 @@ const col = (source: ChainSource): ChainColumn => ({ id: nextId(), source });
 /**
  * ビュー種別ごとの既定の列構成。viewKey の接頭辞で決める。
  *   平面・天井 … 下と左に「通り芯間 → 総寸法」（内側から外側へ）
- *   断面・立面 … 下に「通り芯間 → 総寸法」、左に「階レベル → 総寸法」
+ *   断面・立面 … 下に「通り芯間 → 総寸法」、左に「階高・GL → 総寸法」
+ *                （天井高は寸法列ではなく図面の中に室ごとに立てる）
  *   展開       … 既存の展開図注記（ElevationDimensionsOverlay）が担当するので空
  */
 export function defaultChainsFor(viewKey: string): ViewChains {
@@ -72,7 +113,7 @@ export function defaultChainsFor(viewKey: string): ViewChains {
     return {
       top: [],
       bottom: [col("grid"), col("total")],
-      left: [col("level"), col("total")],
+      left: [col("levelFloor"), col("total")],
       right: [],
     };
   }
@@ -138,8 +179,10 @@ interface DimChainState {
   addColumn: (viewKey: string, side: ChainSide, source: ChainSource) => void;
   removeColumn: (viewKey: string, side: ChainSide, id: string) => void;
   setColumnSource: (viewKey: string, side: ChainSide, id: string, source: ChainSource) => void;
-  /** その辺の余白(mm)＝建物外形から1列目の寸法線までの距離を設定する。 */
+  /** その辺の余白(mm)を設定する。リンクされている辺なら、リンク中の他の辺も同じ値になる。 */
   setSideOffset: (viewKey: string, side: ChainSide, mm: number) => void;
+  /** その辺の余白リンクを付け外しする。 */
+  toggleSideOffsetLink: (viewKey: string, side: ChainSide) => void;
   /** そのビューを既定構成に戻す（余白も既定へ戻る）。 */
   resetView: (viewKey: string) => void;
 }
@@ -208,12 +251,16 @@ export const useDimChainStore = create<DimChainState>((set, get) => {
       })),
 
     setSideOffset: (viewKey, side, mm) =>
-      mutate(viewKey, (v) => {
-        // 負値・NaN は保存しない（読み出し側の sideOffsetMm でも既定へ落ちるが、
-        // 不正値をドキュメントに残さない）。
-        const n = Math.max(0, Math.round(Number(mm) || 0));
-        return { ...v, offsets: { ...(v.offsets || {}), [side]: n } };
-      }),
+      mutate(viewKey, (v) => ({
+        ...v,
+        offsets: applyOffsetToLinkedSides(v.offsets, v.offsetLinks, side, mm),
+      })),
+
+    toggleSideOffsetLink: (viewKey, side) =>
+      mutate(viewKey, (v) => ({
+        ...v,
+        offsetLinks: { ...(v.offsetLinks || {}), [side]: !isSideLinked(v.offsetLinks, side) },
+      })),
 
     resetView: (viewKey) => mutate(viewKey, () => defaultChainsFor(viewKey)),
   };

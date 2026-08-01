@@ -26,6 +26,9 @@ import { useUiSelectionStore } from "../store/uiSelectionStore";
 // ✁Eviewport ui store�E�Elign tick 統一�E�E
 import { useViewportUiStore } from "../store/viewportUiStore";
 import { useEditorModeStore } from "../store/useEditorModeStore";
+import { useWallStore } from "../store/useWallStore";
+import { useSlabStore } from "../store/useSlabStore";
+import { useBaseEditMode } from "../utils/baseEditMode";
 
 /**
  * MultiViewportTiled�E�簡易版�E�E
@@ -101,7 +104,14 @@ const MultiViewportTiled = forwardRef(function MultiViewportTiled(
   // - MultiViewportTiled は “Alignが実行可能か Eの判定だけに使ぁE
   // ============================================================
   const selectedItemIds = useUiSelectionStore((s) => s.selectedItemIds);
-  const hasSelection = (selectedItemIds?.length ?? 0) > 0;
+  // 躯体（Base）編集中は壁・床・天井も整列対象。ショートカット（AT/AR…）の可否判定も
+  // 家具だけでなくそちらの選択を見る（対象の解決は SingleViewportCanvas 側）。
+  const selectedWallIds = useWallStore((s) => s.selectedWallIds);
+  const selectedSlabIds = useSlabStore((s) => s.selectedSlabIds);
+  const isBaseEditing = useBaseEditMode();
+  const hasSelection =
+    (selectedItemIds?.length ?? 0) > 0 ||
+    (isBaseEditing && (selectedWallIds.length + selectedSlabIds.length) > 0);
 
   // ============================================================
   // ✁Ebase url swap�E�ちらつき防止�E�E

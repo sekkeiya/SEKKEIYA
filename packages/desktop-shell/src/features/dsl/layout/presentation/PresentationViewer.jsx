@@ -14,7 +14,7 @@
 //
 // S.Layout のシーンは mm 単位。カメラ near/far は寸法連動（CameraTuner）。
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Stack, Button, Typography, IconButton, Chip, Divider, CircularProgress } from "@mui/material";
+import { Box, Stack, Button, Typography, IconButton, Chip, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AddAPhotoRoundedIcon from "@mui/icons-material/AddAPhotoRounded";
@@ -23,6 +23,14 @@ import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DirectionsWalkRoundedIcon from "@mui/icons-material/DirectionsWalkRounded";
+import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
+import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
+import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
+import BookmarkAddRoundedIcon from "@mui/icons-material/BookmarkAddRounded";
+import { useLayoutPatternStore } from "../store/useLayoutPatternStore";
+import { useWorkspaceStructureStore } from "../store/useWorkspaceStructureStore";
+import { capturePattern, applyPattern, restoreDefaults } from "../services/patternSnapshot";
+import { createPattern, deletePattern, setActivePatternId } from "../api/layoutPatternsApi";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html, useGLTF } from "@react-three/drei";
@@ -884,12 +892,88 @@ export default function PresentationViewer({
   usage = "住宅 (Residential)",
   title = "Untitled Layout",
   subtitle = "",
+  // 見た目パターン（エディタから開いたときだけ渡る。公開共有では undefined のまま）
+  projectId = null,
+  workspaceId = null,
+  baseId = null,
+  planId = null,
 }) {
   const camTargetRef = useRef({ pos: new THREE.Vector3(), look: new THREE.Vector3(), active: false });
   const controlsRef = useRef(null);
   const glRef = useRef(null);
 
   const [sceneObj, setSceneObj] = useState(null);
+
+  // ── Base / Plan の切替（エディタの選択状態をそのまま操作する。プレビューはエディタの
+  //     ライブシーンを借りているので、選択が変われば表示もそのまま追従する）──
+  const bases = useWorkspaceStructureStore((s) => s.bases);
+  const plansOfSelectedBase = useWorkspaceStructureStore((s) => s.plansOfSelectedBase);
+  const selectedBaseId = useWorkspaceStructureStore((s) => s.selectedBaseId);
+  const selectedPlanId = useWorkspaceStructureStore((s) => s.selectedPlanId);
+  const selectBase = useWorkspaceStructureStore((s) => s.selectBase);
+  const selectPlan = useWorkspaceStructureStore((s) => s.selectPlan);
+  const safeBases = Array.isArray(bases) ? bases : [];
+  const safePlans = Array.isArray(plansOfSelectedBase) ? plansOfSelectedBase : [];
+
+  // ── Option（＝この Plan での見た目の組み合わせ: 面仕上げ+照明+家具素材+家具置き換え）──
+  const patterns = useLayoutPatternStore((s) => s.patterns);
+  const activePatternId = useLayoutPatternStore((s) => s.activePatternId);
+  const canEditPatterns = !!(projectId && workspaceId && planId);
+  const [patternBusy, setPatternBusy] = useState(false);
+
+  const selectPattern = useCallback(async (id) => {
+    if (!canEditPatterns || patternBusy) return;
+    setPatternBusy(true);
+    try {
+      if (id) {
+        const p = patterns.find((x) => x.id === id);
+        if (p) applyPattern(p);
+      } else {
+        await restoreDefaults(projectId, workspaceId, planId, baseId || planId);
+      }
+      await setActivePatternId(projectId, workspaceId, planId, id);
+    } catch (e) {
+      console.error("[PresentationViewer] パターンの切替に失敗", e);
+    } finally {
+      setPatternBusy(false);
+    }
+  }, [canEditPatterns, patternBusy, patterns, projectId, workspaceId, planId, baseId]);
+
+  // 名前入力はアプリ内ダイアログで行う（お客様に見せる画面なので window.prompt は使わない）。
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [patternNameDraft, setPatternNameDraft] = useState("");
+
+  const openRegisterDialog = useCallback(() => {
+    if (!canEditPatterns || patternBusy) return;
+    setPatternNameDraft(`Option ${patterns.length + 1}`);
+    setNameDialogOpen(true);
+  }, [canEditPatterns, patternBusy, patterns.length]);
+
+  const registerPattern = useCallback(async () => {
+    const name = patternNameDraft.trim();
+    if (!canEditPatterns || patternBusy || !name) return;
+    setNameDialogOpen(false);
+    setPatternBusy(true);
+    try {
+      const snap = capturePattern();
+      const id = await createPattern(projectId, workspaceId, planId, name, { ...snap, order: patterns.length });
+      await setActivePatternId(projectId, workspaceId, planId, id);
+    } catch (e) {
+      console.error("[PresentationViewer] パターンの登録に失敗", e);
+    } finally {
+      setPatternBusy(false);
+    }
+  }, [canEditPatterns, patternBusy, patternNameDraft, patterns.length, projectId, workspaceId, planId]);
+
+  const removePattern = useCallback(async (id) => {
+    if (!canEditPatterns) return;
+    try {
+      await deletePattern(projectId, workspaceId, planId, id);
+      if (activePatternId === id) await selectPattern(null);
+    } catch (e) {
+      console.error("[PresentationViewer] パターンの削除に失敗", e);
+    }
+  }, [canEditPatterns, projectId, workspaceId, planId, activePatternId, selectPattern]);
   const [bounds, setBounds] = useState(null);
   const [activeSceneId, setActiveSceneId] = useState(DEFAULT_SCENE_ID);
   const [shots, setShots] = useState([]);
@@ -1282,13 +1366,15 @@ export default function PresentationViewer({
         </>
       )}
 
-      {/* ===== 左：情報カード（ウォークスルー中は没入のため非表示） ===== */}
+      {/* ===== 右：情報カード（ウォークスルー中は没入のため非表示） =====
+           ウォークスルー中だけ出る視点切替 HUD も右上に置いているが、この2つは
+           walkActive で排他表示なので重ならない。 */}
       {!walkActive && (
       <Box
         sx={{
           position: "absolute",
           top: 86,
-          left: 28,
+          right: 28,
           bottom: 172,
           width: 366,
           maxHeight: "calc(100vh - 258px)",
@@ -1440,6 +1526,81 @@ export default function PresentationViewer({
             </Stack>
           </Box>
 
+          {/* ベース（躯体）*/}
+          {safeBases.length > 1 && (
+            <Box sx={{ flexShrink: 0 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#fff", mb: 1, letterSpacing: 0.5 }}>
+                ベース
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                {safeBases.map((b) => (
+                  <StripTile
+                    key={b.id}
+                    label={b.name || "Base"}
+                    active={selectedBaseId === b.id}
+                    icon={<HomeRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
+                    onClick={() => selectBase?.(b.id)}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+
+          {/* プラン（家具配置）*/}
+          {safePlans.length > 0 && (
+            <Box sx={{ flexShrink: 0 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#fff", mb: 1, letterSpacing: 0.5 }}>
+                プラン
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                {safePlans.map((p) => (
+                  <StripTile
+                    key={p.id}
+                    label={p.name || "Plan"}
+                    active={selectedPlanId === p.id}
+                    icon={<GridViewRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
+                    onClick={() => selectPlan?.(p.id)}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+
+          {/* Option（この Plan での見た目の組み合わせ） */}
+          {canEditPatterns && (
+            <Box sx={{ flexShrink: 0 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#fff", mb: 1, letterSpacing: 0.5 }}>
+                Option
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <StripTile
+                  label="デフォルト"
+                  active={!activePatternId}
+                  busy={patternBusy}
+                  icon={<PaletteRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
+                  onClick={() => { void selectPattern(null); }}
+                />
+                {patterns.map((p) => (
+                  <StripTile
+                    key={p.id}
+                    label={p.name}
+                    active={activePatternId === p.id}
+                    busy={patternBusy}
+                    icon={<PaletteRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
+                    onClick={() => { void selectPattern(p.id); }}
+                    onRemove={() => { void removePattern(p.id); }}
+                  />
+                ))}
+                <StripTile
+                  label="この Option を登録"
+                  busy={patternBusy}
+                  icon={<BookmarkAddRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
+                  onClick={openRegisterDialog}
+                />
+              </Stack>
+            </Box>
+          )}
+
           {/* ギャラリー */}
           <Box sx={{ flexShrink: 0 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#fff", mb: 1, letterSpacing: 0.5 }}>
@@ -1542,6 +1703,36 @@ export default function PresentationViewer({
           </Typography>
         </Box>
       )}
+      {/* パターン名の入力（アプリ内ダイアログ。本番プレビューにブラウザ標準の prompt を出さない） */}
+      {/* zIndex: このプレビューは全画面オーバーレイ（zIndex 2000）。MUI Dialog の既定は 1300 で
+          document.body へポータルされるため、指定しないとプレビューの裏に隠れて何も出ない。 */}
+      <Dialog open={nameDialogOpen} onClose={() => setNameDialogOpen(false)} maxWidth="xs" fullWidth
+        sx={{ zIndex: 2600 }}
+        slotProps={{ paper: { sx: { bgcolor: "#0f1622", color: "#fff", borderRadius: 2, border: `1px solid ${alpha("#fff", 0.12)}` } } }}>
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 800 }}>この Option を登録</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 12, color: alpha("#fff", 0.6), mb: 1.5 }}>
+            いまの見た目（床壁天井の仕上げ・照明・家具の素材と置き換え）をまとめて保存します。
+          </Typography>
+          <TextField
+            autoFocus fullWidth size="small" variant="outlined" label="Option 名"
+            value={patternNameDraft}
+            onChange={(e) => setPatternNameDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void registerPattern(); } }}
+            sx={{
+              "& .MuiInputBase-input": { color: "#fff" },
+              "& .MuiInputLabel-root": { color: alpha("#fff", 0.6) },
+              "& .MuiOutlinedInput-notchedOutline": { borderColor: alpha("#fff", 0.25) },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setNameDialogOpen(false)} sx={{ color: alpha("#fff", 0.7), textTransform: "none" }}>キャンセル</Button>
+          <Button onClick={() => { void registerPattern(); }} disabled={!patternNameDraft.trim()} variant="contained"
+            sx={{ textTransform: "none", bgcolor: "#22c55e", "&:hover": { bgcolor: "#16a34a" } }}>登録</Button>
+        </DialogActions>
+      </Dialog>
+
     </Box>
   );
 }

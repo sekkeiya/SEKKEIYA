@@ -13,6 +13,7 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import { WorkspaceItemRepository } from '../../workspace/WorkspaceItemRepository';
 import { RightPanelModelViewer } from './RightPanelModelViewer';
 import { resolveDownloadUrl, getCanonicalModelId } from '../utils/modelUtils';
+import { buildModelInfoForm } from '../utils/modelInfoForm';
 import { useRhinoDragImport } from '../hooks/useRhinoDragImport';
 import RhinoDropZone from './RhinoDropZone';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -125,9 +126,7 @@ export const DssModelInfoPanel: React.FC<{
   selectedItem: any;
   hideViewer?: boolean;
   hideRhinoButton?: boolean;
-  /** true なら編集フォームを2カラムで並べる。詳細画面の「整える」用（600px 幅）。既定は1カラム（一覧画面と同じ）。 */
-  twoColumn?: boolean;
-}> = ({ selectedItem: propSelectedItem, hideViewer, hideRhinoButton, twoColumn }) => {
+}> = ({ selectedItem: propSelectedItem, hideViewer, hideRhinoButton }) => {
   // カテゴリの一覧は描画時に useUserSettingsStore.getState() から直接引いているため、
   // ここで保持する必要はない。
   const activeWorkspaceId = useAppStore(s => s.activeWorkspaceId);
@@ -521,23 +520,6 @@ export const DssModelInfoPanel: React.FC<{
   const [catTitleInput, setCatTitleInput] = useState('');
   const [catUrlInput, setCatUrlInput] = useState('');
 
-  const parseCatalogLinks = (item: any) => {
-    if (Array.isArray(item.catalogLinks)) return [...item.catalogLinks];
-    return [] as { title: string; url: string; price?: string; thumbnail?: string; source?: string }[];
-  };
-
-  const parseRelatedLinks = (item: any) => {
-    if (Array.isArray(item.relatedLinks)) return [...item.relatedLinks];
-    const links: { title: string, url: string }[] = [];
-    if (Array.isArray(item.sourceUrls)) {
-      item.sourceUrls.forEach((url: string) => {
-        if (typeof url === 'string') links.push({ title: '関連リンク', url });
-      });
-    } else if (item.sourceUrl) {
-      links.push({ title: '関連リンク', url: item.sourceUrl });
-    }
-    return links;
-  };
   const [isSaving, setIsSaving] = useState(false);
 
   // Track when we have unsaved changes to prevent overwriting user input
@@ -549,33 +531,9 @@ export const DssModelInfoPanel: React.FC<{
 
   useEffect(() => {
     if (selectedItem) {
-      const typeStr = (selectedItem.modelType || selectedItem.type) === 'Architecture' ? 'Architecture' : 'Furniture';
-      const isCustom = selectedItem.tags?.includes('造作家具') || selectedItem.readyStatus === 'custom';
-      
-      const newEditData = {
-        id: selectedItem.id,
-        title: selectedItem.title || selectedItem.name || 'Untitled',
-        macroCategory: selectedItem.macroCategory || (typeStr === 'Architecture' ? '建築・空間' : (isCustom ? '家具 (造作)' : '家具 (既製品)')),
-        mainCategory: selectedItem.mainCategory || '',
-        subCategory: selectedItem.userCategory || selectedItem.subCategory || '',
-        tags: Array.isArray(selectedItem.tags) ? [...selectedItem.tags] : [],
-        buildingTypes: Array.isArray(selectedItem.buildingTypes) ? [...selectedItem.buildingTypes] : [],
-        rooms: Array.isArray(selectedItem.rooms) ? [...selectedItem.rooms] : [],
-        zones: Array.isArray(selectedItem.zones) ? [...selectedItem.zones] : [],
-        companionClasses: Array.isArray(selectedItem.companionClasses) ? [...selectedItem.companionClasses] : [],
-        materials: Array.isArray(selectedItem.materials) ? [...selectedItem.materials] : [],
-        width: selectedItem.dimensions?.width?.toString() || '',
-        depth: selectedItem.dimensions?.depth?.toString() || '',
-        height: selectedItem.dimensions?.height?.toString() || '',
-        price: selectedItem.price?.toString() || '',
-        relatedLinks: parseRelatedLinks(selectedItem),
-        catalogLinks: parseCatalogLinks(selectedItem),
-        companionModels: Array.isArray(selectedItem.companionModels) ? [...selectedItem.companionModels] : [],
-        type: selectedItem.type || '',
-        visibility: selectedItem.visibility || 'public',
-        character: selectedItem.extendedMetadata?.character || null,
-        gimmick: selectedItem.extendedMetadata?.gimmick || null,
-      };
+      // originalData（下の useMemo）と必ず同じ形にする。ズレると hasChanged が常に true になり
+      // 自動保存が張り付いて無限ループになる（modelInfoForm.ts の doc 参照）。
+      const newEditData = buildModelInfoForm(selectedItem);
 
       // Only synchronize if the user hasn't made unsaved changes, or if the ID changed.
       const extSig = JSON.stringify([newEditData.relatedLinks, newEditData.catalogLinks]);
@@ -620,35 +578,9 @@ export const DssModelInfoPanel: React.FC<{
     return () => { mounted = false; };
   }, [editData.catalogLinks]);
 
-  // Compute Original Data to detect changes
-  const originalData = useMemo(() => {
-    if (!selectedItem) return null;
-    const typeStr = (selectedItem.modelType || selectedItem.type) === 'Architecture' ? 'Architecture' : 'Furniture';
-    const isCustom = selectedItem.tags?.includes('造作家具') || selectedItem.readyStatus === 'custom';
-    return {
-      id: selectedItem.id,
-      title: selectedItem.title || selectedItem.name || 'Untitled',
-      macroCategory: selectedItem.macroCategory || (typeStr === 'Architecture' ? '建築・空間' : (isCustom ? '家具 (造作)' : '家具 (既製品)')),
-      mainCategory: selectedItem.mainCategory || '',
-      subCategory: selectedItem.userCategory || selectedItem.subCategory || '',
-      tags: Array.isArray(selectedItem.tags) ? [...selectedItem.tags] : [],
-      buildingTypes: Array.isArray(selectedItem.buildingTypes) ? [...selectedItem.buildingTypes] : [],
-      rooms: Array.isArray(selectedItem.rooms) ? [...selectedItem.rooms] : [],
-      zones: Array.isArray(selectedItem.zones) ? [...selectedItem.zones] : [],
-      companionClasses: Array.isArray(selectedItem.companionClasses) ? [...selectedItem.companionClasses] : [],
-      materials: Array.isArray(selectedItem.materials) ? [...selectedItem.materials] : [],
-      width: selectedItem.dimensions?.width?.toString() || '',
-      depth: selectedItem.dimensions?.depth?.toString() || '',
-      height: selectedItem.dimensions?.height?.toString() || '',
-      price: selectedItem.price?.toString() || '',
-      relatedLinks: parseRelatedLinks(selectedItem),
-      catalogLinks: parseCatalogLinks(selectedItem),
-      companionModels: Array.isArray(selectedItem.companionModels) ? [...selectedItem.companionModels] : [],
-      visibility: selectedItem.visibility || 'public',
-      character: selectedItem.extendedMetadata?.character || null,
-      gimmick: selectedItem.extendedMetadata?.gimmick || null,
-    };
-  }, [selectedItem]);
+  // Compute Original Data to detect changes.
+  // editData と同じ buildModelInfoForm から作る（形がズレると常に「変更あり」になる）。
+  const originalData = useMemo(() => (selectedItem ? buildModelInfoForm(selectedItem) : null), [selectedItem]);
 
   const hasChanged = useMemo(() => {
     if (!originalData) return false;
@@ -940,14 +872,6 @@ export const DssModelInfoPanel: React.FC<{
   return (
     <Box sx={{
       display: 'flex', flexDirection: 'column', gap: 2, pb: 2,
-      // twoColumn（詳細画面の「整える」・600px幅）のときだけ CSS multi-column で2カラム化する。
-      // column-count は flex コンテナには効かない（仕様上フレックスは対象外）ため、
-      // このときだけ display を block に切り替える必要がある。セクションの順序や中身は変えない。
-      // 注意: gap は flex/grid/multi-column コンテナに効くが、multi-column では「カラム間の
-      // 溝」を指すだけで、ブロック要素どうしの縦方向の間隔（row-gap 相当）にはならない。
-      // display:block の間は上の gap:2 が縦間隔として効かないため、直接の子に marginBottom を
-      // 与えて代替する（columnGap は引き続きカラムの溝として機能させる）。
-      ...(twoColumn ? { display: 'block', columnCount: 2, columnGap: '16px', '& > *': { breakInside: 'avoid', mb: 2 } } : {}),
     }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', pb: 1.5, mb: -0.5 }}>

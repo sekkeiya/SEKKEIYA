@@ -184,7 +184,8 @@ function DimAnnotation({ dim, frame, tickW, preview = false, readOnly = false })
   // 端点ハンドルのカーソル。画面横に伸びる寸法なら ew-resize、縦なら ns-resize
   // （展開図の区切りハンドルと同じ。十字の移動カーソルは使わない）。
   const uvA = frame.toUV(a), uvB = frame.toUV(b);
-  const endCursor = Math.abs(uvB.u - uvA.u) >= Math.abs(uvB.v - uvA.v) ? "ew-resize" : "ns-resize";
+  const isVertical = Math.abs(uvB.v - uvA.v) > Math.abs(uvB.u - uvA.u);
+  const endCursor = isVertical ? "ns-resize" : "ew-resize";
 
   const commit = (raw) => {
     setEditing(false);
@@ -207,6 +208,9 @@ function DimAnnotation({ dim, frame, tickW, preview = false, readOnly = false })
       <Line points={T(a)} {...lineCommon} />
       <Line points={T(b)} {...lineCommon} />
       <Html position={[mid.x, mid.y, mid.z]} center zIndexRange={[18, 0]} style={inert ? { pointerEvents: "none" } : undefined}>
+        {/* 高さ（画面で縦に伸びる）寸法は数値も寝かせ、下から上へ読ませる（製図の作法）。
+            寸法列・断面の天井高寸法と同じ -90°。× ごと回すので当たり判定もラベルに追従する。 */}
+        <div style={{ display: "inline-block", transform: isVertical ? "rotate(-90deg)" : undefined }}>
         {editing ? (
           <input
             autoFocus type="number" defaultValue={Math.round(len)} step={50}
@@ -254,6 +258,7 @@ function DimAnnotation({ dim, frame, tickW, preview = false, readOnly = false })
             )}
           </div>
         )}
+        </div>
       </Html>
       {!inert && (
         <>

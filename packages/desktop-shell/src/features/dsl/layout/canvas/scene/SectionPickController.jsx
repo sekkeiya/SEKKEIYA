@@ -23,6 +23,7 @@ import { useSlabStore } from "../../store/useSlabStore";
 import { useWallStore } from "../../store/useWallStore";
 import { useGridAxisStore } from "../../store/useGridAxisStore";
 import { useBuildingSpecStore, floorHeightOf, ceilingHeightOf } from "../../store/useBuildingSpecStore";
+import { ceilingSlabTopMm } from "../../utils/ceilingHeight";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
 import { isDrawToolActive } from "../../utils/drawToolActive";
@@ -90,8 +91,11 @@ export default function SectionPickController({ sideAxis }) {
         const span = crossSpan(s.points, depthAxis, sideAxis, cutMm);
         if (!span) continue; // カット面がこのスラブを横切っていない＝黒く塗られない
         const fi = s.floorIndex || 0;
-        // 天井スラブ(role="ceiling")は CL に貼られる（FloorSlabsRenderer と同じ規約）
-        const top = (s.role === "ceiling" ? flAt(fi) + ceilingHeightOf(spec, fi) : flAt(fi)) + (s.offsetYMm || 0);
+        // 天井スラブ(role="ceiling")はその面自身が持つ高さに貼られる
+        // （FloorSlabsRenderer と同じ規約。天井高の正は面）。top は切り口の上端＝スラブ上面。
+        let top = flAt(fi);
+        if (s.role === "ceiling") top += ceilingSlabTopMm(s, ceilingHeightOf(spec, fi));
+        top += (s.offsetYMm || 0);
         cands.push({ kind: "slab", id: s.id, lo: span[0], hi: span[1], y0: top - (s.thicknessMm || 150), y1: top });
       }
       for (const w of useWallStore.getState().walls) {
@@ -112,7 +116,15 @@ export default function SectionPickController({ sideAxis }) {
         const area = (c.hi - c.lo) * (c.y1 - c.y0);
         if (!best || area < best.area) best = { ...c, area };
       }
-      if (!best) return; // 黒塗りの外＝何もしない（選択解除は既存の余白クリックに任せる）
+      // 黒塗りの外＝選択解除。断面ビューでは壁・床の実体がクリックを拾わない
+      // （WallsRenderer / FloorSlabsRenderer の selectable=false）ので、ここで解除まで
+      // 面倒を見ないと前の選択が residual に残る。
+      if (!best) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey) return; // 追加選択の修飾中は解除しない
+        useSlabStore.getState().setSelectedSlabId(null);
+        useWallStore.getState().setSelectedWallId(null);
+        return;
+      }
 
       // 選択（平面図の床/壁クリックと同じ作法）
       const additive = e.ctrlKey || e.metaKey || e.shiftKey;

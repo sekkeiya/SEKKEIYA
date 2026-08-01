@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseClaudeVersion, statusLabel, installGuidance, pathGuidance, type ClaudeCodeStatus } from './claudeCode';
+import { parseClaudeVersion, statusLabel, statusDetail, installGuidance, pathGuidance, type ClaudeCodeStatus } from './claudeCode';
 
 const ok = (version: string | null): ClaudeCodeStatus => ({ installed: true, version, path: 'C:/x/claude.cmd', onPath: true, error: null });
 const offPath = (version: string | null): ClaudeCodeStatus =>
@@ -39,6 +39,19 @@ describe('statusLabel', () => {
     // ネイティブインストーラは ~/.local/bin に置くだけで PATH を通さないことがある。
     expect(statusLabel(offPath('2.1.112'))).toBe('Claude Code: v2.1.112（PATH 未設定）');
     expect(statusLabel(offPath('2.1.112'))).not.toContain('未導入');
+  });
+});
+
+describe('statusDetail', () => {
+  it('プレフィックスを含まない', () => {
+    expect(statusDetail(offPath('2.1.112'))).toBe('v2.1.112（PATH 未設定）');
+  });
+  it('未確認・未導入も接頭辞なし', () => {
+    expect(statusDetail(null)).toBe('確認中…');
+    expect(statusDetail(ng(null))).toBe('未導入');
+  });
+  it('statusLabel は statusDetail にプレフィックスを付けたもの', () => {
+    expect(statusLabel(ok('1.0.30'))).toBe(`Claude Code: ${statusDetail(ok('1.0.30'))}`);
   });
 });
 

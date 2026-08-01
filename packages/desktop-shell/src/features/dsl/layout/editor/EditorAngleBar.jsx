@@ -200,7 +200,15 @@ function applyEditorViewState(kind, opts = {}) {
     em.setSectionClipZEnabled(opts.axis === "z");
     if (opts.axis === "x") em.setSectionClipX(opts.pos);
     else em.setSectionClipZ(opts.pos);
-    focusViewportForDock(vp, opts.axis === "x" ? VIEWPORT_IDS.RIGHT : VIEWPORT_IDS.FRONT);
+    // 3D 演出では図面（正射の側面）へ切り替えず、パースのまま断面をかける。
+    //   2D 配置の断面＝図面としての断面図（正射・寸法や通り芯が乗る）
+    //   3D 演出の断面＝建物を切った 3D の見え方（パースのまま）
+    // 同じ「断面」でも見せるものが別なので、ビュー自体を分ける。
+    const is3D = em.editorViewGroup === "3d";
+    focusViewportForDock(
+      vp,
+      is3D ? VIEWPORT_IDS.PERSP : (opts.axis === "x" ? VIEWPORT_IDS.RIGHT : VIEWPORT_IDS.FRONT),
+    );
     setTimeout(() => vp.requestFrameAll?.(), 40);
   } else if (kind === "elevation") {
     // 立面図: 断面クリップOFFで正面(FRONT)/側面(RIGHT)を正射投影表示（建物の外形＝立面）。

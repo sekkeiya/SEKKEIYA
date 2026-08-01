@@ -1,7 +1,7 @@
 // DimChainPanel — 図面の寸法列（4辺 × 1〜3列）の構成を編集する。
 //   辺ごとに列を足し、各列の「刻み元」を選ぶ。列は内側から外側の順に並ぶ。
 //   構成はビュー（平面/天井/断面/立面）ごとに保存される。
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Box, Typography, Stack, IconButton, Tooltip, Select, MenuItem, Chip, Divider, Button, TextField } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -9,43 +9,59 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
+import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
 import {
   useDimChainStore,
+  isSideLinked,
   CHAIN_SIDES,
   CHAIN_SIDE_LABEL,
   CHAIN_SOURCE_LABEL,
+  VERTICAL_ONLY_SOURCES,
   MAX_COLUMNS_PER_SIDE,
 } from "../../../../store/useDimChainStore";
 import { useViewportUiStore } from "../../../../store/viewportUiStore";
 import { sideOffsetMm } from "../../../../utils/planBounds";
 
-const SOURCES = ["total", "grid", "wall", "level"];
+// 「階レベル（旧）」は新規に選ばせない。既に使っている列でだけ選択肢に残す（下の allowed）。
+const SOURCES = ["total", "grid", "wall", "levelFloor"];
 
 /** 余白(mm)の入力欄。1文字ごとに保存すると Firestore を連打するので、
  *  入力中はローカル draft を持ち、Enter か blur で確定する。 */
 function OffsetField({ valueMm, onCommit }) {
   const [draft, setDraft] = useState(null);
+  // ⚠️ Enter は commit してから blur するので onBlur からも commit が走る。state は非同期で
+  //    クロージャの draft が古いままなので、ref を正として冪等にする（二重保存の防止）。
+  const draftRef = useRef(null);
   const shown = draft ?? String(valueMm);
+  const putDraft = (v) => { draftRef.current = v; setDraft(v); };
   const commit = () => {
-    if (draft === null) return;
-    const n = Number(draft);
+    const d = draftRef.current;
+    if (d === null) return;
+    putDraft(null);
+    const n = Number(d);
     // 空欄や不正入力は元の値へ戻す（未設定という状態は作らない）。
-    if (draft.trim() !== "" && Number.isFinite(n)) onCommit(Math.max(0, Math.round(n)));
-    setDraft(null);
+    if (d.trim() !== "" && Number.isFinite(n)) onCommit(Math.max(0, Math.round(n)));
   };
   return (
-    <Tooltip title="建物の外形から1列目の寸法線までの余白(mm)" arrow>
+    <Tooltip title="最外の通り芯から1列目の寸法線までの余白(mm)。Enter で確定" arrow>
       <TextField
         size="small" variant="standard" type="number" value={shown}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => putDraft(e.target.value)}
         onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") { e.currentTarget.blur(); }
-          else if (e.key === "Escape") { setDraft(null); e.currentTarget.blur(); }
-          // ← → などがキャンバスのショートカットに吸われないようにする。
-          e.stopPropagation();
+        inputProps={{
+          min: 0, step: 50,
+          style: { textAlign: "right", fontSize: 11, padding: "1px 2px" },
+          // ⚠️ onKeyDown は TextField の props に直接置くと ...other 経由で
+          //    ラッパーの div に付き、e.currentTarget が input を指さない
+          //    （blur() が効かず Enter で確定しない）。input に直接付けること。
+          onKeyDown: (e) => {
+            if (e.key === "Enter") { commit(); e.currentTarget.blur(); }
+            else if (e.key === "Escape") { putDraft(null); e.currentTarget.blur(); }
+            // ← → などがキャンバスのショートカットに吸われないようにする。
+            e.stopPropagation();
+          },
         }}
-        inputProps={{ min: 0, step: 50, style: { textAlign: "right", fontSize: 11, padding: "1px 2px" } }}
         sx={{ width: 62, "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": { WebkitAppearance: "none", margin: 0 } }}
       />
     </Tooltip>
@@ -60,6 +76,7 @@ export default function DimChainPanel() {
   const removeColumn = useDimChainStore((s) => s.removeColumn);
   const setColumnSource = useDimChainStore((s) => s.setColumnSource);
   const setSideOffset = useDimChainStore((s) => s.setSideOffset);
+  const toggleSideOffsetLink = useDimChainStore((s) => s.toggleSideOffsetLink);
   const resetView = useDimChainStore((s) => s.resetView);
   const removedMarks = useDimChainStore((s) => s.removedMarks);
   const restoreMarksFor = useDimChainStore((s) => s.restoreMarksFor);
@@ -94,15 +111,29 @@ export default function DimChainPanel() {
 
   const sideBlock = (side) => {
     const cols = chains[side] || [];
-    // 階レベルは縦の列（左右）でのみ意味がある。
-    const allowed = SOURCES.filter((s) => (s === "level" ? side === "left" || side === "right" : true));
+    // 階レベル系は縦の列（左右）でのみ意味がある。
+    // 旧「階レベル」はこの列が既に使っているときだけ選択肢に残す。Select の value が
+    // 選択肢に無いと MUI が空欄になり、選び直すまで何の列か読めなくなるため。
+    const isVertical = side === "left" || side === "right";
+    const base = SOURCES.filter((s) => (VERTICAL_ONLY_SOURCES.includes(s) ? isVertical : true));
+    const allowed = cols.some((c) => c.source === "level") ? [...base, "level"] : base;
+    const linked = isSideLinked(chains.offsetLinks, side);
     return (
       <Box key={side} sx={{ mb: 1 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.4 }}>
           <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)" }}>
             {CHAIN_SIDE_LABEL[side]}辺
           </Typography>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Stack direction="row" alignItems="center" spacing={0.25}>
+            <Tooltip title={linked ? "他の辺と連動中（クリックでこの辺だけ独立）" : "この辺は独立（クリックで他の辺と連動）"} arrow>
+              <IconButton
+                size="small"
+                onClick={() => toggleSideOffsetLink(viewKey, side)}
+                sx={{ width: 20, height: 20, color: linked ? "light-dark(#0aa5c2, #22d3ee)" : "color-mix(in srgb, var(--brand-fg) 35%, transparent)" }}
+              >
+                {linked ? <LinkRoundedIcon sx={{ fontSize: 14 }} /> : <LinkOffRoundedIcon sx={{ fontSize: 14 }} />}
+              </IconButton>
+            </Tooltip>
             <OffsetField
               valueMm={sideOffsetMm(chains.offsets, side)}
               onCommit={(mm) => setSideOffset(viewKey, side, mm)}
@@ -181,8 +212,9 @@ export default function DimChainPanel() {
 
       <Typography sx={{ fontSize: 10.5, lineHeight: 1.5, mb: 1.25, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}>
         辺ごとに寸法列を 3 つまで並べられます。上から順に図面の内側 → 外側です。製図では
-        内側に細かい刻み（壁面・通り芯間）、外側に総寸法を置きます。辺名の右の数値は、建物の
-        外形から 1 列目の寸法線までの余白(mm)です。通り芯と断面記号もこの値に合わせて動きます。
+        内側に細かい刻み（壁面・通り芯間）、外側に総寸法を置きます。辺名の右の数値は、最外の
+        通り芯から 1 列目の寸法線までの余白(mm)です。通り芯と断面記号もこの値に合わせて動きます。
+        鎖アイコンが付いている辺どうしは連動します。外すとその辺だけ独立して動きます。
       </Typography>
 
       {/* × で消した区切りの復元（このビュー分だけ戻す）。辺リストの上に置いて常に見えるようにする。 */}

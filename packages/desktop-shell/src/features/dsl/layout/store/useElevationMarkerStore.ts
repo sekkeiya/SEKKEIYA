@@ -92,7 +92,9 @@ export const ELEV_SIDE_PAD_MM = 80;
 
 /** ゾーン矩形の集合 → 展開図の表示範囲（合併バウンディング）。壁面を残すため壁厚ぶん外側で切る。
  *  L字部屋＝「同じ部屋に属する複数の矩形ゾーン」を1つの部屋として扱うため配列で受ける。 */
-export function computeRoomBoxFromRects(rects: any[]): ElevationRoomBox | null {
+/** ceilMm: その部屋の天井高(mm)。天井高は部屋のプロパティなので、
+ *  呼び出し側が部屋を分かっていれば渡す（省略時は建物の既定天井高）。 */
+export function computeRoomBoxFromRects(rects: any[], ceilMm?: number): ElevationRoomBox | null {
   const valid = (rects || []).filter((r) => r && Number.isFinite(r.x) && Number.isFinite(r.z));
   if (!valid.length) return null;
   const emAny: any = useEditorModeStore.getState();
@@ -102,7 +104,7 @@ export function computeRoomBoxFromRects(rects: any[]): ElevationRoomBox | null {
   const pad = toWorld(ELEV_ROOM_PAD_MM); // 壁厚ぶん外側で切って壁面を残す
   const yPad = toWorld(80);
   const flWorld = toWorld(bs.fl0Mm || 0);
-  const clWorld = toWorld((bs.fl0Mm || 0) + (bs.ceilingHeightMm || 2400));
+  const clWorld = toWorld((bs.fl0Mm || 0) + (ceilMm ?? bs.ceilingHeightMm ?? 2400));
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   valid.forEach((r) => {
     minX = Math.min(minX, r.x - (r.width || 0) / 2);

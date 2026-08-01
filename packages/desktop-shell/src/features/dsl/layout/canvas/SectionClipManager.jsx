@@ -1,14 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
-import { Line } from "@react-three/drei";
+import { Html, Line } from "@react-three/drei";
 import * as THREE from "three";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useMaterialViewStore } from "../store/useMaterialViewStore";
 import { useElevationMarkerStore } from "../store/useElevationMarkerStore";
+import { useSceneObjectRegistryStore } from "../store/sceneObjectRegistryStore";
+import { useWallStore } from "../store/useWallStore";
+import { useGridAxisStore } from "../store/useGridAxisStore";
+import { useBuildingSpecStore } from "../store/useBuildingSpecStore";
+import { useSectionLinesStore } from "../store/useSectionLinesStore";
+import { measureXZBounds } from "../utils/planBounds";
+import { sectionFrameSpan } from "../utils/sectionFrame";
 
 // 断面の切断位置を示す矩形フレーム（塗り＋外枠ライン）。
 // どの軸でどこを切っているか一目で分かるように、軸色で可視化する。
-function CutPlaneFrame({ w, h, color }) {
+function CutPlaneFrame({ w, h, color, label }) {
   const pts = useMemo(() => {
     const hw = w / 2, hh = h / 2;
     return [[-hw, -hh, 0], [hw, -hh, 0], [hw, hh, 0], [-hw, hh, 0], [-hw, -hh, 0]];
@@ -20,6 +27,23 @@ function CutPlaneFrame({ w, h, color }) {
         <meshBasicMaterial color={color} transparent opacity={0.07} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
       <Line points={pts} color={color} lineWidth={1.6} transparent opacity={0.85} depthTest={false} />
+      {/* 何を切っている枠かを示すラベル。枠の角に置く（中央だと建物に重なって読めない）。
+          Html はカメラを向くので、枠の回転に関わらず文字は水平のまま読める。 */}
+      {label && (
+        <Html position={[-w / 2, h / 2, 0]} center zIndexRange={[17, 0]} style={{ pointerEvents: "none" }}>
+          <div
+            style={{
+              fontSize: 10, fontWeight: 800, letterSpacing: 0.2, whiteSpace: "nowrap",
+              color: "#0f172a", background: "rgba(255,255,255,0.92)",
+              border: `1.5px solid ${color}`, borderRadius: 4, padding: "1px 6px",
+              fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.25)", userSelect: "none",
+            }}
+          >
+            {label}
+          </div>
+        </Html>
+      )}
     </>
   );
 }
@@ -51,10 +75,54 @@ export default function SectionClipManager({ isTopView = false, passive = false,
   const sceneMaxY            = useEditorModeStore((s) => s.sceneMaxY);
   const sceneExtentXZ        = useEditorModeStore((s) => s.sceneExtentXZ);
 
-  // 断面フレームのサイズ（シーン範囲に合わせる。未取得時は安全な既定値）。
-  const frameHalfXZ = Math.max(sceneExtentXZ || 0, sceneMaxY || 0, 3);
-  const frameW      = frameHalfXZ * 2.2;
-  const frameTopY   = Math.max(sceneMaxY || 0, 3) * 1.05;
+  // 断面フレームの範囲。
+  //   ⚠️ sceneExtentXZ は BaseGlb / ParametricRoom でしか設定されない「原点からの半径」。
+  //      S.Layout で作図しただけの建物では入らず、枠が最小値まで縮んで建物を覆えない。
+  //      また原点中心に置くので、建物が原点からずれていると片側にはみ出す。
+  //   そこで実測（躯体 GLB ＋ 作図した壁）と通り芯から範囲を出し、枠をその中心に置く。
+  //   端は通り芯にそろえる（図面と同じ規則）が、建物より小さくはしない（utils/sectionFrame）。
+  const baseColliders = useSceneObjectRegistryStore((s) => s.baseColliders);
+  const walls         = useWallStore((s) => s.walls);
+  const gridAxes      = useGridAxisStore((s) => s.axes);
+  const glMm          = useBuildingSpecStore((s) => s.glMm);
+  const fl0Mm         = useBuildingSpecStore((s) => s.fl0Mm);
+  const sectionLines  = useSectionLinesStore((s) => s.lines);
+
+  const isMm = (sceneMaxY || 0) > 100;
+  const w = useCallback((mm) => (isMm ? mm : mm / 1000), [isMm]);
+
+  const frame = useMemo(() => {
+    const b = measureXZBounds(baseColliders, walls, w);
+    // 実測できないうちは従来の原点中心・シーン範囲でフォールバックする。
+    const half = Math.max(sceneExtentXZ || 0, sceneMaxY || 0, w(3000));
+    const loX = b ? b.minX : -half, hiX = b ? b.maxX : half;
+    const loZ = b ? b.minZ : -half, hiZ = b ? b.maxZ : half;
+    const pad = w(1000);
+    const gx = (gridAxes || []).filter((a) => a?.axis === "x").map((a) => w(a.pos));
+    const gz = (gridAxes || []).filter((a) => a?.axis === "z").map((a) => w(a.pos));
+    const [x0, x1] = sectionFrameSpan(gx, loX, hiX, pad);
+    const [z0, z1] = sectionFrameSpan(gz, loZ, hiZ, pad);
+    // 縦は GL 〜 建物頂部。GL は FL±0 からの相対なので fl0 を足す。
+    const glW = w((fl0Mm || 0) + (glMm || 0));
+    const topW = Math.max(b ? b.maxY : 0, sceneMaxY || 0, w(3000)) + pad;
+    const y0 = Math.min(glW, 0);
+    return {
+      x0, x1, z0, z1, y0, y1: topW,
+      cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, cy: (y0 + topW) / 2,
+      wX: x1 - x0, wZ: z1 - z0, hY: topW - y0,
+    };
+  }, [baseColliders, walls, gridAxes, sceneExtentXZ, sceneMaxY, glMm, fl0Mm, w]);
+
+  /** その位置にある断面線の名前を返す（「断面 A-A'」）。線が無ければ軸名で代用する。 */
+  const labelFor = useCallback((axis, posWorld) => {
+    // SectionLine.pos は sectionClipX/Z と同スケール（world）なので、そのまま比べる。
+    const tol = w(200);
+    const line = (sectionLines || []).find(
+      (l) => l?.axis === axis && Math.abs((l.pos ?? 0) - posWorld) <= tol,
+    );
+    if (line?.name) return `断面 ${line.name}`;
+    return axis === "x" ? "断面（左右 X）" : "断面（前後 Z）";
+  }, [sectionLines, w]);
 
   const lastUpdateRef = useRef(0);
 
@@ -251,20 +319,23 @@ export default function SectionClipManager({ isTopView = false, passive = false,
     <group userData={{ isSectionRef: true }}>
       {/* Y (高さ) 断面フレーム — 水平。色は緑（スライダーと一致） */}
       {sectionClipYEnabled && (
-        <group position={[0, sectionClipHeight, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <CutPlaneFrame w={frameW} h={frameW} color="#a5d6a7" />
+        <group position={[frame.cx, sectionClipHeight, frame.cz]} rotation={[-Math.PI / 2, 0, 0]}>
+          <CutPlaneFrame
+            w={frame.wX} h={frame.wZ} color="#a5d6a7"
+            label={`断面高さ ${Math.round(isMm ? sectionClipHeight : sectionClipHeight * 1000)}mm`}
+          />
         </group>
       )}
       {/* X (左右) 断面フレーム — YZ 平面。色は赤。Top では非表示。 */}
       {!isTopView && sectionClipXEnabled && (
-        <group position={[sectionClipX, frameTopY / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <CutPlaneFrame w={frameW} h={frameTopY} color="#ef9a9a" />
+        <group position={[sectionClipX, frame.cy, frame.cz]} rotation={[0, Math.PI / 2, 0]}>
+          <CutPlaneFrame w={frame.wZ} h={frame.hY} color="#ef9a9a" label={labelFor("x", sectionClipX)} />
         </group>
       )}
       {/* Z (前後) 断面フレーム — XY 平面。色は青。Top では非表示。 */}
       {!isTopView && sectionClipZEnabled && (
-        <group position={[0, frameTopY / 2, sectionClipZ]} rotation={[0, 0, 0]}>
-          <CutPlaneFrame w={frameW} h={frameTopY} color="#90caf9" />
+        <group position={[frame.cx, frame.cy, sectionClipZ]} rotation={[0, 0, 0]}>
+          <CutPlaneFrame w={frame.wX} h={frame.hY} color="#90caf9" label={labelFor("z", sectionClipZ)} />
         </group>
       )}
     </group>

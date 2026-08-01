@@ -29,6 +29,8 @@ export interface Room {
    * zone.category ?? room.category の順に解決する（後方互換）。
    */
   category?: string;
+  // 天井高は部屋ではなく天井の面（FloorSlab role="ceiling" の ceilingHeightMm）が持つ。
+  // 部屋を作ると天井が 1 枚自動で立ち、消せば吹き抜けになる（2026-08-01）。
 }
 
 export interface ZoneLayoutVersion {

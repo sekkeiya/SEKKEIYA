@@ -16,7 +16,10 @@ import { create } from "zustand";
  *   useEditorModeStore.isGridVisible が持っているので、こちらを OFF にしても
  *   スナップの効き方は変わらない（図面から目障りな線を消すだけ）。
  */
-export type SymbolKind = "section" | "elevation" | "grid" | "zone" | "dimension" | "sceneGrid";
+export type SymbolKind =
+  | "section" | "elevation" | "grid" | "zone" | "dimension" | "sceneGrid"
+  | "startPin"   // ウォークスルーの開始位置ピン（3D パースのみ）
+  | "sun";       // 太陽（平行光）のバッジ
 
 export const SYMBOL_LABEL: Record<SymbolKind, string> = {
   section: "断面線",
@@ -25,10 +28,14 @@ export const SYMBOL_LABEL: Record<SymbolKind, string> = {
   zone: "ゾーン",
   dimension: "寸法列",
   sceneGrid: "グリッド",
+  startPin: "スタートピン",
+  sun: "太陽",
 };
 
 /** 項目の並び順（メニューの表示順）。 */
-export const SYMBOL_KINDS: SymbolKind[] = ["section", "elevation", "grid", "zone", "dimension", "sceneGrid"];
+export const SYMBOL_KINDS: SymbolKind[] = [
+  "section", "elevation", "grid", "zone", "dimension", "sceneGrid", "startPin", "sun",
+];
 
 /**
  * ロック対象（選択・移動・編集の操作系を持つ記号）。
@@ -40,6 +47,7 @@ export type SymbolFlags = Record<SymbolKind, boolean>;
 
 const ALL_ON: SymbolFlags = {
   section: true, elevation: true, grid: true, zone: true, dimension: true, sceneGrid: true,
+  startPin: true, sun: true,
 };
 
 interface ViewportDisplayStore {

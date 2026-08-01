@@ -197,7 +197,11 @@ function polygonShape(poly, k) {
 }
 
 /** ピース1つ＝押し出しメッシュ（＋Top では平面ポシェ）。 */
-function PieceMesh({ poly, y0, y1, baseY, k, isTopView, selected, onSelect, finishMat, ghost = false }) {
+function PieceMesh({ poly, y0, y1, baseY, k, isTopView, selected, onSelect, finishMat, ghost = false, pickable = true }) {
+  // ghost（他階のトレース）と、断面ビュー（pickable=false）は「見えるだけ」。
+  // 断面では SectionPickController が切り口だけを選ぶので、壁の実体がクリックを拾うと
+  // 奥の壁まで選べてしまう。イベントを付けなければ R3F は配送しない。
+  const inert = ghost || !pickable;
   const geo = useMemo(() => {
     const g = new THREE.ExtrudeGeometry(polygonShape(poly, k), { depth: (y1 - y0) * k, bevelEnabled: false });
     g.rotateX(-Math.PI / 2);
@@ -226,7 +230,11 @@ function PieceMesh({ poly, y0, y1, baseY, k, isTopView, selected, onSelect, fini
       //   解除側がこの印を見てスキップする。
       userData={ghost ? { isDrawnStructure: true, ignoreClipping: true } : { isDrawnStructure: true }}
       // 他階のゴーストは「見えるだけ」。触れないようにして誤選択・誤ドラッグを防ぐ。
-      onPointerDown={ghost ? undefined : onSelect}
+      // ⚠️ 断面（pickable=false）で外すのは「選択ハンドラだけ」。onClick と raycast は残すこと。
+      //    背景キャッチャーは hitsDrawnStructure() で壁・床に当たったかを見て選択解除を抑止して
+      //    いる（SingleViewportCanvas）。当たり判定ごと外すとそのガードが効かなくなり、
+      //    SectionPickController が選んだ切り口を背景側が即座に消してしまう。
+      onPointerDown={inert ? undefined : onSelect}
       onClick={ghost ? undefined : (e) => e.stopPropagation()}
       raycast={ghost ? () => null : undefined}
     >
@@ -336,7 +344,9 @@ function WindowSymbol({ frame, opening, baseY, k }) {
   );
 }
 
-export default function WallsRenderer({ isTopView = false }) {
+// selectable=false: 断面ビュー。壁の実体はクリックを拾わず、SectionPickController が
+//   計算した「切り口（黒塗り）」だけが選択対象になる（奥の壁は選べない）。
+export default function WallsRenderer({ isTopView = false, selectable = true }) {
   const walls = useWallStore((s) => s.walls);
   const selectedWallIds = useWallStore((s) => s.selectedWallIds);
   const floorHeightMm = useBuildingSpecStore((s) => s.floorHeightMm);
@@ -432,6 +442,7 @@ export default function WallsRenderer({ isTopView = false }) {
                 onSelect={onSelect}
                 finishMat={finishMat}
                 ghost={ghost}
+                pickable={selectable}
               />
             ))}
             {isTopView && !ghost && openings.map((o) =>

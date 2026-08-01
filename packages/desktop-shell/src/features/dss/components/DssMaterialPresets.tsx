@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getModelLocalPathCached } from '../../../lib/modelLocalPathCache';
 import { getDownloadUrlForModel, getCanonicalModelId } from '../utils/modelUtils';
+import { slotDisplayTitle } from '../utils/materialSlotLabel';
 import { enumerateMaterialSlots, type EnumeratedSlot } from '../../shared/material/applyMaterial';
 import { materialToSnapshot } from '../../shared/material/useMaterialBinding';
 import {
@@ -27,7 +28,8 @@ import {
 import { subscribeMaterialLibrary } from '../../dsmt/api/dsmtQueries';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { DSMT_CATEGORY_META, type DsmtMaterial } from '../../dsmt/types';
-import { WorkspaceItemRepository } from '../../workspace/WorkspaceItemRepository';
+import { useAppStore } from '../../../store/useAppStore';
+import { persistAssetPatch } from '../utils/persistAssetPatch';
 import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
 import type { MaterialPreviewState } from './RightPanelModelViewer';
 import { uploadVariantThumb } from '../utils/variantThumb';
@@ -169,15 +171,19 @@ interface Props {
   slotsHandlerRef?: React.MutableRefObject<((slots: EnumeratedSlot[]) => void) | null>;
   /** パターン保存時に、メインビューアの描画をJPEGデータURLで取得する（サムネイル生成用）。 */
   captureThumb?: () => string | null;
+  /** externalViewer 時、外部の「＋ パターンを追加」ボタンなどから「現在の見た目を保存」を呼び出すための受け渡し先。 */
+  addVariantRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: controlledMode, hideToggle, section = 'both', externalViewer, onPreviewState, pickHandlerRef, slotsHandlerRef, captureThumb }) => {
+export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: controlledMode, hideToggle, section = 'both', externalViewer, onPreviewState, pickHandlerRef, slotsHandlerRef, captureThumb, addVariantRef }) => {
   const showMat = section !== 'variants';
   const showVar = section !== 'material';
   const glbUrl = useMemo(() => getDownloadUrlForModel(model, 'glb') as string, [model]);
   // externalViewer 時は自前でGLBを解決しない（メインビューア側が解決済みのため）
   const { url: resolvedUrl, loading: resolving } = useResolvedGlbUrl(externalViewer ? undefined : glbUrl);
   const canonicalId = useMemo(() => getCanonicalModelId(model) || model?.id, [model]);
+  // プロジェクト複製アイテムの編集をプロジェクト側へ書くための分岐に使う（persistAssetPatch）。
+  const activeProjectId = useAppStore((s: any) => s.activeProjectId);
 
   const [slots, setSlots] = useState<EnumeratedSlot[]>([]);
   const [presets, setPresets] = useState<MaterialPresetSlot[]>(() => readMaterialPresets(model));
@@ -258,13 +264,15 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
           },
         })),
       }));
-      await WorkspaceItemRepository.updateGlobalAsset(canonicalId, { materialPresets: clean });
+      // プロジェクト複製アイテムならプロジェクト側が主（デフォルト=グローバルを汚さない）。
+      // グローバル資産なら従来どおりグローバルへ。プラン別モデル設定 仕様 §5。
+      await persistAssetPatch(model, activeProjectId, { materialPresets: clean });
     } catch (e) {
       console.error('[DssMaterialPresets] persist failed', e);
     } finally {
       setSaving(false);
     }
-  }, [isAuthor, canonicalId]);
+  }, [isAuthor, canonicalId, model, activeProjectId]);
 
   const updatePresets = useCallback((next: MaterialPresetSlot[]) => {
     setPresets(next);
@@ -283,13 +291,13 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
         selection: { ...v.selection },
         thumbUrl: v.thumbUrl ?? null,
       }));
-      await WorkspaceItemRepository.updateGlobalAsset(canonicalId, { materialVariants: clean });
+      await persistAssetPatch(model, activeProjectId, { materialVariants: clean });
     } catch (e) {
       console.error('[DssMaterialPresets] persist variants failed', e);
     } finally {
       setSaving(false);
     }
-  }, [isAuthor, canonicalId]);
+  }, [isAuthor, canonicalId, model, activeProjectId]);
 
   const updateVariants = useCallback((next: MaterialVariant[]) => {
     setVariants(next);
@@ -607,6 +615,13 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
     }
   }, [presets, selection, variants, updateVariants, captureThumb, canonicalId, persistVariants]);
 
+  // externalViewer 時、外部の「＋ パターンを追加」ボタンから saveCurrentAsVariant を呼べるようにする。
+  useEffect(() => {
+    if (!externalViewer || !addVariantRef) return;
+    addVariantRef.current = saveCurrentAsVariant;
+    return () => { addVariantRef.current = null; };
+  }, [externalViewer, addVariantRef, saveCurrentAsVariant]);
+
   /** パターンを適用（家具全体を切替）。 */
   const applyVariant = useCallback((variant: MaterialVariant) => {
     setSelection(expandVariantSelection(presets, variant));
@@ -754,7 +769,7 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                  {rows.map((row) => {
+                  {rows.map((row, rowIndex) => {
                     const key = row.key;
                     const ps = row.preset;
                     const options = ps?.options ?? [];
@@ -762,15 +777,17 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
                     const expanded = isSel && selectedKeys.length === 1;
                     const selId = resolveSelectedOption(ps ?? { slotKey: key, materialIndex: row.repSlot.materialIndex, options }, selection[key])?.id;
                     const memberNames = row.members.map((m) => m.meshName).filter(Boolean).join(', ');
-                    const title = row.label || row.repSlot.materialName;
+                    const title = slotDisplayTitle(row.label, row.repSlot.materialName, rowIndex);
                     return (
                       <Box key={key} sx={{ borderRadius: 1.5, bgcolor: isSel ? 'rgba(34,211,238,0.07)' : 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${isSel ? 'rgba(34,211,238,0.5)' : 'rgb(var(--brand-fg-rgb) / 0.07)'}`, overflow: 'hidden' }}>
                         {/* 行ヘッダー：クリックで選択（複数選択でグループ化バーが出る） */}
                         <Box onClick={() => toggleSelected(key)} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' } }}>
                           {options[0] ? <SwatchDot color={swatchColorOf(options[0])} size={16} /> : <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.3)' }} />}
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontSize: 12, color: isSel ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.8)' }} noWrap>{title}</Typography>
-                            {memberNames && <Typography sx={{ fontSize: 9.5, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }} noWrap>{memberNames}</Typography>}
+                            {/* メッシュ名（tripo_node_… 等の生 ID）は常時表示せず hover の Tooltip に送る */}
+                            <Tooltip title={memberNames || ''} placement="top-start" disableInteractive>
+                              <Typography sx={{ fontSize: 12, color: isSel ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.8)' }} noWrap>{title}</Typography>
+                            </Tooltip>
                           </Box>
                           {row.isGroup && <Chip icon={<LayersRoundedIcon sx={{ fontSize: 12 }} />} label={`${row.members.length}`} size="small" sx={{ height: 18, fontSize: 9.5, bgcolor: 'rgba(34,211,238,0.18)', color: HILITE, '& .MuiChip-icon': { color: HILITE, ml: 0.5 } }} />}
                           {options.length > 0 && <Chip label={`${options.length}`} size="small" sx={{ height: 16, fontSize: 9.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />}

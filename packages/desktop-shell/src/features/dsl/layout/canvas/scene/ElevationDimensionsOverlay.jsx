@@ -19,6 +19,9 @@ import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStore";
 import { useRoomElevationsStore } from "../../store/useRoomElevationsStore";
 import { useElevationDimOverridesStore } from "../../store/useElevationDimOverridesStore";
+import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
+import { useSlabStore } from "../../store/useSlabStore";
+import { ceilingSlabsOfRoom, slabCeilingHeightMm } from "../../utils/ceilingHeight";
 import { useViewportUiStore } from "../../store/viewportUiStore";
 import { measureBaseInterior, measureCeilingUndersideAt } from "../../utils/baseFootprint";
 
@@ -266,7 +269,6 @@ export default function ElevationDimensionsOverlay() {
 
   const fl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
-  const setCeilingHeightMm = useBuildingSpecStore((s) => s.setCeilingHeightMm);
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const objectMap = useSceneObjectRegistryStore((s) => s.map);
   // 実躯体（床/壁）。ゾーン矩形ではなく実際に描画されるジオメトリで枠・寸法を出すために使う。
@@ -278,6 +280,21 @@ export default function ElevationDimensionsOverlay() {
   const removedMarks = useElevationDimOverridesStore((s) => s.removedMarks);
   const removeMark = useElevationDimOverridesStore((s) => s.removeMark);
   const markPositions = useElevationDimOverridesStore((s) => s.markPositions);
+  // 天井高は部屋のプロパティ（未設定はその階の既定）。いま見ている展開図の部屋の値を使う。
+  const elevations = useRoomElevationsStore((s) => s.elevations);
+  const roomsMaster = useLayoutTaskStore((s) => s.rooms);
+  const activeRoomId = useMemo(
+    () => (elevations || []).find((e) => e.id === activeElevationId)?.roomId || null,
+    [elevations, activeElevationId],
+  );
+  const slabsAll = useSlabStore((s) => s.slabs);
+  const roomClMm = useMemo(() => {
+    const def = ceilingHeightMm || 2400;
+    const room = (roomsMaster || []).find((r) => r.id === activeRoomId);
+    if (!room) return def;
+    const mine = ceilingSlabsOfRoom(slabsAll, { id: room.id, floorIndex: room.floorIndex, rect: room.rect }, def);
+    return mine.length ? slabCeilingHeightMm(mine[0], def) : def;
+  }, [slabsAll, roomsMaster, activeRoomId, ceilingHeightMm]);
 
   const isMm = (sceneMaxY || 0) > 100;
   const toWorld = (mm) => (isMm ? mm : mm / 1000);
@@ -327,7 +344,7 @@ export default function ElevationDimensionsOverlay() {
     if (innerMax - innerMin < toWorld(300)) return null;
 
     let flW = toWorld(fl0Mm || 0);
-    let clW = toWorld((fl0Mm || 0) + (ceilingHeightMm || 2400));
+    let clW = toWorld((fl0Mm || 0) + roomClMm);
 
     // ── 実測の床上端/天井下端を優先（「本来のサイズ」を表示） ──────────
     // 断面の CL 設定値と躯体がずれていても、展開図は実際の部屋の高さを示す
@@ -446,7 +463,7 @@ export default function ElevationDimensionsOverlay() {
     const heightSegs = marksToSegs(heightMarks, toWorld(1));
 
     return { axis, sign, depth, innerMin, innerMax, flW, clW, widthMarks, widthSegs, heightMarks, heightSegs };
-  }, [viewActive, dir, roomBox, markerPos, objectMap, baseColliders, fl0Mm, ceilingHeightMm, isMm, scope, removedMarks, markPositions, dragTick]);
+  }, [viewActive, dir, roomBox, markerPos, objectMap, baseColliders, fl0Mm, roomClMm, isMm, scope, removedMarks, markPositions, dragTick]);
 
   if (!data) return null;
   const { axis, sign, depth, innerMin, innerMax, flW, clW, widthMarks, widthSegs, heightMarks, heightSegs } = data;
@@ -571,7 +588,20 @@ export default function ElevationDimensionsOverlay() {
         position={pt(hasMidMarks ? hTotLbl : hSegLbl, (flW + clW) / 2)}
         valueMm={Math.round(toMm(clW - flW))}
         strong
-        onCommitMm={(v) => { if (v >= 1800 && v <= 6000) setCeilingHeightMm(v); }}
+        // 全高の手入力 = この部屋の天井の高さ。天井が無ければ何もしない（吹き抜け）。
+        onCommitMm={(v) => {
+          if (!(v >= 1800 && v <= 6000) || !activeRoomId) return;
+          const def = ceilingHeightMm || 2400;
+          const room = (useLayoutTaskStore.getState().rooms || []).find((r) => r.id === activeRoomId);
+          if (!room) return;
+          const mine = ceilingSlabsOfRoom(
+            useSlabStore.getState().slabs || [],
+            { id: room.id, floorIndex: room.floorIndex, rect: room.rect },
+            def,
+          );
+          if (!mine.length) return;
+          useSlabStore.getState().updateSlab(mine[0].id, { ceilingHeightMm: Math.round(v) });
+        }}
       />
     </group>
   );

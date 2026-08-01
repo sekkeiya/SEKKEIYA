@@ -2,6 +2,12 @@
 // マインドマップは Research & Memo の既定の思考面。AI が対話しながら言語化した内容を
 // トピックとして生やし（親子=構造化）、横断的な気づきは関係線で結ぶ。
 // handler は mindmapBridge に委譲（マインドマップ表示中はライブ反映、非表示時はヘッドレス）。
+//
+// ⚠ ここで定義する意味論には、devbacklog MCP 側に写しがある:
+//    sekkeiya/tools/devbacklog-mcp/mindmap.mjs（木の操作）と server.mjs（ツール登録）。
+//    rank の採番規則（親ごとに兄弟の最大+1、兄弟なしは0）・中心トピック（parentId=null、
+//    無ければ自動生成）・削除が部分木ごとである点を変えるときは、両方を揃えて直すこと。
+//    ランタイムが違うためコードは共有できない。
 
 import type { VerbDef } from '../../../store/verb/verbTypes';
 

@@ -14,6 +14,10 @@ import {
   emptyBacklogFile, parseBacklogFile, serializeBacklogFile,
   addEntry, patchEntry, removeEntry, isSelfWrite,
 } from './localBacklogLogic';
+import type { DiagramType, DiagramDoc, DiagramsMetaFile, DiagramMetaEntry } from './diagramsLogic';
+import {
+  DIAGRAM_TYPES, emptyDiagramsMeta, parseDiagramsMeta, serializeDiagramsMeta, setMetaEntry,
+} from './diagramsLogic';
 
 const DIR = '.claude/sekkeiya-code';
 
@@ -37,11 +41,21 @@ export class LocalFileBacklogStore implements BacklogStore {
   private loading: Promise<void> | null = null;      // 初回ロードの多重実行防止（in-flight を共有）
   private q: Promise<void> = Promise.resolve();      // commit 直列化キュー
   private blobCache = new Map<string, Promise<string>>(); // 添付 path → blob URL の Promise
+  // ---- 図（diagrams/<type>.mmd + meta.json）----
+  private diagrams: Partial<Record<DiagramType, DiagramDoc>> | null = null; // ロード成功後のみ非 null
+  private diagramSubs = new Set<(d: Partial<Record<DiagramType, DiagramDoc>>) => void>();
+  private diagramsLoading: Promise<void> | null = null;
+  private unwatchDiagrams: (() => void) | null = null;
+  private watchingDiagrams = false;
 
   constructor(rootPath: string) {
     this.root = rootPath.replace(/[\\/]+$/, '');
     this.filePath = `${this.root}/${DIR}/backlog.json`;
   }
+
+  private diagramsDir(): string { return `${this.root}/${DIR}/diagrams`; }
+  private mmdPath(type: DiagramType): string { return `${this.diagramsDir()}/${type}.mmd`; }
+  private metaPath(): string { return `${this.diagramsDir()}/meta.json`; }
 
   // ---- ロード・通知 ----
   private notify() {
@@ -108,6 +122,10 @@ export class LocalFileBacklogStore implements BacklogStore {
     this.unwatch = null;
     this.watching = false;
     if (un) { try { un(); } catch { /* 解放済みなら無視 */ } }
+    const unD = this.unwatchDiagrams;
+    this.unwatchDiagrams = null;
+    this.watchingDiagrams = false;
+    if (unD) { try { unD(); } catch { /* 解放済みなら無視 */ } }
     const cached = [...this.blobCache.values()];
     this.blobCache.clear();
     for (const p of cached) void p.then(u => URL.revokeObjectURL(u), () => { /* 生成に失敗していた分は不要 */ });
@@ -122,6 +140,139 @@ export class LocalFileBacklogStore implements BacklogStore {
   }
   subscribeItems(cb: (items: BacklogItem[]) => void, onError?: (e: unknown) => void) { return this.subscribe(this.itemSubs, cb, onError); }
   subscribeSprints(cb: (sprints: Sprint[]) => void, onError?: (e: unknown) => void) { return this.subscribe(this.sprintSubs, cb, onError); }
+
+  // ---- 図 ----
+  private notifyDiagrams() {
+    const d = this.diagrams;
+    if (!d) return;
+    this.diagramSubs.forEach(cb => cb(d));
+  }
+
+  /** diagrams フォルダを丸ごと読み直す。meta.json が壊れている場合はメタ無しで .mmd だけ拾う
+   *  （表示を止めない。書き込み時は doSaveDiagram 側が読み直して再検証する）。 */
+  private async reloadDiagrams(): Promise<void> {
+    await mkdir(this.diagramsDir(), { recursive: true }); // 冪等
+    let meta: DiagramsMetaFile = emptyDiagramsMeta();
+    try {
+      if (await exists(this.metaPath())) meta = parseDiagramsMeta(await readTextFile(this.metaPath()));
+    } catch { /* 壊れた meta は無視（キュー表示が欠けるだけ） */ }
+    const out: Partial<Record<DiagramType, DiagramDoc>> = {};
+    for (const { key } of DIAGRAM_TYPES) {
+      const entry = meta.diagrams[key];
+      let mermaid: string | null = null;
+      try {
+        if (await exists(this.mmdPath(key))) mermaid = await readTextFile(this.mmdPath(key));
+      } catch { /* 書き込み途中は次の watch イベントで拾う */ }
+      if (mermaid === null && !entry) continue; // 図も依頼も無い type は「未作成」
+      out[key] = {
+        type: key, mermaid: mermaid ?? '',
+        queue: entry?.queue ?? null, queueNote: entry?.queueNote ?? null, updatedAt: entry?.updatedAt ?? null,
+      };
+    }
+    this.diagrams = out;
+    this.notifyDiagrams();
+  }
+
+  private loadDiagrams(): Promise<void> {
+    if (this.diagramsLoading) return this.diagramsLoading;
+    const p = this.reloadDiagrams()
+      .catch(e => { this.fail(e); })
+      .finally(() => { if (!this.diagrams && this.diagramsLoading === p) this.diagramsLoading = null; });
+    this.diagramsLoading = p;
+    return p;
+  }
+
+  private async startWatchDiagrams(): Promise<void> {
+    if (this.watchingDiagrams) return;
+    this.watchingDiagrams = true; // await の前に立てる（backlog.json watch と同じ二重登録ガード）
+    try {
+      // ディレクトリ監視。Claude Code の .mmd / meta.json 書き込みを UI に自動反映する。
+      // 自己書き込み判定はしない: 図は「読み直して同じ内容を再通知」しても UI 側の編集 draft を
+      // 壊さない（DiagramsView は編集中ローカル draft を持つ）ため、冪等リロードで足りる。
+      this.unwatchDiagrams = await watch(this.diagramsDir(), () => {
+        void this.reloadDiagrams().catch(() => { /* 途中書き込みは次のイベントで拾う */ });
+      }, { delayMs: 300 });
+    } catch (e) {
+      this.watchingDiagrams = false;
+      this.unwatchDiagrams = null;
+      this.fail(e);
+    }
+  }
+
+  subscribeDiagrams(cb: (d: Partial<Record<DiagramType, DiagramDoc>>) => void, onError?: (e: unknown) => void): Unsubscribe {
+    this.diagramSubs.add(cb);
+    if (onError) this.errSubs.add(onError);
+    if (!this.diagrams) void this.loadDiagrams().then(() => this.startWatchDiagrams());
+    else this.notifyDiagrams();
+    return () => { this.diagramSubs.delete(cb); if (onError) this.errSubs.delete(onError); };
+  }
+
+  /** 図の書き込みを this.q に並べる（meta.json の read-modify-write を直列化）。 */
+  private commitDiagram(run: () => Promise<void>): Promise<void> {
+    const next = this.q.then(run, run);
+    this.q = next.catch(() => {});
+    return next;
+  }
+
+  /** meta.json を読み直してから patch を適用して書き戻す（Claude Code の変更を潰さない）。
+   *  patch にキーを含めないフィールドは setMetaEntry の `{...prev, ...patch}` により
+   *  「直前に読み直した meta の値」がそのまま維持される（メモリ上の古いキャッシュ値で
+   *  fresh read を上書きしない。Firestore 実装の setDoc(merge) と同じ「フィールド省略」方式）。 */
+  private async patchDiagramMeta(type: DiagramType, patch: Partial<Pick<DiagramMetaEntry, 'queue' | 'queueNote'>>): Promise<void> {
+    await mkdir(this.diagramsDir(), { recursive: true });
+    let meta = emptyDiagramsMeta();
+    try {
+      if (await exists(this.metaPath())) meta = parseDiagramsMeta(await readTextFile(this.metaPath()));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(`diagrams/meta.json が読めないため書き込みを中止しました（外部編集の途中の可能性）: ${msg}`);
+    }
+    await writeTextFile(this.metaPath(), serializeDiagramsMeta(setMetaEntry(meta, type, patch, this.nowIso())));
+  }
+
+  async saveDiagram(type: DiagramType, mermaid: string): Promise<void> {
+    await this.commitDiagram(async () => {
+      await mkdir(this.diagramsDir(), { recursive: true });
+      await writeTextFile(this.mmdPath(type), mermaid);
+      // 保存は queue を触らない＝patch に queue/queueNote を含めない。
+      // patchDiagramMeta が直前に読み直した meta.json の値がそのまま維持される
+      // （メモリ上の this.diagrams キャッシュは古い可能性があるため使わない）。
+      await this.patchDiagramMeta(type, {});
+      await this.reloadDiagrams();
+    });
+  }
+
+  async requestDiagram(type: DiagramType, note?: string): Promise<void> {
+    await this.commitDiagram(async () => {
+      await this.patchDiagramMeta(type, { queue: 'generate', queueNote: note?.trim() || null });
+      await this.reloadDiagrams();
+    });
+  }
+
+  /** スプリント完了時の凍結: diagrams/<type>.mmd → diagrams/sprints/<sprintId>/<type>.mmd へコピー。 */
+  async snapshotDiagrams(sprintId: string): Promise<void> {
+    await this.commitDiagram(async () => {
+      const dir = `${this.diagramsDir()}/sprints/${sprintId}`;
+      await mkdir(dir, { recursive: true });
+      for (const { key } of DIAGRAM_TYPES) {
+        try {
+          if (!(await exists(this.mmdPath(key)))) continue;
+          const text = await readTextFile(this.mmdPath(key));
+          if (text.trim()) await writeTextFile(`${dir}/${key}.mmd`, text);
+        } catch { /* 読めない図はスキップ（再完了で凍結し直せる） */ }
+      }
+    });
+  }
+  async getDiagramSnapshots(sprintId: string): Promise<Partial<Record<DiagramType, string>>> {
+    const out: Partial<Record<DiagramType, string>> = {};
+    const dir = `${this.diagramsDir()}/sprints/${sprintId}`;
+    for (const { key } of DIAGRAM_TYPES) {
+      try {
+        if (await exists(`${dir}/${key}.mmd`)) out[key] = await readTextFile(`${dir}/${key}.mmd`);
+      } catch { /* 無ければスキップ */ }
+    }
+    return out;
+  }
 
   // ---- 書き込み（読み直し→適用→書き戻し）----
   /** commit を 1 本のチェーンに並べて直列化する。

@@ -9,12 +9,14 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import Rotate90DegreesCcwRoundedIcon from "@mui/icons-material/Rotate90DegreesCcwRounded";
+import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 import SectionClipPlanControl from "../../../../canvas/SectionClipPlanControl.jsx";
 import FloorLevelsSettings from "./FloorLevelsSettings.jsx";
 import { useSectionLinesStore } from "../../../../store/useSectionLinesStore";
 import { useEditorModeStore } from "../../../../store/useEditorModeStore";
 import { useViewportUiStore, VIEWPORT_IDS } from "../../../../store/viewportUiStore";
 import { useElevationMarkerStore } from "../../../../store/useElevationMarkerStore";
+import { resetSectionLine } from "../../../../utils/sectionLineDefaults";
 
 // 矢印スタイルのプリセット（store の arrowStyle と対応。プレビューは右向きの小さな SVG）。
 const ARROW_STYLE_OPTIONS = [
@@ -134,6 +136,13 @@ export default function SectionPropertiesPanel() {
     applyLine(next);
   };
 
+  // 初期位置に戻す（位置＝建物の中心 / 長さ＝自動。向き・軸はそのまま）
+  const resetLine = (line) => {
+    const pos = resetSectionLine(line.id);
+    if (pos === null) return;
+    applyLine({ ...line, pos, span: undefined });
+  };
+
   return (
     <Box sx={{ p: 1.5, height: "100%", overflowY: "auto" }}>
       <Stack spacing={1.5}>
@@ -183,6 +192,12 @@ export default function SectionPropertiesPanel() {
                       <IconButton size="small" onClick={() => rotateLine(line)}
                         sx={{ color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", "&:hover": { color: "var(--brand-fg)" } }}>
                         <Rotate90DegreesCcwRoundedIcon sx={{ fontSize: 15 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="初期位置に戻す（位置＝建物の中心 / 長さ＝自動）">
+                      <IconButton size="small" onClick={() => resetLine(line)}
+                        sx={{ color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)", "&:hover": { color: "var(--brand-fg)" } }}>
+                        <RestartAltRoundedIcon sx={{ fontSize: 15 }} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="この断面ラインを削除">

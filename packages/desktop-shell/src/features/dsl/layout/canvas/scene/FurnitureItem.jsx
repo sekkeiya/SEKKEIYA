@@ -23,6 +23,10 @@ import { LoopAnimator } from "../../../../shared/walkthrough/LoopAnimator";
 import { normalizeGimmicks } from "../../../../shared/walkthrough/gimmicks";
 import { applyBindingToObject } from "../../../../shared/material/applyMaterial";
 import { useAIDriveStore } from "../../../../../store/useAIDriveStore";
+import { usePlanModelOverridesStore } from "../../store/planModelOverridesStore";
+import { usePatternOverrideStore } from "../../store/patternOverrideStore";
+import { resolveOptionIndex } from "../../utils/layoutPatterns";
+import { resolveModelOverride, filterByIds } from "../../utils/planModelOverrides";
 /** 笨・霑ｽ蜉�・啌3F event 縺ｧ繧り誠縺｡縺ｪ縺・preventDefault / button 蜿門ｾ・*/
 const getMouseButton = (e) => e?.nativeEvent?.button ?? e?.button ?? 0;
 const safePreventDefault = (e) => {
@@ -587,17 +591,57 @@ function FurnitureItemComponent({
     })();
     return () => { alive = false; };
   }, [baseModelId]);
+
+  // ── 3層解決の中間層: プロジェクト複製資産（projects/{pid}/assets/{assetId}）──
+  // S.Model 詳細画面の編集はプロジェクト複製が主（persistAssetPatch）なのに、従来ここは
+  // グローバル assets しか読まず「保存したのにウォークスルーに出ない」非対称があった。
+  const planCtx = useEditorModeStore((s) => s.dslPlanContext);
+  const projectAssetId = item?.assetId ? String(item.assetId) : undefined;
+  const [projectAsset, setProjectAsset] = useState(null);
+  useEffect(() => {
+    if (!planCtx?.projectId || !projectAssetId) { setProjectAsset(null); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const { db } = await import("../../../../../lib/firebase/client");
+        const { doc, getDoc } = await import("firebase/firestore");
+        const snap = await getDoc(doc(db, "projects", planCtx.projectId, "assets", projectAssetId));
+        if (alive && snap.exists()) setProjectAsset({ id: snap.id, ...snap.data() });
+      } catch { /* ignore */ }
+    })();
+    return () => { alive = false; };
+  }, [planCtx?.projectId, projectAssetId]);
+
+  // ── 3層解決の最上層: プランの modelOverrides（Option→Plan→Base の継承チェーン）──
+  const overrideChain = usePlanModelOverridesStore((s) => s.chain);
+  const planOverride = React.useMemo(
+    () => (baseModelId ? resolveModelOverride(overrideChain, baseModelId) : null),
+    [overrideChain, baseModelId]
+  );
+
   const swapList = React.useMemo(() => {
+    // item → プロジェクト複製 → グローバル の順で解決し、プラン上書きで絞り込む。
     const raw = Array.isArray(item?.swapModels) && item.swapModels.length
       ? item.swapModels
-      : (Array.isArray(fetchedAsset?.extendedMetadata?.swapModels) ? fetchedAsset.extendedMetadata.swapModels : []);
-    return raw.filter((m) => m && (m.glbUrl || m.id));
-  }, [item?.swapModels, fetchedAsset]);
+      : (Array.isArray(projectAsset?.extendedMetadata?.swapModels) && projectAsset.extendedMetadata.swapModels.length
+        ? projectAsset.extendedMetadata.swapModels
+        : (Array.isArray(fetchedAsset?.extendedMetadata?.swapModels) ? fetchedAsset.extendedMetadata.swapModels : []));
+    const valid = raw.filter((m) => m && (m.glbUrl || m.id));
+    return filterByIds(valid, planOverride?.swapModelIds);
+  }, [item?.swapModels, projectAsset, fetchedAsset, planOverride?.swapModelIds]);
   const [swapIndex, setSwapIndex] = useState(0);
   useEffect(() => { setSwapIndex(0); }, [itemId]);
+  // 見た目パターンで指定された置き換え。あれば手動選択より優先する
+  // （手動でチップを選ぶと apply() がこのアイテムのオーバーライドを解除するので手動が勝つ）。
+  const patternSwapId = usePatternOverrideStore((s) => s.swaps[itemId]);
+  const swapOptionIds = React.useMemo(
+    () => [{ id: "base" }, ...swapList.map((m, i) => ({ id: String(m.id || `s${i}`) }))],
+    [swapList]
+  );
+  const effSwapIndex = patternSwapId ? resolveOptionIndex(swapOptionIds, patternSwapId, "base") : swapIndex;
   // 「似た商品」からの置換（CLIP類似 or 画像→3D生成）。override があれば最優先で表示モデルを差し替える。
   const replaceOverride = useItemReplaceStore((s) => s.overrides[itemId] || null);
-  const swapActive = replaceOverride || (swapIndex > 0 ? (swapList[swapIndex - 1] || null) : null);
+  const swapActive = replaceOverride || (effSwapIndex > 0 ? (swapList[effSwapIndex - 1] || null) : null);
 
   // 差し替え中は「差し替え先アセット本体」を取得し、寸法・情報・マテリアルにそれを使う。
   const [swapAsset, setSwapAsset] = useState(null);
@@ -694,11 +738,14 @@ function FurnitureItemComponent({
   // 差し替え中は差し替え先アセットのメタを最優先。次にストア、最後に元アセット（非差し替え時のみ）。
   const assetMeta = swapActive
     ? (swapAsset?.extendedMetadata || storeMeta || null)
-    : (storeMeta || fetchedAsset?.extendedMetadata || null);
+    : (projectAsset?.extendedMetadata || storeMeta || fetchedAsset?.extendedMetadata || null);
   const hasItemGimmicks = !!(item?.gimmick || (Array.isArray(item?.gimmicks) && item.gimmicks.length));
   const gimmickMetaSource = hasItemGimmicks ? item : (assetMeta || item);
   const resolvedGimmickSpecs = useMemo(() => normalizeGimmicks(gimmickMetaSource), [gimmickMetaSource]);
-  const resolvedAnimSpec = item?.anim || assetMeta?.anim || null;
+  // 常時アニメ: プラン上書きが最優先（null は「このプランでは切る」）。差し替え中は差し替え先に従う。
+  const resolvedAnimSpec = (!swapActive && planOverride && planOverride.anim !== undefined)
+    ? planOverride.anim
+    : (item?.anim || assetMeta?.anim || null);
 
   // マテリアル・パターン切替（ウォークスルー）。matIndex 0 = デフォルト（保存済みオーバーライド or 元素材）。
   // 差し替え中は差し替え先アセットの presets / variants を使う（その家具に登録された素材を表示・変更）。
@@ -706,45 +753,55 @@ function FurnitureItemComponent({
     () => readMaterialPresets({
       materialPresets: swapActive
         ? (Array.isArray(swapAsset?.materialPresets) ? swapAsset.materialPresets : undefined)
-        : (Array.isArray(item?.materialPresets) ? item.materialPresets : fetchedAsset?.materialPresets),
+        : (Array.isArray(item?.materialPresets) ? item.materialPresets
+          : (Array.isArray(projectAsset?.materialPresets) ? projectAsset.materialPresets : fetchedAsset?.materialPresets)),
     }),
-    [swapActive, swapAsset, item?.materialPresets, fetchedAsset]
+    [swapActive, swapAsset, item?.materialPresets, projectAsset, fetchedAsset]
   );
-  const matVariants = useMemo(
-    () => readMaterialVariants({
+  const matVariants = useMemo(() => {
+    const list = readMaterialVariants({
       materialVariants: swapActive
         ? (Array.isArray(swapAsset?.materialVariants) ? swapAsset.materialVariants : undefined)
-        : (Array.isArray(item?.materialVariants) ? item.materialVariants : fetchedAsset?.materialVariants),
-    }),
-    [swapActive, swapAsset, item?.materialVariants, fetchedAsset]
-  );
+        : (Array.isArray(item?.materialVariants) ? item.materialVariants
+          : (Array.isArray(projectAsset?.materialVariants) ? projectAsset.materialVariants : fetchedAsset?.materialVariants)),
+    });
+    // プラン上書きは元モデルにだけ適用（差し替え先の素材は差し替え先の事情なので触らない）。
+    return swapActive ? list : filterByIds(list, planOverride?.materialVariantIds);
+  }, [swapActive, swapAsset, item?.materialVariants, projectAsset, fetchedAsset, planOverride?.materialVariantIds]);
   const [matIndex, setMatIndex] = useState(0);
+  // 見た目パターンで指定された素材（同上・手動選択が勝つ）
+  const patternMatId = usePatternOverrideStore((s) => s.materials[itemId]);
+  const matOptionIds = React.useMemo(
+    () => [{ id: "default" }, ...matVariants.map((v, i) => ({ id: String(v.id || `v${i}`) }))],
+    [matVariants]
+  );
+  const effMatIndex = patternMatId ? resolveOptionIndex(matOptionIds, patternMatId, "default") : matIndex;
   useEffect(() => { setMatIndex(0); }, [itemId]);
   // 家具を差し替えたらマテリアル選択をリセット（差し替え先のデフォルト素材から開始）。
   useEffect(() => { setMatIndex(0); }, [swapActive]);
   const liveMaterialBindings = useMemo(() => {
-    if (matIndex > 0 && matVariants[matIndex - 1]) {
-      return buildBindingsFromSelection(matPresets, expandVariantSelection(matPresets, matVariants[matIndex - 1]));
+    if (effMatIndex > 0 && matVariants[effMatIndex - 1]) {
+      return buildBindingsFromSelection(matPresets, expandVariantSelection(matPresets, matVariants[effMatIndex - 1]));
     }
     // 差し替え中はデフォルト時に元アイテムの materialBindings を流用しない（別モデルのため）。
     return swapActive ? null : (Array.isArray(item?.materialBindings) ? item.materialBindings : null);
-  }, [matIndex, matVariants, matPresets, item?.materialBindings, swapActive]);
+  }, [effMatIndex, matVariants, matPresets, item?.materialBindings, swapActive]);
   useEffect(() => {
     if (!itemId) return;
     const { register: regMat, unregister: unregMat } = useItemMaterialRegistryStore.getState();
     if (matVariants.length >= 1) {
       const options = [
         // デフォルト=元のGLB素材。家具自身のサムネを見せて「素のままの見た目」を示す。
-        { id: "default", label: "デフォルト", swatchColor: undefined, thumbUrl: infoThumb, apply: () => setMatIndex(0) },
+        { id: "default", label: "デフォルト", swatchColor: undefined, thumbUrl: infoThumb, apply: () => { usePatternOverrideStore.getState().clearItem(String(itemId)); setMatIndex(0); } },
         ...matVariants.map((v, i) => ({
           id: v.id || `v${i}`,
           label: v.title || `パターン${i + 1}`,
           swatchColor: variantSwatchColor(matPresets, v),
           thumbUrl: variantSwatchImage(matPresets, v),
-          apply: () => setMatIndex(i + 1),
+          apply: () => { usePatternOverrideStore.getState().clearItem(String(itemId)); setMatIndex(i + 1); },
         })),
       ];
-      const currentId = options[Math.min(matIndex, options.length - 1)]?.id;
+      const currentId = options[Math.min(effMatIndex, options.length - 1)]?.id;
       regMat({ itemId: String(itemId), options, currentId, cycle: () => setMatIndex((i) => (i + 1) % options.length) });
       useWalkthroughGalleryStore.getState().bump();
     } else {
@@ -888,10 +945,10 @@ function FurnitureItemComponent({
     const { register: regSwap, unregister: unregSwap } = useItemSwapRegistryStore.getState();
     if (swapList.length >= 1) {
       const options = [
-        { id: "base", label: "元のモデル", thumbUrl: item?.thumbUrl || item?.thumbnailUrl || null, apply: () => setSwapIndex(0) },
-        ...swapList.map((m, i) => ({ id: m.id || `s${i}`, label: m.title || `候補${i + 1}`, thumbUrl: m.thumbUrl || null, apply: () => setSwapIndex(i + 1) })),
+        { id: "base", label: "元のモデル", thumbUrl: item?.thumbUrl || item?.thumbnailUrl || null, apply: () => { usePatternOverrideStore.getState().clearItem(String(itemId)); setSwapIndex(0); } },
+        ...swapList.map((m, i) => ({ id: m.id || `s${i}`, label: m.title || `候補${i + 1}`, thumbUrl: m.thumbUrl || null, apply: () => { usePatternOverrideStore.getState().clearItem(String(itemId)); setSwapIndex(i + 1); } })),
       ];
-      const currentId = options[Math.min(swapIndex, options.length - 1)]?.id;
+      const currentId = options[Math.min(effSwapIndex, options.length - 1)]?.id;
       regSwap({ itemId: String(itemId), options, currentId, cycle: () => setSwapIndex((i) => (i + 1) % options.length) });
       useWalkthroughGalleryStore.getState().bump();
     } else {

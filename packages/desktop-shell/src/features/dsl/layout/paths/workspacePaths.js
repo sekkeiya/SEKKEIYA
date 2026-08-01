@@ -80,3 +80,4 @@ export function getLayoutRenderRef({ projectId, workspaceId, planId, renderId })
     if (!projectId || !workspaceId || !planId || !renderId) return null;
     return doc(db, "projects", projectId, "workspaces", workspaceId, "layouts", planId, "renders", renderId);
 }
+

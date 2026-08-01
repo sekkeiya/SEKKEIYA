@@ -412,3 +412,90 @@ export function normalizeProjectKey(v?: string | null): string {
   const t = (v ?? '').trim();
   return t.length ? t : DEFAULT_PROJECT_KEY;
 }
+
+// ── 列の表示/非表示（要求: ヘッダーをクリックしてメニューから切り替え） ──
+// 表示設定なので Firestore ではなく localStorage に持つ（列幅と同じ扱い）。
+// 保存値は「隠す列」の配列。列を将来追加しても既存の保存値がそのまま生きる
+// （「表示する列」で持つと、新しい列が既存ユーザーには出ない）。
+
+/** localStorage から復元する。実在しない列キーは捨て、全列非表示は無効にする。 */
+export function parseHiddenCols(raw: unknown, allKeys: string[]): string[] {
+  if (!Array.isArray(raw)) return [];
+  const hidden = raw.filter((k): k is string => typeof k === 'string' && allKeys.includes(k));
+  // 全部隠すと操作不能になるため無効化（保存値が壊れていた場合の保険）。
+  return hidden.length >= allKeys.length ? [] : hidden;
+}
+
+/** 列の表示/非表示を反転する。最後の1列は隠せない。 */
+export function toggleColHidden(hidden: string[], key: string, allKeys: string[]): string[] {
+  if (!allKeys.includes(key)) return hidden;
+  if (hidden.includes(key)) return hidden.filter(k => k !== key);
+  // 残り1列になるなら拒否（テーブルが空になるのを防ぐ）。
+  if (hidden.length + 1 >= allKeys.length) return hidden;
+  return [...hidden, key];
+}
+
+/**
+ * 幅が足りないとき、優先度の低い列から順に「自動退避」する列キーを返す（spec §2）。
+ * - 永続化しない前提の計算。幅が戻れば呼び出し側で自動的に復帰する。
+ * - dropOrder に無い列（内容列など）は絶対に退避しない＝全列消滅を防ぐ。
+ * - manualHidden の列は既に非表示なので、幅にも戻り値にも計上しない。
+ * @param available  実測のコンテンツ幅（px）。0 以下＝計測前は何もしない。
+ * @param fixedWidth チェック/開閉/削除など固定列の合計幅（px）。
+ * @param pinned 使用中（フィルタ/ソート中）で退避したくない列。
+ */
+export function autoHiddenCols(
+  available: number,
+  colWidths: Record<string, number>,
+  manualHidden: string[],
+  dropOrder: string[],
+  fixedWidth: number,
+  pinned: string[] = [],
+): string[] {
+  if (available <= 0) return [];               // 初回レンダー（計測前）に全列を消さない
+  const hidden = new Set(manualHidden);
+  const pinnedSet = new Set(pinned);
+  const widthOf = (k: string) => colWidths[k] ?? 0;
+  let used = fixedWidth + Object.keys(colWidths)
+    .filter(k => !hidden.has(k))
+    .reduce((sum, k) => sum + widthOf(k), 0);
+  const auto: string[] = [];
+  for (const key of dropOrder) {
+    if (used <= available) break;
+    if (hidden.has(key)) continue;             // 手動で既に非表示＝退避しても幅は減らない
+    if (pinnedSet.has(key)) continue;          // 使用中（フィルタ/ソート中）は退避しない
+    auto.push(key);
+    used -= widthOf(key);
+  }
+  return auto;
+}
+
+/** 保存された列幅を検証して既定値にマージする。数値でない/正でない値は既定にフォールバックする。 */
+export function parseColWidths(raw: unknown, base: Record<string, number>): Record<string, number> {
+  const out = { ...base };
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!(k in base)) continue;                       // 未知の列キー（過去の列）は捨てる
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * 折りたたみ中のボードセクション識別子を検証する（'requests' / 'backlog' / `sprint:<id>`）。
+ * スプリント id は動的なので許可リストでは弾けない。文字列であることだけ見て重複を除く。
+ * 消えたスプリントの id が残っても、そのセクションが描画されないだけで無害。
+ */
+export function parseCollapsedSections(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v === 'string' && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+/** セクションの開閉を反転する（非破壊）。 */
+export function toggleSection(list: string[], key: string): string[] {
+  return list.includes(key) ? list.filter(k => k !== key) : [...list, key];
+}

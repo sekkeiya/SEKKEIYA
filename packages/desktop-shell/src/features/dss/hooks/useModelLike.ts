@@ -28,8 +28,8 @@ export interface UseModelLikeResult {
 
 /**
  * assets/{assetId}/likes/{uid} のいいね状態を読み書きする共通フック。
- * DssModelCardActionBar（ホバーで enabled になる）と DssDetailActionBar（常に enabled）の
- * 両方から使う。初回読み込みが終わるまでは toggleLike を no-op にし、サーバーに既に
+ * DssModelCardActionBar（ホバーで enabled になる）と詳細画面の OverviewSection（常に enabled、
+ * 旧 DssDetailActionBar の後継）の両方から使う。初回読み込みが終わるまでは toggleLike を no-op にし、サーバーに既に
  * 存在するいいねを「まだ liked=false のはず」という誤った楽観更新で setDoc（=update 扱いで
  * ルール上 denied）してしまう競合を防ぐ。トグル失敗時はローカルの反転ではなく、サーバーから
  * 再読み込みして真実に収束させる。

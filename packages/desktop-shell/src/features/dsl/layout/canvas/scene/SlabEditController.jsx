@@ -26,11 +26,13 @@ import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useBuildingSpecStore, ceilingHeightOf } from "../../store/useBuildingSpecStore";
 import { useSlabStore, SLAB_MIN_POINTS } from "../../store/useSlabStore";
 import { useWallStore } from "../../store/useWallStore";
+import { ceilingSlabTopMm } from "../../utils/ceilingHeight";
 import { useViewportUiStore } from "../../store/viewportUiStore";
 import { wallTopLiftMm } from "../../utils/handleLift";
 import { gridSnap } from "../../utils/drawSnap";
 import { useHoverCursor } from "./useHoverCursor";
 import VertexGizmo from "./VertexGizmo.jsx";
+import SectionResizeEdge from "./SectionResizeEdge.jsx";
 
 const PT_SNAP_MM = 250;   // 他頂点／壁端点への吸着距離
 const ALIGN_MM = 120;     // 「同じX/Z」に揃えるアライメント吸着距離
@@ -110,7 +112,11 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
     const idx = sel ? (sel.floorIndex || 0) : (activeFloorIndex || 0);
     const i = Math.max(0, Math.min(idx, (floors?.length || 1) - 1));
     const fl = (fl0Mm || 0) + (floors?.[i]?.flMm || 0);
-    if (sel?.role === "ceiling") return fl + ceilingHeightOf(useBuildingSpecStore.getState(), i);
+    // 天井はその面自身が持つ高さに貼られる（天井高の正は面）。
+    //   基準レベルは「上面」。ceilingHeightMm は天井面（下端）なので厚みを足す。
+    if (sel?.role === "ceiling") {
+      return fl + ceilingSlabTopMm(sel, ceilingHeightOf(useBuildingSpecStore.getState(), i));
+    }
     return fl;
   }, [fl0Mm, floors, activeFloorIndex, slabs, selectedSlabId, ceilingHeightMm, floorHeightMm]);
 
@@ -647,9 +653,13 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
   const gizmoKind = !gizmoOnly && gizmoVertex ? "vertex" : "move";
   // ギズモの取り付け高さ(mm)。
   //   平面図: ハンドル面（壁より上へ逃がした高さ）。
-  //   立面/断面: 実際の床の上面（床レベル＋その床の上下オフセット）。
+  //   立面/断面: 切り口（黒バー）の中心＝上面から厚みの半分だけ下。上下端は矢印ハンドル
+  //     （レベル・厚み）が占めるので、移動ギズモは中心に置いて役割を分ける。縦ドラッグは
+  //     gizmoYMm からの差分なので、取り付け位置を変えても操作量は変わらない。
   const slabOffsetMm = slab?.offsetYMm || 0;
-  const gizmoYMm = gizmoOnly ? floorBaseYMm + slabOffsetMm : y / k;
+  const gizmoYMm = gizmoOnly
+    ? floorBaseYMm + slabOffsetMm - (slab?.thicknessMm || 150) / 2
+    : y / k;
   // 立面/断面は画面に見えている2軸だけ（横＝視線に直交する水平軸／縦＝上下）。
   const gizmoAxes = gizmoOnly
     ? (sideAxis === "x" ? [true, true, false] : [false, true, true])
@@ -895,8 +905,6 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
         const topY = floorBaseYMm + slabOffsetMm;
         const thick = slab.thicknessMm || 150;
         const bottomY = topY - thick;
-        const midY = (topY + bottomY) / 2;
-        const hx = slabMid.x * k, hz = slabMid.z * k;
         const hr = 7 * pxWorld;
         // 横方向(sideAxis)のスラブ端。左=min / 右=max（切り口の左右に一致する）。
         const hvals = pts.map((p) => p[sideAxis]);
@@ -926,28 +934,17 @@ export default function SlabEditController({ enabled = true, orbitRef = null, si
           };
           setSecH(side);
         };
-        // 左/右ハンドルのワールド位置（縦は上下端の中央、奥行きはスラブ中心＝切り口の面上）。
-        const leftPos = sideAxis === "x" ? [minH * k, midY * k, hz] : [hx, midY * k, minH * k];
-        const rightPos = sideAxis === "x" ? [maxH * k, midY * k, hz] : [hx, midY * k, maxH * k];
+        // 切り口の面（奥行き＝スラブ中心）と 4 辺の範囲。辺そのものを掴めるようにする。
+        const planeAt = (sideAxis === "x" ? slabMid.z : slabMid.x) * k;
+        const band = hr * 2; // 当たり判定の帯幅（約14px相当）
+        const edgeCommon = { sideAxis, planeAt, loH: minH * k, hiH: maxH * k, y0: bottomY * k, y1: topY * k, thickness: band };
         return (
           <group userData={{ ignoreClipping: true }}>
-            <mesh position={[hx, topY * k, hz]} renderOrder={10001} onPointerDown={begin("top")}>
-              <sphereGeometry args={[hr, 14, 14]} />
-              <meshBasicMaterial color="#38bdf8" depthTest={false} />
-            </mesh>
-            <mesh position={[hx, bottomY * k, hz]} renderOrder={10001} onPointerDown={begin("bottom")}>
-              <sphereGeometry args={[hr, 14, 14]} />
-              <meshBasicMaterial color="#a5f3fc" depthTest={false} />
-            </mesh>
-            {/* 左/右（横幅）ハンドル */}
-            <mesh position={leftPos} renderOrder={10001} onPointerDown={beginH("left")}>
-              <sphereGeometry args={[hr, 14, 14]} />
-              <meshBasicMaterial color="#38bdf8" depthTest={false} />
-            </mesh>
-            <mesh position={rightPos} renderOrder={10001} onPointerDown={beginH("right")}>
-              <sphereGeometry args={[hr, 14, 14]} />
-              <meshBasicMaterial color="#38bdf8" depthTest={false} />
-            </mesh>
+            {/* 上辺＝床レベル / 下辺＝厚み / 左右辺＝横幅。ホバーで resize カーソル＋辺をハイライト。 */}
+            <SectionResizeEdge {...edgeCommon} edge="top" onPointerDown={begin("top")} active={secEdge === "top"} />
+            <SectionResizeEdge {...edgeCommon} edge="bottom" onPointerDown={begin("bottom")} active={secEdge === "bottom"} />
+            <SectionResizeEdge {...edgeCommon} edge="left" onPointerDown={beginH("left")} active={secH === "left"} />
+            <SectionResizeEdge {...edgeCommon} edge="right" onPointerDown={beginH("right")} active={secH === "right"} />
           </group>
         );
       })()}

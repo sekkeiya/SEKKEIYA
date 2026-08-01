@@ -30,6 +30,11 @@ export const nullBacklogStore: BacklogStore = {
   removeAttachment: () => Promise.reject(new Error('プロジェクトが選択されていません')),
   now: () => new Date().toISOString(),
   getAttachmentUrl: () => Promise.reject(new Error('プロジェクトが選択されていません')),
+  subscribeDiagrams: (cb) => { cb({}); return () => {}; },
+  saveDiagram: () => Promise.reject(new Error('プロジェクトが選択されていません')),
+  requestDiagram: () => Promise.reject(new Error('プロジェクトが選択されていません')),
+  snapshotDiagrams: () => Promise.reject(new Error('プロジェクトが選択されていません')),
+  getDiagramSnapshots: async () => ({}),
 };
 
 export function createBacklogStore(ref: ProjectRef | null): BacklogStore {

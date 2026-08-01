@@ -530,9 +530,12 @@ export default function LayoutToolbar({ layoutItems = [] }) {
         ))}
       </Menu>
 
+      </>)}
+
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.8, borderColor: alpha("#fff", 0.15) }} />
 
-      {/* Alignment Tools */}
+      {/* 整列（Align）。躯体編集（Base）では壁・床・天井が対象になるので、家具ツールと違って
+          Base でも出す（対象の解決は SingleViewportCanvas 側で切り替わる）。 */}
       <Tooltip title="Align Top (AT)">
         <IconButton size="small" onClick={() => requestAlign("AT")} sx={{ width: 26, height: 26, color: "color-mix(in srgb, var(--brand-fg) 70%, transparent)", borderRadius: 1 }}>
           <VerticalAlignTopRoundedIcon sx={{ fontSize: 16 }} />
@@ -563,8 +566,6 @@ export default function LayoutToolbar({ layoutItems = [] }) {
           <AlignVerticalCenterRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
       </Tooltip>
-
-      </>)}
     </Box>
   );
 }

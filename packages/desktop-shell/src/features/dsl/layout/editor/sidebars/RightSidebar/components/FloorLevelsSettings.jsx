@@ -73,7 +73,11 @@ export default function FloorLevelsSettings({ showGl = false }) {
 
       {/* ここは「既定値」。個別に設定していない階がこの値に従う。 */}
       <NumRow label="階高（既定）" value={floorHeightMm} min={2000} max={8000} step={50} onChange={setFloorHeightMm} />
-      <NumRow label="天井高 CL（既定）" value={ceilingHeightMm} min={1800} max={6000} step={50} onChange={setCeilingHeightMm} />
+      <NumRow label="既定天井高" value={ceilingHeightMm} min={1800} max={6000} step={50} onChange={setCeilingHeightMm} />
+      <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.5, mb: 0.75, mt: -0.25 }}>
+        新しい部屋と内壁に使う既定値です。天井高は部屋ごとに持つので、個別の値は
+        断面図の各室に立つ寸法（ダブルクリック）か展開図パネルで設定します。
+      </Typography>
       {showGl && <NumRow label="GL（FL±0 基準）" value={glMm} min={-5000} max={5000} step={50} onChange={setGlMm} />}
 
       {/* CL / 階高 の寸法線の矢印（端部）サイズ */}

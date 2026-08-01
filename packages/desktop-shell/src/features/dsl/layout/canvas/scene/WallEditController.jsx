@@ -36,6 +36,7 @@ import { wallTopLiftMm } from "../../utils/handleLift";
 import { useHoverCursor } from "./useHoverCursor";
 import DrawSnapMarker from "./DrawSnapMarker.jsx";
 import VertexGizmo from "./VertexGizmo.jsx";
+import SectionResizeEdge from "./SectionResizeEdge.jsx";
 
 // 端点の吸着そのものは utils/drawSnap（作図と共通）に集約。ここに個別の閾値は持たない。
 // 壁本体/頂点群の平行移動のグリッド刻みも、表示中の床グリッド（gridCellSizeMm）に合わせる（Shift 中）。
@@ -716,11 +717,19 @@ export default function WallEditController({ enabled = true, orbitRef = null, si
   }
   // ギズモの取り付け高さ(mm)。
   //   平面/パース: ハンドルの当たり判定と同一平面だとレイキャストの順序が曖昧になるので少し上へ。
-  //   立面/断面: 実際の壁の足元（床レベル＋その壁の上下オフセット）。上空に浮くと
-  //     断面のどこの話か分からず、上下ドラッグの起点としても不正確になるため。
+  //   立面/断面: 切り口（黒バー）の中心。上下端は矢印ハンドル（高さ・足元）が占めるので、
+  //     移動ギズモは中心に置いて役割を分ける。縦ドラッグは gizmoYMm からの差分なので
+  //     取り付け位置を変えても操作量は変わらない。
   const gizmoWallOffsetMm = gizmoOnly && wall ? (wall.offsetYMm || 0) : 0;
+  const gizmoWallHalfH = useMemo(() => {
+    if (!gizmoOnly || !wall) return 0;
+    const spec = useBuildingSpecStore.getState();
+    const fi = Math.max(0, Math.min(wall.floorIndex || 0, (spec.floors?.length || 1) - 1));
+    const h = wall.heightMm ?? (wall.kind === "exterior" ? floorHeightOf(spec, fi) : ceilingHeightOf(spec, fi));
+    return (h || 0) / 2;
+  }, [gizmoOnly, wall, floorHeightMm, ceilingHeightMm]);
   const gizmoYMm = gizmoOnly
-    ? floorBaseYMm + gizmoWallOffsetMm
+    ? floorBaseYMm + gizmoWallOffsetMm + gizmoWallHalfH
     : handleBaseYMm + 4;
   // 立面/断面は画面に見えている2軸だけ（横＝視線に直交する水平軸／縦＝上下）。
   const gizmoAxes = gizmoOnly
@@ -930,11 +939,9 @@ export default function WallEditController({ enabled = true, orbitRef = null, si
         const wallH = wall.heightMm ?? (wall.kind === "exterior" ? floorHeightOf(spec, fi) : ceilingHeightOf(spec, fi));
         const baseY = floorBaseYMm + (wall.offsetYMm || 0);
         const topY = baseY + wallH;
-        const midY = (baseY + topY) / 2;
         const cx = (wall.start.x + wall.end.x) / 2;
         const cz = (wall.start.z + wall.end.z) / 2;
         const centerH = sideAxis === "x" ? cx : cz;
-        const hx = cx * k, hz = cz * k;
         const hr = 7 * pxWorld;
         const dxu = wall.end.x - wall.start.x, dzu = wall.end.z - wall.start.z;
         const ulen = Math.hypot(dxu, dzu) || 1;
@@ -953,30 +960,19 @@ export default function WallEditController({ enabled = true, orbitRef = null, si
           };
           setSecResize(mode);
         };
-        const topPos = [hx, topY * k, hz];
-        const bottomPos = [hx, baseY * k, hz];
-        const leftPos = sideAxis === "x" ? [leftH * k, midY * k, hz] : [hx, midY * k, leftH * k];
-        const rightPos = sideAxis === "x" ? [rightH * k, midY * k, hz] : [hx, midY * k, rightH * k];
+        // 切り口の面（奥行き＝壁芯）と 4 辺の範囲。辺そのものを掴めるようにする。
+        const planeAt = (sideAxis === "x" ? cz : cx) * k;
+        const band = hr * 2; // 当たり判定の帯幅（約14px相当）
+        const edgeCommon = { sideAxis, planeAt, loH: leftH * k, hiH: rightH * k, y0: baseY * k, y1: topY * k, thickness: band };
         return (
           <group userData={{ ignoreClipping: true }}>
-            <mesh position={topPos} renderOrder={10001} onPointerDown={begin("top")}>
-              <sphereGeometry args={[hr, 14, 14]} />
-              <meshBasicMaterial color="#38bdf8" depthTest={false} />
-            </mesh>
-            <mesh position={bottomPos} renderOrder={10001} onPointerDown={begin("bottom")}>
-              <sphereGeometry args={[hr, 14, 14]} />
-              <meshBasicMaterial color="#a5f3fc" depthTest={false} />
-            </mesh>
+            {/* 上辺＝高さ / 下辺＝足元 / 左右辺＝壁厚。ホバーで resize カーソル＋辺をハイライト。 */}
+            <SectionResizeEdge {...edgeCommon} edge="top" onPointerDown={begin("top")} active={secResize === "top"} />
+            <SectionResizeEdge {...edgeCommon} edge="bottom" onPointerDown={begin("bottom")} active={secResize === "bottom"} />
             {showThickness && (
               <>
-                <mesh position={leftPos} renderOrder={10001} onPointerDown={begin("left")}>
-                  <sphereGeometry args={[hr, 14, 14]} />
-                  <meshBasicMaterial color="#38bdf8" depthTest={false} />
-                </mesh>
-                <mesh position={rightPos} renderOrder={10001} onPointerDown={begin("right")}>
-                  <sphereGeometry args={[hr, 14, 14]} />
-                  <meshBasicMaterial color="#38bdf8" depthTest={false} />
-                </mesh>
+                <SectionResizeEdge {...edgeCommon} edge="left" onPointerDown={begin("left")} active={secResize === "left"} />
+                <SectionResizeEdge {...edgeCommon} edge="right" onPointerDown={begin("right")} active={secResize === "right"} />
               </>
             )}
           </group>

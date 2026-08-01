@@ -69,11 +69,18 @@ const CLOUD_FILTER_TABS: { key: CloudFilter; label: string; color: string }[] = 
   { key: 'local', label: 'ローカルのみ', color: '#16a34a' },
 ];
 
-// モデル詳細の前/次スライド演出（方向に応じて左右からスライドイン/アウト）。
+// モデル詳細の前/次切替演出。
+//
+// ⚠ ここで x（transform）を使わないこと。詳細画面の3Dは共有 Canvas（DetailCanvasHost）1枚を
+// 各ビューアの getBoundingClientRect() へ scissor 描画する方式で、位置の再測定は
+// ResizeObserver / window resize でしか起きない ——transform による移動では発火しない。
+// 以前は左右スライド（x: ±45%）だったため、スライド中ずっと「開始位置で測った座標」のまま
+// 描画され、3Dがビューア枠の外へずれて見えた（2026-08-01 実機で発生）。
+// transform を使わないフェードなら、マウント直後から測定値が正しい。
 const DETAIL_SLIDE_VARIANTS = {
-  enter: (dir: number) => ({ x: dir > 0 ? '45%' : '-45%', opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir: number) => ({ x: dir > 0 ? '-45%' : '45%', opacity: 0 }),
+  enter: { opacity: 0 },
+  center: { opacity: 1 },
+  exit: { opacity: 0 },
 };
 
 const DENSITY_PRESETS = [
@@ -318,6 +325,12 @@ export const DssDashboard: React.FC<{
         const hit = results.find((r) => r.modelId === selectedItem.id && r.relatedLinks);
         if (hit) setPanelSelection(payload.workspaceId, { ...selectedItem, relatedLinks: hit.relatedLinks, sourceUrl: hit.relatedLinks?.[0]?.url || '' });
       }
+      // 詳細画面で開いているモデルが対象なら、開き直さなくてもセクション5に反映されるよう state も更新。
+      setDetailModel((prev: typeof detailModel) => {
+        if (!prev) return prev;
+        const hit = results.find((r) => r.modelId === prev.id && r.relatedLinks);
+        return hit ? { ...prev, relatedLinks: hit.relatedLinks, sourceUrl: hit.relatedLinks?.[0]?.url || prev.sourceUrl } : prev;
+      });
     } catch (e: any) {
       console.error('[DssDashboard] bulk register failed', e);
       setBulkProgress((prev) => prev ? { ...prev, phase: 'error', message: e?.message || '失敗' } : null);
@@ -372,6 +385,8 @@ export const DssDashboard: React.FC<{
           const it = gridItemsRef.current.find((m2) => m2.id === model.id);
           if (it) it.catalogLinks = merged;
           if (selectedItem && model.id === selectedItem.id) primaryMerged = merged;
+          // 詳細画面で開いているモデルなら、開き直さなくてもセクション5に反映されるよう state も更新。
+          setDetailModel((prev: typeof detailModel) => (prev && prev.id === model.id ? { ...prev, catalogLinks: merged } : prev));
           rows.push({ title, added: links.length });
           totalLinks += links.length;
           setBulkProgress({ index: i, total: chosen.length, title, phase: 'done', added: links.length });
@@ -480,6 +495,12 @@ export const DssDashboard: React.FC<{
         const hit = results.find((r) => r.modelId === selectedItem.id && r.payload);
         if (hit) setPanelSelection(payload.workspaceId, { ...selectedItem, ...hit.payload });
       }
+      // 詳細画面で開いているモデルが対象なら、概要フォーム/スペック表にも反映されるよう state も更新。
+      setDetailModel((prev: typeof detailModel) => {
+        if (!prev) return prev;
+        const hit = results.find((r) => r.modelId === prev.id && r.payload);
+        return hit ? { ...prev, ...hit.payload } : prev;
+      });
     } catch (e: any) {
       console.error('[DssDashboard] bulk auto-fill failed', e);
       setAiBulkProgress((prev) => prev ? { ...prev, phase: 'error', message: e?.message || '失敗' } : null);
@@ -623,7 +644,31 @@ export const DssDashboard: React.FC<{
   const [deleteModel, setDeleteModel] = useState<any | null>(null);
   const [detailModel, setDetailModel] = useState<any | null>(null);
   const [detailNavDir, setDetailNavDir] = useState<1 | -1>(1);
+
+  // 詳細画面（閲覧モード）の左サイドバーは一覧と同じ ModelsSidebar。そこでスコープや
+  // プロジェクトを切り替えたら一覧へ戻る（戻らないと切替結果が見えず無反応に見える）。
+  // プロジェクト切替は modelsScope が変わらないケース（project_models 内で別プロジェクトを
+  // 選ぶ）があるため、activeProjectId も見る。
+  useEffect(() => {
+    setDetailModel(null);
+  }, [modelsScope, activeProjectId, payload?.workspaceId]);
   const [viewMode, setViewMode] = useState<'assets' | 'layout' | 'graph'>('assets');
+
+  // 詳細画面の 閲覧/編集 モード。「閲覧者の見え方を確認」中は編集モードのままヘッダーだけ
+  // 編集スタイルを維持し、本文は閲覧モードとして描画する（effectiveDetailMode）。
+  // モデルを切り替えたら必ず閲覧へ戻す（前のモデルの編集状態を次のモデルに持ち越さない）。
+  const [detailMode, setDetailMode] = useState<'view' | 'edit'>('view');
+  const [previewAsViewer, setPreviewAsViewer] = useState(false);
+  // ヘッダーの自動保存表示。DssModelDetailView（概要フォーム＋ウォークスルー設定の自動保存を
+  // 合成した文言）からコールバックで受け取る。DssDetailHeader は DssModelDetailView の子ではなく
+  // このコンポーネントの兄弟としてここで描画しているため、state はここに置いて橋渡しする。
+  const [detailSaveStatus, setDetailSaveStatus] = useState('');
+  useEffect(() => {
+    setDetailMode('view');
+    setPreviewAsViewer(false);
+    setDetailSaveStatus('');
+  }, [detailModel?.id]);
+  const effectiveDetailMode: 'view' | 'edit' = previewAsViewer ? 'view' : detailMode;
 
   // Public Projects のソート（新着順 / 人気順）
   const isGlobalProjectsScope = ['global_projects', 'global_following_projects'].includes(modelsScope);
@@ -1128,6 +1173,7 @@ export const DssDashboard: React.FC<{
           <Box sx={styles.stickyHeaderWrap} data-no-dismiss="true">
             <Box component="header" sx={styles.topBar}>
               <DssDetailHeader
+                mode={detailMode}
                 onBack={() => setDetailModel(null)}
                 searchQuery={searchFilters.query}
                 onSearchChange={(v) => setSearchFilters({ query: v })}
@@ -1138,29 +1184,27 @@ export const DssDashboard: React.FC<{
                 prevModel={prevM}
                 nextModel={nextM}
                 onNavigate={navigateDetail}
+                isAuthor={isAuthorOf(detailModel)}
+                onEnterEdit={() => setDetailMode('edit')}
+                title={detailModel.title || detailModel.name || 'Untitled'}
+                saveStatus={detailSaveStatus ? `自動保存 ・ ${detailSaveStatus}` : '自動保存'}
+                previewAsViewer={previewAsViewer}
+                onTogglePreviewAsViewer={() => setPreviewAsViewer((v) => !v)}
+                onExitEdit={() => { setDetailMode('view'); setPreviewAsViewer(false); }}
               />
-              {/* 一覧ヘッダーと同じアクション（3Dモデル生成・Upload） */}
-              <Tooltip title="3Dモデルの生成・編集エディターを開く（画像→3D）" placement="bottom">
-                <Button
-                  size="small"
-                  variant="contained"
-                  startIcon={<ViewInArRoundedIcon />}
-                  sx={{ ...styles.actionBtn, flexShrink: 0, bgcolor: '#7c3aed', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#6d28d9' } }}
-                  onClick={openModelGenerator}
-                >
-                  3Dモデル生成/編集
-                </Button>
-              </Tooltip>
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<CloudUploadIcon />}
-                sx={{ ...styles.actionBtn, flexShrink: 0, bgcolor: '#29b6f6', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#0288d1' } }}
-                onClick={() => setUploadDialogOpen(true)}
-              >
-                Upload
-              </Button>
             </Box>
+            {detailMode === 'edit' && (
+              <Box sx={{
+                padding: '7px 20px',
+                bgcolor: 'rgba(59,130,246,0.14)',
+                borderBottom: '1px solid rgba(96,165,250,0.28)',
+                fontSize: '11.5px',
+                fontFamily: 'ui-monospace, Menlo, monospace',
+                color: '#bfdbfe',
+              }}>
+                EDIT MODE — 未登録セクションも表示されます。左の一覧で対象を選ぶと、その位置までスクロールします。
+              </Box>
+            )}
           </Box>
 
           <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -1175,9 +1219,16 @@ export const DssDashboard: React.FC<{
                 exit="exit"
                 transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
                 style={{ position: 'absolute', inset: 0 }}
+                onAnimationComplete={() => {
+                  // 保険: 遷移の前後でレール幅などのレイアウトが変わった場合に、共有 Canvas の
+                  // 位置キャッシュを確実に更新する（react-use-measure は window resize を常時購読）。
+                  window.dispatchEvent(new Event('resize'));
+                }}
               >
                 <DssModelDetailView
                   model={detailModel}
+                  mode={effectiveDetailMode}
+                  onSaveStatusChange={setDetailSaveStatus}
                   allItems={filteredItems}
                   prevModel={prevM}
                   nextModel={nextM}
@@ -1190,6 +1241,7 @@ export const DssDashboard: React.FC<{
                       setPanelSelection(payload.workspaceId, m);
                     }
                   }}
+                  onAuthorClick={() => setAuthorProfileModel(detailModel)}
                   usageMap={usageMap}
                   searchQuery={searchFilters.query}
                   onSearchChange={(v) => setSearchFilters({ query: v })}
@@ -1197,6 +1249,7 @@ export const DssDashboard: React.FC<{
                   canImageSearch={canImageSearch}
                   imgSearchBusy={imgSearchBusy}
                   onCameraClick={(el) => { setImgSearchError(null); setImgSearchAnchor(el); }}
+                  viewModeSidebar={embeddedLeftSidebar}
                   detailActions={{
                     canRegister: isAuthorOf(detailModel) && !detailModel.isProjectItem,
                     canRhino: canPlaceInDcc(detailModel, 'rhino'),
@@ -1343,134 +1396,13 @@ export const DssDashboard: React.FC<{
                 </span>
               </Tooltip>
 
-              {/* 画像検索メニュー＋Lens/カタログ ダイアログは常時描画領域へ移動（グリッド/詳細の両方で使用） */}
+              {/* 画像検索メニュー＋Lens/カタログ ダイアログ、一括処理の進捗ダイアログ、DCC トーストは
+                  常時描画領域へ移動（グリッド/詳細の両方で使用） */}
 
               {/* 選択時の一括操作バーは、backdrop-filter を持つ sticky ヘッダー内だと
                   それが position:fixed の containing block になり画面上部に貼り付いてしまう。
                   そのため描画はルート直下（下部フロート）に移動した。 */}
 
-              <Snackbar open={!!dccToast} autoHideDuration={4000} onClose={() => setDccToast(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                {dccToast ? <Alert severity={dccToast.sev} onClose={() => setDccToast(null)} sx={{ fontSize: 13 }}>{dccToast.msg}</Alert> : undefined}
-              </Snackbar>
-
-              {/* 一括登録の進捗ダイアログ */}
-              <Dialog
-                open={bulkOpen}
-                onClose={() => { if (!bulkProgress || bulkDone || bulkProgress.phase === 'error') setBulkOpen(false); }}
-                maxWidth="xs" fullWidth
-                slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2 } } }}
-              >
-                <Box sx={{ p: 2.5 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 1.5 }}>{bulkMode === 'catalog' ? 'カタログを一括自動登録' : '関連URLを一括自動登録'}</Typography>
-                  {!bulkDone && bulkProgress && bulkProgress.phase !== 'error' && (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                        <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
-                        <Typography sx={{ fontSize: 13 }}>
-                          {bulkProgress.index + 1} / {bulkProgress.total} 件目
-                          {bulkProgress.phase === 'search' ? '：検索中…' : bulkProgress.phase === 'register' ? '：登録中…' : ''}
-                        </Typography>
-                      </Box>
-                      <Typography noWrap sx={{ fontSize: 12, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>{bulkProgress.title}</Typography>
-                    </>
-                  )}
-                  {!bulkDone && bulkProgress && bulkProgress.phase === 'error' && (
-                    <Typography sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)', whiteSpace: 'pre-wrap' }}>{bulkProgress.message}</Typography>
-                  )}
-                  {!bulkDone && !bulkProgress && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
-                      <Typography sx={{ fontSize: 13 }}>準備中…</Typography>
-                    </Box>
-                  )}
-                  {bulkDone && (
-                    <Box>
-                      <Typography sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac)', mb: 1 }}>
-                        完了：{bulkDone.models} 件のモデルに合計 {bulkDone.links} 件の{bulkMode === 'catalog' ? 'カタログ' : '関連URL'}を登録しました。
-                      </Typography>
-                      <Box sx={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {bulkDone.rows.map((r, i) => (
-                          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
-                            <Box component="span" sx={{ color: r.added > 0 ? 'light-dark(#149944, #86efac)' : 'light-dark(#a80606, #fca5a5)', fontWeight: 700, minWidth: 44 }}>
-                              {r.added > 0 ? `+${r.added}` : '0件'}
-                            </Box>
-                            <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
-                              {r.title}
-                            </Box>
-                            {r.error && <Box component="span" sx={{ color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))', fontSize: 11 }}>{r.error}</Box>}
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
-                    {!bulkDone && bulkProgress?.phase !== 'error' && (
-                      <Button onClick={cancelBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
-                    )}
-                    {(bulkDone || bulkProgress?.phase === 'error') && (
-                      <Button onClick={() => setBulkOpen(false)} variant="contained" sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}>閉じる</Button>
-                    )}
-                  </Box>
-                </Box>
-              </Dialog>
-
-              {/* AI寸法・カテゴリ一括自動入力の進捗ダイアログ */}
-              <Dialog
-                open={aiBulkOpen}
-                onClose={() => { if (aiBulkDone || aiBulkProgress?.phase === 'error') setAiBulkOpen(false); }}
-                maxWidth="xs" fullWidth
-                slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2 } } }}
-              >
-                <Box sx={{ p: 2.5 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 1.5 }}>AIで寸法・カテゴリを一括自動入力</Typography>
-                  {!aiBulkDone && aiBulkProgress && aiBulkProgress.phase !== 'error' && (
-                    <>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                        <CircularProgress size={18} sx={{ color: 'light-dark(#2705a9, #c4b5fd)' }} />
-                        <Typography sx={{ fontSize: 13 }}>{aiBulkProgress.index + 1} / {aiBulkProgress.total} 件目：解析中…</Typography>
-                      </Box>
-                      <Typography noWrap sx={{ fontSize: 12, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>{aiBulkProgress.title}</Typography>
-                    </>
-                  )}
-                  {!aiBulkDone && aiBulkProgress?.phase === 'error' && (
-                    <Typography sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)', whiteSpace: 'pre-wrap' }}>{aiBulkProgress.message}</Typography>
-                  )}
-                  {!aiBulkDone && !aiBulkProgress && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <CircularProgress size={18} sx={{ color: 'light-dark(#2705a9, #c4b5fd)' }} />
-                      <Typography sx={{ fontSize: 13 }}>準備中…</Typography>
-                    </Box>
-                  )}
-                  {aiBulkDone && (
-                    <Box>
-                      <Typography sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac)', mb: 1 }}>
-                        完了：{aiBulkDone.models} 件のモデルに寸法・カテゴリ等を自動入力しました。
-                      </Typography>
-                      <Box sx={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {aiBulkDone.rows.map((r, i) => (
-                          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
-                            <Box component="span" sx={{ color: r.fields > 0 ? 'light-dark(#149944, #86efac)' : 'light-dark(#a80606, #fca5a5)', fontWeight: 700, minWidth: 56 }}>
-                              {r.fields > 0 ? `${r.fields}項目` : '0項目'}
-                            </Box>
-                            <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
-                              {r.title}
-                            </Box>
-                            {r.error && <Box component="span" sx={{ color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))', fontSize: 11 }}>{r.error}</Box>}
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
-                    {!aiBulkDone && aiBulkProgress?.phase !== 'error' && (
-                      <Button onClick={cancelAiBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
-                    )}
-                    {(aiBulkDone || aiBulkProgress?.phase === 'error') && (
-                      <Button onClick={() => setAiBulkOpen(false)} variant="contained" sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}>閉じる</Button>
-                    )}
-                  </Box>
-                </Box>
-              </Dialog>
 
               <Box sx={{ flex: 1, minWidth: 12 }} />
 
@@ -1912,6 +1844,131 @@ export const DssDashboard: React.FC<{
             {bulkDeleteBusy ? '削除中…' : `${bulkDeletableCount} 件を削除`}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* 一括処理（関連URL/カタログ/AI自動入力）の進捗ダイアログと DCC トースト：
+          グリッド/詳細の両方で使えるよう常時描画（詳細画面で押しても進捗が見えるように） */}
+      <Snackbar open={!!dccToast} autoHideDuration={4000} onClose={() => setDccToast(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        {dccToast ? <Alert severity={dccToast.sev} onClose={() => setDccToast(null)} sx={{ fontSize: 13 }}>{dccToast.msg}</Alert> : undefined}
+      </Snackbar>
+
+      {/* 一括登録の進捗ダイアログ */}
+      <Dialog
+        open={bulkOpen}
+        onClose={() => { if (!bulkProgress || bulkDone || bulkProgress.phase === 'error') setBulkOpen(false); }}
+        maxWidth="xs" fullWidth
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2 } } }}
+      >
+        <Box sx={{ p: 2.5 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 1.5 }}>{bulkMode === 'catalog' ? 'カタログを一括自動登録' : '関連URLを一括自動登録'}</Typography>
+          {!bulkDone && bulkProgress && bulkProgress.phase !== 'error' && (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
+                <Typography sx={{ fontSize: 13 }}>
+                  {bulkProgress.index + 1} / {bulkProgress.total} 件目
+                  {bulkProgress.phase === 'search' ? '：検索中…' : bulkProgress.phase === 'register' ? '：登録中…' : ''}
+                </Typography>
+              </Box>
+              <Typography noWrap sx={{ fontSize: 12, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>{bulkProgress.title}</Typography>
+            </>
+          )}
+          {!bulkDone && bulkProgress && bulkProgress.phase === 'error' && (
+            <Typography sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)', whiteSpace: 'pre-wrap' }}>{bulkProgress.message}</Typography>
+          )}
+          {!bulkDone && !bulkProgress && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <CircularProgress size={18} sx={{ color: 'light-dark(#0352aa, #93c5fd)' }} />
+              <Typography sx={{ fontSize: 13 }}>準備中…</Typography>
+            </Box>
+          )}
+          {bulkDone && (
+            <Box>
+              <Typography sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac)', mb: 1 }}>
+                完了：{bulkDone.models} 件のモデルに合計 {bulkDone.links} 件の{bulkMode === 'catalog' ? 'カタログ' : '関連URL'}を登録しました。
+              </Typography>
+              <Box sx={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {bulkDone.rows.map((r, i) => (
+                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
+                    <Box component="span" sx={{ color: r.added > 0 ? 'light-dark(#149944, #86efac)' : 'light-dark(#a80606, #fca5a5)', fontWeight: 700, minWidth: 44 }}>
+                      {r.added > 0 ? `+${r.added}` : '0件'}
+                    </Box>
+                    <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
+                      {r.title}
+                    </Box>
+                    {r.error && <Box component="span" sx={{ color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))', fontSize: 11 }}>{r.error}</Box>}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
+            {!bulkDone && bulkProgress?.phase !== 'error' && (
+              <Button onClick={cancelBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
+            )}
+            {(bulkDone || bulkProgress?.phase === 'error') && (
+              <Button onClick={() => setBulkOpen(false)} variant="contained" sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}>閉じる</Button>
+            )}
+          </Box>
+        </Box>
+      </Dialog>
+
+      {/* AI寸法・カテゴリ一括自動入力の進捗ダイアログ */}
+      <Dialog
+        open={aiBulkOpen}
+        onClose={() => { if (aiBulkDone || aiBulkProgress?.phase === 'error') setAiBulkOpen(false); }}
+        maxWidth="xs" fullWidth
+        slotProps={{ paper: { sx: { bgcolor: 'var(--brand-surface)', color: 'var(--brand-fg)', border: '1px solid rgb(var(--slate-ink-rgb) / 0.22)', borderRadius: 2 } } }}
+      >
+        <Box sx={{ p: 2.5 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 1.5 }}>AIで寸法・カテゴリを一括自動入力</Typography>
+          {!aiBulkDone && aiBulkProgress && aiBulkProgress.phase !== 'error' && (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <CircularProgress size={18} sx={{ color: 'light-dark(#2705a9, #c4b5fd)' }} />
+                <Typography sx={{ fontSize: 13 }}>{aiBulkProgress.index + 1} / {aiBulkProgress.total} 件目：解析中…</Typography>
+              </Box>
+              <Typography noWrap sx={{ fontSize: 12, color: 'rgb(var(--slate-ink-rgb) / 0.9)' }}>{aiBulkProgress.title}</Typography>
+            </>
+          )}
+          {!aiBulkDone && aiBulkProgress?.phase === 'error' && (
+            <Typography sx={{ fontSize: 13, color: 'light-dark(#a80606, #fca5a5)', whiteSpace: 'pre-wrap' }}>{aiBulkProgress.message}</Typography>
+          )}
+          {!aiBulkDone && !aiBulkProgress && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <CircularProgress size={18} sx={{ color: 'light-dark(#2705a9, #c4b5fd)' }} />
+              <Typography sx={{ fontSize: 13 }}>準備中…</Typography>
+            </Box>
+          )}
+          {aiBulkDone && (
+            <Box>
+              <Typography sx={{ fontSize: 13, color: 'light-dark(#149944, #86efac)', mb: 1 }}>
+                完了：{aiBulkDone.models} 件のモデルに寸法・カテゴリ等を自動入力しました。
+              </Typography>
+              <Box sx={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {aiBulkDone.rows.map((r, i) => (
+                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12 }}>
+                    <Box component="span" sx={{ color: r.fields > 0 ? 'light-dark(#149944, #86efac)' : 'light-dark(#a80606, #fca5a5)', fontWeight: 700, minWidth: 56 }}>
+                      {r.fields > 0 ? `${r.fields}項目` : '0項目'}
+                    </Box>
+                    <Box component="span" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'light-dark(rgba(31,41,55,0.9), rgba(229,231,235,0.9))' }}>
+                      {r.title}
+                    </Box>
+                    {r.error && <Box component="span" sx={{ color: 'light-dark(rgba(170,78,3,0.9), rgba(251,146,60,0.9))', fontSize: 11 }}>{r.error}</Box>}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, mt: 2.5 }}>
+            {!aiBulkDone && aiBulkProgress?.phase !== 'error' && (
+              <Button onClick={cancelAiBulk} sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.7)', textTransform: 'none', fontSize: 13 }}>中止</Button>
+            )}
+            {(aiBulkDone || aiBulkProgress?.phase === 'error') && (
+              <Button onClick={() => setAiBulkOpen(false)} variant="contained" sx={{ textTransform: 'none', fontSize: 13, bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' } }}>閉じる</Button>
+            )}
+          </Box>
+        </Box>
       </Dialog>
 
       {/* 画像検索メニュー（カメラ）＋ Lens/カタログ ダイアログ：グリッド/詳細の両方で使えるよう常時描画 */}

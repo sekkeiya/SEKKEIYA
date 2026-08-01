@@ -34,6 +34,8 @@ import { serverTimestamp, updateDoc, getDoc, doc, collectionGroup, query, where,
 import { db, storage } from "../../../../lib/firebase/client";
 import { useAuth } from "../hooks/useAuthProxy";
 import { useOptionDoc } from "../hooks/useOptionDoc";
+import { usePlanModelOverridesSync } from "../hooks/usePlanModelOverridesSync";
+import { useLayoutPatternsSync } from "../hooks/useLayoutPatternsSync";
 import { useWorkspaceStructure } from "../hooks/useWorkspaceStructure";
 
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -795,6 +797,12 @@ export default function LayoutShell({
       setDslPlanContext(null);
     }
   }, [projectId, workspaceId, effectiveLayoutId, setDslPlanContext]);
+
+  // 現在プランの modelOverrides チェーン（プラン別のウォークスルー候補絞り込み）を購読する。
+  usePlanModelOverridesSync(projectId, workspaceId, effectiveLayoutId);
+
+  // 現在プランの見た目パターン（patterns サブコレクション + activePatternId）を購読する。
+  useLayoutPatternsSync(projectId, workspaceId, effectiveLayoutId);
 
   // 作業中コンテキストをワークスペース単位で永続化（画面遷移をまたいで復元するため）。
   // panelSelections とは別管理にして、ダッシュボードの選択クリアの影響を受けないようにする。
@@ -3446,6 +3454,10 @@ export default function LayoutShell({
             .filter(Boolean)
             .join(" · ")
         }
+        projectId={projectId}
+        workspaceId={workspaceId}
+        baseId={selectedBaseId ?? null}
+        planId={effectiveLayoutId}
       />
 
       {/* Center */}

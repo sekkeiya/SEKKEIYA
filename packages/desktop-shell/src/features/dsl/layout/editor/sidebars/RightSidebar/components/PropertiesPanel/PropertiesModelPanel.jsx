@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback } from "react";
-import { Box, Stack, Typography, Divider, Chip, TextField, CircularProgress } from "@mui/material";
+import { Box, Stack, Typography, Divider, Chip, TextField, CircularProgress, Checkbox, FormControlLabel, Switch } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
@@ -12,6 +12,10 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../../../../../lib/firebase/client";
 import EditItemDialog from "./EditItemDialog";
 import { DISPLAY_TO_DATA, dataToDisplayVec3 } from "../../../../../utils/axisConvention";
+import { useEditorModeStore } from "../../../../../store/useEditorModeStore";
+import { usePlanModelOverridesStore } from "../../../../../store/planModelOverridesStore";
+import { resolveModelOverride } from "../../../../../utils/planModelOverrides";
+import { setPlanModelOverride } from "../../../../../api/planModelOverridesApi";
 
 function ensureVec3(v, fallback = [0, 0, 0]) {
   if (!Array.isArray(v) || v.length !== 3) return fallback;
@@ -125,6 +129,54 @@ export default function PropertiesModelPanel({
     globalAsset?.glbUrl || globalAsset?.downloadUrl ||
     item?.glbUrl || item?.modelGlbUrl || item?.downloadUrl || ""
   ), [globalAsset, item]);
+
+  // ── このプランでの提案候補（プラン別上書き。仕様: 2026-08-01-plan-model-overrides-design.md §6）──
+  const planCtx = useEditorModeStore((s) => s.dslPlanContext);
+  const overrideChain = usePlanModelOverridesStore((s) => s.chain);
+  // 現在の層（開いているプラン doc）に既にあるエントリ。無ければ null。
+  const currentLayerOverride = useMemo(() => {
+    if (!modelId) return null;
+    const cur = overrideChain[0];
+    return cur?.modelOverrides?.[modelId] || null;
+  }, [overrideChain, modelId]);
+  // チェーン全体で効いている上書き（親プラン由来の可能性がある）。
+  const effectiveOverride = useMemo(
+    () => (modelId ? resolveModelOverride(overrideChain, modelId) : null),
+    [overrideChain, modelId]
+  );
+  const inheritedFromParent = !!effectiveOverride && !currentLayerOverride;
+
+  // デフォルト候補（グローバル資産の materialVariants / swapModels）。
+  const defaultVariants = Array.isArray(globalAsset?.materialVariants) ? globalAsset.materialVariants : [];
+  const defaultSwaps = Array.isArray(globalAsset?.extendedMetadata?.swapModels) ? globalAsset.extendedMetadata.swapModels : [];
+
+  const saveOverride = useCallback(async (next) => {
+    if (!planCtx?.projectId || !planCtx?.planId || !modelId) return;
+    // 正規化: 全選択（=絞り込みなし）はフィールドを外す。全フィールド未設定なら解除。
+    const norm = { ...next };
+    if (Array.isArray(norm.materialVariantIds) &&
+        (norm.materialVariantIds.length === 0 || norm.materialVariantIds.length === defaultVariants.length)) {
+      delete norm.materialVariantIds;
+    }
+    if (Array.isArray(norm.swapModelIds) &&
+        (norm.swapModelIds.length === 0 || norm.swapModelIds.length === defaultSwaps.length)) {
+      delete norm.swapModelIds;
+    }
+    if (norm.anim === undefined) delete norm.anim;
+    const isEmpty = Object.keys(norm).length === 0;
+    try {
+      await setPlanModelOverride(planCtx.projectId, planCtx.workspaceId, planCtx.planId, modelId, isEmpty ? null : norm);
+    } catch (e) {
+      console.error("[PropertiesModelPanel] プラン上書きの保存に失敗", e);
+    }
+  }, [planCtx, modelId, defaultVariants.length, defaultSwaps.length]);
+
+  const toggleId = useCallback((field, id, allIds) => {
+    const base = currentLayerOverride?.[field] ?? effectiveOverride?.[field] ?? allIds; // 未設定=全選択から開始
+    const set = new Set(base.map(String));
+    if (set.has(String(id))) set.delete(String(id)); else set.add(String(id));
+    void saveOverride({ ...(currentLayerOverride || effectiveOverride || {}), [field]: allIds.filter((x) => set.has(String(x))) });
+  }, [currentLayerOverride, effectiveOverride, saveOverride]);
 
   const t = displayItem?.transform || {};
   const position = useMemo(() => ensureVec3(t?.position, [0, 0, 0]), [t]);
@@ -406,6 +458,64 @@ export default function PropertiesModelPanel({
 
         </Stack>
       </Box>
+
+      {/* ===== このプランでの提案候補（プラン別上書き） ===== */}
+      {!isMulti && (defaultVariants.length > 0 || defaultSwaps.length > 0 || !!globalAsset?.extendedMetadata?.anim) && (
+        <Box sx={{ mt: 1.5 }}>
+          <Divider sx={{ mb: 1, borderColor: alpha("#fff", 0.08) }} />
+          <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>このプランでの提案候補</Typography>
+          {inheritedFromParent && (
+            <Typography sx={{ fontSize: 10.5, color: "warning.main", mb: 0.5 }}>
+              親プランの設定を引き継いでいます。変更するとこのプラン専用の設定になります。
+            </Typography>
+          )}
+          {defaultVariants.length > 0 && (
+            <Box sx={{ mb: 1 }}>
+              <Typography sx={{ fontSize: 11, opacity: 0.7 }}>素材パターン</Typography>
+              {defaultVariants.map((v) => {
+                const ids = currentLayerOverride?.materialVariantIds ?? effectiveOverride?.materialVariantIds;
+                const checked = !Array.isArray(ids) || ids.map(String).includes(String(v.id));
+                return (
+                  <FormControlLabel
+                    key={v.id}
+                    sx={{ display: "block", ml: 0, "& .MuiTypography-root": { fontSize: 12 } }}
+                    control={<Checkbox size="small" checked={checked}
+                      onChange={() => toggleId("materialVariantIds", v.id, defaultVariants.map((x) => String(x.id)))} />}
+                    label={v.title || "パターン"}
+                  />
+                );
+              })}
+            </Box>
+          )}
+          {defaultSwaps.length > 0 && (
+            <Box sx={{ mb: 1 }}>
+              <Typography sx={{ fontSize: 11, opacity: 0.7 }}>置き換え候補</Typography>
+              {defaultSwaps.map((s) => {
+                const ids = currentLayerOverride?.swapModelIds ?? effectiveOverride?.swapModelIds;
+                const checked = !Array.isArray(ids) || ids.map(String).includes(String(s.id));
+                return (
+                  <FormControlLabel
+                    key={s.id}
+                    sx={{ display: "block", ml: 0, "& .MuiTypography-root": { fontSize: 12 } }}
+                    control={<Checkbox size="small" checked={checked}
+                      onChange={() => toggleId("swapModelIds", s.id, defaultSwaps.map((x) => String(x.id)))} />}
+                    label={s.title || s.id}
+                  />
+                );
+              })}
+            </Box>
+          )}
+          {!!globalAsset?.extendedMetadata?.anim && (
+            <FormControlLabel
+              sx={{ ml: 0, "& .MuiTypography-root": { fontSize: 12 } }}
+              control={<Switch size="small"
+                checked={(currentLayerOverride ?? effectiveOverride)?.anim !== null}
+                onChange={(e) => void saveOverride({ ...(currentLayerOverride || effectiveOverride || {}), anim: e.target.checked ? undefined : null })} />}
+              label="常時アニメ（OFF=このプランでは切る）"
+            />
+          )}
+        </Box>
+      )}
 
       <Divider sx={{ my: 1.25, borderColor: alpha("#fff", 0.08) }} />
 

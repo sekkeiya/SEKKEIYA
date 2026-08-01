@@ -8,25 +8,14 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import { RightPanelModelViewer } from './RightPanelModelViewer';
 import { getDownloadUrlForModel, getCanonicalModelId } from '../utils/modelUtils';
-import { WorkspaceItemRepository } from '../../workspace/WorkspaceItemRepository';
+import { readSwapModels, type SwapModelRef } from '../utils/swapModels';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useAppStore } from '../../../store/useAppStore';
+import { persistAssetPatch } from '../utils/persistAssetPatch';
 
 const ACCENT = '#7c4dff';
 
-export interface SwapModelRef {
-  id: string;
-  title?: string;
-  thumbUrl?: string | null;
-  glbUrl?: string | null;
-  /** 差し替え先モデル自身の寸法（mm）。配置時にこの寸法でスケールする。 */
-  dimensions?: { width?: number; depth?: number; height?: number } | null;
-}
-
-function readSwapModels(model: any): SwapModelRef[] {
-  const raw = model?.extendedMetadata?.swapModels;
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((m: any) => m && m.id).map((m: any) => ({ id: m.id, title: m.title ?? '', thumbUrl: m.thumbUrl ?? null, glbUrl: m.glbUrl ?? null, dimensions: m.dimensions ?? null }));
-}
+export type { SwapModelRef };
 
 const Thumb: React.FC<{ url?: string | null; selected?: boolean; onClick?: () => void; title?: string }> = ({ url, selected, onClick, title }) => (
   <Tooltip title={title || ''}>
@@ -49,6 +38,8 @@ interface Props {
   externalViewer?: boolean;
   /** externalViewer 時、選択された差し替え先を親へ通知。元モデル選択時は null。 */
   onSelectSwap?: (sel: { url: string; dims: any } | null) => void;
+  /** 渡すと、候補ピッカーを外部（SwapSection のヘッダーボタンなど）から開く関数がここに入る（DssMaterialPresets の addVariantRef と同じ配線方式）。 */
+  addPickerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 /**
@@ -56,7 +47,7 @@ interface Props {
  * 閲覧/プレビューでは候補サムネをクリックして3Dプレビューのモデルを差し替える。
  * 保存先: asset.extendedMetadata.swapModels = SwapModelRef[]。
  */
-export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edit', externalViewer, onSelectSwap }) => {
+export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edit', externalViewer, onSelectSwap, addPickerRef }) => {
   const currentUser = useAuthStore((s) => s.currentUser);
   const canonicalId = useMemo(() => getCanonicalModelId(model) || model?.id, [model]);
   const selfRef: SwapModelRef = useMemo(() => ({
@@ -93,11 +84,14 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
     return () => onSelectSwap(null);
   }, [externalViewer, onSelectSwap]);
 
+  const activeProjectId = useAppStore((s: any) => s.activeProjectId);
   const persist = async (next: SwapModelRef[]) => {
     if (!isAuthor || !canonicalId) return;
     setSaving(true);
     try {
-      await WorkspaceItemRepository.updateGlobalAsset(canonicalId, {
+      // プロジェクト複製アイテムならプロジェクト側が主（デフォルト=グローバルを汚さない）。
+      // グローバル資産なら従来どおりグローバルへ（= デフォルトの更新）。プラン別モデル設定 仕様 §5。
+      await persistAssetPatch(model, activeProjectId, {
         extendedMetadata: { ...(model.extendedMetadata || {}), swapModels: next.map((m) => ({ id: m.id, title: m.title || '', thumbUrl: m.thumbUrl || null, glbUrl: m.glbUrl || null, dimensions: m.dimensions || null })) },
       });
     } catch (e) { console.error('[DssFurnitureSwap] persist failed', e); }
@@ -139,6 +133,14 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
     } catch (e) { console.error('[DssFurnitureSwap] fetch candidates failed', e); setCandidates([]); }
     finally { setLoadingCands(false); }
   };
+
+  // 外部（SwapSection のヘッダー「類似モデルを検索」ボタンなど）から候補ピッカーを開けるようにする。
+  useEffect(() => {
+    if (!isEditing || !addPickerRef) return;
+    addPickerRef.current = () => { void openPicker(); };
+    return () => { addPickerRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, addPickerRef, model?.id, swaps]);
 
   const shownCandidates = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -183,7 +185,7 @@ export const DssFurnitureSwap: React.FC<Props> = ({ model, isAuthor, mode = 'edi
               )}
               {isEditing && o.id !== model?.id && (
                 <IconButton size="small" onClick={() => removeModel(o.id)}
-                  sx={{ position: 'absolute', top: -6, right: -6, p: 0.2, bgcolor: 'rgba(0,0,0,0.7)', color: 'var(--brand-fg)', '&:hover': { bgcolor: '#ef5350' } }}>
+                  sx={{ position: 'absolute', top: -6, right: -6, p: 0.2, bgcolor: 'rgba(2,6,23,0.7)', color: '#f97316', '&:hover': { bgcolor: '#f97316', color: '#fff' } }}>
                   <CloseRoundedIcon sx={{ fontSize: 13 }} />
                 </IconButton>
               )}

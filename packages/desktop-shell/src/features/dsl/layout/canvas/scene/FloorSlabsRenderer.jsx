@@ -13,6 +13,7 @@ import { useGridAxisStore } from "../../store/useGridAxisStore";
 import { useBuildingSpecStore, ceilingHeightOf } from "../../store/useBuildingSpecStore";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
+import { ceilingSlabTopMm } from "../../utils/ceilingHeight";
 import { useDrawnFinishMaterial } from "./useDrawnFinishMaterial";
 
 const SLAB_COLOR = "#e7e5e4";      // 立体のスラブ（明るいニュートラル）
@@ -29,8 +30,11 @@ function slabShape(points, k) {
   return s;
 }
 
-function SlabMesh({ slab, baseY, k, isTopView, selected, finishMat, ghost = false }) {
+function SlabMesh({ slab, baseY, k, isTopView, selected, finishMat, ghost = false, pickable = true }) {
   const t = slab.thicknessMm || 150;
+  // ghost（他階のトレース）は完全に触れない。断面ビュー（pickable=false）は「選択だけ」外す。
+  // 断面では SectionPickController が切り口だけを選ぶので、床の実体が選択を拾うと
+  // 奥の床まで選べてしまう。
 
   const geo = useMemo(() => {
     const g = new THREE.ExtrudeGeometry(slabShape(slab.points, k), { depth: t * k, bevelEnabled: false });
@@ -93,7 +97,11 @@ function SlabMesh({ slab, baseY, k, isTopView, selected, finishMat, ghost = fals
       // isDrawnStructure: 躯体側の「クリックで選択解除」から守る印（WallsRenderer と同じ）。
       userData={ghost ? { isDrawnStructure: true, ignoreClipping: true } : { isDrawnStructure: true }}
       // 他階のゴーストは「見えるだけ」。触れないようにして誤選択を防ぐ。
-      onClick={ghost ? undefined : select}
+      // ⚠️ 断面（pickable=false）で外すのは「選択」だけ。当たり判定と stopPropagation は残すこと。
+      //    背景キャッチャーは hitsDrawnStructure() で壁・床に当たったかを見て選択解除を抑止して
+      //    いる（SingleViewportCanvas）。当たり判定ごと外すとそのガードが効かなくなり、
+      //    SectionPickController が選んだ切り口を背景側が即座に消してしまう。
+      onClick={ghost ? undefined : (pickable ? select : (e) => e.stopPropagation())}
       raycast={ghost ? () => null : undefined}
     >
       {/* 自動マテリアルの仕上げがあればそれを使う（選択中も素材はそのまま＝見た目を壊さない）。 */}
@@ -157,7 +165,9 @@ function SlabMesh({ slab, baseY, k, isTopView, selected, finishMat, ghost = fals
   );
 }
 
-export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = false }) {
+// selectable=false: 断面ビュー。床の実体はクリックを拾わず、SectionPickController が
+//   計算した「切り口（黒塗り）」だけが選択対象になる（奥の床は選べない）。
+export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = false, selectable = true }) {
   const slabs = useSlabStore((s) => s.slabs);
   const selectedSlabIds = useSlabStore((s) => s.selectedSlabIds);
   const fl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
@@ -166,6 +176,8 @@ export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = 
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const showOtherFloorsGhost = useEditorModeStore((s) => s.showOtherFloorsGhost);
   const ghostFloors = useEditorModeStore((s) => s.ghostFloors);
+  // 天井の高さは面自身が持つ。既定天井高（未設定の旧データ用）だけ購読して追従させる。
+  const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
   // 自動マテリアルで解決された床仕上げ（未実行なら null → 既定色）
   const floorMat = useDrawnFinishMaterial("floor");
 
@@ -174,11 +186,12 @@ export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = 
     const n = Math.max(1, floors?.length || 1);
     return (i) => (fl0Mm || 0) + (floors?.[Math.max(0, Math.min(i || 0, n - 1))]?.flMm || 0);
   }, [fl0Mm, floors]);
-  // 天井として使う面は、その階の CL（天井高）に貼る。
-  const ceilingBaseY = useMemo(() => {
+  // 天井として使う面は、その面自身が持つ高さに貼る（天井高の正は面）。
+  //   baseY は SlabMesh の「上面」。ceilingHeightMm は天井面（下端）なので厚みを足す。
+  const ceilingBaseYOf = useMemo(() => {
     const spec = useBuildingSpecStore.getState();
-    return (i) => floorBaseY(i) + ceilingHeightOf(spec, i);
-  }, [floorBaseY, floors]);
+    return (i, slab) => floorBaseY(i) + ceilingSlabTopMm(slab, ceilingHeightOf(spec, i));
+  }, [floorBaseY, floors, ceilingHeightMm]);
 
   if (!slabs.length) return null;
   const isMm = (sceneMaxY || 0) > 100;
@@ -212,12 +225,13 @@ export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = 
             slab={s}
             // 床ごとの上下オフセット（段差床）。未設定は FL ちょうど。
             // 天井として描くときは CL に貼る（オフセットは天井の下げ天井として効かせる）。
-            baseY={(asCeiling ? ceilingBaseY(fi) : floorBaseY(fi)) + (s.offsetYMm || 0)}
+            baseY={(asCeiling ? ceilingBaseYOf(fi, s) : floorBaseY(fi)) + (s.offsetYMm || 0)}
             k={k}
             isTopView={isTopView}
             selected={!ghost && selectedSlabIds.includes(s.id)}
             finishMat={asCeiling ? null : floorMat}
             ghost={ghost}
+            pickable={selectable}
           />
         );
       })}

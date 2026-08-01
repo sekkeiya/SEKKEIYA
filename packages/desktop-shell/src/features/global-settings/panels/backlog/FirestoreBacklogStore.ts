@@ -1,15 +1,20 @@
 // BacklogStore の Firestore/Storage 実装。DevStatusPanel から抽出（挙動不変）。
 // コレクション: /devBacklog（項目）+ /devSprints（スプリント）。管理者のみ読み書き。
 import {
-  collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, arrayUnion, arrayRemove,
+  collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../../../lib/firebase/client';
 import type { BacklogStore, Unsubscribe } from './BacklogStore';
 import type { BacklogItem, Sprint, Attachment } from '../DevStatusPanel';
+import type { DiagramType, DiagramDoc } from './diagramsLogic';
+import { isDiagramType, DIAGRAM_TYPES } from './diagramsLogic';
+import { snapshotDocId } from './sprintViewLogic';
 
 const ITEMS = 'devBacklog';
 const SPRINTS = 'devSprints';
+const DIAGRAMS = 'devDiagrams'; // 設計図（doc ID = system|er|screens|flow の 4 doc 固定）
+const SNAPSHOTS = 'devDiagramSnapshots';
 
 export const firestoreBacklogStore: BacklogStore = {
   subscribeItems(cb, onError): Unsubscribe {
@@ -62,5 +67,54 @@ export const firestoreBacklogStore: BacklogStore = {
     // クラウド添付は Storage のダウンロード URL をそのまま使う。url 未設定は異常データ。
     if (!att.url) throw new Error('添付 URL がありません');
     return att.url;
+  },
+  subscribeDiagrams(cb, onError): Unsubscribe {
+    return onSnapshot(
+      collection(db, DIAGRAMS),
+      (snap) => {
+        const out: Partial<Record<DiagramType, DiagramDoc>> = {};
+        for (const d of snap.docs) {
+          if (!isDiagramType(d.id)) continue; // 想定外 doc は無視（4 doc 固定運用）
+          const data = d.data() as Partial<DiagramDoc>;
+          out[d.id] = {
+            type: d.id,
+            mermaid: typeof data.mermaid === 'string' ? data.mermaid : '',
+            queue: data.queue === 'generate' ? 'generate' : null,
+            queueNote: typeof data.queueNote === 'string' ? data.queueNote : null,
+            updatedAt: data.updatedAt,
+          };
+        }
+        cb(out);
+      },
+      (e) => onError?.(e),
+    );
+  },
+  async saveDiagram(type, mermaid) {
+    // doc ID 固定のため addDoc ではなく setDoc(merge)。queue はここでは触らない（依頼中の手修正を許す）。
+    await setDoc(doc(db, DIAGRAMS, type), { mermaid, updatedAt: serverTimestamp() }, { merge: true });
+  },
+  async requestDiagram(type, note) {
+    await setDoc(doc(db, DIAGRAMS, type), {
+      queue: 'generate', queueNote: note?.trim() || null, updatedAt: serverTimestamp(),
+    }, { merge: true });
+  },
+  async snapshotDiagrams(sprintId) {
+    // 現在の 4 doc を読み、mermaid が入っているものだけ凍結（再完了は同じ doc ID への上書き）。
+    const snap = await getDocs(collection(db, DIAGRAMS));
+    await Promise.all(snap.docs
+      .filter(d => isDiagramType(d.id) && ((d.data() as { mermaid?: string }).mermaid || '').trim())
+      .map(d => setDoc(doc(db, SNAPSHOTS, snapshotDocId(sprintId, d.id)), {
+        sprintId, type: d.id, mermaid: (d.data() as { mermaid?: string }).mermaid, frozenAt: serverTimestamp(),
+      })));
+  },
+  async getDiagramSnapshots(sprintId) {
+    // doc ID が固定キーなのでクエリ不要（インデックスも不要）。4 doc を直読み。
+    const out: Partial<Record<DiagramType, string>> = {};
+    await Promise.all(DIAGRAM_TYPES.map(async ({ key }) => {
+      const d = await getDoc(doc(db, SNAPSHOTS, snapshotDocId(sprintId, key)));
+      const mermaid = d.exists() ? (d.data() as { mermaid?: string }).mermaid : undefined;
+      if (mermaid) out[key] = mermaid;
+    }));
+    return out;
   },
 };

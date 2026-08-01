@@ -2,6 +2,7 @@
 // DevStatusPanel の Firestore/Storage 直呼びをこのインターフェイス背後に集約する。
 // 実装は FirestoreBacklogStore.ts。挙動は現行 panel と 1対1（純リファクタ）。
 import type { BacklogItem, Sprint, Attachment } from '../DevStatusPanel';
+import type { DiagramType, DiagramDoc } from './diagramsLogic';
 
 export type Unsubscribe = () => void;
 
@@ -30,4 +31,14 @@ export interface BacklogStore {
   now(): unknown;
   /** 添付の表示用 URL を解決（Firestore: att.url / ローカル: readFile→blob URL）。 */
   getAttachmentUrl(att: Attachment): Promise<string>;
+  /** 設計図（図ビュー）を購読。type ごとの DiagramDoc を丸ごと通知する。 */
+  subscribeDiagrams(cb: (d: Partial<Record<DiagramType, DiagramDoc>>) => void, onError?: (e: unknown) => void): Unsubscribe;
+  /** 図の Mermaid ソースを保存。updatedAt を刻む。 */
+  saveDiagram(type: DiagramType, mermaid: string): Promise<void>;
+  /** AI 生成依頼（queue='generate'）を立てる。note は依頼メモ。 */
+  requestDiagram(type: DiagramType, note?: string): Promise<void>;
+  /** 現在の図一式をスプリント完了時のスナップショットとして凍結（再完了は上書き）。 */
+  snapshotDiagrams(sprintId: string): Promise<void>;
+  /** 凍結済みスナップショットを読む（無い type は含まれない）。凍結データなので購読不要・読み切り。 */
+  getDiagramSnapshots(sprintId: string): Promise<Partial<Record<DiagramType, string>>>;
 }

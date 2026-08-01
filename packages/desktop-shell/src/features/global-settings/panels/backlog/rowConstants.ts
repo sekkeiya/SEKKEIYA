@@ -82,8 +82,6 @@ export const AC_COMPACT_SX = {
 export const KEY_PREFIX: Record<BacklogType, string> = { request: '要求', requirement: '要件' };
 export const keyOf = (i?: BacklogItem) => i ? `${KEY_PREFIX[i.type]}${i.seq ?? '?'}` : '?';
 
-// ── テーブルの総列数（DevStatusPanel / RequirementRow / RequestRow で共有する単一定義） ──
-// チェック(1) + 開閉(1) + COLS(10: DevStatusPanel.tsx 内定義) + 削除(1) = 13。
-// COLS 自体は DevStatusPanel.tsx にあり、循環 import を避けるためここではリテラルとして定義する
-// （COLS の列数を変えたらここも合わせて直すこと）。
-export const COL_COUNT = 13;
+// 総列数はここでは持たない。列の表示/非表示に追従させる必要があるため、
+// DevStatusPanel が visibleCols から算出して `colCount` prop で各行へ渡す
+// （以前はリテラル 13 を手動同期していたが、列を隠すとズレるため廃止した）。

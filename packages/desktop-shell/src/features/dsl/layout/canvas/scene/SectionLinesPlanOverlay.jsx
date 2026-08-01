@@ -16,8 +16,10 @@ import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStor
 import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import LineEndHandle from "./LineEndHandle.jsx";
 import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
-import { measureXZBounds, defaultSectionSpan, sideOffsetMm } from "../../utils/planBounds";
+import { measureXZBounds, defaultSectionSpan, sideOffsetMm, chainSpan } from "../../utils/planBounds";
 import { useDimChainStore } from "../../store/useDimChainStore";
+import { useGridAxisStore } from "../../store/useGridAxisStore";
+import { resetSectionLine } from "../../utils/sectionLineDefaults";
 
 // 落ち着いたモノクロ基調（建築図面らしい無駄のないスタイル）。
 //   非選択 = ミディアムスレート / 選択 = ほぼ黒。装飾（グロー等）は入れない。
@@ -63,6 +65,15 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
   const rotate90 = () => applyOrientation(lineRef.current.axis === "x" ? "z" : "x", undefined);
   // 反転＝視線方向（矢印の向き）を反対に。
   const toggleFlip = () => applyOrientation(undefined, !lineRef.current.flip);
+  // 初期位置に戻す＝位置を建物中心へ、長さを自動へ（向き・軸はそのまま）。
+  // 断面ビューのクリップ位置もその場で合わせる（回転・反転と同じ扱い）。
+  const resetToDefault = () => {
+    const cur = lineRef.current;
+    const pos = resetSectionLine(cur.id);
+    if (pos === null) return;
+    const em = useEditorModeStore.getState();
+    if (cur.axis === "x") em.setSectionClipX(pos); else em.setSectionClipZ(pos);
+  };
 
   // 幾何: axis="z" → 線は X 方向（z=pos）／ axis="x" → 線は Z 方向（x=pos）。矢印は −軸向き。
   const isZ = line.axis === "z";
@@ -380,6 +391,16 @@ function SectionLineItem({ line, half, autoSpan, arrowLen, labelGap, y, isMm, ac
             >
               反転
             </button>
+            <span style={{ width: 1, background: "rgba(148,163,184,0.25)" }} />
+            <button
+              type="button"
+              title="初期位置に戻す（位置＝建物の中心 / 長さ＝自動）"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); resetToDefault(); }}
+              style={sectionCtrlBtnStyle}
+            >
+              初期位置
+            </button>
           </div>
         </Html>
       )}
@@ -403,9 +424,10 @@ const sectionCtrlBtnStyle = {
 
 export default function SectionLinesPlanOverlay({ viewKey = null }) {
   const lines = useSectionLinesStore((s) => s.lines);
-  // 寸法列の余白（辺ごと）。断面記号のクリアランスをこれに合わせる。
+  // 寸法列の余白（辺ごと）と通り芯。断面記号のクリアランスを寸法列の実位置に合わせる。
   const dimConfigs = useDimChainStore((s) => s.configs);
   const chainOffsets = (viewKey && dimConfigs[viewKey]?.offsets) || null;
+  const axes = useGridAxisStore((s) => s.axes);
   const activeLineId = useSectionLinesStore((s) => s.activeLineId);
   const arrowStyle = useSectionLinesStore((s) => s.arrowStyle);
   const walls = useWallStore((s) => s.walls);
@@ -421,26 +443,34 @@ export default function SectionLinesPlanOverlay({ viewKey = null }) {
   const arrowLen = Math.min(Math.max(half * 0.07, w(550)), w(700));
   const labelGap = arrowLen * 0.6;  // 線端 → ラベル（A / A'）中心の距離
   // 既定の長さは「ラベルが1列目の寸法線に被らない位置」から逆算。寸法列と同じ基準（planBounds）。
-  // ⚠️ 断面記号は「実際の躯体」を基準に建物へ寄せたい。baseColliders には自動床スキャンで
-  //    生成した不可視の床板(isScannedFloor)が混ざり、これが建物より大きい/片側に寄っていると
-  //    A/A'/B/B' の一端だけが遠くへ飛ぶ。注記の範囲計算からはスキャン板を除外して実躯体だけ測る。
-  const structureColliders = useMemo(
-    () => (baseColliders || []).filter((o) => !o?.userData?.isScannedFloor),
-    [baseColliders],
-  );
+  // 断面記号は「実際の躯体」を基準に建物へ寄せる。スキャン床板の除外は measureXZBounds が行う。
   const bounds = useMemo(
-    () => measureXZBounds(structureColliders, walls, w),
-    [structureColliders, walls, isMm],
+    () => measureXZBounds(baseColliders, walls, w),
+    [baseColliders, walls, isMm],
   );
-  // 1列目の寸法線に被らないためのクリアランスは、その断面線の両端が向いている 2 辺の
-  // 余白のうち小さい方に合わせる（安全弁なので狭い側が効く）。
-  const minOffsetMm = (a, b) => Math.min(sideOffsetMm(chainOffsets, a), sideOffsetMm(chainOffsets, b));
-  const autoSpan = useMemo(() => ({
-    // axis="z"（横断面線）は X 方向に伸びる → 端は左辺・右辺を向く。
-    z: defaultSectionSpan(bounds, "x", w, half, labelGap, minOffsetMm("left", "right")),
-    // axis="x"（縦断面線）は Z 方向に伸びる → 端は上辺・下辺を向く。
-    x: defaultSectionSpan(bounds, "z", w, half, labelGap, minOffsetMm("top", "bottom")),
-  }), [bounds, half, labelGap, isMm, chainOffsets]);
+  // 断面記号を1列目の寸法線から一定の距離に置くための、建物外形から寸法線までの実距離。
+  // 寸法列は「最外の通り芯 ± 余白」に立つので、通り芯から測って建物の端との差を返す。
+  // ⚠️ 端ごとに求めること。建物のバウンディングボックスは通り芯に対して偏りうるので、
+  //    片方の値を両端に使うと狭い側でしか一定距離を満たせない（B' だけ余白が違う不具合）。
+  const autoSpan = useMemo(() => {
+    const posOf = (want) => (axes || []).filter((a) => a?.axis === want).map((a) => w(a.pos));
+    const off = (side) => w(sideOffsetMm(chainOffsets, side));
+    const colOut = (axisDir) => {
+      if (!bounds) return undefined;
+      const [lo, hi] = axisDir === "x"
+        ? chainSpan(posOf("x"), bounds.minX, bounds.maxX)
+        : chainSpan(posOf("z"), bounds.minZ, bounds.maxZ);
+      const [bLo, bHi] = axisDir === "x" ? [bounds.minX, bounds.maxX] : [bounds.minZ, bounds.maxZ];
+      const [sLo, sHi] = axisDir === "x" ? ["left", "right"] : ["top", "bottom"];
+      return { lo: bLo - (lo - off(sLo)), hi: (hi + off(sHi)) - bHi };
+    };
+    return {
+      // axis="z"（横断面線）は X 方向に伸びる → 端は左辺・右辺を向く。
+      z: defaultSectionSpan(bounds, "x", w, half, labelGap, colOut("x")),
+      // axis="x"（縦断面線）は Z 方向に伸びる → 端は上辺・下辺を向く。
+      x: defaultSectionSpan(bounds, "z", w, half, labelGap, colOut("z")),
+    };
+  }, [bounds, half, labelGap, isMm, chainOffsets, axes]);
 
   if (!lines.length) return null;
   // 平面図の水平カット面の少し下に描く（クリップで消えないように）

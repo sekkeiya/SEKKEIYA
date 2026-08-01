@@ -40,6 +40,7 @@ import GridAxisOverlay from "../scene/GridAxisOverlay.jsx";
 import { useGridAxisStore } from "../../store/useGridAxisStore";
 import { useDimChainStore } from "../../store/useDimChainStore";
 import DimensionChainsOverlay from "../scene/DimensionChainsOverlay.jsx";
+import SectionCeilingDimensions from "../scene/SectionCeilingDimensions.jsx";
 
 /** アクティブなビューポートの viewKey を寸法列パネルへ伝える（パネルはこれを編集対象にする）。 */
 function DimViewKeyReporter({ viewKey, active }) {
@@ -134,6 +135,14 @@ import { useWallStore } from "../../store/useWallStore";
 import { useSlabStore } from "../../store/useSlabStore";
 import { pickStructureInRect } from "../../utils/marqueeStructurePick";
 import { isBaseEditMode } from "../../utils/baseEditMode";
+import {
+  collectBaseAlignTargets,
+  commitAlignTargets,
+  makeFurnitureAlignTarget,
+  slabBounds2DMm,
+  wallBounds2DMm,
+  worldScaleK,
+} from "../../utils/alignTargets";
 
 // ✁ESnap Engine
 import SnapGuide from "../tools/align/SnapGuide.jsx";
@@ -536,6 +545,9 @@ export default function SingleViewportCanvas({
   // 高さ断面（天井カット）が有効なときは、抜けた天井から採光する（Top が真っ暗になるのを防ぐ）。
   const sectionClipEnabledForLight = useEditorModeStore(state => state.isSectionClipEnabled);
   const sectionClipYEnabledForLight = useEditorModeStore(state => state.sectionClipYEnabled);
+  // パース（3D演出）で縦の断面が効いているかの判定に使う（ビューチップの名乗り）。
+  const sectionClipXEnabledForChip = useEditorModeStore(state => state.sectionClipXEnabled);
+  const sectionClipZEnabledForChip = useEditorModeStore(state => state.sectionClipZEnabled);
   // 断面ビューの向き反転（A-A' 矢印＋側）。FRONT/RIGHT 正射のカメラ側を −Z/−X に切り替える。
   // 図面グリッドのペインはペイン固有の flip を優先（北と南を同時に出すため）。
   const sectionViewFlipGlobal = useEditorModeStore(state => state.sectionViewFlip);
@@ -1228,16 +1240,38 @@ export default function SingleViewportCanvas({
     return selectedItemId ? [selectedItemId] : [];
   }, [selectedItemIds, selectedItemId]);
 
-  const alignSelectedObjects = useMemo(() => {
+  // ============================================================
+  // ✅ 整列の対象（AlignTarget）
+  //   Base（躯体）編集中で壁／床を選んでいるなら、その壁・床が対象。
+  //   それ以外（Plan/Option）は従来どおり家具（registryMap の Object3D）。
+  //   両方に選択があるときは Base を優先する（Base では家具を触らせない既存方針に合わせる）。
+  //   ⚠️ 壁・床のアダプタは「掴んだ時点の座標」を内部に控える。この useMemo が
+  //      追従中に作り直されると基準がズレるので、deps に walls/slabs 本体は入れない
+  //      （選択が変わったときだけ作り直す）。
+  // ============================================================
+  const alignWallIds = useWallStore((s) => s.selectedWallIds);
+  const alignSlabIds = useSlabStore((s) => s.selectedSlabIds);
+  const sceneMaxYForAlign = useEditorModeStore((s) => s.sceneMaxY);
+  const isBaseAlign = !!structureTagging && (alignWallIds.length + alignSlabIds.length) > 0;
+
+  const alignTargets = useMemo(() => {
+    if (isBaseAlign) return collectBaseAlignTargets(worldScaleK(sceneMaxYForAlign));
     const out = [];
     const map = registryMap;
     if (!map) return out;
     for (const id of alignSelectedIds) {
       const obj = map.get(id);
-      if (obj) out.push({ itemId: id, object: obj });
+      if (obj) out.push(makeFurnitureAlignTarget(id, obj));
     }
     return out;
-  }, [alignSelectedIds, registryMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBaseAlign, alignWallIds, alignSlabIds, sceneMaxYForAlign, alignSelectedIds, registryMap]);
+
+  // 追従の primary（pointer に付いていく1つ）。家具は従来どおり主選択の Object3D。
+  const alignPrimaryTarget = useMemo(() => {
+    if (isBaseAlign) return alignTargets[0] || null;
+    return selectedObject && selectedItemId ? makeFurnitureAlignTarget(selectedItemId, selectedObject) : null;
+  }, [isBaseAlign, alignTargets, selectedObject, selectedItemId]);
 
   const stopAlignLocal = useCallback(() => {
     setAlignMode(null);
@@ -1256,20 +1290,16 @@ export default function SingleViewportCanvas({
   const alignAbortRef = useRef(false);
 
   const takeAlignSnapshot = useCallback(() => {
-    const snap = {};
-    const list = Array.isArray(alignSelectedObjects) ? alignSelectedObjects : [];
-    for (const it of list) {
-      const obj = it?.object;
-      if (!obj) continue;
-      obj.updateMatrixWorld?.(true);
-      snap[it.itemId] = {
-        position: [obj.position.x, obj.position.y, obj.position.z],
-        rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
-        scale: [obj.scale.x, obj.scale.y, obj.scale.z],
-      };
-    }
-    alignSnapshotRef.current = snap;
-  }, [alignSelectedObjects]);
+    const list = Array.isArray(alignTargets) ? alignTargets : [];
+    const entries = list.map((t) => ({
+      target: t,
+      pos: t.getPos(),
+      // 家具は items 側の transform も控える（3D だけ戻しても保存値が残るため）。
+      // 壁・床は null（取消は setPos で座標データを戻すだけで足りる）。
+      transform: t.getTransform?.() || null,
+    }));
+    alignSnapshotRef.current = { entries };
+  }, [alignTargets]);
 
   const clearAlignSnapshot = useCallback(() => {
     alignSnapshotRef.current = null;
@@ -1290,19 +1320,17 @@ export default function SingleViewportCanvas({
         return;
       }
 
-      for (const [itemId, t] of Object.entries(snap)) {
-        const obj = registryMap?.get(itemId);
-        if (!obj) continue;
-        obj.position.set(...t.position);
-        obj.rotation.set(...t.rotation);
-        obj.scale.set(...t.scale);
-        obj.updateMatrixWorld?.(true);
+      // 開始時の位置へ戻す。壁・床は「開始座標＋丸めた差分」で動いているので、
+      // 開始位置を setPos し直せば差分 0 ＝ 元の座標へ厳密に戻る。
+      // 追従中は updateWallLocal / updateSlabLocal（永続化しない）で動かしているだけなので、
+      // Base 側は保存されておらず、ここで persist する必要も無い。
+      for (const e of snap.entries) {
+        e.target.setPos(e.pos.x, e.pos.y, e.pos.z);
       }
 
-      const updates = Object.entries(snap).map(([itemId, t]) => ({
-        itemId,
-        transform: { position: t.position, rotation: t.rotation, scale: t.scale },
-      }));
+      const updates = snap.entries
+        .filter((e) => e.transform)
+        .map((e) => ({ itemId: e.target.id, transform: e.transform }));
 
       if (updates.length > 1 && typeof onChangeTransforms === "function") onChangeTransforms(updates);
       else if (updates.length === 1 && typeof onChangeTransform === "function") onChangeTransform(updates[0]);
@@ -1310,12 +1338,14 @@ export default function SingleViewportCanvas({
       alignSnapshotRef.current = null;
       alignAbortRef.current = false;
     });
-  }, [stopAlignLocal, endAlignSession, registryMap, onChangeTransform, onChangeTransforms, cancelHistoryBatch]);
+  }, [stopAlignLocal, endAlignSession, onChangeTransform, onChangeTransforms, cancelHistoryBatch]);
 
   const commitAlign = useCallback(() => {
     if (!isAlignOwner) return;
-    if (!selectedItemId || !selectedObject) return;
     if (!alignMode) return;
+    if (!alignTargets.length) return;
+    // 家具の確定は主選択（selectedItemId / selectedObject）を使う。Base（壁・床）は使わない。
+    if (!isBaseAlign && (!selectedItemId || !selectedObject)) return;
 
     // ✁Eこれが重要E��確定クリチE��した瞬間に follower を止める
     // �E�EetAlignMode(null) は非同期なので、Eフレームでも動くとズレの原因になる！E
@@ -1340,39 +1370,50 @@ export default function SingleViewportCanvas({
       const offsets = alignMode?.itemOffsets || {};
       const baseOff = Number.isFinite(alignMode?.offset) ? alignMode.offset : 0;
 
-      for (const it of alignSelectedObjects) {
-        const obj = it?.object;
-        if (!obj) continue;
+      for (const it of alignTargets) {
+        if (!it) continue;
 
-        const off = Number.isFinite(offsets[it.itemId]) ? offsets[it.itemId] : baseOff;
+        const off = Number.isFinite(offsets[it.id]) ? offsets[it.id] : baseOff;
         const pos = anchor + off;
 
-        if (axis === "x") obj.position.x = pos;
-        if (axis === "y") obj.position.y = pos;
-        if (axis === "z") obj.position.z = pos;
-
-        obj.updateMatrixWorld?.(true);
+        const cur = it.getPos();
+        it.setPos(
+          axis === "x" ? pos : cur.x,
+          axis === "y" ? pos : cur.y,
+          axis === "z" ? pos : cur.z,
+        );
       }
     } else {
-      // snapOff の場合でも最新にしておく
-      for (const it of alignSelectedObjects) it?.object?.updateMatrixWorld?.(true);
+      // snapOff の場合でも最新にしておく（家具は setPos が updateMatrixWorld まで面倒を見る）
+      for (const it of alignTargets) {
+        if (!it) continue;
+        const cur = it.getPos();
+        it.setPos(cur.x, cur.y, cur.z);
+      }
+    }
+
+    // ============================================================
+    // ✅ Base（壁・床・天井）の確定: 座標データを Base へ永続化する。
+    //   Undo は useStructureHistoryStore が baseDoc.spaceProgram のスナップショットを
+    //   積んでくれるので、ここでは履歴バッチ（家具用）を触らない。
+    // ============================================================
+    if (isBaseAlign) {
+      commitAlignTargets(alignTargets);
+      clearAlignSnapshot();
+      endAlign();
+      requestAnimationFrame(() => {
+        alignAbortRef.current = false;
+      });
+      return;
     }
 
     // ============================================================
     // ✁EMulti commit
     // ============================================================
-    if (alignSelectedObjects.length > 1 && typeof onCommitTransforms === "function") {
-      const updates = alignSelectedObjects.map((it) => {
-        const obj = it.object;
-        return {
-          itemId: it.itemId,
-          transform: {
-            position: [obj.position.x, obj.position.y, obj.position.z],
-            rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
-            scale: [obj.scale.x, obj.scale.y, obj.scale.z],
-          },
-        };
-      });
+    if (alignTargets.length > 1 && typeof onCommitTransforms === "function") {
+      const updates = alignTargets
+        .map((it) => ({ itemId: it.id, transform: it.getTransform?.() }))
+        .filter((u) => u.transform);
 
       onCommitTransforms(updates);
       endHistoryBatch({ kind: "align" });
@@ -1409,7 +1450,8 @@ export default function SingleViewportCanvas({
     selectedItemId,
     selectedObject,
     alignMode,
-    alignSelectedObjects,
+    alignTargets,
+    isBaseAlign,
     onCommitTransforms,
     onCommitTransform,
     clearAlignSnapshot,
@@ -1453,6 +1495,47 @@ export default function SingleViewportCanvas({
       const b = new THREE.Box3().setFromObject(obj);
       pushFromBoxTo(b, out);
     });
+
+    // ✅ 作図した躯体（通り芯・壁・床）も候補にする。
+    //   Shift を押しながらの整列で「通り芯」「他の壁の頂点／壁面」「床の頂点」へ吸わせるため。
+    //   壁は端点（頂点）だけでなく壁厚を含む外接（＝壁面）も入れる（面ぞろえに使う）。
+    //   整列中の対象（＝自分）は除く。入れると自分自身に吸って動けなくなる。
+    {
+      const k = worldScaleK(useEditorModeStore.getState().sceneMaxY);
+      const pushX = (mm) => out.x.push(mm * k);
+      const pushZ = (mm) => out.z.push(mm * k);
+      const pushSpan = (b) => {
+        pushX(b.minX); pushX(b.maxX); pushX((b.minX + b.maxX) / 2);
+        pushZ(b.minZ); pushZ(b.maxZ); pushZ((b.minZ + b.maxZ) / 2);
+      };
+
+      // 通り芯（axis="x" は world X の線 / "z" は world Z の線）
+      for (const ax of useGridAxisStore.getState().axes || []) {
+        if (!Number.isFinite(ax?.pos)) continue;
+        if (ax.axis === "x") pushX(ax.pos);
+        else if (ax.axis === "z") pushZ(ax.pos);
+      }
+
+      const wallSt = useWallStore.getState();
+      const slabSt = useSlabStore.getState();
+      const skipWalls = new Set(wallSt.selectedWallIds);
+      const skipSlabs = new Set(slabSt.selectedSlabIds);
+
+      for (const w of wallSt.walls) {
+        if (skipWalls.has(w.id)) continue;
+        // 端点（壁芯の頂点）
+        pushX(w.start.x); pushX(w.end.x);
+        pushZ(w.start.z); pushZ(w.end.z);
+        // 壁厚を含む外形（壁面）
+        pushSpan(wallBounds2DMm(w));
+      }
+
+      for (const s of slabSt.slabs) {
+        if (skipSlabs.has(s.id)) continue;
+        for (const p of s.points || []) { pushX(p.x); pushZ(p.z); }
+        pushSpan(slabBounds2DMm(s.points || []));
+      }
+    }
 
     const uniqAxis = (arr) => {
       const uniq = [];
@@ -1510,9 +1593,33 @@ export default function SingleViewportCanvas({
     return "center";
   }, []);
 
+  /**
+   * 対象（AlignTarget）の「その軸のアンカー値」を返す。
+   *   min/max … 外接の端、center … 外接の中央。
+   * 壁・床は上下（Y）の外接を持たない（高さは階・厚み・上下オフセットで決まる別プロパティ）ので、
+   * Y 軸の整列＝立面/断面ビューの AT/AB は対象外。null を返して開始を断る。
+   */
+  const anchorOnAxis = useCallback((target, axis, anchorKind) => {
+    if (axis === "y") {
+      const by = target.getBoundsY?.();
+      if (!by) return null;
+      if (anchorKind === "min") return by.minY;
+      if (anchorKind === "max") return by.maxY;
+      return (by.minY + by.maxY) / 2;
+    }
+    const b = target.getBounds2D();
+    const lo = axis === "x" ? b.minX : b.minZ;
+    const hi = axis === "x" ? b.maxX : b.maxZ;
+    if (anchorKind === "min") return lo;
+    if (anchorKind === "max") return hi;
+    return (lo + hi) / 2;
+  }, []);
+
   const beginAlignLocal = useCallback(
     (key) => {
-      if (!selectedItemId || !selectedObject) return false;
+      const primary = alignPrimaryTarget;
+      if (!primary) return false;
+      if (!alignTargets.length) return false;
 
       alignAbortRef.current = false;
 
@@ -1521,60 +1628,29 @@ export default function SingleViewportCanvas({
 
       const anchorKind = getAnchorKind(key);
 
-      selectedObject.updateMatrixWorld?.(true);
-
-      const box = new THREE.Box3().setFromObject(selectedObject);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-
-      const p = selectedObject.position;
+      const p = primary.getPos();
       const posAxis = axis === "x" ? p.x : axis === "y" ? p.y : p.z;
 
-      const anchorAxis =
-        anchorKind === "min"
-          ? axis === "x"
-            ? box.min.x
-            : axis === "y"
-              ? box.min.y
-              : box.min.z
-          : anchorKind === "max"
-            ? axis === "x"
-              ? box.max.x
-              : axis === "y"
-                ? box.max.y
-                : box.max.z
-            : axis === "x"
-              ? center.x
-              : axis === "y"
-                ? center.y
-                : center.z;
+      const anchorAxis = anchorOnAxis(primary, axis, anchorKind);
+      // Y 軸は壁・床では扱えない（立面/断面の AT/AB）。開始せずツールを閉じる。
+      if (anchorAxis == null) return false;
 
       const offset = posAxis - anchorAxis;
 
       let groupBoundsOffsets = null;
-      if (alignSelectedObjects.length > 1 && (axis === "x" || axis === "z")) {
-        const groupBox = new THREE.Box3();
-        for (const it of alignSelectedObjects) {
-          const obj = it.object;
-          if (!obj) continue;
-          obj.updateMatrixWorld?.(true);
-          groupBox.union(new THREE.Box3().setFromObject(obj));
+      if (alignTargets.length > 1 && (axis === "x" || axis === "z")) {
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (const it of alignTargets) {
+          const b = it.getBounds2D();
+          lo = Math.min(lo, axis === "x" ? b.minX : b.minZ);
+          hi = Math.max(hi, axis === "x" ? b.maxX : b.maxZ);
         }
-        if (!groupBox.isEmpty()) {
+        if (Number.isFinite(lo) && Number.isFinite(hi)) {
           if (axis === "x") {
-            groupBoundsOffsets = {
-              minX: p.x - groupBox.min.x,
-              maxX: p.x - groupBox.max.x,
-              minZ: 0,
-              maxZ: 0,
-            };
+            groupBoundsOffsets = { minX: p.x - lo, maxX: p.x - hi, minZ: 0, maxZ: 0 };
           } else {
-            groupBoundsOffsets = {
-              minX: 0,
-              maxX: 0,
-              minZ: p.z - groupBox.min.z,
-              maxZ: p.z - groupBox.max.z,
-            };
+            groupBoundsOffsets = { minX: 0, maxX: 0, minZ: p.z - lo, maxZ: p.z - hi };
           }
         }
       }
@@ -1598,46 +1674,24 @@ export default function SingleViewportCanvas({
       // ✁ESnap reset + candidates set
       clearSnapLocks();
 
-      if (getSnapActive()) {
-        const cands = buildSnapCandidatesAllAxes();
-        snapEngineRef.current?.setCandidatesAll?.(cands);
-        console.log("[snap candidates]", cands);
-      } else {
-        snapEngineRef.current?.setCandidatesAll?.({ x: [], y: [], z: [] });
-      }
+      // 候補は「Shift を押しているか」に関係なく必ず作る。
+      //   Shift は追従中に押したり離したりできる（getSnapActive は毎フレーム見られる）ので、
+      //   開始時点で押していなかったからと候補を空にすると、後から Shift を押しても
+      //   吸着先が 1 つも無い＝効かない、という状態になる。
+      snapEngineRef.current?.setCandidatesAll?.(buildSnapCandidatesAllAxes());
+      // 吸着距離のしきい値はメートル基準で書かれている。mm シーンでは 1000 倍して合わせる。
+      snapEngineRef.current?.setScale?.(worldScaleK(useEditorModeStore.getState().sceneMaxY) * 1000);
 
       const itemOffsets = {};
-      for (const it of alignSelectedObjects) {
-        const obj = it.object;
-        if (!obj) continue;
+      for (const it of alignTargets) {
+        if (!it) continue;
 
-        obj.updateMatrixWorld?.(true);
-        const box = new THREE.Box3().setFromObject(obj);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-
-        const p2 = obj.position;
+        const p2 = it.getPos();
         const posAxis2 = axis === "x" ? p2.x : axis === "y" ? p2.y : p2.z;
-        const anchorAxis2 =
-          anchorKind === "min"
-            ? axis === "x"
-              ? box.min.x
-              : axis === "y"
-                ? box.min.y
-                : box.min.z
-            : anchorKind === "max"
-              ? axis === "x"
-                ? box.max.x
-                : axis === "y"
-                  ? box.max.y
-                  : box.max.z
-              : axis === "x"
-                ? center.x
-                : axis === "y"
-                  ? center.y
-                  : center.z;
+        const anchorAxis2 = anchorOnAxis(it, axis, anchorKind);
+        if (anchorAxis2 == null) return false;
 
-        itemOffsets[it.itemId] = posAxis2 - anchorAxis2;
+        itemOffsets[it.id] = posAxis2 - anchorAxis2;
       }
 
       takeAlignSnapshot();
@@ -1652,21 +1706,23 @@ export default function SingleViewportCanvas({
         itemOffsets,
       });
 
-      beginHistoryBatch({ kind: "align" });
-      
+      // 家具の Undo 用バッチ。Base（壁・床）は useStructureHistoryStore が
+      // baseDoc.spaceProgram のスナップショットで面倒を見るので開かない。
+      if (!isBaseAlign) beginHistoryBatch({ kind: "align" });
+
       return true;
     },
     [
-      selectedItemId,
-      selectedObject,
+      alignPrimaryTarget,
+      alignTargets,
+      isBaseAlign,
+      anchorOnAxis,
       type,
       groundY,
       getAxisByKeyForView,
       getAnchorKind,
       clearSnapLocks,
-      getSnapActive,
       buildSnapCandidatesAllAxes,
-      alignSelectedObjects,
       takeAlignSnapshot,
       beginHistoryBatch,
     ]
@@ -1687,7 +1743,8 @@ export default function SingleViewportCanvas({
       return;
     }
 
-    if (!selectedItemId || !selectedObject) {
+    // Base（躯体）編集中は壁・床の選択が対象。それ以外は家具の主選択が要る。
+    if (!alignPrimaryTarget) {
       endAlignSession?.();
       stopAlignLocal();
       return;
@@ -1714,8 +1771,7 @@ export default function SingleViewportCanvas({
     active,
     onActivate,
     beginAlignLocal,
-    selectedItemId,
-    selectedObject,
+    alignPrimaryTarget,
     stopAlignLocal,
     setActiveViewportId,
   ]);
@@ -2379,6 +2435,11 @@ export default function SingleViewportCanvas({
   const manualDimSectionId = useSectionLinesStore((s) => s.activeLineId);
   const manualDimElevationId = useRoomElevationsStore((s) => s.activeElevationId);
 
+  // 断面図（＝側面正射 × 鉛直カット）かどうか。SectionPickController が動く条件と揃える。
+  // 立面図（カット無し）は対象外＝従来どおり壁・床を直接クリックして選べる。
+  const isSectionCutView = isSideOrtho &&
+    (paneDrawing ? !!paneDrawing.cap : (sectionClipEnabledForLight && !sectionClipYEnabledForLight));
+
   // このビューポートが編集している図面のキー。手動寸法・寸法列・通り芯が共通で使う。
   // （通り芯は寸法列の余白に追従して伸びるので、JSX 内ではなくここで一度だけ決める。）
   const dimViewKey = useMemo(() => {
@@ -2435,6 +2496,16 @@ export default function SingleViewportCanvas({
         : (sectionViewFlip ? "西" : "東");
       return `2D / 立面 ${dir}`;
     }
+    // 3D 演出のパースで縦の断面クリップが効いているときは「3D / 断面」と名乗る。
+    //   2D 配置の断面図（正射・図面）とは見せるものが別なので、表記も分ける。
+    if (is3DGroup && effectiveType === VIEW_TYPES.PERSPECTIVE
+        && sectionClipEnabledForLight && !sectionClipYEnabledForLight
+        && (sectionClipXEnabledForChip || sectionClipZEnabledForChip)) {
+      const axis = sectionClipXEnabledForChip ? "x" : "z";
+      return activeSectionName && activeSectionAxis === axis
+        ? `3D / 断面 ${activeSectionName}`
+        : "3D / 断面";
+    }
     if (editorMode === "layout" || editorMode === "zoning") {
       if (effectiveSubMode === "furniture_top") label = "Layout / Top";
       else if (effectiveSubMode === "furniture_iso") label = "Layout / Perspective";
@@ -2458,7 +2529,8 @@ export default function SingleViewportCanvas({
 
     return label;
   }, [materialPicking, type, isAlignOwner, alignMode, getSnapActive, editorMode, overrideSubMode, globalLayoutSubMode, overrideRotOffset, isWalkthrough, elevChipOn, elevChipDir, elevChipRoom, paneDrawing?.label,
-      effectiveType, sectionClipEnabledForLight, sectionClipYEnabledForLight, sectionViewFlip, activeSectionName, activeSectionAxis]);
+      effectiveType, sectionClipEnabledForLight, sectionClipYEnabledForLight, sectionViewFlip, activeSectionName, activeSectionAxis,
+      is3DGroup, sectionClipXEnabledForChip, sectionClipZEnabledForChip]);
 
   // ✁EAlign中に Snap ON/OFF がEり替わったら candidates をE構篁E
   useEffect(() => {
@@ -3628,8 +3700,8 @@ return (
 
       <SmoothAlignFollower
         active={!!isAlignOwner && !!alignMode && !materialPicking}
-        primaryObject={selectedObject}
-        selectedObjects={alignSelectedObjects}
+        primaryTarget={alignPrimaryTarget}
+        targets={alignTargets}
         alignMode={alignMode}
         groundY={groundY}
         snapAxisValue={snapAxisValue}
@@ -3692,7 +3764,13 @@ return (
         if (elevChipOn && isSideOrtho) return null;
         return (
           <LevelLinesOverlay
-            overviewSuppressed={isWalkthrough || isMaterialMode || isMapMode || effectiveType === VIEW_TYPES.TOP || (isSideOrtho && !isSectionView)}
+            // 3D パースでは GL / FL のレベル線とラベルを出さない（図面の注記なので
+            // 立体の見た目を邪魔する）。断面図と「断面で高さを設定」モードでは出る
+            // ——後者は断面ビューへ切り替わるので、ここで抑制しても影響しない。
+            overviewSuppressed={isWalkthrough || isMaterialMode || isMapMode
+              || effectiveType === VIEW_TYPES.TOP
+              || effectiveType === VIEW_TYPES.PERSPECTIVE
+              || (isSideOrtho && !isSectionView)}
             sectionEditable={isSectionView}
             sectionAxis={isSectionView ? (effectiveType === VIEW_TYPES.FRONT ? "z" : "x") : null}
             sectionFlip={isSectionView ? sectionViewFlip : false}
@@ -3968,11 +4046,14 @@ return (
         )}
 
         {/* 作図した壁（内壁/外壁）・床（スラブ）。躯体なのでパース/平面/断面/立面すべてで表示する。 */}
+        {/* 断面ビューでは壁・床の実体はクリックを拾わない。SectionPickController が
+            計算した「切り口（黒塗り）」だけを選択対象にする（奥の壁・床は選べない）。 */}
         <FloorSlabsRenderer
           isTopView={effectiveType === VIEW_TYPES.TOP}
           isCeilingView={effectiveSubMode === "ceiling_top"}
+          selectable={!isSectionCutView}
         />
-        <WallsRenderer isTopView={effectiveType === VIEW_TYPES.TOP} />
+        <WallsRenderer isTopView={effectiveType === VIEW_TYPES.TOP} selectable={!isSectionCutView} />
 
         {/* 壁・床の作図/編集。マップ・ウォークスルー・マテリアルでは出さない。
             平面(Top)/パース: 作図とハンドル操作（床平面へのレイキャストが成立する）。
@@ -4025,6 +4106,14 @@ return (
                       viewKey={dimViewKey}
                       view={effectiveType === VIEW_TYPES.TOP ? "plan"
                         : effectiveType === VIEW_TYPES.FRONT ? "front" : "right"}
+                    />
+                  )}
+                  {/* 断面図の各室に「FL → 天井」の縦寸法。天井高は部屋のプロパティなので、
+                      1 本の断面線が複数の部屋を横切れば本数も値も変わる。 */}
+                  {dimViewKey && !elevChipOn && symOn("dimension") && (
+                    <SectionCeilingDimensions
+                      viewKey={dimViewKey}
+                      view={effectiveType === VIEW_TYPES.FRONT ? "front" : "right"}
                     />
                   )}
                   <DimViewKeyReporter viewKey={dimViewKey} active={!!active} />
@@ -4105,8 +4194,9 @@ return (
           items={normalizedItems}
         />
         {/* スタートピン: Perspective ビューのみ表示。平面図（Top＝2D配置/1F 等）は
-            図面表示なのでスタートピンは出さない（ウォークスルー中・Material・Zoning中も非表示）。 */}
-        {!isWalkthrough && !isMaterialMode && !isMapMode && !isLabelMode && editorMode !== "zoning" && effectiveType === VIEW_TYPES.PERSPECTIVE && (
+            図面表示なのでスタートピンは出さない（ウォークスルー中・Material・Zoning中も非表示）。
+            記号メニューの「スタートピン」で ON/OFF・ロックできる。 */}
+        {symOn("startPin") && !isWalkthrough && !isMaterialMode && !isMapMode && !isLabelMode && editorMode !== "zoning" && effectiveType === VIEW_TYPES.PERSPECTIVE && (
           <WalkthroughStartPin />
         )}
         {/* 展開図ピン（複数）: Material モードの俯瞰時のみ配置・移動・削除できる */}

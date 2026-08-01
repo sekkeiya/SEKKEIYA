@@ -85,6 +85,11 @@ export interface ModelSetWithId {
     /** layoutCategory キー。auto layout がカテゴリを識別するために使用 */
     layoutCategory?: string;
   }[];
+  /** companionModels[].id のフラット配列。S.Model 側から「このモデルを含むセット」を
+   *  `where('companionModelIds','array-contains', id)` で引けるようにするための冗長フィールド
+   *  （companionModels はオブジェクト配列のため array-contains の対象にできない）。
+   *  旧データには存在しない場合がある（バックフィルスクリプトで補完、任意）。 */
+  companionModelIds?: string[];
   placedItems: PlacedItem[];
   createdAt: string;
   updatedAt?: string;
@@ -105,6 +110,11 @@ interface SetFurnitureEditorProps {
   initialVisibility?: 'public' | 'private';
   initialBuildingType?: string;
   initialPlacedItems?: PlacedItem[];
+  /** 呼び出し元があらかじめ配置しておきたいモデル（例: S.Model 詳細画面「このモデルで新しいセットを
+   *  作る」「既存のセットに追加」）。initialPlacedItems の末尾へ追加配置する形でマージされる
+   *  （initialPlacedItems 自体は変更しない）。dimensionsMm/dimensions があれば実寸、無ければ
+   *  addModelAtPosition と同じ既定サイズ（800×600mm）にフォールバックする。 */
+  initialModels?: any[];
   initialPlacementRule?: SetPlacementRule;
   existingSetId?: string;
   initialIsOfficial?: boolean;
@@ -120,6 +130,7 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
   initialVisibility = 'private',
   initialBuildingType = 'residential',
   initialPlacedItems = [],
+  initialModels,
   initialPlacementRule,
   existingSetId,
   initialIsOfficial = false,
@@ -277,7 +288,29 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
     return Array.from(map.values());
   }, [resolvedAssets, availableModels, globalModels, projectAssets]);
 
-  const [placedItems, setPlacedItems] = useState<PlacedItem[]>(initialPlacedItems);
+  // initialModels（渡されていれば）を initialPlacedItems の末尾へ追加配置した状態で開始する。
+  // 遅延初期化（マウント時1回のみ）——editorState の変化ごとに SetFurnitureEditor 自体が
+  // 再マウントされる呼び出し方（DssSetFurnitureGrid/SetSection とも Dialog 内で
+  // `{editorState && <SetFurnitureEditor .../>}` の形で毎回フレッシュマウントする）を前提にしている。
+  const [placedItems, setPlacedItems] = useState<PlacedItem[]>(() => {
+    if (!initialModels || initialModels.length === 0) return initialPlacedItems;
+    const extra: PlacedItem[] = initialModels.map((m, idx) => {
+      const dims = m?.dimensionsMm ?? m?.dimensions ?? {};
+      const w = dims.x ?? dims.width ?? 800;
+      const d = dims.y ?? dims.depth ?? dims.z ?? 600;
+      return {
+        instanceId: `init-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+        assetId: m.id,
+        title: m.title ?? m.name ?? 'Untitled',
+        thumbnailUrl: m.thumbnailUrl ?? m.thumbnail ?? undefined,
+        glbUrl: getGlbRaw(m) || undefined,
+        w, d,
+        x: initialPlacedItems.length * 400 + idx * (w + 200),
+        y: 0, z: 0, rotation: 0,
+      };
+    });
+    return [...initialPlacedItems, ...extra];
+  });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pendingModel, setPendingModel] = useState<any>(null);
   const [rotateStepDeg, setRotateStepDeg] = useState(90);
@@ -604,6 +637,10 @@ export const SetFurnitureEditor: React.FC<SetFurnitureEditorProps> = ({
         footprintMm: footprintMm ?? null,
         placementRule: { ...placementRule, maxCount: placementRule.maxCount ?? null },
         companionModels,
+        // companionModels のフラット id 配列（S.Model 側の array-contains クエリ用。ModelSetWithId
+        // の companionModelIds コメント参照）。create/update とも同じ setDoc(merge) 経由なので、
+        // ここに1箇所書くだけで両方のパスをカバーする。
+        companionModelIds: companionModels.map(m => m.id),
         placedItems: itemsToSave,
         isOfficial: initialIsOfficial,
         updatedAt: serverTimestamp(),

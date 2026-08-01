@@ -10,6 +10,8 @@ import {
   type Span,
   DEFAULT_PROJECT_KEY, normalizeProjectKey,
   vocabularyFor, GENERIC_CATEGORIES, GENERIC_SCREENS,
+  parseHiddenCols, toggleColHidden, autoHiddenCols, parseColWidths,
+  parseCollapsedSections, toggleSection,
 } from './devStatusLogic';
 
 const ms = (ymd: string) => new Date(`${ymd}T00:00:00Z`).getTime();
@@ -367,5 +369,111 @@ describe('CAT_MAP（要件79: 両方の語彙を引ける）', () => {
   });
   it('id が重複する general は SEKKEIYA 側の定義が勝つ', () => {
     expect(toolLabel('general')).toBe('基盤');
+  });
+});
+
+// ── 列の表示/非表示（ヘッダーメニューから切り替え） ──
+describe('parseHiddenCols', () => {
+  const all = ['content', 'reason', 'kind', 'status'];
+  it('保存値のうち実在する列だけを採用する（列を消しても壊れない）', () => {
+    expect(parseHiddenCols(['reason', 'zzz'], all)).toEqual(['reason']);
+  });
+  it('配列以外・null は空扱い', () => {
+    expect(parseHiddenCols(null, all)).toEqual([]);
+    expect(parseHiddenCols('reason', all)).toEqual([]);
+    expect(parseHiddenCols(undefined, all)).toEqual([]);
+  });
+  it('全列が隠れる保存値は無視する（テーブルが消えないように）', () => {
+    expect(parseHiddenCols(all, all)).toEqual([]);
+  });
+});
+
+describe('toggleColHidden', () => {
+  const all = ['content', 'reason', 'kind', 'status'];
+  it('表示中の列を隠す / 隠れている列を戻す', () => {
+    expect(toggleColHidden([], 'reason', all)).toEqual(['reason']);
+    expect(toggleColHidden(['reason'], 'reason', all)).toEqual([]);
+  });
+  it('最後の1列は隠せない（全部消えて操作不能になるのを防ぐ）', () => {
+    const threeHidden = ['reason', 'kind', 'status'];
+    expect(toggleColHidden(threeHidden, 'content', all)).toEqual(threeHidden);
+  });
+  it('実在しない列キーは無視する', () => {
+    expect(toggleColHidden([], 'zzz', all)).toEqual([]);
+  });
+});
+
+describe('autoHiddenCols', () => {
+  // 幅は spec の実測値に合わせた縮小モデル: 3列 × 100px + 固定 50px
+  const W = { a: 100, b: 100, c: 100 };
+  const ORDER = ['c', 'b']; // a は退避しない（content 相当）
+
+  it('十分な幅なら何も退避しない', () => {
+    expect(autoHiddenCols(400, W, [], ORDER, 50)).toEqual([]);
+  });
+  it('足りない分だけ優先度の低い順に退避する', () => {
+    // 必要 350 に対し 260 → c を退避して 250 で収まる
+    expect(autoHiddenCols(260, W, [], ORDER, 50)).toEqual(['c']);
+  });
+  it('さらに足りなければ次の列も退避する', () => {
+    expect(autoHiddenCols(160, W, [], ORDER, 50)).toEqual(['c', 'b']);
+  });
+  it('dropOrder に無い列（content 相当）は退避しない＝全列消滅を防ぐ', () => {
+    expect(autoHiddenCols(10, W, [], ORDER, 50)).toEqual(['c', 'b']);
+  });
+  it('手動非表示の列は戻り値に含めず、その幅も計上しない', () => {
+    // c が手動非表示なら a+b=200+50=250 で 260 に収まる → 自動退避は不要
+    expect(autoHiddenCols(260, W, ['c'], ORDER, 50)).toEqual([]);
+  });
+  it('計測前（available<=0）は退避しない', () => {
+    expect(autoHiddenCols(0, W, [], ORDER, 50)).toEqual([]);
+  });
+  it('colWidths に無い列は 0 幅として扱い落ちない', () => {
+    expect(autoHiddenCols(260, { a: 100, b: 100 }, [], ORDER, 50)).toEqual([]);
+  });
+  it('pinned の列は幅が足りなくても退避しない', () => {
+    // c が pinned なら c を飛ばして b を退避する
+    expect(autoHiddenCols(260, W, [], ORDER, 50, ['c'])).toEqual(['b']);
+  });
+  it('pinned 省略時は従来どおり', () => {
+    expect(autoHiddenCols(260, W, [], ORDER, 50)).toEqual(['c']);
+  });
+});
+
+describe('parseColWidths', () => {
+  const base = { a: 100, b: 200 };
+  it('保存値で上書きする', () => expect(parseColWidths({ a: 150 }, base)).toEqual({ a: 150, b: 200 }));
+  it('未知のキーは捨てる', () => expect(parseColWidths({ z: 50 }, base)).toEqual(base));
+  it('数値でない/0以下は既定を保つ', () => expect(parseColWidths({ a: 'x', b: -5 }, base)).toEqual(base));
+  it('オブジェクトでなければ既定を返す', () => expect(parseColWidths(null, base)).toEqual(base));
+});
+
+describe('parseCollapsedSections', () => {
+  it('文字列だけを採用し重複を除く', () => {
+    expect(parseCollapsedSections(['backlog', 'backlog', 'sprint:a'])).toEqual(['backlog', 'sprint:a']);
+  });
+  it('配列でなければ空', () => {
+    expect(parseCollapsedSections(null)).toEqual([]);
+    expect(parseCollapsedSections({ backlog: true })).toEqual([]);
+    expect(parseCollapsedSections('backlog')).toEqual([]);
+  });
+  it('文字列でない要素は捨てる', () => {
+    expect(parseCollapsedSections(['backlog', 1, null, { a: 1 }])).toEqual(['backlog']);
+  });
+});
+
+describe('toggleSection', () => {
+  it('無ければ追加、あれば除去', () => {
+    expect(toggleSection([], 'backlog')).toEqual(['backlog']);
+    expect(toggleSection(['backlog'], 'backlog')).toEqual([]);
+  });
+  it('他のキーは保つ', () => {
+    expect(toggleSection(['requests', 'sprint:a'], 'backlog')).toEqual(['requests', 'sprint:a', 'backlog']);
+    expect(toggleSection(['requests', 'sprint:a'], 'requests')).toEqual(['sprint:a']);
+  });
+  it('元の配列を破壊しない', () => {
+    const src = ['requests'];
+    toggleSection(src, 'backlog');
+    expect(src).toEqual(['requests']);
   });
 });

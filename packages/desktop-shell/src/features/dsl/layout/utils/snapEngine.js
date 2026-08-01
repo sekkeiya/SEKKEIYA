@@ -60,6 +60,18 @@ export function createSnapEngine({
     // ✅ last decision for commit (axis/value/kind/dist/raw)
     let _lastFinalAnchor = { axis: null, value: null, kind: null, dist: null, raw: null, t: 0 };
 
+    /**
+     * ✅ しきい値のスケール。
+     * 上の既定値（engage 0.25 / wallPreferDist 0.18 …）は「1 world = 1m」のシーン前提。
+     * S.Layout は躯体 GLB 次第で 1 world = 1mm のこともあり、そのままだと吸着範囲が
+     * 0.25mm になって実質スナップしない。シーンの単位に合わせてここで倍率を掛ける
+     * （mm シーンなら 1000）。
+     */
+    let scale = 1;
+    function setScale(s) {
+        scale = Number.isFinite(s) && s > 0 ? s : 1;
+    }
+
     const clamp01 = (t) => Math.max(0, Math.min(1, t));
     const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -76,10 +88,10 @@ export function createSnapEngine({
         p.t = now;
         p.raw = raw;
 
-        const tt = clamp01((speed - speedSlow) / (speedFast - speedSlow));
+        const tt = clamp01((speed - speedSlow * scale) / ((speedFast - speedSlow) * scale));
         return {
-            engage: lerp(engage, engageFast, tt),
-            release: lerp(release, releaseFast, tt),
+            engage: lerp(engage, engageFast, tt) * scale,
+            release: lerp(release, releaseFast, tt) * scale,
             speed,
         };
     }
@@ -157,10 +169,10 @@ export function createSnapEngine({
         if (!nWall) return { ...nAll, kind: "obj" };
 
         // ✅ 1) 壁が一定距離以内なら “強制的に壁”
-        if (nWall.dist <= wallPreferDist) return { ...nWall, kind: "wall" };
+        if (nWall.dist <= wallPreferDist * scale) return { ...nWall, kind: "wall" };
 
         // ✅ 2) それ以外は「壁が十分近いなら壁」(従来 + margin)
-        if (nWall.dist <= nAll.dist + wallPreferMargin) return { ...nWall, kind: "wall" };
+        if (nWall.dist <= nAll.dist + wallPreferMargin * scale) return { ...nWall, kind: "wall" };
 
         return { ...nAll, kind: "obj" };
     }
@@ -210,7 +222,7 @@ export function createSnapEngine({
             const lockDist = Math.abs(lock - raw);
 
             if (lockDist <= RELEASE) {
-                if (bestDist + switchMargin < lockDist && bestDist <= ENGAGE) {
+                if (bestDist + switchMargin * scale < lockDist && bestDist <= ENGAGE) {
                     slot.value = bestVal;
                     slot.until = now + timeLockMs;
 
@@ -258,6 +270,7 @@ export function createSnapEngine({
     return {
         clear,
         setCandidatesAll,
+        setScale,
 
         setDynamicWalls,
         clearDynamicWalls,

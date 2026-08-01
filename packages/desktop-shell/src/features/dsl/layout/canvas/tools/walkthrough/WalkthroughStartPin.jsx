@@ -19,6 +19,7 @@ import * as THREE from "three";
 import { useEditorModeStore } from "../../../store/useEditorModeStore";
 import { useSceneObjectRegistryStore } from "../../../store/sceneObjectRegistryStore";
 import { useViewportUiStore } from "../../../store/viewportUiStore";
+import { useViewportDisplayStore } from "../../../store/useViewportDisplayStore";
 
 const ACCENT = "#4f8cff";
 const FLOOR_NORMAL_MIN = 0.5;
@@ -66,7 +67,10 @@ export default function WalkthroughStartPin() {
   const setStartPin   = useEditorModeStore((s) => s.setWalkthroughStartPin);
   const setIsDragging = useEditorModeStore((s) => s.setIsWalkthroughPinDragging);
 
-  const [pinSelected, setPinSelected] = useState(false);
+  // 記号メニューの「スタートピン」ロック中は、見えるが触れない（選択・回転・移動を止める）。
+  const locked        = useViewportDisplayStore((s) => s.symbolLocks.startPin);
+  const [pinSelectedRaw, setPinSelected] = useState(false);
+  const pinSelected   = pinSelectedRaw && !locked;
   const [gizmoKey, setGizmoKey]       = useState(0);
   // ドラッグ中のリアルタイム yaw プレビュー（null = 非ドラッグ時は startPin.yawDeg を使う）
   const [liveYawDeg, setLiveYawDeg]   = useState(null);
@@ -224,10 +228,10 @@ export default function WalkthroughStartPin() {
         {/* Html バッジ */}
         <Html center style={{ pointerEvents: "none", userSelect: "none" }}>
           <div
-            onClick={(e) => { e.stopPropagation(); setPinSelected((s) => !s); }}
+            onClick={locked ? undefined : (e) => { e.stopPropagation(); setPinSelected((s) => !s); }}
             style={{
-              pointerEvents: "auto",
-              cursor: "pointer",
+              pointerEvents: locked ? "none" : "auto",
+              cursor: locked ? "default" : "pointer",
               display: "flex",
               alignItems: "center",
               gap: "4px",
@@ -277,9 +281,9 @@ export default function WalkthroughStartPin() {
             geometry={arrowGeo}
             rotation={[-Math.PI / 2, 0, 0]}
             position={[0, 0.008 * u, 0]}
-            onPointerDown={startYawDrag}
-            onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "crosshair"; }}
-            onPointerOut={() => { document.body.style.cursor = ""; }}
+            onPointerDown={locked ? undefined : startYawDrag}
+            onPointerOver={locked ? undefined : (e) => { e.stopPropagation(); document.body.style.cursor = "crosshair"; }}
+            onPointerOut={locked ? undefined : () => { document.body.style.cursor = ""; }}
           >
             <meshBasicMaterial color={ACCENT} transparent opacity={0.82} side={THREE.DoubleSide} />
           </mesh>

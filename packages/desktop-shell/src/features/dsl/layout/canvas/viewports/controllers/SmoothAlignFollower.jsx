@@ -29,7 +29,7 @@
 // 複数選択の整列移動にも対応
 // なぜ controller？
 // useFrame（毎フレーム実行）の副作用塊
-// Object3D の position を直接書き換える（React stateは更新しない）
+// 対象の位置を直接書き換える（家具は React stateを更新しない）
 // Canvas内で完結して動くべき、実質エンジン部品だから
 
 /* =========================================================
@@ -38,19 +38,25 @@
  * - React(items)更新：❌しない（確定時 commit のみ）
  *
  * ✅ 複数選択対応：
- * - primaryObject が pointer 追従で target を決める
- * - delta（移動量）を全 selectedObjects に同じだけ適用（グループ移動）
+ * - primaryTarget が pointer 追従で target を決める
+ * - delta（移動量）を全 targets に同じだけ適用（グループ移動）
+ *
+ * ✅ 対象は AlignTarget（utils/alignTargets）で抽象化してある：
+ * - 家具 … Object3D の position
+ * - 壁   … start/end(mm) の中点 ⇄ 差分を両端へ
+ * - 床/天井 … points[](mm) の重心 ⇄ 差分を全頂点へ
+ * ここでは getPos / setPos / getBounds2D しか触らない。
  * ======================================================= */
 
 
-import React, { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback } from "react";
 import * as THREE from "three";
 import { useThree, useFrame } from "@react-three/fiber";
 
 export default function SmoothAlignFollower({
   active,
-  primaryObject,
-  selectedObjects, // [{ itemId, object }]
+  primaryTarget,
+  targets, // AlignTarget[]
   alignMode,
   groundY,
   snapAxisValue,
@@ -209,7 +215,7 @@ export default function SmoothAlignFollower({
       if (anchorKind === "center") return null;
 
       // 複数選択は一旦OFF
-      const selCount = selectedObjects?.length ?? 0;
+      const selCount = targets?.length ?? 0;
       if (selCount > 1) return null;
 
       const colliders = baseCollidersRef?.current || [];
@@ -218,7 +224,7 @@ export default function SmoothAlignFollower({
       const baseBox = baseBoundsRef?.current?.box;
       if (!baseBox || !baseBox.isBox3) return null;
 
-      const p = primaryObject?.position;
+      const p = primaryTarget?.getPos?.();
       if (!p) return null;
 
       // 現在アンカー
@@ -228,13 +234,12 @@ export default function SmoothAlignFollower({
       const dirSign = Math.sign(rawAnchor - currAnchor);
       if (dirSign === 0) return null;
 
-      primaryObject.updateMatrixWorld?.(true);
-      const box = new THREE.Box3().setFromObject(primaryObject);
+      const box = primaryTarget.getBounds2D();
 
       const edgeAxis =
         axis === "x"
-          ? (anchorKind === "max" ? box.max.x : box.min.x)
-          : (anchorKind === "max" ? box.max.z : box.min.z);
+          ? (anchorKind === "max" ? box.maxX : box.minX)
+          : (anchorKind === "max" ? box.maxZ : box.minZ);
 
       // ✅ origin：エッジに寄せ + 高さは baseBox 内の中間へ
       const origin = originRef.current.set(p.x, p.y, p.z);
@@ -278,8 +283,8 @@ export default function SmoothAlignFollower({
     [
       baseCollidersRef,
       baseBoundsRef,
-      primaryObject,
-      selectedObjects?.length,
+      primaryTarget,
+      targets?.length,
       wallEps,
       wallMaxDist,
       pickInsideWallHit,
@@ -293,7 +298,7 @@ export default function SmoothAlignFollower({
   useFrame((_, dt) => {
     if (!active) return;
     if (getAbortAlign?.()) return;
-    if (!primaryObject) return;
+    if (!primaryTarget) return;
     if (!alignMode) return;
 
     const snapActive = typeof getSnapActive === "function" ? !!getSnapActive() : false;
@@ -398,7 +403,7 @@ export default function SmoothAlignFollower({
       const wallLimit = findWallAnchorCandidate(targetAnchorRaw, axis, offset, isFloorPlane, key);
 
       if (Number.isFinite(wallLimit)) {
-        const p = primaryObject.position;
+        const p = primaryTarget.getPos();
         const currPosAxis = axis === "x" ? p.x : p.z;
         const currAnchor2 = currPosAxis - (offset || 0);
         const dirSign2 = Math.sign(targetAnchorRaw - currAnchor2);
@@ -412,13 +417,12 @@ export default function SmoothAlignFollower({
     if (snapFinalAnchorRef) {
       const offsets = alignMode?.itemOffsets || {};
 
-      const list = Array.isArray(selectedObjects) ? selectedObjects : [];
+      const list = Array.isArray(targets) ? targets : [];
       const targetsById = {};
 
       for (const it of list) {
-        const id = it?.itemId;
-        const obj = it?.object;
-        if (!id || !obj) continue;
+        const id = it?.id;
+        if (!id) continue;
 
         const off = Number.isFinite(offsets[id])
           ? offsets[id]
@@ -430,13 +434,11 @@ export default function SmoothAlignFollower({
         if (targetPosAxis == null) continue;
 
         // 現在の他軸はそのまま、対象軸だけ「ターゲット値」で確定させる
-        const tx = obj.position.x;
-        const ty = obj.position.y;
-        const tz = obj.position.z;
+        const cur = it.getPos();
 
-        if (axis === "x") targetsById[id] = [targetPosAxis + off, ty, tz];
-        if (axis === "y") targetsById[id] = [tx, targetPosAxis + off, tz];
-        if (axis === "z") targetsById[id] = [tx, ty, targetPosAxis + off];
+        if (axis === "x") targetsById[id] = [targetPosAxis + off, cur.y, cur.z];
+        if (axis === "y") targetsById[id] = [cur.x, targetPosAxis + off, cur.z];
+        if (axis === "z") targetsById[id] = [cur.x, cur.y, targetPosAxis + off];
       }
 
       snapFinalAnchorRef.current = {
@@ -448,27 +450,31 @@ export default function SmoothAlignFollower({
       };
     }
 
-    const t = 1 - Math.exp(-damping * dt);
+    const lerp = 1 - Math.exp(-damping * dt);
 
-    const list = Array.isArray(selectedObjects) ? selectedObjects : [];
+    const list = Array.isArray(targets) ? targets : [];
     for (const it of list) {
-      const obj = it?.object;
-      if (!obj) continue;
+      if (!it) continue;
 
       const offsets = alignMode?.itemOffsets || {};
-      const off = Number.isFinite(offsets[it.itemId])
-        ? offsets[it.itemId]
+      const off = Number.isFinite(offsets[it.id])
+        ? offsets[it.id]
         : Number.isFinite(alignMode?.offset)
           ? alignMode.offset
           : 0;
 
       const targetPosAxis = targetAnchor + off;
 
-      if (axis === "x") obj.position.x += (targetPosAxis - obj.position.x) * t;
-      if (axis === "y") obj.position.y += (targetPosAxis - obj.position.y) * t;
-      if (axis === "z") obj.position.z += (targetPosAxis - obj.position.z) * t;
+      const cur = it.getPos();
+      let nx = cur.x;
+      let ny = cur.y;
+      let nz = cur.z;
 
-      obj.updateMatrixWorld?.(true);
+      if (axis === "x") nx += (targetPosAxis - cur.x) * lerp;
+      if (axis === "y") ny += (targetPosAxis - cur.y) * lerp;
+      if (axis === "z") nz += (targetPosAxis - cur.z) * lerp;
+
+      it.setPos(nx, ny, nz);
     }
 
     // ✅ Snap OFF では preview を一切打たない
@@ -478,31 +484,21 @@ export default function SmoothAlignFollower({
     if (now - lastPreviewAtRef.current < previewThrottleMs) return;
     lastPreviewAtRef.current = now;
 
+    // preview は家具（items）の経路。壁・床は追従中すでにストアを直接更新しているので
+    // getTransform() が null を返し、ここでは何も配信しない。
     if (typeof onPreviewTransforms === "function" && list.length > 0) {
-      const updates = list.map((it) => {
-        const obj = it.object;
-        return {
-          itemId: it.itemId,
-          transform: {
-            position: [obj.position.x, obj.position.y, obj.position.z],
-            rotation: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
-            scale: [obj.scale.x, obj.scale.y, obj.scale.z],
-          },
-        };
-      });
-      onPreviewTransforms(updates);
+      const updates = [];
+      for (const it of list) {
+        const transform = it.getTransform?.();
+        if (transform) updates.push({ itemId: it.id, transform });
+      }
+      if (updates.length > 0) onPreviewTransforms(updates);
       return;
     }
 
     if (typeof onPreviewTransform === "function" && previewItemId) {
-      onPreviewTransform({
-        itemId: previewItemId,
-        transform: {
-          position: [primaryObject.position.x, primaryObject.position.y, primaryObject.position.z],
-          rotation: [primaryObject.rotation.x, primaryObject.rotation.y, primaryObject.rotation.z],
-          scale: [primaryObject.scale.x, primaryObject.scale.y, primaryObject.scale.z],
-        },
-      });
+      const transform = primaryTarget.getTransform?.();
+      if (transform) onPreviewTransform({ itemId: previewItemId, transform });
     }
   });
 

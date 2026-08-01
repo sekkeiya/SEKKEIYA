@@ -15,8 +15,10 @@ import {
   LinearProgress, Tooltip, CircularProgress, Select, MenuItem, Collapse, Checkbox, Menu, Divider,
   Dialog, DialogTitle, DialogContent, DialogActions, ToggleButtonGroup, ToggleButton,
   Table, TableBody, TableCell, TableHead, TableRow,
+  ListItemButton, ListItemIcon, ListItemText,
 } from '@mui/material';
 import FactCheckRoundedIcon from '@mui/icons-material/FactCheckRounded';
+import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
@@ -29,6 +31,7 @@ import ViewKanbanRoundedIcon from '@mui/icons-material/ViewKanbanRounded';
 import ViewListRoundedIcon from '@mui/icons-material/ViewListRounded';
 import ViewTimelineRoundedIcon from '@mui/icons-material/ViewTimelineRounded';
 import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
+import KeyboardDoubleArrowRightRoundedIcon from '@mui/icons-material/KeyboardDoubleArrowRightRounded';
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   pointerWithin, rectIntersection, useDroppable, MeasuringStrategy,
@@ -47,6 +50,8 @@ import { exists as fsExists, mkdir, writeTextFile } from '@tauri-apps/plugin-fs'
 import { homeDir } from '@tauri-apps/api/path';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { validateProjectName, buildDevProjectPath } from './backlog/projectPaths';
+// 履歴モード（過去スプリント閲覧）の上流フィルタ。図はスナップショットだが、バックログは現在データの絞り込み（spec §0）。
+import { filterItemsBySprint, filterBacklogItems, allSprintsDesc, type SidebarSel } from './backlog/sprintViewLogic';
 import { QUEUE_SKILL_MD } from './backlog/queueSkillTemplate';
 import { resolveCodeAccess, initialProjectRef } from './backlog/codeAccess';
 import {
@@ -57,30 +62,34 @@ import {
   normalizeVerify, validateVerifyCommand, type ProjectConfig, type VerifyCommand,
 } from './backlog/projectConfig';
 import {
-  CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_DOCS_URL, installGuidance, pathGuidance, statusLabel,
+  CLAUDE_CODE_INSTALL_COMMAND, CLAUDE_CODE_DOCS_URL, installGuidance, pathGuidance, statusDetail,
   type ClaudeCodeStatus,
 } from './backlog/claudeCode';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
+import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
 import { ProjectSidebar } from './backlog/ProjectSidebar';
 import { GitHubSyncPanel } from './GitHubSyncPanel';
+import DiagramsView from './backlog/DiagramsView';
 import {
-  statusOf, isDone, resolveEffective, resizeWidth, autoCheckIds, queueTargetIds,
+  statusOf, isDone, resolveEffective, resizeWidth, parseHiddenCols, toggleColHidden, autoCheckIds, queueTargetIds,
   CAT_MAP, toolLabel,
   sortRequirements, filterRequirements, type SortKey, type SortState, type FilterState,
   allFixesDone, addFix, toggleFix, updateFixText, removeFix, type Fix,
   timelineTicks, PX_PER_DAY, SCALE_LABEL, type TimeScale,
   sprintRangeById, requestSpan, statusBreakdown, completionRate,
   sortByLanding, partitionHistory, isRequestAtRisk, groupRequests, type GroupKey,
-  DEFAULT_PROJECT_KEY, vocabularyFor,
+  DEFAULT_PROJECT_KEY, vocabularyFor, autoHiddenCols, parseColWidths,
+  parseCollapsedSections, toggleSection,
 } from './devStatusLogic';
+import { useContainerWidth } from './backlog/useContainerWidth';
 // 行/セルの共有定義（型・定数・スタイル・小ヘルパー）と presentational コンポーネントは
 // backlog/ 配下に切り出し、メモ化した行コンポーネント（RequirementRow / RequestRow）を組む。
 import {
   STATUSES, STATUS_MAP, PLATFORMS, PLATFORM_MAP, KIND_MAP,
   STATUS_ORDER, KIND_ORDER, PLATFORM_ORDER, CATEGORY_ORDER,
-  SELECT_SX, MENU_PROPS, MENU_PAPER_SX, OPAQUE_MENU_BG, keyOf, COL_COUNT,
+  SELECT_SX, MENU_PROPS, MENU_PAPER_SX, OPAQUE_MENU_BG, keyOf,
   type BacklogType, type ReqStatus, type Platform, type Kind,
 } from './backlog/rowConstants';
 import {
@@ -91,7 +100,7 @@ import {
 import { RequirementRow } from './backlog/RequirementRow';
 import { RequestRow } from './backlog/RequestRow';
 
-type ViewMode = 'board' | 'table' | 'timeline' | 'features' | 'github';
+type ViewMode = 'board' | 'table' | 'timeline' | 'features' | 'github' | 'diagrams';
 
 // url はクラウド（Storage）添付のみ。ローカルモードは path から blob URL を解決するため optional。
 export interface Attachment { url?: string; path: string; name: string; }
@@ -165,6 +174,13 @@ const COLS: { key: ColKey; label: string; def: number; min: number }[] = [
   { key: 'testResult', label: 'テスト結果', def: 200, min: 120 },
 ];
 const COL_WIDTH_STORAGE_KEY = 'sekkeiya.devStatus.colWidths';
+const HIDDEN_COLS_STORAGE_KEY = 'sekkeiya.devStatus.hiddenCols';
+const ALL_COL_KEYS: string[] = COLS.map(c => c.key);
+// 退避の優先度（低い順）。content は含めない＝常に残す（spec §2.1）。
+const DROP_ORDER: ColKey[] = ['reason', 'testResult', 'screen', 'kind', 'category', 'sprint', 'attach', 'status', 'platform'];
+// renderTable の固定列幅（チェック/開閉/削除）。renderTable 側とドリフトしないよう単一定義にする。
+const CHK_W = 34, EXP_W = 26, DEL_W = 30;
+const FIXED_COLS_W = CHK_W + EXP_W + DEL_W;
 
 // 手動並び順。未設定は seq にフォールバック（既存項目も決定的に並ぶ）。
 const orderOf = (i: BacklogItem) => i.order ?? (i.seq ?? 0);
@@ -177,6 +193,8 @@ const addDays = (ymd: string, n: number) => {
 const md = (ymd: string) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
 const VIEW_STORAGE_KEY = 'sekkeiya.devStatus.view';
 const TIMESCALE_STORAGE_KEY = 'sekkeiya.devStatus.timeScale';
+const COLLAPSED_SECTIONS_KEY = 'sekkeiya.devStatus.collapsedSections';
+const SIDEBAR_COLLAPSED_KEY = 'sekkeiya.devStatus.sidebarCollapsed';
 
 const SECTION_SX = {
   p: 2.5, borderRadius: 3, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider',
@@ -428,6 +446,10 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   // 要件75: Claude Code の導入状況（null = 未確認）。
   const [claudeStatus, setClaudeStatus] = useState<ClaudeCodeStatus | null>(null);
   const [claudeOpen, setClaudeOpen] = useState(false);
+  // サイドバーのステータス行の色。ヘッダーにあった Chip の color 分岐と同じ意味。
+  const claudeAccent = claudeStatus?.installed
+    ? (claudeStatus.onPath ? 'success.main' : 'warning.main')
+    : (claudeStatus ? 'warning.main' : 'text.disabled');
   // 要件78: プロジェクト設定（検証コマンド）ダイアログ。
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyDraft, setVerifyDraft] = useState<VerifyCommand[]>([]);
@@ -465,7 +487,6 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const [newReqTitle, setNewReqTitle] = useState('');       // 要件（ボード）
   const [newReqParent, setNewReqParent] = useState('');
   const [newReqCategory, setNewReqCategory] = useState('');
-  const [newReqTitleReq, setNewReqTitleReq] = useState(''); // 要求（ボード）
   // 追加入力はローカル state の InlineAddInput 側で持つ（要件24: 表全体の再描画を避ける）
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());       // テーブルの折りたたみ
   const [fixCollapsed, setFixCollapsed] = useState<Set<string>>(new Set()); // 要件25: 修正チェックリストの折りたたみ
@@ -473,6 +494,17 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const [dateEditId, setDateEditId] = useState<string | null>(null);
   const [upcomingOpen, setUpcomingOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // ボードのセクション（要求定義/バックログ/各スプリント）の開閉。既定は全展開。
+  const [collapsedSections, setCollapsedSections] = useState<string[]>(() => {
+    try { return parseCollapsedSections(JSON.parse(localStorage.getItem(COLLAPSED_SECTIONS_KEY) || '[]')); } catch { return []; }
+  });
+  const toggleSectionAt = useCallback((key: string) => {
+    setCollapsedSections(prev => {
+      const next = toggleSection(prev, key);
+      try { localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(next)); } catch { /* private mode 等は無視 */ }
+      return next;
+    });
+  }, []);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -493,6 +525,15 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     if (stored === 'github' && !isTauri()) return 'board';
     return stored || 'board';
   });
+  // サイドバー選択状態: all(既定・全表示) / backlog(未割当のみ) / sprint(特定スプリント)。
+  const [sidebarSel, setSidebarSel] = useState<SidebarSel>({ kind: 'all' });
+  // 左サイドバー（ProjectSidebar）の折りたたみ状態。localStorage に保存して次回起動時も維持する。
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
+  const setSidebarCollapsedAt = useCallback((next: boolean) => {
+    setSidebarCollapsed(next);
+    try { localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0'); } catch { /* private mode 等は無視 */ }
+  }, []);
   const [timeScale, setTimeScale] = useState<TimeScale>(
     () => (localStorage.getItem(TIMESCALE_STORAGE_KEY) as TimeScale) || 'month'); // 要件16: 横軸の粒度
   const [expandedTlGroups, setExpandedTlGroups] = useState<Set<string>>(new Set()); // 要件29: タイムラインで展開中の要求（既定=閉じる＝要件を隠す）
@@ -502,8 +543,31 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const tlTodayLeftRef = useRef(0);                                                 // 今日線のコンテンツ座標（現在へスクロール用）
   const [colWidths, setColWidths] = useState<Record<ColKey, number>>(() => {
     const base = Object.fromEntries(COLS.map(c => [c.key, c.def])) as Record<ColKey, number>;
-    try { return { ...base, ...JSON.parse(localStorage.getItem(COL_WIDTH_STORAGE_KEY) || '{}') }; } catch { return base; }
+    try {
+      return parseColWidths(JSON.parse(localStorage.getItem(COL_WIDTH_STORAGE_KEY) || '{}'), base) as Record<ColKey, number>;
+    } catch { return base; }
   });
+
+  // 列の表示/非表示（ヘッダークリックのメニューから切替。列幅と同じく localStorage の UI 設定）
+  const [hiddenCols, setHiddenCols] = useState<string[]>(() => {
+    try { return parseHiddenCols(JSON.parse(localStorage.getItem(HIDDEN_COLS_STORAGE_KEY) || '[]'), ALL_COL_KEYS); } catch { return []; }
+  });
+  const toggleColHiddenAt = useCallback((key: ColKey) => {
+    setHiddenCols(prev => {
+      const next = toggleColHidden(prev, key, ALL_COL_KEYS);
+      try { localStorage.setItem(HIDDEN_COLS_STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      // 隠した列の絞り込み/並び替えは解除する。残したままだと「見えない列の条件で行が消える」
+      // 状態になり、ヘッダーに指標も出ないので原因が分からなくなるため。
+      if (!prev.includes(key) && next.includes(key)) {
+        setFilters(f => { const nf = { ...f }; delete nf[key as SortKey]; return nf; });
+        setSort(s => (s.key === key ? { key: null, dir: 'asc' } : s));
+      }
+      return next;
+    });
+  }, []);
+  const [contentRef, contentWidth] = useContainerWidth();
+  // ↓ 自動退避（autoHidden 以下）は filters/sort（pinnedCols が参照する）の宣言より後に置く必要があるため
+  //   このすぐ下ではなく、sort/filters 宣言の直後（下記）にまとめて定義する。
 
   // 列リサイズ（ヘッダー右端を左ドラッグ→幅変更→pointerup で localStorage 保存）
   const startColResize = (key: ColKey, e: React.PointerEvent) => {
@@ -530,6 +594,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     setItems([]); setSprints([]);
     setLoaded({ items: false, sprints: false });
     setError(null);
+    setSidebarSel({ kind: 'all' }); // サイドバー選択も前プロジェクトのものを持ち越さない
     setChecked(new Set());        // 実装/テスト依頼の選択（要件 id）
     setFilters({});               // 許可リストに sprint id を含むため、残すと新プロジェクトが全件非表示になる
     setDetailId(null); setDetailDraft('');
@@ -555,6 +620,15 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     );
     return () => { u1(); u2(); };
   }, [store]);
+
+  // 選択中のスプリントが消えた（削除）場合、その選択はもう成立しないので all へ戻す。アーカイブの
+  // 有無が変わっただけでは戻さない（アクティブ選択の継続、アーカイブ解除後も選択維持が新仕様）。
+  // sprints のロードが終わってから判定する（読み込み中の一時的な空配列で誤ってリセットしないため）。
+  useEffect(() => {
+    if (!loaded.sprints || sidebarSel.kind !== 'sprint') return;
+    const exists = sprints.some(s => s.id === sidebarSel.id);
+    if (!exists) setSidebarSel({ kind: 'all' });
+  }, [loaded.sprints, sprints, sidebarSel]);
 
   // メモ化した行コンポーネントに渡すハンドラは useCallback で参照安定化する（列幅ドラッグ等の
   // 高頻度再描画で行が再レンダーしないため）。setError は setState で安定、store は
@@ -661,13 +735,44 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     }
   };
 
+  // サイドバー選択の派生。図はスナップショットだが、バックログは現在データの絞り込み（spec §0）。
+  const selectedSprintId = sidebarSel.kind === 'sprint' ? sidebarSel.id : null; // 既存参照の互換用ローカル
+  const selectedSprint = useMemo(
+    () => (selectedSprintId ? sprints.find(s => s.id === selectedSprintId) ?? null : null),
+    [sprints, selectedSprintId]);
+  // 履歴モード＝アーカイブ済みスプリントの閲覧のみ。アクティブスプリント選択は編集可能な絞り込み。
+  const historical = sidebarSel.kind === 'sprint' && selectedSprint?.archived === true;
+  const activeSprintSel = sidebarSel.kind === 'sprint' && !!selectedSprint && !selectedSprint.archived;
+  const viewItems = useMemo(() => {
+    if (sidebarSel.kind === 'backlog') return filterBacklogItems(items);
+    if (sidebarSel.kind === 'sprint') return filterItemsBySprint(items, sidebarSel.id);
+    return items; // all: 参照同一（all 選択＝絞り込み無しなので完全不変）
+  }, [items, sidebarSel]);
+  const viewSprints = useMemo(() => {
+    if (sidebarSel.kind === 'backlog') return [] as Sprint[];
+    if (sidebarSel.kind === 'sprint') return sprints.filter(s => s.id === sidebarSel.id);
+    return sprints;
+  }, [sprints, sidebarSel]);
+
   const today = jstToday();
-  const sprintList = useMemo(() => [...sprints].sort((a, b) => a.seq - b.seq), [sprints]);
+  // スプリント作成（openCreateSprint/createSprint）の次 seq・次期間の計算専用。表示用の sprintList
+  // が viewSprints（historical で絞り込み）を入力にしているため、操作系はこちらの「現在の全件」を使う。
+  const allSprintsAsc = useMemo(() => [...sprints].sort((a, b) => a.seq - b.seq), [sprints]);
+  // 本物の現行スプリント（全件由来）。絞り込み表示中でも「完了」ボタンと現行装飾はこれにだけ付ける
+  // （viewSprints 由来の activeSprints[0] は絞り込み次第で本物でないスプリントを指しうるため使わない）。
+  const realCurrentSprintId = useMemo(
+    () => allSprintsAsc.find(s => !s.archived)?.id ?? null, [allSprintsAsc]);
+  // sprintList 以下（board/timeline のスプリント構造）は表示専用の派生なので viewSprints を入力にする。
+  // all 選択（絞り込み無し）は viewSprints===sprints の参照同一性が保たれるため挙動は変わらない。
+  // スプリント作成/完了などの操作は該当ボタン自体を historical で隠すため、ここが視覚的に絞られていても操作導線は current 専用のまま。
+  const sprintList = useMemo(() => [...viewSprints].sort((a, b) => a.seq - b.seq), [viewSprints]);
   const activeSprints = useMemo(() => sprintList.filter(s => !s.archived), [sprintList]);
   const currentSprint = activeSprints[0] ?? null;
   const upcoming = useMemo(() => activeSprints.slice(1), [activeSprints]);
   const archivedSprints = useMemo(() => sprintList.filter(s => s.archived).sort((a, b) => b.seq - a.seq), [sprintList]);
 
+  // items ベース（現在データ）。キュー投入・completeSprint・D&D の書き込み・スプリント作成など
+  // 「操作」に関わるものは必ずこちらを参照する（historical でも current の実データを対象に動く）。
   const requests = useMemo(
     () => items.filter(i => i.type === 'request').sort((a, b) => orderOf(a) - orderOf(b)),
     [items]);
@@ -681,8 +786,25 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     return m;
   }, [requirements]);
   const byId = useMemo(() => new Map(items.map(i => [i.id, i])), [items]);
-  const childrenOf = (requestId: string) => requirements.filter(r => r.requestId === requestId);
-  const orphanReqs = useMemo(() => requirements.filter(r => !r.requestId), [requirements]);
+  // 要求なしの要件（孤立要件）は表示専用の使い道しかないため viewOrphanReqs のみを持つ（下記）。
+
+  // viewItems ベース（表示専用）。ボード/テーブル/タイムライン/機能一覧のレンダーだけが参照する。
+  // all 選択（絞り込み無し）は viewItems===items の参照同一性により、内容・再計算頻度とも current と変わらない。
+  const viewRequests = useMemo(
+    () => viewItems.filter(i => i.type === 'request').sort((a, b) => orderOf(a) - orderOf(b)),
+    [viewItems]);
+  const viewRequirements = useMemo(
+    () => viewItems.filter(i => i.type === 'requirement').sort((a, b) => orderOf(a) - orderOf(b)),
+    [viewItems]);
+  const viewBacklog = useMemo(() => viewRequirements.filter(r => !r.sprintId), [viewRequirements]);
+  const viewBySprint = useMemo(() => {
+    const m = new Map<string, BacklogItem[]>();
+    viewRequirements.forEach(r => { if (r.sprintId) m.set(r.sprintId, [...(m.get(r.sprintId) || []), r]); });
+    return m;
+  }, [viewRequirements]);
+  const viewOrphanReqs = useMemo(() => viewRequirements.filter(r => !r.requestId), [viewRequirements]);
+  // 要求の子要件一覧（表示用）。ボードの折りたたみプレビュー・タイムライン・詳細ダイアログでのみ使う。
+  const childrenOf = (requestId: string) => viewRequirements.filter(r => r.requestId === requestId);
 
   // 要件2: PF/ツールは親要求から継承。要件が自分の値を持てば上書き（own ?? parent）。
   const parentOf = (it: BacklogItem) => (it.requestId ? byId.get(it.requestId) : undefined);
@@ -740,7 +862,33 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   // ── ソート/フィルタ（要件12: 並び替え / 要件14: ヘッダーメニューで絞り込み） ──
   const [sort, setSort] = useState<SortState>({ key: null, dir: 'asc' });
   const [filters, setFilters] = useState<FilterState>({});
-  const [headerMenu, setHeaderMenu] = useState<{ anchor: HTMLElement; key: SortKey } | null>(null);
+
+  // 使用中（フィルタ/ソート中）の列は退避しない。指標ごと消えて行が減った理由が分からなくなるため。
+  const pinnedCols = useMemo(
+    () => [...Object.keys(filters), ...(sort.key ? [sort.key as string] : [])],
+    [filters, sort.key]);
+  // 外周パディング（px）。compact で詰める（renderTable 直前の Box sx の p と合わせる）。
+  const PAD_WIDE = 64, PAD_COMPACT = 32;
+  // しきい値は border-box 幅（useContainerWidth の返す contentWidth）で判定する
+  // ＝ padding が compact で変わっても判定が揺れないので振動しない（Fix 1）。
+  const compact = contentWidth > 0 && contentWidth < 1100 + PAD_WIDE;
+  const veryCompact = contentWidth > 0 && contentWidth < 900 + PAD_WIDE;
+  // 列の計算に使える幅＝border-box から実際の padding を引いたもの。
+  const availableWidth = contentWidth > 0 ? contentWidth - (compact ? PAD_COMPACT : PAD_WIDE) : 0;
+  // 自動退避（非永続）。手動の hiddenCols とは別に持ち、表示計算のときだけ合成する。
+  const autoHidden = useMemo(
+    () => autoHiddenCols(availableWidth, colWidths, hiddenCols, DROP_ORDER, FIXED_COLS_W, pinnedCols),
+    [availableWidth, colWidths, hiddenCols, pinnedCols]);
+  const effectiveHidden = useMemo(
+    () => [...new Set([...hiddenCols, ...autoHidden])], [hiddenCols, autoHidden]);
+  const visibleCols = useMemo(() => COLS.filter(c => !effectiveHidden.includes(c.key)), [effectiveHidden]);
+  // colSpan 用。チェック列 + 開閉列 + 表示中の列 + 削除列。
+  const colCount = visibleCols.length + 3;
+  // 行コンポーネント（React.memo）へは Set ではなく安定した primitive を渡す。
+  const hiddenColsCsv = useMemo(() => [...effectiveHidden].sort().join(','), [effectiveHidden]);
+
+  // 全列でメニューを開ける（ソート/絞り込みは対応列のみ、列の表示切替は全列共通）。
+  const [headerMenu, setHeaderMenu] = useState<{ anchor: HTMLElement; key: ColKey } | null>(null);
   const SORT_KEYS: SortKey[] = ['kind', 'platform', 'category', 'screen', 'status', 'sprint'];
   // 論理順（STATUS_ORDER 等）は backlog/rowConstants.ts の定数を import して使う。
   const sprintSeqOf = useCallback((id?: string | null) => id ? (sprints.find(s => s.id === id)?.seq ?? 998) : 999, [sprints]); // バックログは最後
@@ -809,9 +957,37 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const setFilterAll = (key: SortKey) => setFilters(f => { const nf = { ...f }; delete nf[key]; return nf; });
   const setFilterNone = (key: SortKey) => setFilters(f => ({ ...f, [key]: [] }));
 
-  // ヘッダークリックの統合メニュー（上=並び替え / 下=絞り込みチェックリスト）
-  const renderHeaderMenuItems = (key: SortKey) => {
-    const allowed = filters[key];
+  // ヘッダークリックの統合メニュー（上=並び替え / 中=絞り込みチェックリスト / 下=列の表示）。
+  // 並び替え・絞り込みは対応列（SORT_KEYS）のみ。列の表示切替はどの列から開いても出す。
+  const renderHeaderMenuItems = (key: ColKey) => {
+    const sortable = SORT_KEYS.includes(key as SortKey);
+    const colItems = [
+      <Divider key="dv-col" />,
+      <Box key="ch" sx={{ px: 1.5, py: 0.25 }}>
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>列の表示</Typography>
+      </Box>,
+      ...COLS.map(c => {
+        const shown = !hiddenCols.includes(c.key);
+        // 残り1列になる操作は無効（テーブルが空になるのを防ぐ）。
+        const isLastShown = shown && hiddenCols.length + 1 >= ALL_COL_KEYS.length;
+        const autoOff = shown && autoHidden.includes(c.key); // 手動では表示中だが幅が足りず退避中
+        return (
+          <MenuItem key={`c-${c.key}`} dense disabled={isLastShown} onClick={() => toggleColHiddenAt(c.key)} sx={{ py: 0 }}>
+            <Checkbox size="small" checked={shown} sx={{ p: 0.5 }} />
+            <Typography variant="body2" sx={{ fontSize: 13 }}>{c.label}</Typography>
+            {autoOff && <Typography variant="caption" sx={{ color: 'text.disabled', ml: 1 }}>（幅が足りないため非表示）</Typography>}
+          </MenuItem>
+        );
+      }),
+    ];
+    if (!sortable) return colItems.slice(1); // 先頭の Divider は不要
+    const sortKey = key as SortKey;
+    const allowed = filters[sortKey];
+    return [...renderSortFilterItems(sortKey, allowed), ...colItems];
+  };
+
+  // 並び替え＋絞り込み部分（SORT_KEYS の列だけ）
+  const renderSortFilterItems = (key: SortKey, allowed: string[] | undefined) => {
     return [
       <MenuItem key="asc" selected={sort.key === key && sort.dir === 'asc'} onClick={() => { setSort({ key, dir: 'asc' }); setHeaderMenu(null); }}>
         <Typography variant="body2">▲ 昇順で並び替え</Typography>
@@ -864,7 +1040,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     if (view !== 'timeline') return;
     const id = requestAnimationFrame(() => scrollToToday(false));
     return () => cancelAnimationFrame(id);
-  }, [view, timeScale, items.length, sprints.length]);
+  }, [view, timeScale, items.length, sprints.length, sidebarSel]);
 
   const toggleCollapse = useCallback((id: string) =>
     setCollapsed(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }), []);
@@ -903,11 +1079,13 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   }, [nextSeq, store]);
 
   // ボード用フォーム
-  const addRequest = async () => { const t = newReqTitleReq.trim(); if (!t) return; setNewReqTitleReq(''); await createRequest(t); };
   const addRequirement = async () => {
     const t = newReqTitle.trim(); if (!t) return;
     setNewReqTitle(''); setNewReqParent(''); setNewReqCategory('');
-    await createRequirement(t, { requestId: newReqParent || null, category: newReqCategory || null });
+    await createRequirement(t, {
+      requestId: newReqParent || null, category: newReqCategory || null,
+      sprintId: activeSprintSel ? selectedSprint!.id : null, // アクティブスプリント選択中は自動割当（spec §3）
+    });
   };
   // 修正項目（要修正の要件にぶら下げる軽量チェックリスト）
   const applyFixes = useCallback((item: BacklogItem, newFixes: Fix[]) => {
@@ -976,7 +1154,10 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   }, [attachTargetId, uploadAttachment]);
 
   const addChildText = useCallback((req: BacklogItem, text: string) =>
-    void createRequirement(text, { requestId: req.id, platform: req.platform ?? null, category: req.category ?? null }), [createRequirement]);
+    void createRequirement(text, {
+      requestId: req.id, platform: req.platform ?? null, category: req.category ?? null,
+      sprintId: activeSprintSel ? selectedSprint!.id : null, // アクティブスプリント選択中は自動割当（spec §3）
+    }), [createRequirement, activeSprintSel, selectedSprint]);
 
   /** 項目削除（確認ダイアログ経由） */
   const remove = useCallback((item: BacklogItem) => {
@@ -995,7 +1176,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 
   /** スプリント作成ダイアログを開く（期間は自動入力・編集可） */
   const openCreateSprint = () => {
-    const last = sprintList[sprintList.length - 1];
+    const last = allSprintsAsc[allSprintsAsc.length - 1];
     const start = last ? addDays(last.endDate, 1) : today;
     setCreateStart(start);
     setCreateEnd(addDays(start, 13));
@@ -1005,11 +1186,14 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const createSprint = async () => {
     if (!createStart || !createEnd || createEnd < createStart) return;
     setCreateOpen(false);
-    const last = sprintList[sprintList.length - 1];
+    const last = allSprintsAsc[allSprintsAsc.length - 1];
     try {
-      await store.addSprint({
+      const newId = await store.addSprint({
         seq: (last?.seq || 0) + 1, startDate: createStart, endDate: createEnd, archived: false,
       });
+      // バックログ/別スプリント表示中に作成すると本文のどこにも現れないため、作成した本人を選択する。
+      // all 選択中は全件表示に既に出るので何もしない。
+      if (sidebarSel.kind !== 'all') setSidebarSel({ kind: 'sprint', id: newId });
     } catch (e) { setError(e instanceof Error ? e.message : 'スプリントの作成に失敗しました'); }
   };
 
@@ -1025,6 +1209,10 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
       actionLabel: '完了する', color: 'success',
       action: () => {
         unfinished.forEach(r => patchItem(r.id, { sprintId: null }));
+        // 図の凍結（完了時点のスナップショット保存）。失敗しても完了処理はブロックしない
+        // — エラーバナーで気づけるだけにする。再完了でやり直せる。
+        void store.snapshotDiagrams(s.id)
+          .catch((e) => setError((e as { message?: string })?.message || '図のスナップショット作成に失敗しました'));
         patchSprint(s.id, { archived: true, archivedAt: store.now() });
       },
     });
@@ -1048,6 +1236,15 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     });
   };
 
+  // サイドバー ⋮ メニューからの期間編集ダイアログ（作成ダイアログと同じ体裁）。
+  const [sprintEdit, setSprintEdit] = useState<{ sprint: Sprint; start: string; end: string } | null>(null);
+  const openSprintEdit = (s: Sprint) => setSprintEdit({ sprint: s, start: s.startDate, end: s.endDate });
+  const saveSprintEdit = () => {
+    if (!sprintEdit) return;
+    patchSprint(sprintEdit.sprint.id, { startDate: sprintEdit.start, endDate: sprintEdit.end });
+    setSprintEdit(null);
+  };
+
   // ── ドラッグ&ドロップ（ボード。並び替え＋コンテナ間移動） ─────────
   const containerOfItem = (it: BacklogItem) =>
     it.type === 'request' ? REQUESTS_DROP_ID : (it.sprintId ? sprintDropId(it.sprintId) : BACKLOG_DROP_ID);
@@ -1068,6 +1265,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   const handleDragStart = (e: DragStartEvent) => setActiveDragId(String(e.active.id));
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveDragId(null);
+    if (historical) return; // 履歴表示から現在データへの order 書込みを遮断
     const { active, over } = e;
     if (!over) return;
     const activeId = String(active.id), overId = String(over.id);
@@ -1138,27 +1336,26 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   );
 
   // ── テーブル: 要件行 ─────────────────────────────────────────────
-  // COL_COUNT は backlog/rowConstants.ts の単一定義を使う（RequirementRow/RequestRow と共有）。
+  // colSpan は表示中の列数から算出する（列の表示/非表示に追従。colCount を参照）。
   // メモ化: 要求ごとの子要件を事前計算する（all=全件 / view=ソート・フィルタ適用）。colWidths 等の
   // データ非依存な再描画では参照が変わらないので、RequestRow / RequirementRow のメモが効く。
   const childListByReq = useMemo(() => {
     const m = new Map<string, { all: BacklogItem[]; view: BacklogItem[] }>();
-    requests.forEach(req => {
-      const all = requirements.filter(r => r.requestId === req.id);
+    viewRequests.forEach(req => {
+      const all = viewRequirements.filter(r => r.requestId === req.id);
       m.set(req.id, { all, view: applyView(all) });
     });
     return m;
-  }, [requests, requirements, applyView]);
+  }, [viewRequests, viewRequirements, applyView]);
   // 表示する要求（フィルタ時は表示要件が1件以上ある要求のみ。元 renderTable のフィルタ条件と同一）。
   const visibleRequests = useMemo(
-    () => (filterActive ? requests.filter(req => (childListByReq.get(req.id)?.view.length ?? 0) > 0) : requests),
-    [requests, filterActive, childListByReq]);
+    () => (filterActive ? viewRequests.filter(req => (childListByReq.get(req.id)?.view.length ?? 0) > 0) : viewRequests),
+    [viewRequests, filterActive, childListByReq]);
   // 要求なしの要件（孤立要件）にもソート/フィルタを適用（安定参照）。
-  const visibleOrphans = useMemo(() => applyView(orphanReqs), [applyView, orphanReqs]);
+  const visibleOrphans = useMemo(() => applyView(viewOrphanReqs), [applyView, viewOrphanReqs]);
 
   /** 要求・要件テーブル（Excel 風の階層。内容を広く・メタ列は狭く/幅ドラッグ調整可） */
   const renderTable = () => {
-    const EXP_W = 26, DEL_W = 30, CHK_W = 34;
     return (
     // A案: カード枠なしの全幅フラット表示（flex で残りを埋め、テーブル領域だけ縦スクロール）
     <Box sx={{ flex: 1, minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -1170,26 +1367,25 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
           <colgroup>
             <col style={{ width: CHK_W }} />{/* チェック列 */}
             <col style={{ width: EXP_W }} />
-            {COLS.map(c => <col key={c.key} style={{ width: colWidths[c.key] }} />)}
+            {visibleCols.map(c => <col key={c.key} style={{ width: colWidths[c.key] }} />)}
             <col style={{ width: DEL_W }} />
           </colgroup>
           <TableHead>
             <TableRow sx={{ '& th': { fontSize: 11, color: 'text.secondary', fontWeight: 700, whiteSpace: 'nowrap', py: 0.75, position: 'sticky', top: 0, zIndex: 3, bgcolor: OPAQUE_MENU_BG, borderBottom: '1px solid', borderColor: 'divider' } }}>
               <TableCell padding="none" />{/* チェック */}
               <TableCell padding="none" />{/* 開閉 */}
-              {COLS.map(c => (
+              {visibleCols.map(c => (
                 <TableCell key={c.key} sx={{ position: 'relative' }}>
-                  {SORT_KEYS.includes(c.key as SortKey) ? (
-                    <Box
-                      component="span"
-                      onClick={(e) => setHeaderMenu({ anchor: e.currentTarget, key: c.key as SortKey })}
-                      sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.25, userSelect: 'none', '&:hover': { color: 'light-dark(#0875a6, #4fc3f7)' } }}
-                    >
-                      {c.label}
-                      {sort.key === c.key && <Box component="span" sx={{ fontSize: 9 }}>{sort.dir === 'asc' ? '▲' : '▼'}</Box>}
-                      {filters[c.key as SortKey] && <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'light-dark(#0875a6, #4fc3f7)', display: 'inline-block' }} />}
-                    </Box>
-                  ) : c.label}
+                  {/* 全列クリック可能。ソート/絞り込みは対応列のみ、列の表示切替はどの列からでも開ける。 */}
+                  <Box
+                    component="span"
+                    onClick={(e) => setHeaderMenu({ anchor: e.currentTarget, key: c.key })}
+                    sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.25, userSelect: 'none', '&:hover': { color: 'light-dark(#0875a6, #4fc3f7)' } }}
+                  >
+                    {c.label}
+                    {sort.key === c.key && <Box component="span" sx={{ fontSize: 9 }}>{sort.dir === 'asc' ? '▲' : '▼'}</Box>}
+                    {filters[c.key as SortKey] && <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'light-dark(#0875a6, #4fc3f7)', display: 'inline-block' }} />}
+                  </Box>
                   {/* リサイズハンドル（列の右端を左ドラッグ→その列が伸縮し、右側は横スクロール） */}
                   <Box
                     onPointerDown={(e) => startColResize(c.key, e)}
@@ -1201,11 +1397,11 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {requests.length === 0 && orphanReqs.length === 0 && (
+            {viewRequests.length === 0 && viewOrphanReqs.length === 0 && (
               <TableRow>
-                <TableCell colSpan={COL_COUNT}>
+                <TableCell colSpan={colCount}>
                   <Typography variant="body2" sx={{ color: 'text.secondary', py: 1 }}>
-                    まだ項目がありません。下の欄から要求・要件を追加してください。
+                    {historical || activeSprintSel ? 'このスプリントに要件はありません。' : 'まだ項目がありません。下の欄から要求・要件を追加してください。'}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -1214,6 +1410,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
               const cl = childListByReq.get(req.id);
               const kids = cl?.view ?? [];
               // 要求チェックボックスの tri-state（元 reqCheckState と同一のロジック）を primitive で渡す。
+              // toggleRequestCheck（キュー投入用・除外対象）と対になるので、同じ requirements を使う。
               const csIds = autoCheckIds(req.id, requirements);
               const csOn = csIds.filter(id => checked.has(id)).length;
               const csChecked = csIds.length > 0 && csOn === csIds.length;
@@ -1238,6 +1435,9 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
                   csIndeterminate={csIndeterminate}
                   checkedIdsCsv={checkedIdsCsv}
                   fixCollapsedIdsCsv={fixCollapsedIdsCsv}
+                  hiddenColsCsv={hiddenColsCsv}
+                  colCount={colCount}
+                  historical={historical}
                   onToggleRequestCheck={toggleRequestCheck}
                   onToggleCollapse={toggleCollapse}
                   onToggleCheck={toggleItemCheck}
@@ -1258,7 +1458,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
               <>
                 <TableRow sx={{ bgcolor: 'action.hover', '& td': { py: 0.5, borderBottom: 'none' } }}>
                   <TableCell padding="none" />
-                  <TableCell colSpan={COL_COUNT - 1}>
+                  <TableCell colSpan={colCount - 1}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>要求なし（{visibleOrphans.length}）</Typography>
                   </TableCell>
                 </TableRow>
@@ -1275,6 +1475,9 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
                     checked={checked.has(k.id)}
                     fixCheckedBits={(k.fixes ?? []).map(f => checked.has(f.id) ? '1' : '0').join('')}
                     fixCollapsed={fixCollapsed.has(k.id)}
+                    hiddenColsCsv={hiddenColsCsv}
+                    colCount={colCount}
+                    historical={historical}
                     onToggleCheck={toggleItemCheck}
                     onToggleFixCollapse={toggleFixCollapse}
                     onPatch={patchItem}
@@ -1293,12 +1496,6 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
         </Table>
       </Box>
 
-      {/* 追加フォーム（要求のみ）。要件18: 下部に固定＋コンパクト */}
-      <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider', bgcolor: OPAQUE_MENU_BG }}>
-        <Chip label="要求" size="small" sx={{ height: 20, fontSize: 11, fontWeight: 700, flexShrink: 0 }} />
-        <InlineAddInput placeholder="要求を追加（例: 〜できるようにしたい）…" variant="outlined" maxWidth={520} onAdd={(t) => void createRequest(t)} />
-      </Box>
-
       {/* ヘッダーのソート/フィルタ・統合メニュー（要件12/14） */}
       <Menu
         anchorEl={headerMenu?.anchor} open={!!headerMenu} onClose={() => setHeaderMenu(null)}
@@ -1312,7 +1509,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 
   /** 機能一覧（自動集計）: 着手以降の要件を プラットフォーム×子アプリ で並べる読み取り専用ビュー */
   const renderFeatures = () => {
-    const feats = requirements.filter(r => statusOf(r) !== 'todo' && statusOf(r) !== 'archived');
+    const feats = viewRequirements.filter(r => statusOf(r) !== 'todo' && statusOf(r) !== 'archived');
     if (feats.length === 0) {
       return (
         <Paper elevation={0} sx={{ ...SECTION_SX, p: 3, textAlign: 'center' }}>
@@ -1495,20 +1692,23 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
   };
 
   /** スプリントパネル（ボード表示・全幅） */
-  const renderSprintPanel = (sprint: Sprint, isCurrent: boolean) => {
-    const list = bySprint.get(sprint.id) || [];
+  // readonly: 履歴モードで選択中スプリントを表示するときに true。期間編集・完了・削除の操作ボタンを隠す
+  // （データの書き込みは M1 で handleDragEnd 自体を遮断するので、ここは UI 上の導線だけ隠せば足りる）。
+  const renderSprintPanel = (sprint: Sprint, isCurrent: boolean, readonly = false) => {
+    const list = viewBySprint.get(sprint.id) || [];
     const inRange = sprint.startDate <= today && today <= sprint.endDate;
     const overdue = sprint.endDate < today;
+    const key = `sprint:${sprint.id}`;
     return (
       <Paper
         key={sprint.id} elevation={0}
         sx={{ ...SECTION_SX, p: 2, borderColor: isCurrent ? 'light-dark(#0875a6, #4fc3f7)' : 'divider' }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 15 }}>Sprint {sprint.seq}</Typography>
+          {sectionHeader(key, `Sprint ${sprint.seq}`, list.length, 15)}
           {inRange && isCurrent && <Chip label="進行中" size="small" color="info" sx={{ height: 20 }} />}
           {overdue && <Chip label="期限超過" size="small" color="error" variant="outlined" sx={{ height: 20 }} />}
-          {dateEditId === sprint.id ? (
+          {!readonly && dateEditId === sprint.id ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
               <TextField
                 type="date" size="small" value={sprint.startDate} autoFocus
@@ -1523,6 +1723,10 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
               />
               <Button size="small" onClick={() => setDateEditId(null)} sx={{ textTransform: 'none', minWidth: 0 }}>OK</Button>
             </Box>
+          ) : readonly ? (
+            <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+              {md(sprint.startDate)} – {md(sprint.endDate)}
+            </Typography>
           ) : (
             <Tooltip title="クリックで期間を編集" arrow>
               <Typography
@@ -1534,7 +1738,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
             </Tooltip>
           )}
           <Box sx={{ flex: 1 }} />
-          {isCurrent && (
+          {!readonly && isCurrent && (
             <Button
               size="small" variant="outlined" color="success" startIcon={<CheckCircleOutlineRoundedIcon />}
               onClick={() => completeSprint(sprint)}
@@ -1543,24 +1747,28 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
               完了
             </Button>
           )}
-          <IconButton size="small" onClick={() => removeSprint(sprint)}>
-            <DeleteOutlineRoundedIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Box sx={{ mt: 1 }}>{renderColumnSummary(list)}</Box>
-        <DroppableZone droppableId={sprintDropId(sprint.id)}>
-          {list.length === 0 ? (
-            <Box sx={{ py: 1.5, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                ここに要件をドロップして割り当て
-              </Typography>
-            </Box>
-          ) : (
-            <SortableContext items={list.map(r => r.id)} strategy={verticalListSortingStrategy}>
-              {list.map(reqCard)}
-            </SortableContext>
+          {!readonly && (
+            <IconButton size="small" onClick={() => removeSprint(sprint)}>
+              <DeleteOutlineRoundedIcon fontSize="small" />
+            </IconButton>
           )}
-        </DroppableZone>
+        </Box>
+        <Collapse in={isSectionOpen(key)} timeout="auto" unmountOnExit>
+          <Box sx={{ mt: 1 }}>{renderColumnSummary(list)}</Box>
+          <DroppableZone droppableId={sprintDropId(sprint.id)}>
+            {list.length === 0 ? (
+              <Box sx={{ py: 1.5, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  ここに要件をドロップして割り当て
+                </Typography>
+              </Box>
+            ) : (
+              <SortableContext items={list.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                {list.map(reqCard)}
+              </SortableContext>
+            )}
+          </DroppableZone>
+        </Collapse>
       </Paper>
     );
   };
@@ -1608,7 +1816,9 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {toolbar}
           <Typography variant="body2" sx={{ color: 'text.secondary', py: 3, textAlign: 'center' }}>
-            スプリントがありません。「スプリント作成」から始めてください。
+            {sidebarSel.kind === 'backlog'
+              ? 'バックログ表示中です。タイムラインに表示するスプリントはありません。'
+              : 'スプリントがありません。「スプリント作成」から始めてください。'}
           </Typography>
         </Box>
       );
@@ -1644,11 +1854,11 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     // ── 要求ロードマップの行データ（スケジュール済み＝スプリント割当済みの要件だけ扱う） ──
     type RRow = { request: BacklogItem | null; members: BacklogItem[]; span: ReturnType<typeof requestSpan> };
     const scheduled = (m: BacklogItem) => !!m.sprintId && rangeById.has(m.sprintId);
-    const rrAll: RRow[] = requests.map(req => {
+    const rrAll: RRow[] = viewRequests.map(req => {
       const members = childrenOf(req.id).filter(scheduled);
       return { request: req, members, span: requestSpan(members, rangeById) };
     });
-    const orphanScheduled = orphanReqs.filter(scheduled);
+    const orphanScheduled = viewOrphanReqs.filter(scheduled);
     if (orphanScheduled.length) rrAll.push({ request: null, members: orphanScheduled, span: requestSpan(orphanScheduled, rangeById) });
     const rrList = rrAll.filter(rr => rr.span); // 未割当のみの要求はロードマップに出さない
     const allDone = (rr: RRow) => rr.members.length > 0 && rr.members.every(isDone);
@@ -1662,8 +1872,8 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     );
 
     // ── サマリー（全体像） ──
-    const doneReqs = requirements.filter(isDone).length;
-    const rate = completionRate(requirements);
+    const doneReqs = viewRequirements.filter(isDone).length;
+    const rate = completionRate(viewRequirements);
     const atRisk = active.filter(rr => isRequestAtRisk(rr.members, rangeById, todayMs)).length;
     const kpi = (n: React.ReactNode, k: string, warn?: boolean) => (
       <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, px: 1.5, py: 0.75, minWidth: 92 }}>
@@ -1675,7 +1885,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         {kpi(<>{currentSprint ? `S${currentSprint.seq}` : '—'}<Typography component="span" sx={{ fontSize: 12, opacity: 0.6 }}> / {sprintList.length}</Typography></>, 'スプリント（現行/総数）')}
         {kpi(active.length, '進行中の要求')}
-        {kpi(`${Math.round(rate * 100)}%`, `要件 完了率（${doneReqs}/${requirements.length}）`)}
+        {kpi(`${Math.round(rate * 100)}%`, `要件 完了率（${doneReqs}/${viewRequirements.length}）`)}
         {kpi(atRisk, '遅延ぎみ', atRisk > 0)}
         {kpi(currentSprint ? md(currentSprint.endDate) : '—', '現行スプリント終了')}
       </Box>
@@ -1776,7 +1986,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
       return rows;
     };
 
-    const usedCats = [...new Set(requirements.map(r => effCategory(r)).filter((v): v is string => !!v && !!CAT_MAP[v]))];
+    const usedCats = [...new Set(viewRequirements.map(r => effCategory(r)).filter((v): v is string => !!v && !!CAT_MAP[v]))];
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1894,7 +2104,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 
   /** 履歴（アーカイブ済みスプリント）の1行 */
   const renderArchivedRow = (sprint: Sprint) => {
-    const list = bySprint.get(sprint.id) || [];
+    const list = viewBySprint.get(sprint.id) || [];
     const doneCount = list.filter(isDone).length;
     return (
       <Paper key={sprint.id} elevation={0} sx={{ ...SECTION_SX, p: 1.5, opacity: 0.85 }}>
@@ -1946,14 +2156,36 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     </Button>
   );
 
+  // ドラッグ中は畳んだセクションもドロップ先として要るため、一時的に全展開する（spec §3）。
+  const isSectionOpen = (key: string) => !!activeDragId || !collapsedSections.includes(key);
+
+  /** Paper 見出しの開閉トグル。シェブロンと見出しテキストだけがクリック対象（ヘッダー内の他の操作を誤爆させない）。 */
+  const sectionHeader = (key: string, label: string, count: number, fontSize = 16) => (
+    <Box
+      onClick={() => toggleSectionAt(key)}
+      sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, cursor: 'pointer', userSelect: 'none',
+            '&:hover': { color: 'light-dark(#0875a6, #4fc3f7)' } }}
+    >
+      {isSectionOpen(key) ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
+      <Typography variant="h6" sx={{ fontWeight: 600, fontSize }}>{label}</Typography>
+      <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>（{count}）</Typography>
+    </Box>
+  );
+
   /** ボード表示（D&D カンバン） */
   const renderBoard = () => (
     <DndContext
       sensors={sensors} collisionDetection={collisionStrategy}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={handleDragStart} onDragEnd={handleDragEnd}
+      // dnd-kit はキャンセル(Esc 等)で onDragEnd ではなく onDragCancel を呼ぶ。
+      // ここを配線しないと activeDragId が残り、オーバーレイとセクションの強制展開が固まる。
+      onDragCancel={() => setActiveDragId(null)}
     >
-      {currentSprint && renderSprintPanel(currentSprint, true)}
+      {/* 履歴モード: activeSprints は viewSprints 由来で選択中スプリント（アーカイブ済み）を含まないため、
+          currentSprint 経由では出てこない。選択中スプリントだけを読み取り専用パネルで別途出す。 */}
+      {historical && selectedSprint && renderSprintPanel(selectedSprint, false, true)}
+      {!historical && currentSprint && renderSprintPanel(currentSprint, currentSprint.id === realCurrentSprintId)}
 
       {upcoming.length > 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1968,90 +2200,85 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, gap: 2, alignItems: 'start' }}>
         <Paper elevation={0} sx={{ ...SECTION_SX, p: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16, mb: 1 }}>要求定義</Typography>
-          <DroppableZone droppableId={REQUESTS_DROP_ID}>
-            {requests.length === 0 ? (
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>まだ項目がありません。</Typography>
-            ) : (
-              <SortableContext items={requests.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                {requests.map(item => (
-                  <SortableRequestRow key={item.id} item={item} childItems={childrenOf(item.id)} onRemove={remove} onOpenDetail={openDetail} />
-                ))}
-              </SortableContext>
-            )}
-          </DroppableZone>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 1.5 }}>
-            <TextField
-              size="small" placeholder="要求を追加（例: 〜できるようにしたい）…" value={newReqTitleReq}
-              onChange={(e) => setNewReqTitleReq(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void addRequest(); }}
-              sx={{ flex: 1, minWidth: 140 }}
-            />
-            <Button
-              variant="contained" size="small" disableElevation startIcon={<AddRoundedIcon />}
-              onClick={() => void addRequest()} disabled={!newReqTitleReq.trim()}
-              sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
-            >
-              追加
-            </Button>
-          </Box>
+          {sectionHeader('requests', '要求定義', viewRequests.length)}
+          <Collapse in={isSectionOpen('requests')} timeout="auto" unmountOnExit>
+            <Box sx={{ mt: 1 }}>
+              <DroppableZone droppableId={REQUESTS_DROP_ID}>
+                {viewRequests.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>まだ項目がありません。</Typography>
+                ) : (
+                  <SortableContext items={viewRequests.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                    {viewRequests.map(item => (
+                      <SortableRequestRow key={item.id} item={item} childItems={childrenOf(item.id)} onRemove={remove} onOpenDetail={openDetail} />
+                    ))}
+                  </SortableContext>
+                )}
+              </DroppableZone>
+            </Box>
+          </Collapse>
         </Paper>
 
         <Paper elevation={0} sx={{ ...SECTION_SX, p: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: 16, mb: 1 }}>バックログ</Typography>
-          <DroppableZone droppableId={BACKLOG_DROP_ID}>
-            {backlog.length === 0 ? (
-              <Typography variant="body2" sx={{ color: 'text.secondary', py: 0.5 }}>
-                未アサインの要件はありません。
-              </Typography>
-            ) : (
-              <SortableContext items={backlog.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                {backlog.map(reqCard)}
-              </SortableContext>
-            )}
-          </DroppableZone>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mt: 1.5 }}>
-            <TextField
-              size="small" placeholder="要件を追加（例: ○○機能を実装する）…" value={newReqTitle}
-              onChange={(e) => setNewReqTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void addRequirement(); }}
-              sx={{ flex: 1, minWidth: 160 }}
-            />
-            <Select
-              size="small" displayEmpty value={newReqCategory}
-              onChange={(e) => setNewReqCategory(e.target.value)}
-              renderValue={(v) => v ? <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={v as string} /> {CAT_MAP[v as string]?.label}</Box> : <em style={{ color: 'gray' }}>カテゴリ</em>}
-              MenuProps={MENU_PROPS}
-              sx={{ height: 40, minWidth: 120, fontSize: 13 }}
-            >
-              <MenuItem value=""><em>カテゴリなし</em></MenuItem>
-              {toolOptions.map(id => (
-                <MenuItem key={id} value={id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={id} /> {toolLabel(id)}</Box>
-                </MenuItem>
-              ))}
-            </Select>
-            <Select
-              size="small" displayEmpty value={newReqParent}
-              onChange={(e) => setNewReqParent(e.target.value)}
-              MenuProps={MENU_PROPS}
-              sx={{ height: 40, minWidth: 108, fontSize: 13 }}
-            >
-              <MenuItem value=""><em>要求なし</em></MenuItem>
-              {requests.map(r => (
-                <MenuItem key={r.id} value={r.id}>
-                  {keyOf(r)}: {r.title.length > 12 ? `${r.title.slice(0, 12)}…` : r.title}
-                </MenuItem>
-              ))}
-            </Select>
-            <Button
-              variant="contained" size="small" disableElevation startIcon={<AddRoundedIcon />}
-              onClick={() => void addRequirement()} disabled={!newReqTitle.trim()}
-              sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
-            >
-              追加
-            </Button>
-          </Box>
+          {sectionHeader('backlog', 'バックログ', viewBacklog.length)}
+          <Collapse in={isSectionOpen('backlog')} timeout="auto" unmountOnExit>
+            <Box sx={{ mt: 1 }}>
+              <DroppableZone droppableId={BACKLOG_DROP_ID}>
+                {viewBacklog.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: 'text.secondary', py: 0.5 }}>
+                    未アサインの要件はありません。
+                  </Typography>
+                ) : (
+                  <SortableContext items={viewBacklog.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                    {viewBacklog.map(reqCard)}
+                  </SortableContext>
+                )}
+              </DroppableZone>
+              {!historical && (
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mt: 1.5 }}>
+                  <TextField
+                    size="small" placeholder="要件を追加（例: ○○機能を実装する）…" value={newReqTitle}
+                    onChange={(e) => setNewReqTitle(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void addRequirement(); }}
+                    sx={{ flex: 1, minWidth: 160 }}
+                  />
+                  <Select
+                    size="small" displayEmpty value={newReqCategory}
+                    onChange={(e) => setNewReqCategory(e.target.value)}
+                    renderValue={(v) => v ? <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={v as string} /> {CAT_MAP[v as string]?.label}</Box> : <em style={{ color: 'gray' }}>カテゴリ</em>}
+                    MenuProps={MENU_PROPS}
+                    sx={{ height: 40, minWidth: 120, fontSize: 13 }}
+                  >
+                    <MenuItem value=""><em>カテゴリなし</em></MenuItem>
+                    {toolOptions.map(id => (
+                      <MenuItem key={id} value={id}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}><CatDot id={id} /> {toolLabel(id)}</Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <Select
+                    size="small" displayEmpty value={newReqParent}
+                    onChange={(e) => setNewReqParent(e.target.value)}
+                    MenuProps={MENU_PROPS}
+                    sx={{ height: 40, minWidth: 108, fontSize: 13 }}
+                  >
+                    <MenuItem value=""><em>要求なし</em></MenuItem>
+                    {requests.map(r => (
+                      <MenuItem key={r.id} value={r.id}>
+                        {keyOf(r)}: {r.title.length > 12 ? `${r.title.slice(0, 12)}…` : r.title}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <Button
+                    variant="contained" size="small" disableElevation startIcon={<AddRoundedIcon />}
+                    onClick={() => void addRequirement()} disabled={!newReqTitle.trim()}
+                    sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                  >
+                    追加
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </Collapse>
         </Paper>
       </Box>
 
@@ -2097,39 +2324,78 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
     if (projectRef?.kind === 'local' && projectRef.path === path) setProjectRef(initialProjectRef(access, next));
   };
 
+  // サイドバーでの選択切替（全表示/バックログ/スプリント）。フィルタの許可リストに前の選択の sprint id が
+  // 残っていると絞り込みで真っ白になり得るため、切替のたびに filters/checked をまとめてリセットする。
+  const handleSelect = (sel: SidebarSel) => {
+    setSidebarSel(sel);
+    setFilters({});
+    setChecked(new Set());
+  };
+
+  // 実測幅による段階（spec §3）。compact/veryCompact は pinnedCols の直後（宣言順の都合）で定義済み。
+
   return (
     <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-      {isTauri() && (
+      {isTauri() && !sidebarCollapsed && (
         <ProjectSidebar
           projectRef={projectRef}
           projects={projects}
           showCloud={access.cloud}
-          onSelectCloud={() => setProjectRef({ kind: 'cloud' })}
-          onSelectLocal={(p) => setProjectRef({ kind: 'local', path: p })}
+          onSelectCloud={() => { setProjectRef({ kind: 'cloud' }); setSidebarSel({ kind: 'all' }); }}
+          onSelectLocal={(p) => { setProjectRef({ kind: 'local', path: p }); setSidebarSel({ kind: 'all' }); }}
           onRemove={removeProject}
           onCreateNew={() => { setNewProjectName(''); setNewProjectTemplate(DEFAULT_TEMPLATE_ID); setNewProjectOpen(true); }}
           onOpenFolder={() => void openFolderPicker()}
+          sprints={allSprintsDesc(sprints)}
+          sel={sidebarSel}
+          onSelect={handleSelect}
+          onCreateSprint={openCreateSprint}
+          onEditSprint={openSprintEdit}
+          onRemoveSprint={removeSprint}
+          onUnarchiveSprint={unarchiveSprint}
+          statusSlot={
+            <Tooltip title={claudeStatus?.path || 'Claude Code の導入状況'} arrow placement="right">
+              <ListItemButton onClick={() => setClaudeOpen(true)} sx={{ borderRadius: 1.5, py: 0.5 }}>
+                <ListItemIcon sx={{ minWidth: 30 }}>
+                  <TerminalRoundedIcon fontSize="small" sx={{ color: claudeAccent }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Claude Code"
+                  secondary={statusDetail(claudeStatus)}
+                  primaryTypographyProps={{ fontSize: 12.5 }}
+                  secondaryTypographyProps={{ fontSize: 10, color: claudeAccent, noWrap: true }}
+                />
+              </ListItemButton>
+            </Tooltip>
+          }
+          onCollapse={() => setSidebarCollapsedAt(true)}
         />
       )}
-    <Box sx={{ p: 4, display: 'flex', flexDirection: 'column', gap: 2.5, flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <Box ref={contentRef} sx={{ p: compact ? 2 : 4, display: 'flex', flexDirection: 'column', gap: 2.5, flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', flexShrink: 0 }}>
+        {isTauri() && sidebarCollapsed && (
+          <Tooltip title="サイドバーを表示" arrow>
+            <IconButton size="small" onClick={() => setSidebarCollapsedAt(false)} sx={{ p: 0.25, mr: -0.5 }}>
+              <KeyboardDoubleArrowRightRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
         <FactCheckRoundedIcon sx={{ color: 'light-dark(#0875a6, #4fc3f7)' }} />
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>SEKKEIYA Code</Typography>
         {isTauri() && projectRef?.kind === 'local' && (
           <Chip size="small" variant="outlined" icon={<FolderRoundedIcon sx={{ fontSize: 14 }} />}
             label={projectLabel(projectRef)} sx={{ height: 22, fontSize: 12 }} />
         )}
-        {/* 要件75: Claude Code の導入状況。未導入ならクリックでインストール手順を出す。 */}
-        {isTauri() && (
-          <Tooltip title={claudeStatus?.path || 'Claude Code の導入状況'} arrow>
-            <Chip
-              size="small" clickable onClick={() => setClaudeOpen(true)}
-              color={claudeStatus?.installed ? (claudeStatus.onPath ? 'success' : 'warning') : (claudeStatus ? 'warning' : 'default')}
-              variant={claudeStatus?.installed ? 'outlined' : 'filled'}
-              label={statusLabel(claudeStatus)}
-              sx={{ height: 22, fontSize: 12 }}
+        {/* 要求の追加口はここ 1 か所（表フッター・ボードの旧フォームは廃止）。
+            InlineAddInput は入力中の文字を内部 state で持つので、表が毎キー再描画されない（要件24）。 */}
+        {sidebarSel.kind !== 'sprint' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 200, maxWidth: compact ? 320 : 520 }}>
+            <Chip label="要求" size="small" sx={{ height: 20, fontSize: 11, fontWeight: 700, flexShrink: 0 }} />
+            <InlineAddInput
+              placeholder={veryCompact ? '要求を追加…' : '要求を追加（例: 〜できるようにしたい）…'}
+              variant="outlined"
+              onAdd={(t) => void createRequest(t)}
             />
-          </Tooltip>
+          </Box>
         )}
         {isTauri() && projectRef?.kind === 'local' && (
           <Tooltip title="このプロジェクトに /queue スキル（.claude/skills/queue/SKILL.md）を書き込みます" arrow>
@@ -2154,14 +2420,53 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
           onChange={(_, v) => changeView(v)}
           sx={{ ml: 1, '& .MuiToggleButton-root': { textTransform: 'none', px: 1.25, py: 0.25, fontSize: 13 } }}
         >
-          <ToggleButton value="board"><ViewKanbanRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />ボード</ToggleButton>
-          <ToggleButton value="table"><ViewListRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />要求・要件</ToggleButton>
-          <ToggleButton value="timeline"><ViewTimelineRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />タイムライン</ToggleButton>
-          <ToggleButton value="features"><AppsRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />機能一覧</ToggleButton>
-          {isTauri() && <ToggleButton value="github"><CloudUploadRoundedIcon fontSize="small" sx={{ mr: 0.5 }} />GitHub</ToggleButton>}
+          <Tooltip title={compact ? 'ボード' : ''} arrow>
+            <ToggleButton value="board">
+              <ViewKanbanRoundedIcon fontSize="small" sx={{ mr: compact ? 0 : 0.5 }} />{!compact && 'ボード'}
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title={compact ? '要求・要件' : ''} arrow>
+            <ToggleButton value="table">
+              <ViewListRoundedIcon fontSize="small" sx={{ mr: compact ? 0 : 0.5 }} />{!compact && '要求・要件'}
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title={compact ? 'タイムライン' : ''} arrow>
+            <ToggleButton value="timeline">
+              <ViewTimelineRoundedIcon fontSize="small" sx={{ mr: compact ? 0 : 0.5 }} />{!compact && 'タイムライン'}
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title={compact ? '機能一覧' : ''} arrow>
+            <ToggleButton value="features">
+              <AppsRoundedIcon fontSize="small" sx={{ mr: compact ? 0 : 0.5 }} />{!compact && '機能一覧'}
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title={compact ? '図' : ''} arrow>
+            <ToggleButton value="diagrams">
+              <AccountTreeRoundedIcon fontSize="small" sx={{ mr: compact ? 0 : 0.5 }} />{!compact && '図'}
+            </ToggleButton>
+          </Tooltip>
+          {isTauri() && (
+            <Tooltip title={compact ? 'GitHub' : ''} arrow>
+              <ToggleButton value="github">
+                <CloudUploadRoundedIcon fontSize="small" sx={{ mr: compact ? 0 : 0.5 }} />{!compact && 'GitHub'}
+              </ToggleButton>
+            </Tooltip>
+          )}
         </ToggleButtonGroup>
+        {historical && selectedSprint && (
+          <Chip
+            size="small" color="warning" variant="outlined"
+            label={`スプリント${selectedSprint.seq} の履歴を表示中（読み取り中心・追加不可）`}
+          />
+        )}
+        {!historical && sidebarSel.kind === 'backlog' && (
+          <Chip size="small" variant="outlined" label="バックログを表示中" />
+        )}
+        {!historical && activeSprintSel && selectedSprint && (
+          <Chip size="small" variant="outlined" label={`スプリント${selectedSprint.seq} の要件を表示中`} />
+        )}
         <Box sx={{ flex: 1 }} />
-        {view === 'table' && (
+        {!historical && view === 'table' && (
           <Button
             variant="contained" size="small" disableElevation
             disabled={implAll.length + testTargets.length === 0}
@@ -2171,7 +2476,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
             {dispatchLabel}
           </Button>
         )}
-        {(view === 'board' || view === 'timeline') && (
+        {!historical && (view === 'board' || view === 'timeline') && (
           <Button
             variant="outlined" size="small" startIcon={<AddRoundedIcon />}
             onClick={openCreateSprint} sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
@@ -2204,6 +2509,10 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
         ) : view === 'github' ? (
           // GitHub 更新はバックログのロードを待たない（git.rs 経由で独立に動く）
           <GitHubSyncPanel embedded activeProjectPath={projectRef.kind === 'local' ? projectRef.path : undefined} />
+        ) : view === 'diagrams' ? (
+          // 図はバックログのロードを待たず store 購読で独立に動く。
+          // アーカイブ済み選択時のみスナップショットを渡す。アクティブ選択はライブ図を出す（spec §1）。
+          <DiagramsView store={store} snapshotSprint={historical ? selectedSprint : null} />
         ) : loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
         ) : view === 'timeline' ? (
@@ -2431,7 +2740,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
       {/* スプリント作成ダイアログ（期間を設定して作成） */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="xs" fullWidth slotProps={{ paper: { sx: DIALOG_PAPER_SX } }}>
         <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>
-          Sprint {(sprintList[sprintList.length - 1]?.seq || 0) + 1} を作成
+          Sprint {(allSprintsAsc[allSprintsAsc.length - 1]?.seq || 0) + 1} を作成
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1 }}>
@@ -2455,7 +2764,7 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
             />
           </Box>
           <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
-            既定は{sprintList.length ? '前回スプリント終了日の翌日' : '今日'}から2週間。
+            既定は{allSprintsAsc.length ? '前回スプリント終了日の翌日' : '今日'}から2週間。
             {createEnd && createStart && createEnd >= createStart &&
               ` 期間: ${Math.round((new Date(createEnd).getTime() - new Date(createStart).getTime()) / 86400e3) + 1} 日間`}
           </Typography>
@@ -2469,6 +2778,54 @@ export const DevStatusPanel = ({ isAdmin = false }: { isAdmin?: boolean }) => {
             sx={{ textTransform: 'none' }}
           >
             作成
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* スプリント期間編集ダイアログ（サイドバー ⋮ → 期間を編集） */}
+      <Dialog open={!!sprintEdit} onClose={() => setSprintEdit(null)} maxWidth="xs" fullWidth slotProps={{ paper: { sx: DIALOG_PAPER_SX } }}>
+        <DialogTitle sx={{ fontSize: 16, fontWeight: 700 }}>
+          Sprint {sprintEdit?.sprint.seq} の期間を編集
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1 }}>
+            <TextField
+              label="開始" type="date" size="small" value={sprintEdit?.start ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                setSprintEdit(cur => cur ? { ...cur, start: v } : cur);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>–</Typography>
+            <TextField
+              label="終了" type="date" size="small" value={sprintEdit?.end ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                setSprintEdit(cur => cur ? { ...cur, end: v } : cur);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ flex: 1 }}
+            />
+          </Box>
+          {sprintEdit && sprintEdit.start && sprintEdit.end && sprintEdit.end >= sprintEdit.start && (
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
+              {`期間: ${Math.round((new Date(sprintEdit.end).getTime() - new Date(sprintEdit.start).getTime()) / 86400e3) + 1} 日間`}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSprintEdit(null)} sx={{ textTransform: 'none' }}>キャンセル</Button>
+          <Button
+            variant="contained" disableElevation
+            disabled={!sprintEdit || !sprintEdit.start || !sprintEdit.end || sprintEdit.end < sprintEdit.start}
+            onClick={saveSprintEdit}
+            sx={{ textTransform: 'none' }}
+          >
+            保存
           </Button>
         </DialogActions>
       </Dialog>

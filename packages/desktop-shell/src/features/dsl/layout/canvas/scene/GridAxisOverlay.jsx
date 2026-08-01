@@ -18,7 +18,7 @@ import LineEndHandle from "./LineEndHandle.jsx";
 import { isDrawToolActive, useDrawToolActive } from "../../utils/drawToolActive";
 import { isBaseEditMode, useBaseEditMode } from "../../utils/baseEditMode";
 import { useDimChainStore } from "../../store/useDimChainStore";
-import { axisExtendMm, sideOffsetMm } from "../../utils/planBounds";
+import { axisExtendMm, sideOffsetMm, chainSpan } from "../../utils/planBounds";
 
 // 通り芯は「基準線」なので、断面線（濃いスレート）より一段淡い青寄りのグレーにして
 // 図面の主役（躯体・寸法）を邪魔しない。選択中だけアクセント色で濃くする。
@@ -319,16 +319,21 @@ export default function GridAxisOverlay({ mode = "plan", hAxis = null, viewKey =
     return { minX: box.min.x, maxX: box.max.x, minZ: box.min.z, maxZ: box.max.z };
   }, [baseColliders, walls, half, isMm]);
 
-  /** 通り芯の既定の長さ。建物外形＋寸法列を越える余白まで伸ばす（記号は寸法の外に出る）。
+  /** 通り芯の既定の長さ。寸法列と同じ基準（最外の通り芯、無ければ建物外形）から、
+   *  寸法列を越える余白まで伸ばす（記号は寸法の外に出る）。
    *  端ごとに、その端が向いている辺の余白を使う（上下・左右で余白が違っても正しく伸びる）。 */
   const autoSpan = useMemo(() => {
     const ext = (side) => w(axisExtendMm(sideOffsetMm(chainOffsets, side)));
+    // その向きの通り芯の位置（world・昇順）。基準は寸法列と同じ chainSpan で決める。
+    const posOf = (wantAxis) => (axes || []).filter((a) => a?.axis === wantAxis).map((a) => w(a.pos));
+    const [dzMin, dzMax] = chainSpan(posOf("z"), bounds.minZ, bounds.maxZ);
+    const [dxMin, dxMax] = chainSpan(posOf("x"), bounds.minX, bounds.maxX);
     return (dir) => (dir === "x"
       // X通り（平面で縦線）は Z 方向に伸びる。画面の上が −Z なので −Z 端＝上辺・+Z 端＝下辺。
-      ? { from: bounds.minZ - ext("top"), to: bounds.maxZ + ext("bottom") }
+      ? { from: dzMin - ext("top"), to: dzMax + ext("bottom") }
       // Y通り（横線）は X 方向に伸びる。−X 端＝左辺・+X 端＝右辺。
-      : { from: bounds.minX - ext("left"), to: bounds.maxX + ext("right") });
-  }, [bounds, isMm, chainOffsets]);
+      : { from: dxMin - ext("left"), to: dxMax + ext("right") });
+  }, [bounds, isMm, chainOffsets, axes]);
 
   const shown = useMemo(() => {
     if (!visible) return [];

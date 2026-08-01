@@ -30,6 +30,20 @@ export interface FloorSlab {
    * 天井は「その階の CL」に貼る（1F に描いた both は 平面1F と 天井1F に出る）。
    */
   role?: SlabRole;
+  /**
+   * この天井面の高さ(mm)。FL からの高さ。role が "ceiling" のときだけ意味を持つ。
+   * 未設定 = その階の既定天井高（旧データ用のフォールバック）。
+   * 天井高の正はこの面。部屋も建物も持たない（2026-08-01）。
+   * 解決は utils/ceilingHeight の slabCeilingHeightMm を通すこと。
+   */
+  ceilingHeightMm?: number;
+  /** どの部屋の天井か。平面の CH 表示と、部屋の rect 変更への追従に使う。 */
+  roomId?: string;
+  /**
+   * 形（points）を手で編集したか。true の天井は部屋の rect を動かしても追従しない。
+   * updateSlab / updateSlabLocal が points を含む patch を受けたときに自動で立つ。
+   */
+  shapeEdited?: boolean;
 }
 
 export type SlabRole = "floor" | "ceiling" | "both";
@@ -66,6 +80,18 @@ function persist(slabs: FloorSlab[]) {
   } catch { /* noop */ }
 }
 
+/**
+ * スラブへ patch を当てる。points を手で変えたら shapeEdited を立てる
+ * ＝以後その天井は部屋の rect に追従しなくなる。
+ * ⚠️ 自動追従（syncRoomCeilingPoints）はここを通さない。通すと 1 回追従しただけで
+ *    「手で編集した」ことになり、二度と追従しなくなる。
+ */
+function applySlabPatch(slab: FloorSlab, patch: Partial<Omit<FloorSlab, "id">>): FloorSlab {
+  const next = { ...slab, ...patch };
+  if (patch.points && slab.roomId) next.shapeEdited = true;
+  return next;
+}
+
 interface SlabState {
   slabs: FloorSlab[];
   /** 床作図ツールが有効か（ツールバーの「床」トグル） */
@@ -100,6 +126,16 @@ interface SlabState {
   updateSlabLocal: (id: string, patch: Partial<Omit<FloorSlab, "id">>) => void;
   /** 現在の slabs を Base へ永続化（updateSlabLocal の確定用）。 */
   persistSlabs: () => void;
+  /**
+   * 部屋の輪郭から天井を1枚作る（部屋作成時の自動生成）。
+   * その部屋の天井が既にあれば何もしない（二重作成を防ぐ）。
+   */
+  addRoomCeiling: (roomId: string, points: SlabPoint[], floorIndex: number, ceilingHeightMm: number) => void;
+  /**
+   * 部屋の rect 変更に合わせて、未編集（shapeEdited でない）天井の輪郭を差し替える。
+   * ⚠️ shapeEdited は立てない（自動追従なので「手で編集した」ではない）。
+   */
+  syncRoomCeilingPoints: (roomId: string, points: SlabPoint[]) => void;
   removeSlab: (id: string) => void;
 }
 
@@ -182,15 +218,48 @@ export const useSlabStore = create<SlabState>((set, get) => ({
 
   updateSlab: (id, patch) =>
     set((s) => {
-      const slabs = s.slabs.map((x) => (x.id === id ? { ...x, ...patch } : x));
+      const slabs = s.slabs.map((x) => (x.id === id ? applySlabPatch(x, patch) : x));
       persist(slabs);
       return { slabs };
     }),
 
   updateSlabLocal: (id, patch) =>
-    set((s) => ({ slabs: s.slabs.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+    set((s) => ({ slabs: s.slabs.map((x) => (x.id === id ? applySlabPatch(x, patch) : x)) })),
 
   persistSlabs: () => persist(get().slabs),
+
+  addRoomCeiling: (roomId, points, floorIndex, ceilingHeightMm) =>
+    set((s) => {
+      if (!roomId || !points || points.length < SLAB_MIN_POINTS) return {};
+      if (s.slabs.some((x) => x.roomId === roomId && x.role === "ceiling")) return {}; // 二重作成しない
+      const slab: FloorSlab = {
+        id: nextId(),
+        points: points.map((p) => ({ x: Math.round(p.x), z: Math.round(p.z) })),
+        thicknessMm: SLAB_DEFAULT_THICKNESS,
+        floorIndex,
+        role: "ceiling",
+        ceilingHeightMm: Math.round(ceilingHeightMm),
+        roomId,
+      };
+      const slabs = [...s.slabs, slab];
+      persist(slabs);
+      return { slabs };
+    }),
+
+  syncRoomCeilingPoints: (roomId, points) =>
+    set((s) => {
+      if (!roomId || !points || points.length < SLAB_MIN_POINTS) return {};
+      const pts = points.map((p) => ({ x: Math.round(p.x), z: Math.round(p.z) }));
+      let changed = false;
+      const slabs = s.slabs.map((x) => {
+        if (x.roomId !== roomId || x.role !== "ceiling" || x.shapeEdited) return x;
+        changed = true;
+        return { ...x, points: pts };
+      });
+      if (!changed) return {};
+      persist(slabs);
+      return { slabs };
+    }),
 
   removeSlab: (id) =>
     set((s) => {

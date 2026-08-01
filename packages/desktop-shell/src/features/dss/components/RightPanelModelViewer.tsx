@@ -5,21 +5,12 @@ import { useGLTF, OrbitControls, Stage, Line, Html, Environment } from '@react-t
 import * as THREE from 'three';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { applyBindingToObject, enumerateMaterialSlots, type EnumeratedSlot } from '../../shared/material/applyMaterial';
-import { applySelectionToObject, type MaterialPresetSlot } from '../../shared/material/materialPresets';
+import { applySelectionToObject, type MaterialPreviewState } from '../../shared/material/materialPresets';
 import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
 
-/**
- * マテリアルタブ（DssMaterialPresets）の3Dプレビューをメインビューアへ委譲するための状態。
- * 詳細画面で Canvas を1つに集約し、GPU負荷を抑える。
- */
-export interface MaterialPreviewState {
-  presets: MaterialPresetSlot[];
-  selection: Record<string, string>;
-  /** ハイライトするメッシュ名（編集モードで選択中の行のメンバー）。 */
-  highlight: string[];
-  /** true ならメッシュクリックで部位選択できる（編集モード）。 */
-  pickable: boolean;
-}
+// `MaterialPreviewState` の定義は shared/material/materialPresets.ts へ移設済み（Task 8）。
+// 既存の import 元（DssMaterialPresets.tsx など）を壊さないよう、ここから再エクスポートする。
+export type { MaterialPreviewState } from '../../shared/material/materialPresets';
 
 function extractCanonicalId(url: string) {
   const match = url.match(/assets%2F([a-f0-9-]+)%2F/);

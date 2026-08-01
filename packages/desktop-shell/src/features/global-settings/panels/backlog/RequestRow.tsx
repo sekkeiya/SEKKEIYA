@@ -12,7 +12,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { isDone } from '../devStatusLogic';
-import { keyOf, COL_COUNT } from './rowConstants';
+import { keyOf } from './rowConstants';
 import { InlineText, InlineAddInput, PlatformSelect, CategorySelect, PlatformDisplay, ToolDisplay, Dash, AttachCell } from './rowFields';
 import { EditableCell } from './EditableCell';
 import { RequirementRow } from './RequirementRow';
@@ -35,6 +35,14 @@ export interface RequestRowProps {
   // kids + その fixes の id に絞ってその場で作った値を渡す（無関係な行の切替では内容が変わらない）。
   checkedIdsCsv: string;
   fixCollapsedIdsCsv: string;
+  /** 非表示の列キー（CSV）。React.memo を効かせるため Set ではなく primitive で受け取る。 */
+  hiddenColsCsv: string;
+  /** colSpan 用の総列数（チェック+開閉+表示中の列+削除）。列の表示切替に追従する。 */
+  colCount: number;
+  // 履歴モード（過去スプリント閲覧）: 追加しても filterItemsBySprint に落とされ無反応に見えるため、
+  // 「要件を追加」行と、子の RequirementRow の「修正項目を追加」行を隠す。プリミティブ boolean のまま
+  // 渡し、React.memo の効きを維持する。
+  historical?: boolean;
   onToggleRequestCheck: (reqId: string) => void;
   onToggleCollapse: (reqId: string) => void;
   onToggleCheck: (id: string) => void;
@@ -52,7 +60,7 @@ export interface RequestRowProps {
 
 const RequestRowImpl: React.FC<RequestRowProps> = ({
   req, allKids, kids, expanded, sprints, toolOptions, screenOptions,
-  csChecked, csIndeterminate, checkedIdsCsv, fixCollapsedIdsCsv, onToggleRequestCheck, onToggleCollapse, onToggleCheck,
+  csChecked, csIndeterminate, checkedIdsCsv, fixCollapsedIdsCsv, hiddenColsCsv, colCount, historical, onToggleRequestCheck, onToggleCollapse, onToggleCheck,
   onToggleFixCollapse, onPatch, onRemove, onOpenDetail, onOpenAttach,
   onAddFix, onToggleFix, onUpdateFixText, onRemoveFix, onAddChild,
 }) => {
@@ -64,6 +72,9 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
   // csv はこの要求に関係する id だけを含むので、無関係な行の切替では内容が変わらずここも走らない。
   const checkedSet = useMemo(() => new Set(checkedIdsCsv ? checkedIdsCsv.split(',') : []), [checkedIdsCsv]);
   const fixCollapsedSet = useMemo(() => new Set(fixCollapsedIdsCsv ? fixCollapsedIdsCsv.split(',') : []), [fixCollapsedIdsCsv]);
+  // 非表示の列。show('reason') のように各セルの描画を判定する。
+  const hiddenSet = useMemo(() => new Set(hiddenColsCsv ? hiddenColsCsv.split(',') : []), [hiddenColsCsv]);
+  const show = (k: string) => !hiddenSet.has(k);
   // 子要件は親要求の PF/ツールを継承する（元 renderRequirementRow の parentOf(item) は req）。
   const parentPlatform = req.platform ?? null;
   const parentCategory = req.category ?? null;
@@ -78,7 +89,7 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
             {expanded ? <ExpandMoreRoundedIcon fontSize="small" /> : <ChevronRightRoundedIcon fontSize="small" />}
           </IconButton>
         </TableCell>
-        <TableCell>
+        {show('content') && <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
             <Tooltip title="詳細・要件を開く" arrow>
               <Chip
@@ -94,29 +105,29 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
               <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}>{doneCount}/{allKids.length}</Typography>
             )}
           </Box>
-        </TableCell>
-        <TableCell><Dash /></TableCell>{/* 理由 */}
-        <TableCell><Dash /></TableCell>{/* 種別 */}
+        </TableCell>}
+        {show('reason') && <TableCell><Dash /></TableCell>}{/* 理由 */}
+        {show('kind') && <TableCell><Dash /></TableCell>}{/* 種別 */}
         {/* Task 7（性能）: 要求行の既定 PF / 既定ツールも表示⇄編集を分離（クリックで即オープン）。 */}
-        <TableCell>
+        {show('platform') && <TableCell>
           <EditableCell display={<PlatformDisplay value={req.platform} placeholder="既定PF" />}>
             {(close) => <PlatformSelect value={req.platform} placeholder="既定PF" autoOpen onClose={close} onChange={(v) => onPatch(req.id, { platform: v })} />}
           </EditableCell>
-        </TableCell>
-        <TableCell>
+        </TableCell>}
+        {show('category') && <TableCell>
           <EditableCell display={<ToolDisplay value={req.category} placeholder="既定ツール" />}>
             {(close) => <CategorySelect value={req.category} options={toolOptions} placeholder="既定ツール" autoOpen onClose={close} onChange={(v) => onPatch(req.id, { category: v })} />}
           </EditableCell>
-        </TableCell>
-        <TableCell><Dash /></TableCell>
-        <TableCell>
+        </TableCell>}
+        {show('screen') && <TableCell><Dash /></TableCell>}
+        {show('status') && <TableCell>
           {allDone
             ? <Chip label="完了" size="small" color="success" sx={{ height: 20 }} />
             : (allKids.length ? <Typography variant="caption" sx={{ color: 'text.secondary' }}>{Math.round((doneCount / allKids.length) * 100)}%</Typography> : <Dash />)}
-        </TableCell>
-        <TableCell><Dash />{/* スプリント */}</TableCell>
-        <AttachCell item={req} onOpen={onOpenAttach} />
-        <TableCell><Dash />{/* テスト結果は要件のみ */}</TableCell>
+        </TableCell>}
+        {show('sprint') && <TableCell><Dash />{/* スプリント */}</TableCell>}
+        {show('attach') && <AttachCell item={req} onOpen={onOpenAttach} />}
+        {show('testResult') && <TableCell><Dash />{/* テスト結果は要件のみ */}</TableCell>}
         <TableCell padding="none" align="center">
           <IconButton className="row-del" size="small" onClick={() => onRemove(req)}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton>
         </TableCell>
@@ -134,6 +145,9 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
           checked={checkedSet.has(k.id)}
           fixCheckedBits={(k.fixes ?? []).map(f => checkedSet.has(f.id) ? '1' : '0').join('')}
           fixCollapsed={fixCollapsedSet.has(k.id)}
+          hiddenColsCsv={hiddenColsCsv}
+          colCount={colCount}
+          historical={historical}
           onToggleCheck={onToggleCheck}
           onToggleFixCollapse={onToggleFixCollapse}
           onPatch={onPatch}
@@ -146,10 +160,10 @@ const RequestRowImpl: React.FC<RequestRowProps> = ({
           onRemoveFix={onRemoveFix}
         />
       ))}
-      {expanded && (
+      {expanded && !historical && (
         <TableRow sx={{ '& td': { py: 0.25, borderBottom: 'none' } }}>
           <TableCell padding="none" />
-          <TableCell colSpan={COL_COUNT - 1}>
+          <TableCell colSpan={colCount - 1}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 2.5 }}>
               <AddRoundedIcon fontSize="small" sx={{ color: 'text.disabled' }} />
               <InlineAddInput placeholder={`${keyOf(req)} に要件を追加…（親のPF/アプリを継承）`} maxWidth={460} onAdd={(t) => onAddChild(req, t)} />

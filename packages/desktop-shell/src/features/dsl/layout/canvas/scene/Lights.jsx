@@ -10,6 +10,7 @@ import { useUiPropertiesSelectionStore } from "../../store/uiPropertiesSelection
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useUiVisibilityStore } from "../../store/uiVisibilityStore";
 import { useSelectionScopeStore, canSelectLight } from "../../store/useSelectionScopeStore";
+import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import { useViewportUiStore } from "../../store/viewportUiStore";
 import { useViewportEnvStore, shadowMapSizeForQuality, applyWhiteBalanceToColor } from "../../store/useViewportEnvStore";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
@@ -116,7 +117,7 @@ function IconNeon({ color, size = 13 }) {
 // <Html> の内側の div のみ pointerEvents: "auto" にすることで
 // バッジ部分だけクリック可能にし、周囲は Three.js のレイキャストに通過させる。
 
-function LightIconBadge({ lightId, name, accentColor, selected, icon }) {
+function LightIconBadge({ lightId, name, accentColor, selected, icon, locked = false }) {
   const handleClick = useCallback(
     (e) => {
       e.stopPropagation();
@@ -130,10 +131,10 @@ function LightIconBadge({ lightId, name, accentColor, selected, icon }) {
   return (
     <Html center style={{ pointerEvents: "none", userSelect: "none" }}>
       <div
-        onClick={handleClick}
+        onClick={locked ? undefined : handleClick}
         style={{
-          pointerEvents: "auto",
-          cursor: "pointer",
+          pointerEvents: locked ? "none" : "auto",
+          cursor: locked ? "default" : "pointer",
           display: "flex",
           alignItems: "center",
           gap: "4px",
@@ -397,6 +398,8 @@ function LightTransformGizmo({ selectedLight, onCommit }) {
 function DirectionalLightGizmo({ lightId, position, name }) {
   const { isSelected } = useGizmoHandlers(lightId);
   const accentColor = "#ffd580";
+  // 記号メニューの「太陽」ロック中は、見えるが選べない。
+  const locked = useViewportDisplayStore((s) => s.symbolLocks.sun);
 
   return (
     <group position={position}>
@@ -407,6 +410,7 @@ function DirectionalLightGizmo({ lightId, position, name }) {
         accentColor={accentColor}
         selected={isSelected}
         icon={<IconSun color={isSelected ? "#38bdf8" : accentColor} />}
+        locked={locked}
       />
     </group>
   );
@@ -1125,6 +1129,9 @@ export default function Lights({ hasBase = true, hideGizmo = false }) {
   const scope = useSelectionScopeStore((s) => s.scope);
   // ベースモデル未設定（empty guide 画面）／立面図・断面図（側面正射の図面表示）ではギズモ（太陽アイコン等）を出さない。
   const showGizmos = GIZMO_VISIBLE_SCOPES.has(scope) && hasBase && !hideGizmo;
+  // 太陽（平行光）のバッジは記号メニューの「太陽」で ON/OFF・ロックできる。
+  const sunSymbolOn = useViewportDisplayStore((s) => s.isSymbolOn("sun"));
+  const sunLocked = useViewportDisplayStore((s) => s.symbolLocks.sun);
   // ウォークスルー（没入ビュー）中は床の照射円/矩形などの作図ヘルパを出さない（実空間の見え方を優先）。
   const isWalkthrough = useEditorModeStore((s) => s.editorMode === "walkthrough");
   // Map モード（scope==="map"）では照射円/矩形ヘルパも隠して敷地合わせに集中させる。
@@ -1217,7 +1224,9 @@ export default function Lights({ hasBase = true, hideGizmo = false }) {
   return (
     <>
       {/* トランスフォームギズモ（PivotControls）— Lighting スコープのみ表示 */}
-      {showGizmos && selectedLight && (
+      {/* 太陽が非表示／ロック中は、選択が残っていても移動ギズモを出さない。 */}
+      {showGizmos && selectedLight
+        && !(selectedLight.type === "directional" && (!sunSymbolOn || sunLocked)) && (
         <LightTransformGizmo
           key={selectedLight.id}
           selectedLight={selectedLight}
@@ -1272,8 +1281,8 @@ export default function Lights({ hasBase = true, hideGizmo = false }) {
                 shadow-bias={directionalShadow.bias}
                 shadow-normalBias={directionalShadow.normalBias}
               />
-              {/* ギズモ: ALL / Lighting のみ */}
-              {showGizmos && (
+              {/* ギズモ: ALL / Lighting のみ。記号メニューの「太陽」で ON/OFF できる。 */}
+              {showGizmos && sunSymbolOn && (
                 <DirectionalLightGizmo
                   lightId={light.id}
                   position={pos}

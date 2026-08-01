@@ -42,6 +42,23 @@ export interface MaterialPresetSlot {
   options: MaterialPresetOption[];
 }
 
+/**
+ * マテリアルタブ（DssMaterialPresets）の3Dプレビューをメインビューアへ委譲するための状態。
+ * 詳細画面で Canvas を1つに集約し、GPU負荷を抑える。
+ * 元は一覧画面用の `RightPanelModelViewer.tsx` に定義されていたが、`detail/` 配下の
+ * ビューア（DetailViewport・MaterialSection）が一覧画面のコンポーネントから型だけを
+ * 借りる不自然な依存になっていたため、Task 8 でマテリアル型の中立な置き場である
+ * ここへ移設した（RightPanelModelViewer.tsx は再エクスポートして後方互換を保つ）。
+ */
+export interface MaterialPreviewState {
+  presets: MaterialPresetSlot[];
+  selection: Record<string, string>;
+  /** ハイライトするメッシュ名（編集モードで選択中の行のメンバー）。 */
+  highlight: string[];
+  /** true ならメッシュクリックで部位選択できる（編集モード）。 */
+  pickable: boolean;
+}
+
 /** スロットのメンバー一覧を返す（members 優先、無ければ単一メッシュにフォールバック）。 */
 export function slotMembers(slot: { members?: MaterialPresetMember[]; meshName?: string; materialIndex?: number }): MaterialPresetMember[] {
   if (slot.members && slot.members.length) return slot.members;
@@ -205,6 +222,7 @@ export function readMaterialVariants(model: any): MaterialVariant[] {
       swatchColor: v.swatchColor ?? undefined,
       selection: { ...v.selection },
       isDefault: !!v.isDefault,
+      thumbUrl: v.thumbUrl ?? null,
     }));
 }
 

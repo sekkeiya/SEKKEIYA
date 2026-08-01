@@ -19,7 +19,9 @@ import * as THREE from "three";
 import { useLayoutTaskStore } from "../store/useLayoutTaskStore";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useWallStore } from "../store/useWallStore";
-import { useBuildingSpecStore } from "../store/useBuildingSpecStore";
+import { useBuildingSpecStore, ceilingHeightOf } from "../store/useBuildingSpecStore";
+import { useSlabStore } from "../store/useSlabStore";
+import { rectToPoints } from "./ceilingHeight";
 import { useSceneObjectRegistryStore } from "../store/sceneObjectRegistryStore";
 import { layoutSceneRef } from "../services/layoutSceneRef";
 import { measureXZBounds } from "./planBounds";
@@ -262,6 +264,15 @@ export function createRoomFromRectMm(r: { minX: number; maxX: number; minZ: numb
     { id: roomId, name, floorIndex, createdAtMs: Date.now(), rect: { x: cx, z: cz, width, depth } },
   ];
   window.dispatchEvent(new CustomEvent("LayoutShell:UpdateRooms", { detail: { rooms } }));
+
+  // 部屋には天井が要る（天井高の正は天井の面）。部屋の輪郭でそのまま 1 枚立てる。
+  // 高さはその階の既定天井高（現状 2400）。以後この面を編集・削除して調整する。
+  useSlabStore.getState().addRoomCeiling(
+    roomId,
+    rectToPoints({ x: cx, z: cz, width, depth }),
+    floorIndex,
+    ceilingHeightOf(useBuildingSpecStore.getState(), floorIndex),
+  );
 
   return { ok: true, name };
 }

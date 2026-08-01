@@ -36,13 +36,27 @@ description: SEKKEIYA Code のキュー（実装/テスト依頼）を取得し�
 \`verify\` が空、またはファイルが無い場合は、このリポジトリの流儀（README / package.json の scripts）に
 従って自分で判断してください。
 
+## 設計図（図キュー）
+\`.claude/sekkeiya-code/diagrams/\` に設計図があります（無ければ図機能は未使用）:
+- \`<type>.mmd\`: Mermaid ソース（type: system=システム構成図 / er=ER図 / screens=画面遷移図 / flow=フロー図）
+- \`meta.json\`: \`{ "version": 1, "diagrams": { "<type>": { "queue": "generate"|null, "queueNote": "...", "updatedAt": "ISO" } } }\`
+
+\`queue: "generate"\` の図は生成/更新の依頼です:
+1. type 別の情報源から Mermaid を生成する — system: リポ構造と依存関係 / er: データモデル（DB スキーマ・型定義の実使用）/
+   screens: backlog.json の \`screen\` フィールド＋ルーティングコード（**ノード名は \`screen\` の名称をそのまま使う**）/
+   flow: 要求・要件から読み取れるユーザーフロー。
+2. \`queueNote\`（依頼メモ）があれば最優先で反映する。既存の \`.mmd\` がある場合は全置換ではなく**差分更新**（手修正を尊重）。
+3. \`<type>.mmd\` に Mermaid のみを書き込む（コードフェンスや説明文を含めない）。
+4. \`meta.json\` の該当 type を \`queue: null\`・\`queueNote: null\`・\`updatedAt: 現在時刻(ISO)\` に更新する。
+
 ## /queue の手順
-1. \`backlog.json\` を読み、\`queue\` が null でない項目を列挙する。
+1. \`backlog.json\` の \`queue\` と \`diagrams/meta.json\` の \`queue\` を確認する。
 2. 各項目について:
    - \`queue: "implement"\` → 内容(\`title\`)・理由(\`reason\`)・添付を読んで実装する。続けて上の検証コマンドを実行する。
      - すべて成功 → \`status\` を "done"（目視確認が要る見た目・操作系なら "manualtest"）に更新。
      - 失敗 → \`status\` を "rework" にし、\`notes\` に失敗したコマンドと出力の要点を書く。
    - \`queue: "test"\` → テスト観点を整理して検証を支援し、結果を \`testResult\` に記録する。
+   - \`diagrams/meta.json\` に \`queue: "generate"\` の図がある → 上の「設計図（図キュー）」の手順 1〜4 で処理する。
 3. 処理した項目は \`queue\` を null にし、\`queuedAt\` キーを削除する。\`updatedAt\` を現在時刻(ISO)に更新する。
 4. 変更点をユーザーに要約報告する（何を実装し、どの項目をどの状態にしたか、検証コマンドの結果）。
 

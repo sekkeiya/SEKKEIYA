@@ -25,6 +25,8 @@ import {
   type RoomElevation,
 } from "../store/useRoomElevationsStore";
 import { useLayoutTaskStore } from "../store/useLayoutTaskStore";
+import { ceilingSlabsOfRoom, slabCeilingHeightMm } from "./ceilingHeight";
+import { useSlabStore } from "../store/useSlabStore";
 
 /** 展開図の対象になる「部屋」1つぶん。 */
 export interface ElevationRoom {
@@ -147,7 +149,18 @@ export function computeElevationRoomBox(
   pos: { x: number; z: number },
   dir: "A" | "B" | "C" | "D",
 ) {
-  const base = computeRoomBoxFromRects(room.zones.map((z) => z.rect));
+  // 天井高の正は天井の面。その部屋の天井（複数なら最も高いもの）を使う。天井が無ければ既定。
+  const bsSpec = useBuildingSpecStore.getState();
+  const defClMm = bsSpec.ceilingHeightMm || 2400;
+  const roomMaster = (useLayoutTaskStore.getState().rooms || []).find((r) => r.id === room.id);
+  const myCeilings = ceilingSlabsOfRoom(
+    useSlabStore.getState().slabs || [],
+    roomMaster ? { id: roomMaster.id, floorIndex: roomMaster.floorIndex, rect: roomMaster.rect } : null,
+    defClMm,
+  );
+  const roomClMm = myCeilings.length ? slabCeilingHeightMm(myCeilings[0], defClMm) : defClMm;
+
+  const base = computeRoomBoxFromRects(room.zones.map((z) => z.rect), roomClMm);
   if (!base) return null;
 
   const isMm = ((useEditorModeStore.getState() as any).sceneMaxY || 0) > 100;
@@ -218,7 +231,7 @@ export function computeElevationRoomBox(
   let ceilW =
     probe.ceilY != null && probe.ceilY > flSpec + toWorld(1500) && probe.ceilY < flSpec + toWorld(6500)
       ? probe.ceilY
-      : flSpec + toWorld((bs.ceilingHeightMm as number) || 2400);
+      : flSpec + toWorld(roomClMm);
   // 作図した天井スラブは「上面＝CL・厚みは下向き」＝下面が実際の天井面。
   const ceilUnder = measureCeilingUndersideAt(pos);
   if (ceilUnder != null && ceilUnder > floorW + toWorld(1500)) ceilW = Math.min(ceilW, ceilUnder);

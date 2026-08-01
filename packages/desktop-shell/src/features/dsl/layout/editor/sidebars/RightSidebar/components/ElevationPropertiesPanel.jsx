@@ -21,6 +21,8 @@ import { useElevationMarkerStore } from "../../../../store/useElevationMarkerSto
 import { useRoomElevationsStore } from "../../../../store/useRoomElevationsStore";
 import { useLayoutTaskStore } from "../../../../store/useLayoutTaskStore";
 import { openRoomElevation, computeElevationRooms } from "../../../../utils/openElevationView";
+import { useSlabStore } from "../../../../store/useSlabStore";
+import { ceilingSlabsOfRoom, slabCeilingHeightMm } from "../../../../utils/ceilingHeight";
 import ElevationPlanMiniMap from "./ElevationPlanMiniMap.jsx";
 
 const DIR_JP = { A: "上", B: "右", C: "下", D: "左" };
@@ -174,7 +176,6 @@ function RoomBlock({ room, elevations, selected, activeElevationId }) {
 export default function ElevationPropertiesPanel() {
   const viewActive = useElevationMarkerStore((s) => s.viewActive);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
-  const setCeilingHeightMm = useBuildingSpecStore((s) => s.setCeilingHeightMm);
 
   const zones = useLayoutTaskStore((s) => s.zones);
   const roomsList = useLayoutTaskStore((s) => s.rooms);
@@ -190,6 +191,28 @@ export default function ElevationPropertiesPanel() {
     const sel = rooms.find((r) => r.id === selectedRoomId);
     return sel ? [sel, ...rooms.filter((r) => r.id !== selectedRoomId)] : rooms;
   }, [rooms, selectedRoomId]);
+
+  // 天井高の正は天井の面。選択中の部屋の天井を読み書きする。
+  //   天井が 1 枚なら編集可。0 枚（吹き抜け）か複数枚なら表示のみ（断面図で個別に編集）。
+  const slabsAll = useSlabStore((s) => s.slabs);
+  const myCeilings = useMemo(() => {
+    const room = (roomsList || []).find((r) => r.id === selectedRoomId);
+    if (!room) return [];
+    return ceilingSlabsOfRoom(
+      slabsAll,
+      { id: room.id, floorIndex: room.floorIndex, rect: room.rect },
+      ceilingHeightMm || 2400,
+    );
+  }, [slabsAll, roomsList, selectedRoomId, ceilingHeightMm]);
+  const roomClMm = myCeilings.length
+    ? slabCeilingHeightMm(myCeilings[0], ceilingHeightMm || 2400)
+    : (ceilingHeightMm || 2400);
+  const clEditable = myCeilings.length === 1;
+  const setRoomCl = (v) => {
+    const mm = Math.round(Number(v));
+    if (!clEditable || !Number.isFinite(mm)) return;
+    useSlabStore.getState().updateSlab(myCeilings[0].id, { ceilingHeightMm: mm });
+  };
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -222,26 +245,31 @@ export default function ElevationPropertiesPanel() {
           ))
         )}
 
-        {/* 天井高（CL）: 展開図を表示中のみ */}
+        {/* 天井高: 展開図を表示中のみ。値は「選択中の部屋」のもの。 */}
         {viewActive && (
           <Box>
             <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.75, color: "color-mix(in srgb, var(--brand-fg) 80%, transparent)" }}>
-              天井高（CL）
+              天井高（この部屋）
             </Typography>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)" }}>CL</Typography>
+              <Typography sx={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 75%, transparent)" }}>
+                CH{myCeilings.length > 1 ? `（天井 ${myCeilings.length} 枚）` : myCeilings.length === 0 ? "（天井なし）" : ""}
+              </Typography>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <input
-                  type="number" value={ceilingHeightMm} min={1800} max={6000} step={50}
-                  onChange={(e) => setCeilingHeightMm(Number(e.target.value))}
-                  style={{ ...inputSx, width: 72, textAlign: "right" }}
+                  type="number" value={roomClMm} min={1800} max={6000} step={50}
+                  disabled={!clEditable}
+                  onChange={(e) => setRoomCl(e.target.value)}
+                  style={{ ...inputSx, width: 72, textAlign: "right", opacity: clEditable ? 1 : 0.5 }}
                 />
                 <Typography sx={{ fontSize: 10.5, color: "color-mix(in srgb, var(--brand-fg) 45%, transparent)" }}>mm</Typography>
               </Stack>
             </Stack>
             <Typography sx={{ fontSize: 9.5, color: "color-mix(in srgb, var(--brand-fg) 40%, transparent)", lineHeight: 1.5, mt: 0.75 }}>
-              展開図では天井高（CL）のみを扱います。GL・階高・FL は断面図で調整してください。
-              ビュー上では左の全高ラベル（例:「2400」）をダブルクリックしても調整できます。
+              天井高は天井の面が持ちます。部屋を作ると天井が 1 枚立ち、ここで高さを変えられます。
+              天井が複数ある部屋（下がり天井など）は断面図で 1 枚ずつ編集してください。
+              天井を削除すると吹き抜けになり、天井高の寸法も消えます。
+              GL・階高・FL は断面図で調整します。
               他の寸法もダブルクリックで手入力に上書きできます（mm 単位）。
             </Typography>
           </Box>

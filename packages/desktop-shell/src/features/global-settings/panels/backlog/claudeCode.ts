@@ -40,13 +40,18 @@ export function installGuidance(status: ClaudeCodeStatus): string {
     : 'Claude Code が見つかりませんでした。下のコマンドでインストールしてください。';
 }
 
-/** ヘッダーのチップに出す短いラベル。 */
-export function statusLabel(status: ClaudeCodeStatus | null): string {
-  if (!status) return 'Claude Code: 確認中…';
-  if (!status.installed) return 'Claude Code: 未導入';
-  const base = status.version ? `Claude Code: v${status.version}` : 'Claude Code: 導入済み';
+/** 状態の詳細部（「Claude Code:」プレフィックス無し）。ラベルを自前で組む UI 向け。 */
+export function statusDetail(status: ClaudeCodeStatus | null): string {
+  if (!status) return '確認中…';
+  if (!status.installed) return '未導入';
+  const base = status.version ? `v${status.version}` : '導入済み';
   // PATH に無いと `claude` とタイプして起動できないので、その一点だけ知らせる。
   return status.onPath ? base : `${base}（PATH 未設定）`;
+}
+
+/** ヘッダーのチップに出す短いラベル。 */
+export function statusLabel(status: ClaudeCodeStatus | null): string {
+  return `Claude Code: ${statusDetail(status)}`;
 }
 
 /** PATH に通っていないときの案内（導入済みだがターミナルから起動できない状態）。 */

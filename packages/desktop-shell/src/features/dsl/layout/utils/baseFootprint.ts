@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { useSceneObjectRegistryStore } from "../store/sceneObjectRegistryStore";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useBuildingSpecStore, ceilingHeightOf } from "../store/useBuildingSpecStore";
+import { ceilingSlabTopMm } from "./ceilingHeight";
 import { useWallStore, WALL_DEFAULT_THICKNESS, type Wall } from "../store/useWallStore";
 import { useSlabStore, slabIsFloor } from "../store/useSlabStore";
 import { layoutSceneRef } from "../services/layoutSceneRef";
@@ -369,7 +370,9 @@ export function measureCeilingUndersideAt(pos: { x: number; z: number }): number
     if ((s.floorIndex || 0) !== activeFloor && (s.floorIndex || 0) !== 0) return;
     if (!(s.points?.length >= 3)) return;
     if (!inside(s.points)) return;
-    const topMm = flOf(s.floorIndex || 0) + ceilingHeightOf(spec, s.floorIndex || 0) + (s.offsetYMm || 0);
+    // 天井の貼付高さはその面自身が持つ値（天井高の正は面）。上面 = 天井面 + 厚み。
+    const fi = s.floorIndex || 0;
+    const topMm = flOf(fi) + ceilingSlabTopMm(s, ceilingHeightOf(spec, fi)) + (s.offsetYMm || 0);
     const underMm = topMm - (s.thicknessMm || 0);
     const w = underMm * k;
     best = best == null ? w : Math.min(best, w);

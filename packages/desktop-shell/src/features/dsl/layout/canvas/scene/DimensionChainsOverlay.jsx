@@ -1,6 +1,8 @@
 // DimensionChainsOverlay — 図面の4辺（上下左右）に寸法列を並べる汎用エンジン。
 //   列ごとに「刻み元(source)」を指定し、その刻みでセグメント寸法を打つ:
-//     total … 両端だけ（総寸法） / grid … 通り芯間 / wall … 躯体の壁面 / level … 階レベル
+//     total … 両端だけ（総寸法） / grid … 通り芯間 / wall … 躯体の壁面
+//     levelFloor … 階高・GL（縦の列のみ。刻みは utils/levelChain）
+//   天井高は寸法列では扱わない（部屋ごとに違うので SectionCeilingDimensions が図面内に出す）。
 //   列は内側から外側へ自動配置。表記は展開図・断面図と同じスレート線＋白地の mm 値に揃える。
 //   図面注記なのでクリップ対象外（ignoreClipping）・深度無視で最前面に描く。
 //
@@ -15,7 +17,7 @@ import { useThree } from "@react-three/fiber";
 import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { useGridAxisStore } from "../../store/useGridAxisStore";
 import { useWallStore } from "../../store/useWallStore";
-import { useBuildingSpecStore, floorHeightOf, ceilingHeightOf } from "../../store/useBuildingSpecStore";
+import { useBuildingSpecStore } from "../../store/useBuildingSpecStore";
 import { useSceneObjectRegistryStore } from "../../store/sceneObjectRegistryStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useDimChainStore, defaultChainsFor, markKey } from "../../store/useDimChainStore";
@@ -23,6 +25,12 @@ import { useDrawToolActive } from "../../utils/drawToolActive";
 import { useBaseEditMode } from "../../utils/baseEditMode";
 import { useViewportDisplayStore } from "../../store/useViewportDisplayStore";
 import { measureXZBounds, chainSpan, sideOffsetMm, DIM_COL_GAP_MM } from "../../utils/planBounds";
+import {
+  levelMarksMm,
+  resolveLevelMarkMove,
+  resolveLevelSegmentEdit,
+  levelEditTitle,
+} from "../../utils/levelChain";
 
 const INK = "#475569";      // 寸法線
 const INK_DARK = "#0f172a"; // 数値
@@ -41,11 +49,16 @@ const tagStyle = (strong, hovered) => ({
   fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
 });
 
-/** 寸法値のバッジ。刻み元から自動計算した値なので数値そのものは表示専用。
+/** 寸法値のバッジ。値は刻み元から自動計算される。
  *  ホバーすると × が出て、その寸法を作っている「区切り」を消せる（両隣の寸法が統合される）。
+ *  onCommitMm を渡した列（階レベル系）は、ダブルクリックで数値を打ち込める。
  *  rotateDeg … 寸法線に沿わせる回転（製図の作法。縦列は下から上へ読ませる＝ -90°）。 */
-function ChainTag({ position, valueMm, strong, title, onDelete, rotateDeg = 0 }) {
+function ChainTag({ position, valueMm, strong, title, onDelete, onCommitMm, rotateDeg = 0 }) {
   const [hover, setHover] = useState(false);
+  const [editing, setEditing] = useState(false);
+  // 入力中の文字はローカルに持つ（state にすると1文字ごとに再レンダーされ、
+  // 親の寸法列がまるごと組み直されて入力欄がちらつく）。
+  const textRef = useRef("");
   // 作図中は寸法がクリックを吸わないようにする（点を置けなくなるため）。
   // Plan/Option（家具サイド）でも操作不可（寸法列は Base 共通＝編集は Base で）。
   // ⚠️ フックは必ず両方・無条件に呼ぶこと。`!useA() || useB()` は短絡評価で
@@ -55,6 +68,14 @@ function ChainTag({ position, valueMm, strong, title, onDelete, rotateDeg = 0 })
   const drawing = !baseEdit || drawTool;
   // 記号ロック中（寸法列）は区切りの削除（編集）を止める。設定パネルを開くだけの閲覧は残す。
   const locked = useViewportDisplayStore((s) => s.symbolLocks.dimension);
+  // 数値を確定する。空・非数・0 以下は無視（寸法列は必ず正の長さ）。
+  const commit = () => {
+    setEditing(false);
+    const mm = Number(textRef.current);
+    if (Number.isFinite(mm) && mm > 0) onCommitMm?.(mm);
+  };
+  // 編集できるのは「書き戻し先がある列」かつ「Base を開いていて作図中でもロック中でもない」とき。
+  const canEdit = !!onCommitMm && !drawing && !locked;
   // 寸法をクリック = その図面の寸法列の設定を右サイドバーに出す。
   const openPanel = (e) => {
     e?.stopPropagation?.();
@@ -77,14 +98,41 @@ function ChainTag({ position, valueMm, strong, title, onDelete, rotateDeg = 0 })
           transform: rotateDeg ? `rotate(${rotateDeg}deg)` : undefined,
         }}
       >
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={openPanel}
-          title={`${title}（クリックで寸法列の設定を開く）`}
-          style={{ ...tagStyle(strong, hover), pointerEvents: drawing ? "none" : "auto", userSelect: "none", cursor: "pointer" }}
-        >
-          {Math.round(valueMm)}
-        </div>
+        {editing ? (
+          <input
+            autoFocus type="number" defaultValue={Math.round(valueMm)}
+            onChange={(e) => { textRef.current = e.target.value; }}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") setEditing(false);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            style={{
+              width: 58, fontSize: 11, fontWeight: 700, textAlign: "center",
+              borderRadius: 3, border: `1px solid ${ACCENT}`,
+              background: "rgba(255,255,255,0.99)", color: INK_DARK,
+              outline: "none", pointerEvents: "auto",
+            }}
+          />
+        ) : (
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={openPanel}
+            onDoubleClick={canEdit ? (e) => {
+              e.stopPropagation();
+              textRef.current = String(Math.round(valueMm));
+              setEditing(true);
+            } : undefined}
+            title={canEdit
+              ? `${title}（クリックで寸法列の設定／ダブルクリックで数値入力）`
+              : `${title}（クリックで寸法列の設定を開く）`}
+            style={{ ...tagStyle(strong, hover), pointerEvents: drawing ? "none" : "auto", userSelect: "none", cursor: "pointer" }}
+          >
+            {Math.round(valueMm)}
+          </div>
+        )}
         {onDelete && hover && !locked && (
           <div
             onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); onDelete(); }}
@@ -191,6 +239,16 @@ function normalizeMarks(values, lo, hi, tol) {
   return [lo, ...kept, hi];
 }
 
+/** levelChain が返した書き戻し先を、対応する setter 1 回に落とす。 */
+function applyLevelEdit(edit) {
+  if (!edit) return;
+  const bs = useBuildingSpecStore.getState();
+  if (edit.kind === "gl") bs.setGlMm(edit.valueMm);
+  else if (edit.kind === "cl") bs.setCeilingHeightAt(edit.index, edit.valueMm);
+  else if (edit.kind === "fl") bs.setFloorFlMm(edit.index, edit.valueMm);
+  else if (edit.kind === "floorHeight") bs.setFloorHeightAt(edit.index, edit.valueMm);
+}
+
 export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }) {
   // view: "plan" | "front" | "right"
   const configs = useDimChainStore((s) => s.configs);
@@ -208,6 +266,13 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
   const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
   const floorHeightMm = useBuildingSpecStore((s) => s.floorHeightMm);
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
+
+  // 階レベルの刻みへ渡す BuildingSpec。⚠️ getState() ではなく購読した値から組むこと。
+  //   getState() で読むと GL・階高・CL を変えても再レンダーが起きず、寸法列が追従しない。
+  const levelSpec = useMemo(
+    () => ({ glMm, fl0Mm, floors, floorHeightMm, ceilingHeightMm }),
+    [glMm, fl0Mm, floors, floorHeightMm, ceilingHeightMm],
+  );
 
   const isMm = (sceneMaxY || 0) > 100;
   const w = (mm) => (isMm ? mm : mm / 1000);   // mm → world
@@ -287,19 +352,17 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
       return g.length >= 2 ? g : [];
     }
 
-    if (source === "level") {
-      // 縦方向の列だけ。GL / 各階 FL / CL を刻みにする。
+    if (source === "levelFloor" || source === "level") {
+      // 縦方向の列だけ。刻みの中身（GL / FL / CL / 最上部）は utils/levelChain が持つ。
       if (along !== "v" || view === "plan") return [];
-      const base = fl0Mm || 0;
-      const spec = useBuildingSpecStore.getState();
-      const vals = [w(base + glMm)];
-      (floors || []).forEach((f, i) => {
-        const fl = base + (f.flMm || 0);
-        vals.push(w(fl));                              // その階の床
-        vals.push(w(fl + ceilingHeightOf(spec, i)));   // その階の天井（CL は階ごと）
-        vals.push(w(fl + floorHeightOf(spec, i)));     // 上階の床
-      });
-      return normalizeMarks(vals, lo, hi, w(60));
+      const kind = source === "levelFloor" ? "floor" : "legacy";
+      const marks = levelMarksMm(levelSpec, kind).map(w);
+      if (marks.length < 2) return [];
+      // 新しい 2 つは自前の端（GL 〜 最上部）で閉じる。normalizeMarks は端を図面の外形へ
+      // 強制するので通さない（GL が外形より下だと落ちるし、頂部に余りの寸法が1本増える）。
+      if (source !== "level") return marks;
+      // 旧「階レベル」は従来どおり図面の外形を端にする（保存済み図面の見た目を変えない）。
+      return normalizeMarks(marks, lo, hi, w(60));
     }
 
     if (source === "wall") {
@@ -366,7 +429,7 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
   /**
    * 区切りをドラッグしたときに動かす「実体」を返す。
    *   grid  … その位置の通り芯そのもの
-   *   level … GL / 各階 FL / 各階 CL
+   *   階レベル系 … GL / 各階 FL / 各階 CL / 最上部（＝最上階の階高）
    * wall（躯体から拾った位置）と total（建物の端）は動かせないので null。
    */
   const resolveMarkDrag = (source, along, worldPos) => {
@@ -387,26 +450,18 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
         onCommit: () => useGridAxisStore.getState().persistAxes(),
       };
     }
-    if (source === "level") {
-      const base = bs.fl0Mm || 0;
+    if (source === "levelFloor" || source === "level") {
       const mm = toMm(worldPos);
-      const near = (a) => Math.abs(a - mm) < 80;
-      if (near(base + bs.glMm)) {
-        return { cursor: "ns-resize", title: "GL（地盤レベル）を動かす",
-          onMove: (v) => bs.setGlMm(Math.round(toMm(v)) - base) };
-      }
-      for (let i = 0; i < (bs.floors || []).length; i++) {
-        const fl = base + (bs.floors[i].flMm || 0);
-        if (i > 0 && near(fl)) {
-          return { cursor: "ns-resize", title: `${bs.floors[i].name || `${i + 1}FL`} の床レベルを動かす`,
-            onMove: (v) => bs.setFloorFlMm(i, Math.round(toMm(v)) - base) };
-        }
-        if (near(fl + ceilingHeightOf(bs, i))) {
-          return { cursor: "ns-resize", title: `${bs.floors[i].name || `${i + 1}FL`} の天井高（CL）を動かす`,
-            onMove: (v) => bs.setCeilingHeightAt(i, Math.round(toMm(v)) - fl) };
-        }
-      }
-      return null;
+      // 掴めるマークか（GL / 各階 FL / 各階 CL / 最上部）をまず判定する。
+      const grabbed = resolveLevelMarkMove(bs, mm, mm);
+      if (!grabbed) return null;
+      return {
+        cursor: "ns-resize",
+        title: levelEditTitle(bs, grabbed),
+        // ドラッグ中はストアが毎フレーム変わるので、動かす先はその都度最新から解決する。
+        onMove: (v) => applyLevelEdit(
+          resolveLevelMarkMove(useBuildingSpecStore.getState(), mm, toMm(v))),
+      };
     }
     return null;
   };
@@ -436,11 +491,18 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
   // 区切りドラッグのレイキャスト平面の高さ（平面図の作図面）。
   const planeY = (sectionClipHeight || w(1500)) * 0.94;
 
+  // 余白を測る基準（datum）は最外の通り芯。躯体 GLB のバウンディングボックスを基準にすると、
+  // Rhino から取り込んだモデルの敷地・基礎・庇まで含んでしまい、壁からの余白にならない。
+  // 通り芯が 2 本未満の向きだけ、従来どおり建物の外形で代用する（chainSpan と同じ規則）。
+  //   上下辺は v 方向に逃がすので v の通り芯 / 左右辺は h 方向なので h の通り芯。
+  const [dvMin, dvMax] = chainSpan(gridValues("v"), vMin, vMax);
+  const [dhMin, dhMax] = chainSpan(gridValues("h"), hMin, hMax);
+
   const sides = [
-    { side: "top", along: "h", lo: hMin, hi: hMax, base: vFlip ? vMin : vMax, sign: vFlip ? -1 : +1 },
-    { side: "bottom", along: "h", lo: hMin, hi: hMax, base: vFlip ? vMax : vMin, sign: vFlip ? +1 : -1 },
-    { side: "left", along: "v", lo: vMin, hi: vMax, base: hFlip ? hMax : hMin, sign: hFlip ? +1 : -1 },
-    { side: "right", along: "v", lo: vMin, hi: vMax, base: hFlip ? hMin : hMax, sign: hFlip ? -1 : +1 },
+    { side: "top", along: "h", lo: hMin, hi: hMax, base: vFlip ? dvMin : dvMax, sign: vFlip ? -1 : +1 },
+    { side: "bottom", along: "h", lo: hMin, hi: hMax, base: vFlip ? dvMax : dvMin, sign: vFlip ? +1 : -1 },
+    { side: "left", along: "v", lo: vMin, hi: vMax, base: hFlip ? dhMax : dhMin, sign: hFlip ? +1 : -1 },
+    { side: "right", along: "v", lo: vMin, hi: vMax, base: hFlip ? dhMin : dhMax, sign: hFlip ? -1 : +1 },
   ];
 
   return (
@@ -496,6 +558,11 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
                     // 縦の列（左右）は数値も縦に寝かせ、下から上へ読ませる（製図の作法）。
                     rotateDeg={along === "v" ? -90 : 0}
                     title={`${CHAIN_TITLE[column.source]}（${SIDE_TITLE[side]}）`}
+                    // 階レベル系だけ数値を編集できる。書き戻し先は区切りドラッグと同じ実体。
+                    onCommitMm={LEVEL_SOURCES.includes(column.source)
+                      ? (mm) => applyLevelEdit(
+                          resolveLevelSegmentEdit(useBuildingSpecStore.getState(), toMm(a), toMm(b), mm))
+                      : undefined}
                     onDelete={isEnd ? undefined : () =>
                       useDimChainStore.getState().removeMark(markKey(viewKey, side, column.source, toMm(cut)))}
                   />
@@ -509,5 +576,10 @@ export default function DimensionChainsOverlay({ viewKey = null, view = "plan" }
   );
 }
 
-const CHAIN_TITLE = { total: "総寸法", grid: "通り芯間", wall: "壁面", level: "階レベル" };
+const CHAIN_TITLE = {
+  total: "総寸法", grid: "通り芯間", wall: "壁面",
+  levelFloor: "階高・GL", level: "階レベル",
+};
 const SIDE_TITLE = { top: "上", bottom: "下", left: "左", right: "右" };
+/** 寸法値を編集すると建物の高さへ書き戻せる刻み元。 */
+const LEVEL_SOURCES = ["levelFloor", "level"];
