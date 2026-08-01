@@ -1191,6 +1191,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    /* 図のスプリント完了時スナップショット（読み取り専用の凍結版）。管理者のみ。 */
+    match /devDiagramSnapshots/{snapshotId} {
+      allow read, write: if isAdmin();
+    }
+
     /* LoRA モデル台帳（モデル製造ライン / LoRA Studio）。管理者のみ。
        用途別LoRAの状態（教材→学習→配信→運用）と配信フラグ・重みURLを持つ。 */
     match /loraModels/{modelId} {

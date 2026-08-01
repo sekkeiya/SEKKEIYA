@@ -414,7 +414,7 @@ server.registerTool('create_sprint', {
 
 server.registerTool('complete_sprint', {
   title: 'スプリントを完了（アーカイブ）',
-  description: 'スプリントを完了してアーカイブする。未完了の要件はバックログへ返却し、完了済みの要件は履歴としてスプリントに残る（UI の「完了」と同じ）。',
+  description: 'スプリントを完了してアーカイブする。未完了の要件はバックログへ返却し、完了済みの要件は履歴としてスプリントに残る（UI の「完了」と同じ）。完了時点の図（devDiagrams）を devDiagramSnapshots へ凍結する。',
   inputSchema: { sprintId: z.string().min(1) },
 }, async ({ sprintId }) => {
   const s = await getSprint(sprintId);
@@ -424,6 +424,13 @@ server.registerTool('complete_sprint', {
   const unfinished = inSprint.filter((r) => !isDone(r));
   await Promise.all(unfinished.map((r) =>
     items().doc(r.id).update({ sprintId: null, updatedAt: FieldValue.serverTimestamp() })));
+  // 完了時点の図を凍結（UI の completeSprint と同じ挙動。mermaid 空はスキップ・再完了は上書き）。
+  const dSnap = await diagramsCol().get();
+  await Promise.all(dSnap.docs
+    .filter((d) => DIAGRAM_TYPES.includes(d.id) && (d.data().mermaid || '').trim())
+    .map((d) => db.collection('devDiagramSnapshots').doc(`${sprintId}_${d.id}`).set({
+      sprintId, type: d.id, mermaid: d.data().mermaid, frozenAt: FieldValue.serverTimestamp(),
+    })));
   await sprintsCol().doc(sprintId).update({
     archived: true, archivedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
   });
