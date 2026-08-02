@@ -184,6 +184,16 @@ service firebase.storage {
       allow delete: if isSignedIn();
     }
 
+    /* ---------- プラグインパッケージ（要件73: マーケット公開の zip） ---------- */
+    // 導入時に downloadUrl で取得するため read は公開。書き込みは署名済み＋zip＋50MB以下。
+    match /pluginPackages/{pluginId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn()
+                   && request.resource.contentType.matches('application/zip')
+                   && request.resource.size < 50 * 1024 * 1024;
+      allow delete: if isSignedIn();
+    }
+
     /* ---------- fallback（✅ 必ず一番最後） ---------- */
     match /{allPaths=**} {
       allow read, write: if false;
