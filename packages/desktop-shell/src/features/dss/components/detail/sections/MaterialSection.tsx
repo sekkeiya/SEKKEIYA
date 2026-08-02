@@ -318,7 +318,7 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
               {!editZoomEnabled && glbUrl && (
                 <Box sx={overlayHintSx}>クリックすると拡大縮小できます</Box>
               )}
-              {/* 複数選択したときだけ出る。「グループ化」ではなく「部位にする」と呼ぶ。 */}
+              {/* 複数選択したときだけ出る。 */}
               {editSelectedCount >= 2 && (
                 <Box
                   sx={{
@@ -343,7 +343,7 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
                       '&:hover': { bgcolor: 'rgba(6,42,51,0.15)' },
                     }}
                   >
-                    部位にする
+                    グループ化
                   </Box>
                 </Box>
               )}

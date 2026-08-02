@@ -209,8 +209,8 @@ const PartRow: React.FC<{
     <Box
       sx={{
         borderRadius: '8px', padding: '8px 10px',
-        bgcolor: selected ? 'rgba(59,130,246,0.08)' : 'transparent',
-        border: `1px solid ${selected ? 'rgba(59,130,246,0.45)' : 'transparent'}`,
+        bgcolor: selected ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.025)',
+        border: `1px solid ${selected ? 'rgba(59,130,246,0.45)' : 'rgba(255,255,255,0.06)'}`,
       }}
     >
       <Box
@@ -300,19 +300,24 @@ export const MaterialEditor: React.FC<MaterialEditorProps> = ({
         <>
           {registeredRows.length === 0 && (
             <Typography sx={{ fontSize: 12, color: 'rgba(148,163,184,0.8)' }}>
-              まだ部位がありません。ビューアでパーツをクリックして選び、「部位にする」を押してください。
+              まだ部位がありません。ビューアでパーツをクリックして選び、「グループ化」を押してください。
             </Typography>
           )}
-          {registeredRows.map((row, index) => (
-            <PartRow
-              key={row.key}
-              row={row}
-              index={index}
-              selected={selectedKeys.includes(row.key)}
-              selectedOptionId={selection[row.key]}
-              {...rowProps}
-            />
-          ))}
+          {/* 登録済みの部位は素材スウォッチが増えるので広めのカラム。1行1件だと右が空く。 */}
+          {registeredRows.length > 0 && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '12px' }}>
+              {registeredRows.map((row, index) => (
+                <PartRow
+                  key={row.key}
+                  row={row}
+                  index={index}
+                  selected={selectedKeys.includes(row.key)}
+                  selectedOptionId={selection[row.key]}
+                  {...rowProps}
+                />
+              ))}
+            </Box>
+          )}
 
           {unregisteredRows.length > 0 && (
             <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.07)', pt: '11px' }}>
@@ -348,7 +353,8 @@ export const MaterialEditor: React.FC<MaterialEditorProps> = ({
                 )}
               </Box>
               {showUnregistered && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', mt: '10px' }}>
+                /* 未設定は1件あたり素材0個なので、詰めて並べる。 */
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', mt: '10px' }}>
                   {unregisteredRows.map((row, i) => (
                     <PartRow
                       key={row.key}

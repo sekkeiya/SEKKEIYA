@@ -62,6 +62,7 @@ import { StandaloneWorkspace } from './pages/StandaloneWorkspace';
 import { ChatWindow } from './pages/ChatWindow';
 import { DriveWindow } from './pages/DriveWindow';
 import { CodeWindow } from './pages/CodeWindow';
+import { ResearchWindow } from './pages/ResearchWindow';
 import { openDriveWindow } from './utils/openDriveWindow';
 import { openSearchWindow } from './utils/openSearchWindow';
 import { openReaderHome } from './features/dsb/lib/openReader';
@@ -85,8 +86,10 @@ const isChatWindow = new URLSearchParams(window.location.search).has('chatWindow
 const isDriveWindow = new URLSearchParams(window.location.search).has('driveWindow');
 // SEKKEIYA Code をポップアウトした独立ウィンドウ（/?codeWindow=true）。
 const isCodeWindow = new URLSearchParams(window.location.search).has('codeWindow');
+// Research & Memo をポップアウトした独立ウィンドウ（/?researchWindow=true）。
+const isResearchWindow = new URLSearchParams(window.location.search).has('researchWindow');
 // 本体以外の子ウィンドウ全般（本体専用の常駐処理はこれらで無効化する）。
-const isChildWindow = isStandalone || isChatWindow || isDriveWindow || isCodeWindow;
+const isChildWindow = isStandalone || isChatWindow || isDriveWindow || isCodeWindow || isResearchWindow;
 
 // 起動時の SEKKEIYA OS ウィンドウ自動オープンをプロセスに1回だけにするためのガード。
 let didAutoOpenOsWindow = false;
@@ -1057,6 +1060,8 @@ function App() {
               <DriveWindow />
             ) : isCodeWindow ? (
               <CodeWindow />
+            ) : isResearchWindow ? (
+              <ResearchWindow />
             ) : (
               <MainAppInitGate>
                 <WorkspaceProvider>

@@ -32,6 +32,11 @@ interface Props {
   sidebarWidth?: number;
   /** 左のボード一覧サイドバーの幅。 */
   boardListWidth?: number;
+  /**
+   * ボード一覧の上に差し込むスコープ選択（独立ウィンドウ専用）。
+   * 本体のタブはプロジェクト文脈が決まっているので渡さない＝見た目は従来どおり。
+   */
+  scopePicker?: React.ReactNode;
 }
 
 /**
@@ -40,7 +45,7 @@ interface Props {
  * 右にサイドバー。ボードは scope（プロジェクト/個人）ごとに複数持てる。
  * アクティブボードと左サイドバーの開閉は localStorage に scope 単位で記憶する。
  */
-export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sidebarWidth = 400, boardListWidth = 220 }) => {
+export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sidebarWidth = 400, boardListWidth = 220, scopePicker }) => {
   const [boards, setBoards] = useState<ResearchBoardMeta[]>([]);
   const [activeDocId, setActiveDocId] = useState<string>(DEFAULT_BOARD_DOC_ID);
   const [loadingBoards, setLoadingBoards] = useState(true);
@@ -428,6 +433,8 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
             </Tooltip>
           </Box>
         </Box>
+
+        {boardListOpen && scopePicker}
 
         {boardListOpen && (
           <Box sx={{
