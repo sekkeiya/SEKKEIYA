@@ -157,6 +157,8 @@ interface OverviewFormState {
   height: string;
   /** SH（座面高、mm・任意）。チェア/ソファ系のときだけ入力欄を出す。 */
   seatHeight: string;
+  /** GLB の向き補正（Y 軸回り、0 or 90）。W⇄D と連動して切り替わる。入力欄は持たない。 */
+  yawDeg: number;
   materials: string[];
   tags: string[];
 }
@@ -179,6 +181,7 @@ function buildOverviewFormState(model: any): OverviewFormState {
     depth: model?.dimensions?.depth != null ? String(model.dimensions.depth) : '',
     height: model?.dimensions?.height != null ? String(model.dimensions.height) : '',
     seatHeight: Number(model?.dimensions?.seatHeight) > 0 ? String(model.dimensions.seatHeight) : '',
+    yawDeg: Number(model?.dimensions?.yawDeg) === 90 ? 90 : 0,
     materials: Array.isArray(model?.materials) ? [...model.materials] : [],
     tags: Array.isArray(model?.tags) ? [...model.tags] : [],
   };
@@ -231,7 +234,9 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
     const d = Number(src.depth) || 0;
     const h = Number(src.height) || 0;
     if (!w && !d && !h) return null;
-    return { width: w, depth: d, height: h };
+    // 向き補正は元モデル固有の値。置き換え候補を表示中は候補側の補正に従う。
+    const yawDeg = Number((src as { yawDeg?: number }).yawDeg) === 90 ? 90 : 0;
+    return { width: w, depth: d, height: h, yawDeg };
   }, [swapUrl, swapDims, liveDims, model.dimensions]);
 
   // ── ビューア: 寸法線 / 全画面 / ホイールズームのクリックゲート ──
@@ -423,13 +428,24 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
       width: Number(formState.width) || 0,
       depth: Number(formState.depth) || 0,
       height: Number(formState.height) || 0,
+      yawDeg: formState.yawDeg,
     });
-  }, [mode, model?.id, formState.width, formState.depth, formState.height, setLiveDimensions]);
+  }, [mode, model?.id, formState.width, formState.depth, formState.height, formState.yawDeg, setLiveDimensions]);
 
   // 幅と奥行の数値を入れ替える。AI の自動入力が W と D を取り違えて保存するケースが多く、
   // 手で打ち直すより1クリックで直せるほうが速い。保存は通常のフォームと同じ自動保存に乗せる。
+  //
+  // 数値だけ入れ替えるとモデルが変形する: ビューアも S.Layout も登録寸法へ軸ごとに厳密
+  // スケールするため、W と D を入れ替えた瞬間に片方が引き伸ばされ、もう片方が潰れる。
+  // W/D が取り違っているのは GLB が 90° 倒れてモデリングされているからなので、
+  // 同時に向き補正（yawDeg）も 0⇄90 で切り替えて形を保つ。2 回押せば元に戻る。
   const swapWidthDepth = () => {
-    setFormState((prev) => ({ ...prev, width: prev.depth, depth: prev.width }));
+    setFormState((prev) => ({
+      ...prev,
+      width: prev.depth,
+      depth: prev.width,
+      yawDeg: prev.yawDeg === 90 ? 0 : 90,
+    }));
     setFormDirty(true);
   };
 
@@ -499,6 +515,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
           depth: Number(data.depth) || 0,
           height: Number(data.height) || 0,
           seatHeight: Number(data.seatHeight) || 0,
+          // GLB の向き補正。W⇄D と対で保存しないと、次に開いたとき再び変形して見える。
+          yawDeg: data.yawDeg === 90 ? 90 : 0,
         },
         price: Number(data.price) || 0,
         visibility: data.visibility,
@@ -634,14 +652,14 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
   return (
     <Box sx={{ display: 'flex', gap: '24px', padding: mode === 'edit' ? '22px 28px' : '24px 28px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
       {/* 左カラム：ビューア＋アクション行 */}
-      <Box sx={{ width: mode === 'edit' ? 440 : undefined, flex: mode === 'edit' ? 'none' : 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <Box sx={{ width: mode === 'edit' ? 600 : undefined, maxWidth: mode === 'edit' ? '45%' : undefined, flex: mode === 'edit' ? 'none' : 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {/* Finding I2: このラッパー自体は「レイアウト上の場所」を確保するだけの非昇格
             （zIndex を持たない）コンテナ。実際の背景色/ビューアと、寸法/全画面ボタン等の
             オーバーレイは、下で意図的に「別要素」に分離している——同じ Box の子のままだと、
             全画面時に共有 Canvas を隠さないための z-index 昇格（下記）が、背景と一緒に
             ボタンまで巻き込んでしまう（stacking context の親子関係の落とし穴、詳しくは
             DetailCanvasHost.tsx の elevated prop コメント参照）。 */}
-        <Box sx={{ position: 'relative', width: fullscreen ? '100vw' : '100%', height: fullscreen ? '100vh' : (mode === 'edit' ? 300 : 420) }}>
+        <Box sx={{ position: 'relative', width: fullscreen ? '100vw' : '100%', height: fullscreen ? '100vh' : 420 }}>
           {/* 背景＋3Dトラッキング面。通常時は zIndex 無し（共有 Canvas と同じ「昇格されていない」
               層に属し、DOM順で Canvas より後ろ＝下に塗られる）。全画面時は zIndex:1300 に昇格
               しつつ、共有 Canvas 側も DssModelDetailView が elevated=true で 1301 まで

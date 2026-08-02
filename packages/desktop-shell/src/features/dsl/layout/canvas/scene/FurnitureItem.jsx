@@ -452,10 +452,16 @@ function FurnitureGlbResolvedInner({
   const targetH = Number(dimensionsMm?.height ?? dimensionsMm?.z) || 0;
   const targetD = Number(dimensionsMm?.depth ?? dimensionsMm?.y) || 0;
 
-  const { offsetX, offsetY, offsetZ, scaleVec } = React.useMemo(() => {
-    if (!cloned) return { offsetX: 0, offsetY: 0, offsetZ: 0, scaleVec: [1, 1, 1] };
+  // GLB の向き補正（S.Model 詳細の W⇄D が保存する dimensions.yawDeg）。90 のとき、
+  // ワールド X/Z に来る辺が入れ替わるので、スケールは「回した後の辺」に対して計算する。
+  // 未設定なら 0 で、従来と完全に同じ計算になる。
+  const assetYawDeg = Number(dimensionsMm?.yawDeg) === 90 ? 90 : 0;
+
+  const { offsetX, offsetY, offsetZ, scaleVec, assetYawRad } = React.useMemo(() => {
+    const assetYawRad = (assetYawDeg * Math.PI) / 180;
+    if (!cloned) return { offsetX: 0, offsetY: 0, offsetZ: 0, scaleVec: [1, 1, 1], assetYawRad };
     const box = new THREE.Box3().setFromObject(cloned);
-    if (box.isEmpty()) return { offsetX: 0, offsetY: 0, offsetZ: 0, scaleVec: [1, 1, 1] };
+    if (box.isEmpty()) return { offsetX: 0, offsetY: 0, offsetZ: 0, scaleVec: [1, 1, 1], assetYawRad };
 
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
@@ -470,17 +476,21 @@ function FurnitureGlbResolvedInner({
     //   - 寸法が幅だけの旧データは従来どおりプロポーションを保ったまま表示
     //   - 寸法ゼロのデータは極小モデル救済 (600mm) を維持
     // という後方互換を保つ。
+    const swapped = assetYawDeg === 90;
+    const extX = swapped ? size.z : size.x;
+    const extZ = swapped ? size.x : size.z;
+
     const primary =
-      targetW > 0 && size.x > 0
-        ? targetW / size.x
-        : (size.x > 0 && size.x < 50 ? 600 / size.x : 1);
+      targetW > 0 && extX > 0
+        ? targetW / extX
+        : (extX > 0 && extX < 50 ? 600 / extX : 1);
 
-    const sx = targetW > 0 && size.x > 0 ? targetW / size.x : primary;
+    const sx = targetW > 0 && extX > 0 ? targetW / extX : primary;
     const sy = targetH > 0 && size.y > 0 ? targetH / size.y : primary;
-    const sz = targetD > 0 && size.z > 0 ? targetD / size.z : primary;
+    const sz = targetD > 0 && extZ > 0 ? targetD / extZ : primary;
 
-    return { offsetX: ox, offsetY: oy, offsetZ: oz, scaleVec: [sx, sy, sz] };
-  }, [cloned, targetW, targetH, targetD]);
+    return { offsetX: ox, offsetY: oy, offsetZ: oz, scaleVec: [sx, sy, sz], assetYawRad };
+  }, [cloned, targetW, targetH, targetD, assetYawDeg]);
 
   if (!cloned) return null;
 
@@ -488,7 +498,11 @@ function FurnitureGlbResolvedInner({
     <BoingWrapper>
       <group ref={innerRef}>
         <group ref={animRef}>
+          {/* 向き補正はスケールより内側。three.js の T*R*S 合成では同一 group に
+              rotation と scale を持たせるとスケールがモデル固有の軸に効いてしまうため、
+              外側 group に S、内側 group に R を分けて S(R(model)) の順にする。 */}
           <group scale={scaleVec}>
+            <group rotation={[0, assetYawRad, 0]}>
             <group position={[offsetX, offsetY, offsetZ]}>
               <primitive object={cloned} />
               {(Array.isArray(gimmickSpecs) ? gimmickSpecs : []).map((g) => (
@@ -502,6 +516,7 @@ function FurnitureGlbResolvedInner({
                   label={g.label || gimmickLabel}
                 />
               ))}
+            </group>
             </group>
           </group>
         </group>

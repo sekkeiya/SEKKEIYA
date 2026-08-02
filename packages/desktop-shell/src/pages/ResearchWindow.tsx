@@ -37,20 +37,27 @@ export const ResearchWindow: React.FC = () => {
   // （ChatWindow と同じ手口。AuthGuard 配下なので currentUser は確定している）。
   const currentUser = useAuthStore(s => s.currentUser);
   const projects = useAppStore(s => s.projects);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+
   useEffect(() => {
+    setProjectsLoaded(false);
     if (!currentUser) return;
     fetchUserProjects(currentUser.uid)
-      .then(ps => useAppStore.setState({
-        projects: ps.filter(p => p.name !== TEMPLATE_WORKSPACE_NAME),
-      }))
+      .then(ps => {
+        useAppStore.setState({
+          projects: ps.filter(p => p.name !== TEMPLATE_WORKSPACE_NAME),
+        });
+        setProjectsLoaded(true);
+      })
       .catch(e => console.warn('[ResearchWindow] プロジェクト取得に失敗:', e));
   }, [currentUser]);
 
-  // 一覧が届いたら、消えたプロジェクトを指していないか確かめる。
+  // プロジェクト一覧の取得が成功したら、消えたプロジェクトを指していないか確かめる。
+  // 取得失敗時には整合しない（一時的なネットワーク障害かもしれないため、スコープの切り替えを避ける）。
   useEffect(() => {
-    if (projects.length === 0) return;
+    if (!projectsLoaded) return;
     setScope(current => reconcileScope(current, projects.map(p => p.id)));
-  }, [projects]);
+  }, [projectsLoaded, projects]);
 
   useEffect(() => {
     import('@tauri-apps/api/window')
@@ -98,6 +105,13 @@ export const ResearchWindow: React.FC = () => {
         <ResearchBoardWorkspace
           key={scope}
           scope={scope}
+          scopePicker={
+            <ResearchScopePicker
+              scope={scope}
+              onChange={setScope}
+              projects={projects.map(p => ({ id: p.id, name: p.name, isTeam: p.isTeam }))}
+            />
+          }
           sidebar={isAccount ? <AccountMemoTab /> : <ProjectActivityFeed compact />}
           sidebarWidth={isAccount ? 420 : 400}
         />

@@ -17,6 +17,13 @@ export interface DetailViewportDimensions {
   width: number;
   depth: number;
   height: number;
+  /**
+   * GLB の向きの補正（Y 軸回りの度数、0/90/180/270）。
+   * 寸法は軸ごとに厳密スケールされるため、GLB が 90° 倒れてモデリングされていると
+   * W と D の登録値を正しく直した瞬間にモデルが引き伸ばされてしまう。この角度で
+   * 先にモデルを回してから測る/スケールすることで、形を崩さずに W/D を正せる。
+   */
+  yawDeg?: number;
 }
 
 /**
@@ -401,7 +408,7 @@ const ViewportModel: FC<ViewportModelProps> = ({
     return new THREE.Box3().setFromObject(clonedScene);
   }, [clonedScene]);
 
-  const { scale, scaledBox, displayDims } = useMemo(() => {
+  const { scale, scaledBox, displayDims, yawRad } = useMemo(() => {
     const size = baseBox.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     // extractDimensionsFromGlb と同じ単位判定: 20未満なら m 単位、それ以外は mm とみなす
@@ -411,33 +418,63 @@ const ViewportModel: FC<ViewportModelProps> = ({
     const td = Number(targetDimensions?.depth) || 0;
     const th = Number(targetDimensions?.height) || 0;
 
-    const sx = tw > 0 && size.x > 0 ? tw / mmPerUnit / size.x : 1;
-    const sz = td > 0 && size.z > 0 ? td / mmPerUnit / size.z : 1;
+    // 向き補正。90/270 のときはワールド X/Z に来る辺が入れ替わるので、
+    // スケールは「回した後の辺」に対して計算する。
+    const yaw = (((Number(targetDimensions?.yawDeg) || 0) % 360) + 360) % 360;
+    const swapped = yaw === 90 || yaw === 270;
+    const extX = swapped ? size.z : size.x;
+    const extZ = swapped ? size.x : size.z;
+
+    const sx = tw > 0 && extX > 0 ? tw / mmPerUnit / extX : 1;
+    const sz = td > 0 && extZ > 0 ? td / mmPerUnit / extZ : 1;
     const sy = th > 0 && size.y > 0 ? th / mmPerUnit / size.y : 1;
 
-    const scaledBox = new THREE.Box3(
-      new THREE.Vector3(baseBox.min.x * sx, baseBox.min.y * sy, baseBox.min.z * sz),
-      new THREE.Vector3(baseBox.max.x * sx, baseBox.max.y * sy, baseBox.max.z * sz)
-    );
+    // 寸法線用の箱。回転時は回した後のワールド範囲を中心対称で作る（Stage が
+    // どのみち中央寄せするため、元の非対称オフセットは寸法線の見た目に影響しない）。
+    const scaledBox = swapped
+      ? new THREE.Box3(
+        new THREE.Vector3(-extX * sx / 2, baseBox.min.y * sy, -extZ * sz / 2),
+        new THREE.Vector3(extX * sx / 2, baseBox.max.y * sy, extZ * sz / 2)
+      )
+      : new THREE.Box3(
+        new THREE.Vector3(baseBox.min.x * sx, baseBox.min.y * sy, baseBox.min.z * sz),
+        new THREE.Vector3(baseBox.max.x * sx, baseBox.max.y * sy, baseBox.max.z * sz)
+      );
     const displayDims: DetailViewportDimensions = {
-      width: tw > 0 ? tw : size.x * mmPerUnit,
-      depth: td > 0 ? td : size.z * mmPerUnit,
+      width: tw > 0 ? tw : extX * mmPerUnit,
+      depth: td > 0 ? td : extZ * mmPerUnit,
       height: th > 0 ? th : size.y * mmPerUnit,
     };
-    return { scale: [sx, sy, sz] as [number, number, number], scaledBox, displayDims };
-  }, [baseBox, targetDimensions?.width, targetDimensions?.depth, targetDimensions?.height]);
+    return {
+      scale: [sx, sy, sz] as [number, number, number],
+      scaledBox,
+      displayDims,
+      yawRad: (yaw * Math.PI) / 180,
+    };
+  }, [baseBox, targetDimensions?.width, targetDimensions?.depth, targetDimensions?.height, targetDimensions?.yawDeg]);
 
   return (
     <group onPointerMissed={animProps ? () => animProps.onMissed?.() : undefined}>
+      {/* スケールは向き補正の回転より「外側」の group に置く。three.js は自分の行列を
+          T*R*S の順で組むため、同じオブジェクトに rotation と scale を持たせると
+          スケールがモデル固有の軸に効いてしまい、回した後のワールド X/Z に合わない。
+          外側 group に S、内側 group に R を分けることで S(R(model)) の順になる。 */}
       {animProps ? (
         // animGroupRef は identity transform のまま始まり、LoopAnimator が有効なときだけ
-        // position/rotation を書き込む。scale は従来どおり primitive 側にあるままなので、
-        // スケール/センタリングの結果は変わらない（二重オフセットにならない）。
+        // position/rotation を書き込む。
         <group ref={animGroupRef}>
-          <primitive object={clonedScene} scale={scale} onClick={handleClick} />
+          <group scale={scale}>
+            <group rotation={[0, yawRad, 0]}>
+              <primitive object={clonedScene} onClick={handleClick} />
+            </group>
+          </group>
         </group>
       ) : (
-        <primitive object={clonedScene} scale={scale} onClick={handleClick} />
+        <group scale={scale}>
+          <group rotation={[0, yawRad, 0]}>
+            <primitive object={clonedScene} onClick={handleClick} />
+          </group>
+        </group>
       )}
       {showDimensions && <DimensionOverlay box={scaledBox} dims={displayDims} />}
       {animProps && (
