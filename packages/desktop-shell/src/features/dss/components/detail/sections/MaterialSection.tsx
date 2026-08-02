@@ -1,13 +1,19 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
 import { DetailViewport } from '../DetailViewport';
 import type { EnumeratedSlot } from '../../../../shared/material/applyMaterial';
 import { getDownloadUrlForModel } from '../../../utils/modelUtils';
+import { slotDisplayTitle } from '../../../utils/materialSlotLabel';
 import {
-  readMaterialVariants, readMaterialPresets, expandVariantSelection, variantSwatchColor,
-  resolveSelectedOption, swatchColorOf, slotMembers, type MaterialPreviewState,
+  readMaterialVariants, readMaterialPresets, expandVariantSelection,
+  slotMembers, type MaterialPreviewState,
 } from '../../../../shared/material/materialPresets';
+import {
+  swatchVisualOf, variantVisualOf, selectionsEqual, selectionSummary, placeholderCount,
+  type SwatchVisual,
+} from '../../../utils/materialSectionView';
 import { DssMaterialPresets } from '../../DssMaterialPresets';
 
 export interface MaterialSectionProps {
@@ -17,34 +23,44 @@ export interface MaterialSectionProps {
   projectId?: string;
 }
 
-const PART_CHIP_BASE_SX = {
-  height: '26px',
-  display: 'flex',
-  alignItems: 'center',
-  padding: '0 12px',
-  borderRadius: '999px',
-  fontSize: '11.5px',
-  fontWeight: 700,
-  cursor: 'pointer',
-  border: '1px solid transparent',
-  whiteSpace: 'nowrap' as const,
-} as const;
-
-/** 選択中/非選択の部位フィルタチップ。「すべての部位」＋各プリセットスロット共通で使う。 */
-const PartChip: React.FC<{ label: string; selected: boolean; onClick: () => void }> = ({ label, selected, onClick }) => (
+/** ヘッダー右側の件数ピル。SECTION 5（ProductsSection）の CountPill と同じ見た目。 */
+const CountPill: React.FC<{ label: string }> = ({ label }) => (
   <Box
-    component="button"
-    type="button"
-    onClick={onClick}
     sx={{
-      ...PART_CHIP_BASE_SX,
-      font: 'inherit',
-      bgcolor: selected ? 'rgba(59,130,246,0.9)' : 'transparent',
-      color: selected ? '#fff' : 'rgba(255,255,255,0.72)',
-      borderColor: selected ? 'transparent' : 'rgba(255,255,255,0.15)',
+      fontSize: 11, fontWeight: 600, color: '#93c5fd',
+      border: '1px solid rgba(147,197,253,0.35)', borderRadius: '999px',
+      padding: '3px 10px', whiteSpace: 'nowrap',
     }}
   >
     {label}
+  </Box>
+);
+
+/** 丸スウォッチ。テクスチャ画像があれば敷き、無ければ色のベタ塗り。 */
+const Swatch: React.FC<{
+  visual: SwatchVisual;
+  selected: boolean;
+  title: string;
+  onClick: () => void;
+}> = ({ visual, selected, title, onClick }) => (
+  <Box
+    component="button"
+    type="button"
+    title={title}
+    aria-label={title}
+    aria-pressed={selected}
+    onClick={onClick}
+    sx={{
+      width: 44, height: 44, flex: 'none', padding: 0, borderRadius: '50%',
+      overflow: 'hidden', cursor: 'pointer', bgcolor: visual.color,
+      border: selected ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.18)',
+      transition: 'border-color 0.15s, transform 0.15s',
+      '&:hover': { borderColor: selected ? '#3b82f6' : 'rgba(255,255,255,0.45)', transform: 'scale(1.06)' },
+    }}
+  >
+    {visual.imageUrl && (
+      <Box component="img" src={visual.imageUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+    )}
   </Box>
 );
 
@@ -68,16 +84,14 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
   const variants = useMemo(() => readMaterialVariants(model), [model]);
 
   // ============================== 閲覧 ==============================
-  // 部位フィルタ（null = すべての部位）とパターン選択（null = 元の見た目）。
+  // selection（slotKey -> optionId）が唯一の選択状態。空 = 元の GLB 素材のまま。
   // モデル切替時にリセットする。useEffect 内の setState は react-hooks/set-state-in-effect に
   // 抵触するため使わず、「レンダー中に調整」パターン（React 公式の推奨）で行う。
-  const [selectedPartKey, setSelectedPartKey] = useState<string | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<Record<string, string>>({});
   const [prevModelIdForSelection, setPrevModelIdForSelection] = useState(model?.id);
   if (model?.id !== prevModelIdForSelection) {
     setPrevModelIdForSelection(model?.id);
-    setSelectedPartKey(null);
-    setSelectedVariantId(null);
+    setSelection({});
   }
 
   // glbUrl（≒表示モデル）が変わったらズームゲートを閉じる（OverviewSection と同じ考え方）。
@@ -88,69 +102,38 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
     setViewZoomEnabled(false);
   }
 
-  const captionForSelection = useCallback((sel: Record<string, string>) => {
-    const parts: string[] = [];
-    for (const ps of presets) {
-      const opt = resolveSelectedOption(ps, sel[ps.slotKey]);
-      if (opt?.title) parts.push(opt.title);
-    }
-    return parts.length > 0 ? parts.join(' / ') : null;
-  }, [presets]);
+  // 部位クリック（pickable）は使わない。閲覧では部位行のスウォッチが選択の入口になるため、
+  // ビューアのクリックは「ズーム有効化」だけを意味するようにして操作の二重化を避ける。
+  const viewMaterialPreview: MaterialPreviewState | null = useMemo(() => (
+    presets.length > 0 ? { presets, selection, highlight: [], pickable: false } : null
+  ), [presets, selection]);
 
-  const defaultSwatchColor = useMemo(() => {
-    for (const ps of presets) {
-      const opt = resolveSelectedOption(ps, undefined);
-      if (opt) return swatchColorOf(opt);
-    }
-    return '#9aa0a6';
-  }, [presets]);
+  const summary = useMemo(() => selectionSummary(presets, selection), [presets, selection]);
 
+  const pickOption = useCallback((slotKey: string, optionId: string | null) => {
+    setSelection((prev) => {
+      const next = { ...prev };
+      if (optionId == null) delete next[slotKey];
+      else next[slotKey] = optionId;
+      return next;
+    });
+  }, []);
+
+  // パターンカード。先頭は「元の見た目」（selection を空にする＝元の GLB 素材へ戻す）。
   const patternCards = useMemo(() => {
-    const cards: Array<{ id: string | null; title: string; thumbUrl?: string | null; swatchColor: string; caption: string | null }> = [
-      { id: null, title: '元の見た目', thumbUrl: null, swatchColor: defaultSwatchColor, caption: captionForSelection({}) },
+    const cards: Array<{ key: string; title: string; visual: SwatchVisual; selection: Record<string, string> }> = [
+      { key: '__default', title: '元の見た目', visual: { imageUrl: placeholderUrl, color: '#3a4150' }, selection: {} },
     ];
     for (const v of variants) {
       cards.push({
-        id: v.id,
+        key: v.id,
         title: v.title || 'パターン',
-        thumbUrl: v.thumbUrl,
-        swatchColor: variantSwatchColor(presets, v),
-        caption: captionForSelection(v.selection),
+        visual: variantVisualOf(presets, v),
+        selection: expandVariantSelection(presets, v),
       });
     }
     return cards;
-  }, [variants, presets, defaultSwatchColor, captionForSelection]);
-
-  const viewSelection = useMemo(() => {
-    if (selectedVariantId == null) return {};
-    const v = variants.find((vv) => vv.id === selectedVariantId);
-    return v ? expandVariantSelection(presets, v) : {};
-  }, [selectedVariantId, variants, presets]);
-
-  const viewHighlight = useMemo(() => {
-    if (!selectedPartKey) return [];
-    const p = presets.find((ps) => ps.slotKey === selectedPartKey);
-    if (!p) return [];
-    return slotMembers(p).map((m) => m.meshName).filter((n): n is string => !!n);
-  }, [selectedPartKey, presets]);
-
-  const viewMaterialPreview: MaterialPreviewState | null = useMemo(() => (
-    presets.length > 0 ? { presets, selection: viewSelection, highlight: viewHighlight, pickable: true } : null
-  ), [presets, viewSelection, viewHighlight]);
-
-  const rowKeyForMeshName = useCallback((meshName: string): string | null => {
-    const p = presets.find((ps) => slotMembers(ps).some((m) => m.meshName === meshName));
-    return p ? p.slotKey : null;
-  }, [presets]);
-
-  const handleViewMeshClick = useCallback((meshName: string) => {
-    const key = rowKeyForMeshName(meshName);
-    if (key) setSelectedPartKey(key);
-  }, [rowKeyForMeshName]);
-
-  const currentPatternLabel = selectedVariantId == null
-    ? '元の見た目'
-    : (variants.find((v) => v.id === selectedVariantId)?.title || 'パターン');
+  }, [variants, presets, placeholderUrl]);
 
   // ============================== 編集 ==============================
   // このセクション専用ビューアを DssMaterialPresets の externalViewer 委譲先にする配線。
@@ -188,78 +171,124 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
   };
 
   if (mode === 'view') {
+    // presets が無いと部位も選べずパターンも効かないため、組み合わせブロックごと出さない。
+    const showPatterns = presets.length > 0 && variants.length > 0;
     return (
       <Box sx={{ padding: '24px 28px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '10px', mb: '16px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', mb: '4px' }}>
           <Typography sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '1px', color: '#93c5fd', fontFamily: 'ui-monospace, Menlo, monospace' }}>
             SECTION 1
           </Typography>
+          <PaletteRoundedIcon sx={{ fontSize: 19, color: '#93c5fd' }} />
           <Typography sx={{ fontSize: 19, fontWeight: 700, color: '#fff' }}>素材</Typography>
-          <Typography sx={{ fontSize: 12.5, color: 'rgba(148,163,184,0.9)' }}>張地・木部のパターンを切り替えて比べる</Typography>
+          <Box sx={{ flex: 1 }} />
+          {presets.length > 0 && <CountPill label={`部位 ${presets.length}`} />}
+          {variants.length > 0 && <CountPill label={`パターン ${variants.length}`} />}
         </Box>
+        <Typography sx={{ fontSize: 12.5, color: 'rgba(148,163,184,0.9)', mb: '16px' }}>
+          部位ごとに素材を選ぶか、保存済みの組み合わせを選ぶ。
+        </Typography>
 
-        <Box sx={{ display: 'flex', gap: '20px' }}>
-          <Box
-            onPointerDown={() => setViewZoomEnabled(true)}
-            sx={{ width: 360, flex: 'none', height: 230, borderRadius: '10px', overflow: 'hidden', bgcolor: '#080b11', border: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}
-          >
-            <DetailViewport
-              glbUrl={glbUrl}
-              placeholderUrl={placeholderUrl}
-              height="100%"
-              materialPreview={viewMaterialPreview}
-              onMeshClick={handleViewMeshClick}
-              enableZoom={viewZoomEnabled}
-            />
-            {!viewZoomEnabled && glbUrl && (
-              <Box sx={overlayHintSx}>クリックすると拡大縮小できます</Box>
-            )}
+        <Box sx={{ display: 'flex', gap: '18px' }}>
+          <Box sx={{ width: 210, flex: 'none' }}>
+            <Box
+              onPointerDown={() => setViewZoomEnabled(true)}
+              sx={{ aspectRatio: '1 / 1', borderRadius: '10px', overflow: 'hidden', bgcolor: '#080b11', border: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}
+            >
+              <DetailViewport
+                glbUrl={glbUrl}
+                placeholderUrl={placeholderUrl}
+                height="100%"
+                materialPreview={viewMaterialPreview}
+                enableZoom={viewZoomEnabled}
+              />
+              {!viewZoomEnabled && glbUrl && (
+                <Box sx={overlayHintSx}>クリックすると拡大縮小できます</Box>
+              )}
+            </Box>
+            <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.8)', mt: '8px' }}>選択中</Typography>
+            <Typography sx={{ fontSize: 12, color: '#fff', lineHeight: 1.5 }}>{summary}</Typography>
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <Box sx={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              <PartChip label="すべての部位" selected={selectedPartKey === null} onClick={() => setSelectedPartKey(null)} />
-              {presets.map((p) => (
-                <PartChip
-                  key={p.slotKey}
-                  label={p.label || 'パーツ'}
-                  selected={selectedPartKey === p.slotKey}
-                  onClick={() => setSelectedPartKey(p.slotKey)}
-                />
-              ))}
-            </Box>
-
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
-              {patternCards.map((card) => {
-                const selected = card.id === selectedVariantId;
-                return (
-                  <Box key={card.id ?? '__default'} onClick={() => setSelectedVariantId(card.id)} sx={{ cursor: 'pointer' }}>
-                    <Box
-                      sx={{
-                        height: 90, borderRadius: '8px', overflow: 'hidden',
-                        border: selected ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.12)',
-                        bgcolor: card.swatchColor,
-                      }}
-                    >
-                      {card.thumbUrl && (
-                        <Box component="img" src={card.thumbUrl} alt={card.title} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      )}
-                    </Box>
-                    <Typography sx={{ fontSize: 12, mt: '6px', fontWeight: 600, color: '#fff' }} noWrap>{card.title}</Typography>
-                    {card.caption && (
-                      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }} noWrap>{card.caption}</Typography>
-                    )}
+            {presets.map((ps, index) => {
+              const name = slotDisplayTitle(ps.label, slotMembers(ps)[0]?.meshName, index);
+              const selectedId = selection[ps.slotKey];
+              const selectedOption = ps.options.find((o) => o.id === selectedId);
+              return (
+                <Box key={ps.slotKey}>
+                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '8px', mb: '8px' }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{name}</Typography>
+                    <Typography sx={{ fontSize: 11, color: 'rgba(148,163,184,0.75)' }} noWrap>
+                      {selectedOption?.title || '元のまま'}
+                    </Typography>
                   </Box>
-                );
-              })}
-            </Box>
+                  <Box sx={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <Swatch
+                      visual={{ imageUrl: placeholderUrl, color: '#3a4150' }}
+                      selected={!selectedId}
+                      title="元のまま"
+                      onClick={() => pickOption(ps.slotKey, null)}
+                    />
+                    {ps.options.map((o) => (
+                      <Swatch
+                        key={o.id}
+                        visual={swatchVisualOf(o)}
+                        selected={selectedId === o.id}
+                        title={o.title || '素材'}
+                        onClick={() => pickOption(ps.slotKey, o.id)}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              );
+            })}
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', bgcolor: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.22)' }}>
-              <Typography sx={{ fontSize: 11.5, color: 'rgba(255,255,255,0.75)', flex: 1 }}>
-                選んだパターンはこの画面のビューアに反映されます
-              </Typography>
-              <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: '#93c5fd' }} noWrap>現在：{currentPatternLabel}</Typography>
-            </Box>
+            {showPatterns && (
+              <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.09)', pt: '13px' }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#fff', mb: '9px' }}>保存済みの組み合わせ</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
+                  {patternCards.map((card) => {
+                    const selected = selectionsEqual(selection, card.selection);
+                    return (
+                      <Box
+                        key={card.key}
+                        component="button"
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setSelection(card.selection)}
+                        sx={{
+                          font: 'inherit', textAlign: 'left', padding: 0, background: 'none',
+                          border: 'none', cursor: 'pointer',
+                          '&:hover .pattern-thumb': { transform: 'translateY(-2px)', borderColor: selected ? '#3b82f6' : 'rgba(255,255,255,0.45)' },
+                        }}
+                      >
+                        <Box
+                          className="pattern-thumb"
+                          sx={{
+                            aspectRatio: '4 / 3', borderRadius: '8px', overflow: 'hidden',
+                            bgcolor: card.visual.color,
+                            border: selected ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.14)',
+                            transition: 'transform 0.15s, border-color 0.15s',
+                          }}
+                        >
+                          {card.visual.imageUrl && (
+                            <Box component="img" src={card.visual.imageUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          )}
+                        </Box>
+                        <Typography sx={{ fontSize: 11.5, mt: '5px', fontWeight: 600, color: '#fff' }} noWrap>{card.title}</Typography>
+                      </Box>
+                    );
+                  })}
+                  {Array.from({ length: placeholderCount(patternCards.length) }).map((_, i) => (
+                    <Box
+                      key={`ph-${i}`}
+                      sx={{ aspectRatio: '4 / 3', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.25)', opacity: 0.28 }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>

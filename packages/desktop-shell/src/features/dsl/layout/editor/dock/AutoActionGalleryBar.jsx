@@ -7,9 +7,9 @@
 //   - カードクリックでも実行
 import React, { useEffect, useRef, useState } from "react";
 import { useAutoActionStore } from "../../store/useAutoActionStore";
-import { useAutoLayoutStore, resolveAutoLayoutIds } from "../../store/useAutoLayoutStore";
+import { useAutoLayoutStore } from "../../store/useAutoLayoutStore";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
-import { useAutoActions, AUTO_ACTION_OPTIONS } from "./useAutoActions";
+import { useAutoActions, AUTO_ACTION_OPTIONS, AUTO_LAYOUT_PURPOSE_OPTIONS, runAutoLayout } from "./useAutoActions";
 import { runAiPipeline } from "../../services/aiOrchestrator";
 
 const GALLERY_KINDS = ["autoAI", "autoZone", "autoSelect", "autoLayout", "autoReplace", "autoMaterial", "autoFurMat", "autoLighting", "autoLabel"];
@@ -26,31 +26,8 @@ const META = {
   autoLabel:    { label: "自動ラベル",         color: "light-dark(#0c8da1, #22d3ee)" },
 };
 
-// 自動レイアウトの「スタイル」= 建物タイプ別のゾーン用途プリセット（AutoLayoutSidePanel と同じ）。
-// 選ぶと zonePurpose を設定して Auto Layout を実行する。
-const LAYOUT_PURPOSE_OPTIONS = {
-  residential: [
-    { value: "general", label: "汎用" },
-    { value: "living",  label: "リビング" },
-    { value: "bedroom", label: "寝室" },
-    { value: "study",   label: "書斎" },
-  ],
-  office: [
-    { value: "general", label: "汎用" },
-    { value: "desk",    label: "執務室" },
-    { value: "meeting", label: "会議室" },
-  ],
-  cafe:   [{ value: "general", label: "汎用" }, { value: "seating", label: "客席" }],
-  hotel:  [{ value: "general", label: "汎用" }],
-  custom: [{ value: "general", label: "汎用" }],
-};
-
-// 選択された用途で Auto Layout を実行（zonePurpose を設定 → requestAutoLayout）。
-function runAutoLayout(purposeValue) {
-  const { setZonePurpose, requestAutoLayout } = useAutoLayoutStore.getState();
-  setZonePurpose(purposeValue);
-  requestAutoLayout(resolveAutoLayoutIds());
-}
+// 自動レイアウトの用途プリセットと実行は useAutoActions（共有モジュール）へ移した。
+// 本番プレビューの自動アクション一覧からも同じものを使うため。
 
 let styleInjected = false;
 function injectStyles() {
@@ -85,7 +62,7 @@ function buildItems(kind, runners, buildingType) {
     return opts.map((o, i) => ({ id: `${o.key}-${i}`, label: o.label, run: () => runAiPipeline(o.key, runners) }));
   }
   if (kind === "autoLayout") {
-    const opts = LAYOUT_PURPOSE_OPTIONS[buildingType] || LAYOUT_PURPOSE_OPTIONS.residential;
+    const opts = AUTO_LAYOUT_PURPOSE_OPTIONS[buildingType] || AUTO_LAYOUT_PURPOSE_OPTIONS.residential;
     return opts.map((o) => ({ id: o.value, label: o.label, run: () => runAutoLayout(o.value) }));
   }
   if (kind === "autoLabel") {

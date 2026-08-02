@@ -25,18 +25,23 @@ export default function TopBarMenuRow({
   onAskDelete,
   deleteTooltip,
   disabled = false,
+  // MUI の `disabled` は pointer-events: none を子要素にも及ぼすため、削除アイコンだけは
+  // 生かしたい壊れた行（参照先が見つからない等）向けに、見た目だけ減光する別経路。
+  // `disabled` と併用しない（disabled が優先されて操作不能になるだけになる）。
+  dim = false,
 }) {
   return (
     <MenuItem
       disabled={disabled}
       selected={selected}
-      onClick={onClick}
+      onClick={dim ? undefined : onClick}
       sx={{
         ...menuItemSx,
         display: "flex",
         alignItems: "center",
         gap: 1,
         pr: 0.75,
+        ...(dim ? { opacity: 0.55, cursor: "default" } : null),
         "& ._act": { opacity: 0, pointerEvents: "none" },
         "&:hover ._act": { opacity: 1, pointerEvents: "auto" },
       }}

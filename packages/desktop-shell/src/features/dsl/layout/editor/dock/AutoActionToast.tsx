@@ -25,7 +25,9 @@ export default function AutoActionToast() {
       autoHideDuration={4000}
       onClose={() => setOpen(false)}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      sx={{ bottom: { xs: 90, sm: 90 } }}
+      // zIndex: Snackbar の既定は 1400。本番プレビュー（zIndex 2000 の全画面オーバーレイ）から
+      // 自動アクションを実行したときに結果が裏に隠れるため、その上に出す。
+      sx={{ bottom: { xs: 90, sm: 90 }, zIndex: 2600 }}
     >
       <Alert
         severity={shown?.severity || "info"}

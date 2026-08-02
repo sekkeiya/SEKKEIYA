@@ -25,6 +25,7 @@ import { useAutoActionStore } from "../../store/useAutoActionStore";
 import { useUiRightSidebarStore } from "../../store/uiRightSidebarStore";
 import { useUiSelectionStore } from "../../store/uiSelectionStore";
 import { useStructureLabelStore } from "../../store/useStructureLabelStore";
+import { useEditorModeStore } from "../../store/useEditorModeStore";
 import { applySelectionScope } from "../../utils/applySelectionScope";
 
 // 自動アクション選択時に切り替えるトップツールバーのモード（スコープ）。
@@ -124,8 +125,13 @@ export default function AutoActionStarMenu() {
     // material系のみ AutoActionSidePanel(activeSide)。layout/render/movie は selectedAuto で別パネル。
     setActiveSide(MATERIAL_KINDS.includes(item.key) ? item.key : null);
     // トップツールバーのモードも対応するスコープへ切替（自動マテリアル=Material / 自動ラベル=Label / 他=Item）。
+    // ただし 3D 演出中の「自動マテリアル」は例外。Material スコープは editorMode="material" に入り、
+    // LayoutShell が右サイドバーを展開図カラム（ElevationEditor）に差し替え、左パネルも畳むため、
+    // 画面が丸ごと切り替わってしまう（＝いま選んだ自動マテリアルの設定パネルすら見えなくなる）。
+    // 自動マテリアルは面を選ばず一括で貼る一回きりの操作なので、3D 演出では見ているパースのまま実行する。
     const scope = SCOPE_BY_AUTO[item.key];
-    if (scope) applySelectionScope(scope);
+    const is3D = useEditorModeStore.getState().editorViewGroup === "3d";
+    if (scope && !(is3D && item.key === "autoMaterial")) applySelectionScope(scope);
   }, [setSelectedAuto, setSelectedItemId, setRightPanel, setActiveSide]);
 
   const aiSelected = selectedAuto === "autoAI";

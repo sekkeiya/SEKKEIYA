@@ -97,12 +97,16 @@ export function useOptionDoc({ projectId, workspaceId, planId, baseId }) {
             const snap = await getDoc(ref);
             if (snap.exists()) return;
 
+            // 2026-08-01: 以前は常に planType:"option" で作っていたため、Plan を開いていても
+            // Option として生成されていた（Option 階層の廃止に伴い修正）。開いている id が
+            // Base 自身なら base、それ以外は plan として作る。
+            const isBase = String(planId) === String(baseId);
             const initial = {
                 ...fallbackMeta,
                 projectId,
                 workspaceId,
-                planType: "option",
-                parentPlanId: baseId, // In 3DSL, baseId often acts as the parent of options unless it's a proposal
+                planType: isBase ? "base" : "plan",
+                parentPlanId: null,
                 rootBaseId: baseId,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
@@ -112,7 +116,7 @@ export function useOptionDoc({ projectId, workspaceId, planId, baseId }) {
             
             // Layout items are empty by default, no need to create subcollection docs explicitly
         },
-        [ref, projectId, workspaceId, baseId]
+        [ref, projectId, workspaceId, planId, baseId]
     );
 
     /**

@@ -15,7 +15,7 @@ import { AUTO_REPLACE_STYLES } from "../../services/autoReplacePipeline";
 import { generateSlots, summarizeSelection } from "../../services/furnitureSelectionService";
 import { useFurnitureSelectionStore } from "../../store/useFurnitureSelectionStore";
 import { useLayoutTaskStore } from "../../store/useLayoutTaskStore";
-import { useAutoLayoutStore } from "../../store/useAutoLayoutStore";
+import { useAutoLayoutStore, resolveAutoLayoutIds } from "../../store/useAutoLayoutStore";
 import { autoLabelStructure } from "../../services/structureAutoLabel";
 import { autoZoning } from "../../services/autoZoning";
 import { useScanFxStore } from "../../services/scanFx";
@@ -40,6 +40,33 @@ export const AUTO_ACTION_OPTIONS = {
   autoLabel:    null, // 単一実行
   autoZone:     null, // 単一実行
 };
+
+// 自動レイアウトの「スタイル」= 建物タイプ別のゾーン用途プリセット（AutoLayoutSidePanel と同じ）。
+// 選ぶと zonePurpose を設定して Auto Layout を実行する。
+// ※ 下部ギャラリーと本番プレビューの双方から使うのでここ（共有モジュール）に置く。
+export const AUTO_LAYOUT_PURPOSE_OPTIONS = {
+  residential: [
+    { value: "general", label: "汎用" },
+    { value: "living",  label: "リビング" },
+    { value: "bedroom", label: "寝室" },
+    { value: "study",   label: "書斎" },
+  ],
+  office: [
+    { value: "general", label: "汎用" },
+    { value: "desk",    label: "執務室" },
+    { value: "meeting", label: "会議室" },
+  ],
+  cafe:   [{ value: "general", label: "汎用" }, { value: "seating", label: "客席" }],
+  hotel:  [{ value: "general", label: "汎用" }],
+  custom: [{ value: "general", label: "汎用" }],
+};
+
+/** 選択された用途で Auto Layout を実行（zonePurpose を設定 → requestAutoLayout）。 */
+export function runAutoLayout(purposeValue) {
+  const { setZonePurpose, requestAutoLayout } = useAutoLayoutStore.getState();
+  setZonePurpose(purposeValue);
+  requestAutoLayout(resolveAutoLayoutIds());
+}
 
 export function useAutoActions() {
   const setResult = useAutoActionStore((s) => s.setResult);

@@ -1,5 +1,6 @@
 import { useSurfaceFinishStore } from '../store/useSurfaceFinishStore';
 import { useSurfacePatternStore } from '../store/useSurfacePatternStore';
+import { useDrawnFinishStore } from '../store/useDrawnFinishStore';
 import { useLightingStore } from '../store/useLightingStore';
 import { useItemMaterialRegistryStore } from '../store/itemMaterialRegistryStore';
 import { useItemSwapRegistryStore } from '../store/itemSwapRegistryStore';
@@ -18,6 +19,14 @@ import { stripUndefinedDeep, type PatternSnapshot } from '../utils/layoutPattern
 export function capturePattern(): PatternSnapshot {
   const finishes = Object.values(useSurfaceFinishStore.getState().finishes);
   const activePatterns = useSurfacePatternStore.getState().activePatterns;
+  // 内壁/外壁/床にまとめて貼る素材は別ストア。これを含めないと切替時に解除されて見える。
+  const d = useDrawnFinishStore.getState();
+  const drawnFinishes = {
+    interiorWall: d.interiorWall ?? null,
+    exteriorWall: d.exteriorWall ?? null,
+    floor: d.floor ?? null,
+    styleKey: d.styleKey ?? null,
+  };
   const lights = useLightingStore.getState().lights;
 
   const itemMaterials: Record<string, string> = {};
@@ -31,7 +40,7 @@ export function capturePattern(): PatternSnapshot {
 
   return stripUndefinedDeep<PatternSnapshot>({
     lights,
-    surface: { finishes, activePatterns },
+    surface: { finishes, activePatterns, drawnFinishes },
     itemMaterials,
     itemSwaps,
   });
@@ -41,6 +50,11 @@ export function capturePattern(): PatternSnapshot {
 export function applyPattern(snap: PatternSnapshot): void {
   if (snap.surface?.finishes) useSurfaceFinishStore.getState().replaceAll(snap.surface.finishes);
   if (snap.surface?.activePatterns) useSurfacePatternStore.getState().replaceActive(snap.surface.activePatterns);
+  if (snap.surface?.drawnFinishes) {
+    useDrawnFinishStore.getState().setFinishes(snap.surface.drawnFinishes as never);
+  } else if (snap.surface) {
+    useDrawnFinishStore.getState().clear();
+  }
   if (snap.lights) useLightingStore.getState().setLights(snap.lights);
   usePatternOverrideStore.getState().setAll(snap.itemMaterials ?? {}, snap.itemSwaps ?? {});
 }
@@ -57,6 +71,8 @@ export async function restoreDefaults(
     const surface = await loadSurfaceData(projectId, workspaceId, layoutKey);
     useSurfaceFinishStore.getState().replaceAll(surface.finishes || []);
     useSurfacePatternStore.getState().replaceActive(surface.activePatterns || {});
+    if (surface.drawnFinishes) useDrawnFinishStore.getState().setFinishes(surface.drawnFinishes as never);
+    else useDrawnFinishStore.getState().clear();
   } catch (e) {
     console.warn('[patternSnapshot] 面仕上げの復帰に失敗', e);
   }

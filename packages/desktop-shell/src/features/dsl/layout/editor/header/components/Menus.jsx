@@ -1,13 +1,17 @@
 // src/features/layout/components/Header/components/Menus.jsx
 import React, { useMemo, useCallback } from "react";
-import { Menu, MenuItem, ListItemText, ListItemIcon, Divider, CircularProgress } from "@mui/material";
+import { Menu, MenuItem, ListItemText, ListItemIcon, Divider, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 
 import { useWorkspaceStructureStore } from "../../../store/useWorkspaceStructureStore";
 import TopBarMenuRow from "./TopBarMenuRow";
+import { useLayoutOptionActions } from "../../../hooks/useLayoutOptionActions";
+import { useLayoutPatternStore } from "../../../store/useLayoutPatternStore";
+import { resolveProposalPlan } from "../../../utils/layoutPatterns";
 
 // ===== display helpers�E�Eenus 側�E�E====
 function numToAlpha(n) {
@@ -60,7 +64,6 @@ export default function Menus({
 
   const creatingBase = useWorkspaceStructureStore((s) => s.creatingBase);
   const creatingPlan = useWorkspaceStructureStore((s) => s.creatingPlan);
-  const creatingOption = useWorkspaceStructureStore((s) => s.creatingOption);
 
   const deletingBase = useWorkspaceStructureStore((s) => s.deletingBase);
   const deletingPlan = useWorkspaceStructureStore((s) => s.deletingPlan);
@@ -72,7 +75,6 @@ export default function Menus({
 
   const createBase = useWorkspaceStructureStore((s) => s.createBase);
   const createPlan = useWorkspaceStructureStore((s) => s.createPlan);
-  const createOption = useWorkspaceStructureStore((s) => s.createOption);
 
   const deleteBase = useWorkspaceStructureStore((s) => s.deleteBase);
   const deletePlan = useWorkspaceStructureStore((s) => s.deletePlan);
@@ -81,6 +83,34 @@ export default function Menus({
   const duplicateBase = useWorkspaceStructureStore((s) => s.duplicateBase);
   const duplicatePlan = useWorkspaceStructureStore((s) => s.duplicatePlan);
   const duplicateOption = useWorkspaceStructureStore((s) => s.duplicateOption);
+
+  // 提案（旧 Option）＝「どの Plan を使い、どんな見た目にするか」の完全な最終形（Base 直下）。
+  // プレビューと同じ実体を使うので、どちらで作成・選択しても自動的に連動する。
+  // 切替は参照先 planId が違えば Plan 切替を含む（resolveProposalPlan で使用 Plan を解決）。
+  const {
+    busy: optionBusy,
+    plans: proposalPlans,
+    selectOption: applyOption,
+    registerOption,
+    updateOption,
+    removeOption,
+  } = useLayoutOptionActions();
+  // 一覧と選択中はプレビューと同じくストアを直接購読する。
+  const rawViewOptions = useLayoutPatternStore((s) => s.patterns);
+  const viewOptions = Array.isArray(rawViewOptions) ? rawViewOptions : [];
+  const activeOptionId = useLayoutPatternStore((s) => s.activePatternId);
+  const optionCount = viewOptions.length;
+  const [optionDialogOpen, setOptionDialogOpen] = React.useState(false);
+  const [optionNameDraft, setOptionNameDraft] = React.useState("");
+  const openOptionDialog = React.useCallback(() => {
+    closeAll?.();
+    setOptionNameDraft(`提案 ${optionCount + 1}`);
+    setOptionDialogOpen(true);
+  }, [closeAll, optionCount]);
+  const submitOptionDialog = React.useCallback(async () => {
+    setOptionDialogOpen(false);
+    await registerOption(optionNameDraft);
+  }, [registerOption, optionNameDraft]);
 
   const selectBase = useWorkspaceStructureStore((s) => s.selectBase);
   const selectPlan = useWorkspaceStructureStore((s) => s.selectPlan);
@@ -199,14 +229,7 @@ export default function Menus({
     await createPlan?.(selectedBaseId);
   }, [closeAll, createPlan, selectedBaseId]);
 
-  const handleNewOption = useCallback(async () => {
-    closeAll?.();
-    if (!selectedBaseId || !selectedPlanId) return;
-    await createOption?.({ baseId: selectedBaseId, planId: selectedPlanId });
-  }, [closeAll, createOption, selectedBaseId, selectedPlanId]);
-
   const canCreatePlan = Boolean(selectedBaseId);
-  const canCreateOption = Boolean(selectedBaseId && selectedPlanId);
 
   return (
     <>
@@ -358,7 +381,7 @@ export default function Menus({
         </MenuItem>
       </Menu>
 
-      {/* ========================= Option Menu ========================= */}
+      {/* ========================= 提案 Menu ========================= */}
       <Menu
         anchorEl={optionAnchorEl}
         open={openOption}
@@ -367,81 +390,103 @@ export default function Menus({
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        {!selectedBaseId || !selectedPlanId ? (
+        {!selectedBaseId ? (
           <MenuItem disabled sx={{ mx: 0.75, my: 0.25, borderRadius: 1.5, opacity: 0.7 }}>
-            <ListItemText primary="Select base & plan first" primaryTypographyProps={{ fontWeight: 800, fontSize: 13 }} />
-          </MenuItem>
-        ) : optionsLoading ? (
-          <MenuItem disabled sx={{ mx: 0.75, my: 0.25, borderRadius: 1.5, opacity: 0.7 }}>
-            <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
-              <CircularProgress size={16} />
-            </ListItemIcon>
-            <ListItemText primary="Loading options..." primaryTypographyProps={{ fontWeight: 800, fontSize: 13 }} />
-          </MenuItem>
-        ) : safeOptions.length === 0 ? (
-          <MenuItem disabled sx={{ mx: 0.75, my: 0.25, borderRadius: 1.5, opacity: 0.7 }}>
-            <ListItemText primary="No options" primaryTypographyProps={{ fontWeight: 800, fontSize: 13 }} />
+            <ListItemText primary="Select base first" primaryTypographyProps={{ fontWeight: 800, fontSize: 13 }} />
           </MenuItem>
         ) : (
-          safeOptions.map((o, i) => {
-            const selected = o?.id === selectedOptionId;
-            const primary = displayOptionNameByIndex(i);
-            const secondary = o?.name ? o.name : "";
-            const human = `${primary}${secondary ? ` (${secondary})` : ""}`;
-
-            return (
-              <TopBarMenuRow
-                key={o?.id || i}
-                selected={selected}
-                primary={primary}
-                secondary={secondary}
-                menuItemSx={menuItemSx}
-                danger={danger}
-                onClick={() => handleSelectOption(o?.id)}
-                onAskDuplicate={duplicateOption ? () => duplicateOption(o?.id) : null}
-                duplicateTooltip="Duplicate Option"
-                duplicateDisabled={duplicatingOption}
-                duplicateLoading={duplicatingOption}
-                onAskDelete={deleteOption && openConfirm ? () => askDelete("option", o?.id, human) : null}
-                deleteTooltip="Delete Option"
-                dangerDelete
-                disabled={!o?.id}
-              />
-            );
-          })
+          <>
+            <TopBarMenuRow
+              selected={!activeOptionId}
+              primary="デフォルト（いまの Plan の素の見た目）"
+              menuItemSx={menuItemSx}
+              danger={danger}
+              onClick={() => { closeAll?.(); applyOption(null); }}
+            />
+            {viewOptions.map((o) => {
+              const planRef = resolveProposalPlan(o?.planId ?? null, proposalPlans);
+              const planLabel =
+                planRef.kind === "ok" ? planRef.name
+                  : planRef.kind === "none" ? "躯体のみ"
+                    : "Plan が見つかりません";
+              const broken = planRef.kind === "missing";
+              return (
+                <TopBarMenuRow
+                  key={o.id}
+                  selected={o.id === activeOptionId}
+                  primary={o.name || "提案"}
+                  secondary={planLabel}
+                  menuItemSx={menuItemSx}
+                  danger={danger}
+                  onClick={() => { closeAll?.(); applyOption(o.id); }}
+                  onAskDelete={() => removeOption(o.id)}
+                  deleteTooltip="Delete Proposal"
+                  dangerDelete
+                  dim={broken}
+                />
+              );
+            })}
+          </>
         )}
 
         <Divider sx={{ my: 0.75, borderColor: alpha("#fff", 0.08) }} />
 
+        {/* 提案は登録時のスナップショット。見た目を変えたらここで明示的に上書きする
+            （自動保存はしない＝意図しない破壊を防ぐ。仕様 §4）。 */}
+        {activeOptionId && (
+          <MenuItem
+            onClick={() => { closeAll?.(); updateOption(activeOptionId); }}
+            disabled={optionBusy}
+            sx={{ ...menuItemSx, fontWeight: 900 }}
+          >
+            <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
+              {optionBusy ? <CircularProgress size={16} /> : <SaveRoundedIcon fontSize="small" />}
+            </ListItemIcon>
+            <ListItemText
+              primary="この提案を更新"
+              secondary="いまの Plan と見た目で上書きする"
+              primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }}
+              secondaryTypographyProps={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}
+            />
+          </MenuItem>
+        )}
+
         <MenuItem
-          onClick={handleNewOption}
-          disabled={!createOption || creatingOption || !canCreateOption}
+          onClick={openOptionDialog}
+          disabled={!selectedBaseId || optionBusy}
           sx={{ ...menuItemSx, fontWeight: 900 }}
         >
           <ListItemIcon sx={{ minWidth: 28, color: "var(--brand-fg)" }}>
-            {creatingOption ? <CircularProgress size={16} /> : <AddRoundedIcon fontSize="small" />}
-          </ListItemIcon>
-          <ListItemText primary="+ New Option" primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }} />
-        </MenuItem>
-
-        <Divider sx={{ my: 0.75, borderColor: alpha("#fff", 0.08) }} />
-
-        <MenuItem
-          onClick={() => selectedOptionId && deleteOption && askDelete("option", selectedOptionId, currentOptionLabel)}
-          disabled={!deleteOption || !selectedOptionId || deletingOption}
-          sx={{ ...menuItemSx, color: danger, "&:hover": { background: alpha("#ff5252", 0.12) } }}
-        >
-          <ListItemIcon sx={{ minWidth: 28, color: danger }}>
-            {deletingOption ? <CircularProgress size={16} /> : <DeleteOutlineRoundedIcon fontSize="small" />}
+            {optionBusy ? <CircularProgress size={16} /> : <AddRoundedIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText
-            primary="Delete Option"
-            secondary={selectedOptionId ? currentOptionLabel : ""}
+            primary={activeOptionId ? "+ 新しい提案として保存" : "+ いまの状態を提案として登録"}
+            secondary="使用中の Plan と見た目をまとめて保存"
             primaryTypographyProps={{ fontWeight: 900, fontSize: 13 }}
             secondaryTypographyProps={{ fontSize: 11, color: "color-mix(in srgb, var(--brand-fg) 55%, transparent)" }}
           />
         </MenuItem>
       </Menu>
+
+      {/* 提案名の入力（プレビュー側と同じ操作をエディタからも行えるように） */}
+      <Dialog open={optionDialogOpen} onClose={() => setOptionDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: 15, fontWeight: 800 }}>いまの状態を提案として登録</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 12, opacity: 0.7, mb: 1.5 }}>
+            使用中の Plan と、床壁天井の仕上げ・照明・家具の素材と置き換えをまとめて保存します。
+          </Typography>
+          <TextField
+            autoFocus fullWidth size="small" label="提案名"
+            value={optionNameDraft}
+            onChange={(e) => setOptionNameDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void submitOptionDialog(); } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setOptionDialogOpen(false)} sx={{ textTransform: "none" }}>キャンセル</Button>
+          <Button onClick={() => { void submitOptionDialog(); }} disabled={!optionNameDraft.trim()} variant="contained" sx={{ textTransform: "none" }}>登録</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

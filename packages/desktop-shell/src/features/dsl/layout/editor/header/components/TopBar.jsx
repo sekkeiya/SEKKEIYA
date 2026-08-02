@@ -52,6 +52,7 @@ import DrawingLightToggle from "./toolbars/DrawingLightToggle.jsx";
 import RoomColorToggle from "./toolbars/RoomColorToggle.jsx";
 import ViewGroupToggle from "./toolbars/ViewGroupToggle.jsx";
 import StructureBreadcrumb from "./StructureBreadcrumb.jsx";
+import ProposalSelector from "./ProposalSelector.jsx";
 
 import ConfirmDialog from "./ConfirmDialog";
 import { useUiRightSidebarStore } from "../../../store/uiRightSidebarStore";
@@ -378,16 +379,17 @@ export default function TopBar({
           </Button>
         </Box>
 
-        {/* Row 1 CENTER-LEFT: 現在開いている Base / Plan / Option のパンくず */}
+        {/* Row 1 CENTER-LEFT: 現在開いている Base / Plan のパンくず ＋ 独立した提案セレクタ */}
         <Box sx={{ flexShrink: 1, display: "flex", alignItems: "center", ml: 1.5, minWidth: 0, overflow: "hidden" }}>
           <StructureBreadcrumb />
+          <ProposalSelector />
         </Box>
 
-        {/* Row 1 RIGHT: Context Controls (Base/Plan/Option, Save, Preview) */}
+        {/* Row 1 RIGHT: Context Controls (Save, Preview) */}
         <Box sx={{ marginLeft: "auto", flexShrink: 0, display: "flex", alignItems: "center", gap: 0.8, flexWrap: "nowrap" }}>
-          
+
           {/* 保存状態（現在のレイアウト）— 共有/プレビューと高さ・角丸を揃える。
-              レイアウト名は左のパンくず（Base › Plan › Option）が表示するのでピルは廃止。 */}
+              レイアウト名は左のパンくず（Base ▸ Plan）と、隣の ProposalSelector（提案）が表示するのでピルは廃止。 */}
           {selectedLayoutId ? (
             <Chip
               size="small"

@@ -42,25 +42,32 @@ export function useProjectAssetUsage({ projectId, workspaceId = "layout" }) {
 
         const planMap = new Map(allPlans.map((p) => [p.id, p]));
 
-        // Option(末端レイアウト) のみを対象にする
-        const optionPlans = allPlans.filter((p) => p.planType === "option");
+        // 家具を持つレイアウト（Plan と、移行前に残っている Option）を対象にする。
+        // 2026-08-01: 以前は Option だけを見ていたため、Plan 直下に置かれた家具
+        // （現在の標準）を丸ごと数え落としていた（Option 階層の廃止に伴い修正）。
+        const optionPlans = allPlans.filter((p) => p.planType === "plan" || p.planType === "option");
 
         // 一時的な集計オブジェクト
         // assetId -> { totalCount, locationsMap: { optionId -> { pathName, count } } }
         const rawMap = {};
 
-        // パス名復元ヘルパー
-        const getParentPath = (optId) => {
-          const opt = planMap.get(optId);
-          if (!opt) return optId;
-          const prop = planMap.get(opt.parentPlanId);
-          const base = prop ? planMap.get(prop.parentPlanId) : null;
-
-          const baseName = base ? base.name || "Unknown Base" : "Unknown Base";
-          const propName = prop ? prop.name || "Unknown Plan" : "Unknown Plan";
-          const optName = opt.name || "Unknown Option";
-
-          return `${baseName} / ${propName} / ${optName}`;
+        // パス名復元ヘルパー。Plan（2段: Base / Plan）と Option（3段: Base / Plan / Option）の
+        // どちらでも組み立てられるよう、parentPlanId を辿ってから rootBaseId を先頭に付ける。
+        const getParentPath = (nodeId) => {
+          const node = planMap.get(nodeId);
+          if (!node) return nodeId;
+          const names = [node.name || "Untitled"];
+          let cur = node;
+          for (let i = 0; i < 3 && cur?.parentPlanId; i++) {
+            const parent = planMap.get(cur.parentPlanId);
+            if (!parent) break;
+            names.unshift(parent.name || "Untitled");
+            cur = parent;
+          }
+          const base = planMap.get(node.rootBaseId);
+          const baseName = base?.name || "Unknown Base";
+          if (names[0] !== baseName) names.unshift(baseName);
+          return names.join(" / ");
         };
 
         // 各 Option の items を並列取得

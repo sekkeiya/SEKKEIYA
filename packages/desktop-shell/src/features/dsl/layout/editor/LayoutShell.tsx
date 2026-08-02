@@ -36,11 +36,15 @@ import { useAuth } from "../hooks/useAuthProxy";
 import { useOptionDoc } from "../hooks/useOptionDoc";
 import { usePlanModelOverridesSync } from "../hooks/usePlanModelOverridesSync";
 import { useLayoutPatternsSync } from "../hooks/useLayoutPatternsSync";
+import { useProposalAutoCapture } from "../hooks/useProposalAutoCapture";
+import { useLayoutPatternStore } from "../store/useLayoutPatternStore";
+import { migratePlanPatternsToBase } from "../api/layoutPatternsApi";
+import { setProposalItemsBridge } from "../services/proposalItemsBridge";
 import { useWorkspaceStructure } from "../hooks/useWorkspaceStructure";
 
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
-import { getPlanDocRef, migrateLegacyBaseToPlanOption } from "../utils/workspaceStubs";
+import { getPlanDocRef, migrateLegacyBaseToPlanOption, promoteOptionsToPlans } from "../utils/workspaceStubs";
 import { captureLayoutTopView } from "../services/layoutThumbnailCapture";
 import { useResolvedUrl, resolveUrlAsync } from "../hooks/useResolvedUrl";
 import { useGLTF } from "@react-three/drei";
@@ -359,6 +363,15 @@ export interface LayoutShellProps {
   initialOptionId?: string | null;
   meta?: any;
   loadingMeta?: boolean;
+}
+
+/**
+ * Base / Plan / Option 一覧を WorkspaceStructureStore へ hydrate するかの判定に使う署名。
+ * id と name だけを見る（doc 全体を比べると updatedAt 等で毎スナップショット再 hydrate になる）。
+ */
+function structureNodesSig(list: { id?: string; name?: string }[] | undefined): string {
+  if (!Array.isArray(list)) return "";
+  return list.map((n) => [n?.id ?? "", n?.name ?? ""].join("~")).join("|");
 }
 
 export default function LayoutShell({
@@ -755,8 +768,7 @@ export default function LayoutShell({
         const res = await migrateLegacyBaseToPlanOption({ projectId, workspaceId, baseId: selectedBaseId, userId: uid });
         if (res?.planId) {
           setSelectedPlanId(res.planId);
-          setSelectedOptionId(res.optionId);
-          console.log("[LayoutShell] ✅ migrated legacy base → plan/option:", res);
+          console.log("[LayoutShell] ✅ migrated legacy base → plan:", res);
         }
       } catch (err) {
         console.warn("[LayoutShell] legacy base migration failed (non-fatal):", err);
@@ -777,6 +789,31 @@ export default function LayoutShell({
     setSelectedPlanId,
     setSelectedOptionId,
   ]);
+
+  // =========================
+  // Option 階層の廃止に伴う移行: 既存の Option を兄弟 Plan へ昇格する（items はコピーせず
+  // planType を書き換えるだけの非破壊操作）。Base を開いたときに1度だけ走る。
+  // 見た目の違いはパターン（layouts/{planId}/patterns）で表すため、Option は不要になった。
+  // =========================
+  const promotedBasesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!projectId || !workspaceId || !selectedBaseId) return;
+    if (isWorkspaceLoading || optionsLoading) return;
+    if (promotedBasesRef.current.has(selectedBaseId)) return;
+    promotedBasesRef.current.add(selectedBaseId);
+    (async () => {
+      try {
+        const n = await promoteOptionsToPlans({ projectId, workspaceId, baseId: selectedBaseId });
+        if (n > 0) {
+          setSelectedOptionId(undefined);
+          console.log(`[LayoutShell] ✅ promoted ${n} option(s) → plan`);
+        }
+      } catch (err) {
+        console.warn("[LayoutShell] option→plan promotion failed (non-fatal):", err);
+        promotedBasesRef.current.delete(selectedBaseId);
+      }
+    })();
+  }, [projectId, workspaceId, selectedBaseId, isWorkspaceLoading, optionsLoading, setSelectedOptionId]);
 
   // 3DSC context — keep useEditorModeStore in sync so VerticalEditToolbar can pass room context
   const setDslBaseGlbUrl  = useEditorModeStore((s) => s.setDslBaseGlbUrl);
@@ -801,8 +838,22 @@ export default function LayoutShell({
   // 現在プランの modelOverrides チェーン（プラン別のウォークスルー候補絞り込み）を購読する。
   usePlanModelOverridesSync(projectId, workspaceId, effectiveLayoutId);
 
-  // 現在プランの見た目パターン（patterns サブコレクション + activePatternId）を購読する。
-  useLayoutPatternsSync(projectId, workspaceId, effectiveLayoutId);
+  // 現在の Base の提案（patterns サブコレクション + activePatternId）を購読する。
+  useLayoutPatternsSync(projectId, workspaceId, selectedBaseId);
+
+  // 旧配置（layouts/{planId}/patterns）の Option を Base 直下の提案へ lazy 移行する。
+  // plansOfSelectedBase は useWorkspaceStructure から分割代入済みのローカル変数を直接使う
+  // （useWorkspaceStructureStore.getState() は hydrate する別 effect が後方にあるため、
+  //  実行順の都合で常に前回値＝空を返してしまい、移行が一度も走らなかった）。
+  useEffect(() => {
+    if (!projectId || !workspaceId || !selectedBaseId || isWorkspaceLoading) return;
+    const planIds = (plansOfSelectedBase || [])
+      .map((p: any) => p?.id)
+      .filter((id: any): id is string => !!id);
+    if (planIds.length === 0) return; // 空呼び出しで「移行済み」マークされるのを防ぐ
+    migratePlanPatternsToBase(projectId, workspaceId, selectedBaseId, planIds)
+      .catch((e) => console.warn('[LayoutShell] 提案の移行に失敗:', e));
+  }, [projectId, workspaceId, selectedBaseId, isWorkspaceLoading, plansOfSelectedBase]);
 
   // 作業中コンテキストをワークスペース単位で永続化（画面遷移をまたいで復元するため）。
   // panelSelections とは別管理にして、ダッシュボードの選択クリアの影響を受けないようにする。
@@ -1047,16 +1098,40 @@ export default function LayoutShell({
     layoutDraftRef.current = layoutDraft;
   }, [layoutDraft]);
 
-  // 自動保存（ローカル下書きのみ）— 編集停止後に layout_draft.json へ書き出す
+  // アクティブ提案への自動保存（v2）。配置の変化は layoutDraft の参照変化で検知する。
+  // ※ ブリーフでは useLayoutPatternsSync の直後に置く想定だったが、layoutDraft / layoutDraftRef /
+  //   applyLayoutDraft はいずれもこの少し上の useLayoutHistory 分割代入 / layoutDraftRef 定義より
+  //   前では参照できない（TDZ）ため、両方が揃うこの位置に配線する。
+  useProposalAutoCapture(projectId, workspaceId, selectedBaseId, selectedPlanId ?? null, layoutDraft);
+
+  // 提案側から配置の読み取り/復元を行うブリッジ（layoutSceneRef と同じ流儀）。
+  useEffect(() => {
+    setProposalItemsBridge({
+      getItems: () => (layoutDraftRef.current?.items
+        ?? (optionDoc as { layout?: { items?: Record<string, unknown>[] } } | null | undefined)?.layout?.items
+        ?? []),
+      restoreItems: async (items) => {
+        // Plan（作業バッファ）へ書き戻す。履歴には積まない（提案切替は Undo 対象外）。
+        applyLayoutDraft({ ...(layoutDraftRef.current ?? { items: [] }), items }, { markDirty: true, pushToHistory: false });
+      },
+    });
+    return () => setProposalItemsBridge(null);
+  }, [applyLayoutDraft, optionDoc]);
+
+  // 自動保存（ローカル下書きのみ）— 編集停止後に layout_draft.json へ書き出す。
+  // ⚠ かつては旧 Option 階層の selectedOptionId でゲートしていたため、Option 廃止後は
+  //   一度も動いていなかった（＝Plan を切り替えると未保存の配置が消えていた）。
+  //   Plan 単位のキーに変更: CAD のタブ切替と同じく、別 Plan を開いても作業中の
+  //   状態はローカル下書きに残り、戻ってきたときに復元される。
   useAutosaveDraft({
-    key: (projectId && workspaceId && selectedPlanId && selectedOptionId)
-      ? `3dsl:${selectedOptionId}` : null,
+    key: (projectId && workspaceId && selectedPlanId)
+      ? `3dsl:${selectedPlanId}` : null,
     dirty,
     signal: layoutDraft,
     save: async () => {
-      if (!projectId || !workspaceId || !selectedPlanId || !selectedOptionId || !layoutDraftRef.current) return;
+      if (!projectId || !workspaceId || !selectedPlanId || !layoutDraftRef.current) return;
       await layoutPersistenceService.saveLocalDraft(
-        projectId, workspaceId, selectedPlanId, selectedOptionId, layoutDraftRef.current,
+        projectId, workspaceId, selectedPlanId, selectedPlanId, layoutDraftRef.current,
       );
     },
   });
@@ -1064,25 +1139,38 @@ export default function LayoutShell({
   // =========================
   // ✅ Local Draft Auto-Load (Offline / Crash Recovery)
   // =========================
-  const loadedDraftOptions = useRef(new Set()); // Track which options we have already loaded local drafts for
+  const loadedDraftOptions = useRef(new Set()); // 訪問中の Plan で既に下書きを確認したかのマーカー
+
+  // Plan を離れたらマーカーを外す — 次に戻ってきたとき（useLayoutHistory が Firestore の
+  // 値へリセットした後）に、ローカル下書き＝未保存の作業中状態をもう一度復元するため。
+  useEffect(() => {
+    loadedDraftOptions.current.clear();
+  }, [selectedPlanId]);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       if (optionDocLoading) return;
-      if (!projectId || !workspaceId || !selectedPlanId || !selectedOptionId) return;
+      if (!projectId || !workspaceId || !selectedPlanId) return;
 
-      // Only attempt to load the local draft once per option session
-      if (loadedDraftOptions.current.has(selectedOptionId)) return;
+      // この Plan への今回の訪問で確認済みならスキップ（optionDoc の頻繁な更新での連続リロード防止）
+      if (loadedDraftOptions.current.has(selectedPlanId)) return;
+
+      // 提案切替の適用（pending）が控えているときは下書きを復元しない — 提案の
+      // スナップショットが「最後に見ていた状態」の正であり、下書きで上書きすると競合する。
+      if (useLayoutPatternStore.getState().pendingApplyId) {
+        loadedDraftOptions.current.add(selectedPlanId);
+        return;
+      }
 
       try {
         const local = await layoutPersistenceService.loadLocalDraft(
           projectId,
           workspaceId,
           selectedPlanId,
-          selectedOptionId
+          selectedPlanId
         );
-        
+
         if (local && mounted) {
           const remoteTime = optionDoc?.updatedAt?.toMillis ? optionDoc.updatedAt.toMillis() : 0;
           // Load local if it's strictly newer than remote or remote is missing
@@ -1091,23 +1179,22 @@ export default function LayoutShell({
             applyLayoutDraft(local.content, { markDirty: true, pushToHistory: false }); // Mark dirty so it can be saved
           }
           // Mark as loaded so we don't infinitely reload it if optionDoc updates frequently (e.g. zone edits)
-          loadedDraftOptions.current.add(selectedOptionId);
+          loadedDraftOptions.current.add(selectedPlanId);
         } else if (mounted) {
           // Even if there's no local draft, mark as checked so we don't spam IndexedDb
-          loadedDraftOptions.current.add(selectedOptionId);
+          loadedDraftOptions.current.add(selectedPlanId);
         }
       } catch (err) {
         console.warn("[3DSL] Could not load local layout draft", err);
-        if (mounted) loadedDraftOptions.current.add(selectedOptionId);
+        if (mounted) loadedDraftOptions.current.add(selectedPlanId);
       }
     })();
     return () => { mounted = false; };
   }, [
-    optionDocLoading, 
-    projectId, 
-    workspaceId, 
-    selectedPlanId, 
-    selectedOptionId, 
+    optionDocLoading,
+    projectId,
+    workspaceId,
+    selectedPlanId,
     optionDoc?.updatedAt,
     optionDoc?.layout,
     applyLayoutDraft
@@ -3022,12 +3109,12 @@ export default function LayoutShell({
   // =========================
   // ✅ WorkspaceStructureStore hydrate（Step1）
   // =========================
-  const basesSig = useMemo(() => (Array.isArray(bases) ? bases.map((b) => b?.id ?? "").join("|") : ""), [bases]);
-  const plansSig = useMemo(
-    () => (Array.isArray(plansOfSelectedBase) ? plansOfSelectedBase.map((p) => p?.id ?? "").join("|") : ""),
-    [plansOfSelectedBase]
-  );
-  const optionsSig = useMemo(() => (Array.isArray(options) ? options.map((o) => o?.id ?? "").join("|") : ""), [options]);
+  // ⚠ 署名には id だけでなく **name も** 含める。id だけだと名前を変えても署名が変わらず
+  //    hydrate が走らないため、ツリーは古い doc を持ったまま＝リネームが元に戻って見える。
+  //    （updatedAt や activePatternId のような他フィールドは追わない＝無駄な再 hydrate を避ける）
+  const basesSig = useMemo(() => structureNodesSig(bases), [bases]);
+  const plansSig = useMemo(() => structureNodesSig(plansOfSelectedBase), [plansOfSelectedBase]);
+  const optionsSig = useMemo(() => structureNodesSig(options), [options]);
 
   useEffect(() => {
     useWorkspaceStructureStore.getState().bindExternal({

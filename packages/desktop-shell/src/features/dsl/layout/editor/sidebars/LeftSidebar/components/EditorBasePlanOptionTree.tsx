@@ -13,17 +13,22 @@ import {
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
+import DriveFileRenameOutlineRoundedIcon from "@mui/icons-material/DriveFileRenameOutlineRounded";
 
 import { useWorkspaceStructureStore } from "../../../../store/useWorkspaceStructureStore";
 import { useAppStore } from "../../../../../../../store/useAppStore";
 import { useAIChatStore } from "../../../../../../../store/useAIChatStore";
 import { useUiRightSidebarStore } from "../../../../store/uiRightSidebarStore";
+import { useEditorModeStore } from "../../../../store/useEditorModeStore";
+import { useLayoutOptionActions } from "../../../../hooks/useLayoutOptionActions";
+import { useLayoutPatternStore } from "../../../../store/useLayoutPatternStore";
+import { resolveProposalPlan } from "../../../../utils/layoutPatterns";
+import { renameLayout } from "../../../../api/layoutDocApi";
+import { TextField } from "@mui/material";
 
 export default function EditorBasePlanOptionTree() {
   const theme = useTheme();
@@ -31,11 +36,43 @@ export default function EditorBasePlanOptionTree() {
 
   const bases = useWorkspaceStructureStore((s: any) => s.bases);
   const plansOfSelectedBase = useWorkspaceStructureStore((s: any) => s.plansOfSelectedBase);
-  const options = useWorkspaceStructureStore((s: any) => s.options);
 
   const selectedBaseId = useWorkspaceStructureStore((s: any) => s.selectedBaseId);
   const selectedPlanId = useWorkspaceStructureStore((s: any) => s.selectedPlanId);
   const selectedOptionId = useWorkspaceStructureStore((s: any) => s.selectedOptionId);
+
+  // Option = この Plan での見た目の組み合わせ（プレビューと同じ実体を読み書きする）
+  const {
+    busy: optionBusy,
+    selectOption: selectViewOption,
+    createOption,
+    renameOption,
+    removeOption: removeViewOption,
+    plans: treePlans,
+  } = useLayoutOptionActions();
+  // 一覧と選択中はプレビューと同じくストアを直接購読する（経路を揃えて食い違いを無くす）。
+  const viewOptions = useLayoutPatternStore((s) => s.patterns);
+  const activeOptionId = useLayoutPatternStore((s) => s.activePatternId);
+  // ツリーは常時表示のため、ここが落ちると画面全体が使えなくなる。フック側でも配列化しているが、
+  // 万一 undefined が届いても描画は止めない（原因追跡のため一度だけ警告を出す）。
+  const safeViewOptions = Array.isArray(viewOptions) ? viewOptions : [];
+  if (!Array.isArray(viewOptions)) {
+    console.warn("[EditorBasePlanOptionTree] Option 一覧が配列ではありません:", viewOptions);
+  }
+  // ── 提案名のその場編集（Plan と同じ方式）──
+  const [renamingProposalId, setRenamingProposalId] = useState<string | null>(null);
+  const [proposalNameDraft, setProposalNameDraft] = useState("");
+  const startRenameProposal = useCallback((id: string, currentName: string) => {
+    setRenamingProposalId(id);
+    setProposalNameDraft(currentName);
+  }, []);
+  const commitRenameProposal = useCallback(() => {
+    const id = renamingProposalId;
+    const next = proposalNameDraft.trim();
+    setRenamingProposalId(null);
+    if (!id || !next) return;
+    void renameOption(id, next);
+  }, [renamingProposalId, proposalNameDraft, renameOption]);
 
   const selectBase = useWorkspaceStructureStore((s: any) => s.selectBase);
   const selectPlan = useWorkspaceStructureStore((s: any) => s.selectPlan);
@@ -44,11 +81,9 @@ export default function EditorBasePlanOptionTree() {
   const openLayout = useWorkspaceStructureStore((s: any) => s.openLayout);
 
   const createPlan = useWorkspaceStructureStore((s: any) => s.createPlan);
-  const createOption = useWorkspaceStructureStore((s: any) => s.createOption);
 
   const duplicateBase = useWorkspaceStructureStore((s: any) => s.duplicateBase);
   const duplicatePlan = useWorkspaceStructureStore((s: any) => s.duplicatePlan);
-  const duplicateOption = useWorkspaceStructureStore((s: any) => s.duplicateOption);
 
   const openConfirm = useWorkspaceStructureStore((s: any) => s.openConfirm);
   const closeConfirm = useWorkspaceStructureStore((s: any) => s.closeConfirm);
@@ -63,6 +98,34 @@ export default function EditorBasePlanOptionTree() {
   const activeProjectName = useAppStore((s: any) => s.projects?.find((p: any) => p.id === activeProjectId)?.name ?? null);
 
   const [deleting, setDeleting] = useState(false);
+
+  // ── Plan 名のその場編集（ダブルクリック or ✎ で開始）──
+  // 保存先は layouts/{planId}.name。ツリーの一覧は Firestore 購読で流れてくるので、
+  // 書き込みが通れば表示は自動で追従する（ローカルに二重の名前状態を持たない）。
+  const planCtx = useEditorModeStore((s) => s.dslPlanContext);
+  const [renamingPlanId, setRenamingPlanId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const startRenamePlan = useCallback((planId: string, currentName: string) => {
+    setRenamingPlanId(planId);
+    setRenameDraft(currentName);
+  }, []);
+  const commitRenamePlan = useCallback(async () => {
+    const planId = renamingPlanId;
+    const next = renameDraft.trim();
+    setRenamingPlanId(null);
+    if (!planId || !next) return;
+    // 書き込み先が特定できないと renameLayout は黙って何もしない＝「変わらない」だけになる。
+    // どこが欠けているのかコンソールに出す（原因追跡のため）。
+    if (!planCtx?.projectId || !planCtx?.workspaceId) {
+      console.error("[EditorBasePlanOptionTree] Plan 名の変更先を特定できません:", { planId, planCtx });
+      return;
+    }
+    try {
+      await renameLayout(planCtx.projectId, planCtx.workspaceId, planId, next);
+    } catch (e) {
+      console.error("[EditorBasePlanOptionTree] Plan 名の変更に失敗:", e);
+    }
+  }, [renamingPlanId, renameDraft, planCtx]);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!confirm?.open || !confirm?.targetId || deleting) return;
@@ -100,7 +163,6 @@ export default function EditorBasePlanOptionTree() {
     [bases, selectedBaseId]
   );
   const safePlans = useMemo(() => (Array.isArray(plansOfSelectedBase) ? plansOfSelectedBase : []), [plansOfSelectedBase]);
-  const safeOptions = useMemo(() => (Array.isArray(options) ? options : []), [options]);
 
   // Plan/Option を開いていない＝躯体編集モード。Plan が 0 件の Base は戻り先が無いのでトグル不可。
   const isBaseOnly = !selectedPlanId && !selectedOptionId;
@@ -129,20 +191,7 @@ export default function EditorBasePlanOptionTree() {
     [selectPlan, selectedPlanId]
   );
 
-  const handleSelectOption = useCallback(
-    (optionId: string) => {
-      if (optionId && optionId !== selectedOptionId) selectOption(optionId);
-    },
-    [selectOption, selectedOptionId]
-  );
 
-
-  // Options are hidden by default; expanded per-Plan only when the user wants to
-  // examine material variations.
-  const [expandedPlanIds, setExpandedPlanIds] = useState<Record<string, boolean>>({});
-  const togglePlanExpanded = useCallback((planId: string) => {
-    setExpandedPlanIds((prev) => ({ ...prev, [planId]: !prev[planId] }));
-  }, []);
 
   // ── 議論履歴インジケーター（Phase 3）──
   // このプロジェクト × S.Layout のチャットセッション（メッセージ有り）を持つノード id 集合。
@@ -275,34 +324,47 @@ export default function EditorBasePlanOptionTree() {
                     {safePlans.map((p) => {
                         const openPlan = p?.id && p.id === selectedPlanId;
                         const humanPlanName = p.name || "Unnamed Plan";
-                        const optionsExpanded = !!expandedPlanIds[p.id];
 
                         return (
                           <Box key={p.id} sx={{ mt: 0 }}>
                             <Stack direction="row" alignItems="center" sx={{ pr: 1 }}>
-                              <IconButton
-                                size="small"
-                                onClick={() => togglePlanExpanded(p.id)}
-                                sx={{ p: 0.25, color: "rgb(var(--brand-fg-rgb) / 0.5)", "&:hover": { color: "var(--brand-fg)" } }}
-                              >
-                                {optionsExpanded ? (
-                                  <ExpandMoreRoundedIcon sx={{ fontSize: 16 }} />
-                                ) : (
-                                  <ChevronRightRoundedIcon sx={{ fontSize: 16 }} />
-                                )}
-                              </IconButton>
-                              <ListItemButton
-                                onClick={() => handleSelectPlan(p.id)}
-                                selected={openPlan}
-                                sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 28 }}
-                              >
-                                <ListItemText
-                                  primary={`Plan: ${humanPlanName}`}
-                                  primaryTypographyProps={{ fontSize: 12.5, fontWeight: openPlan ? 700 : 500, lineHeight: 1.2 }}
+                              {renamingPlanId === p.id ? (
+                                // その場編集。Enter で確定 / Escape で取り消し / フォーカスが外れたら確定。
+                                <TextField
+                                  autoFocus
+                                  fullWidth
+                                  size="small"
+                                  variant="standard"
+                                  value={renameDraft}
+                                  onChange={(e) => setRenameDraft(e.target.value)}
+                                  onBlur={() => { void commitRenamePlan(); }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") { e.preventDefault(); void commitRenamePlan(); }
+                                    else if (e.key === "Escape") { e.preventDefault(); setRenamingPlanId(null); }
+                                  }}
+                                  inputProps={{ style: { fontSize: 12.5, padding: "2px 4px" } }}
+                                  sx={{ mx: 1, my: 0.25 }}
                                 />
-                              </ListItemButton>
+                              ) : (
+                                <ListItemButton
+                                  onClick={() => handleSelectPlan(p.id)}
+                                  onDoubleClick={() => startRenamePlan(p.id, humanPlanName)}
+                                  selected={openPlan}
+                                  sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 28 }}
+                                >
+                                  <ListItemText
+                                    primary={`Plan: ${humanPlanName}`}
+                                    primaryTypographyProps={{ fontSize: 12.5, fontWeight: openPlan ? 700 : 500, lineHeight: 1.2 }}
+                                  />
+                                </ListItemButton>
+                              )}
                               {renderChatJump("plan", p.id)}
                               <Box sx={{ display: "flex", gap: 0.25, opacity: openPlan ? 1 : 0.3 }}>
+                                <Tooltip title="名前を変更（ダブルクリックでも可）" placement="top">
+                                  <IconButton size="small" onClick={() => startRenamePlan(p.id, humanPlanName)} sx={{ p: 0.25 }}>
+                                    <DriveFileRenameOutlineRoundedIcon sx={{ fontSize: 13 }} />
+                                  </IconButton>
+                                </Tooltip>
                                 <IconButton size="small" onClick={() => duplicatePlan?.(p.id)} sx={{ p: 0.25 }}>
                                   <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
                                 </IconButton>
@@ -311,59 +373,86 @@ export default function EditorBasePlanOptionTree() {
                                 </IconButton>
                               </Box>
                             </Stack>
-
-                            {/* === Options (collapsed by default) === */}
-                            <Collapse in={optionsExpanded} timeout="auto" unmountOnExit>
-                              <List dense disablePadding sx={{ pl: 2.5, pt: 0.25 }}>
-                                <Stack direction="row" alignItems="center" justifyContent="flex-end" sx={{ pr: 1, mb: 0.25 }}>
-                                  <Tooltip title="New Option for this Plan" placement="top">
-                                    <IconButton size="small" onClick={() => createOption?.({ baseId: b.id, planId: p.id })} sx={{ padding: '2px' }}>
-                                      <AddRoundedIcon sx={{ fontSize: 15 }} />
-                                    </IconButton>
-                                  </Tooltip>
-                                </Stack>
-
-                                {!openPlan ? (
-                                  <Typography variant="caption" sx={{ pl: 3, opacity: 0.5 }}>Plan を選択するとOptionが表示されます</Typography>
-                                ) : safeOptions.length === 0 ? (
-                                  <Typography variant="caption" sx={{ pl: 3, opacity: 0.5 }}>No options</Typography>
-                                ) : (
-                                  safeOptions.map((o) => {
-                                    const isSel = o?.id && o.id === selectedOptionId;
-                                    const humanOptionName = o.name || "Unnamed Option";
-
-                                    return (
-                                      <Stack direction="row" alignItems="center" key={o.id} sx={{ pr: 1, mb: 0 }}>
-                                        <ListItemButton
-                                          onClick={() => handleSelectOption(o.id)}
-                                          selected={isSel}
-                                          sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 26 }}
-                                        >
-                                          <ListItemText
-                                            primary={`Opt: ${humanOptionName}`}
-                                            primaryTypographyProps={{ fontSize: 12, fontWeight: isSel ? 700 : 500, lineHeight: 1.2 }}
-                                            sx={{ opacity: 0.95 }}
-                                          />
-                                        </ListItemButton>
-                                        {renderChatJump("option", o.id)}
-                                        <Box sx={{ display: "flex", gap: 0.25, opacity: isSel ? 1 : 0.3 }}>
-                                          <IconButton size="small" onClick={() => duplicateOption?.(o.id)} sx={{ p: 0.25 }}>
-                                            <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
-                                          </IconButton>
-                                          <IconButton size="small" onClick={() => askDelete("option", o.id, humanOptionName)} sx={{ p: 0.25 }}>
-                                            <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
-                                          </IconButton>
-                                        </Box>
-                                      </Stack>
-                                    );
-                                  })
-                                )}
-                              </List>
-                            </Collapse>
                           </Box>
                         );
                       })}
                   </List>
+                  )}
+
+                  {/* === 提案（Base 直下。Plan 込みの完全な最終形） === */}
+                  {openBase && (
+                    <List dense disablePadding sx={{ pl: 1.5, pt: 0.5 }}>
+                      <Typography variant="caption" sx={{ pl: 1, opacity: 0.6, fontWeight: 700, letterSpacing: 0.4 }}>
+                        提案
+                      </Typography>
+                      {safeViewOptions.map((o) => {
+                        const isSel = o.id === activeOptionId;
+                        const humanProposalName = o.name || '提案';
+                        const planRef = resolveProposalPlan(o.planId ?? null, treePlans);
+                        const planLabel =
+                          planRef.kind === 'ok' ? planRef.name
+                          : planRef.kind === 'none' ? '躯体のみ'
+                          : 'Plan が見つかりません';
+                        const broken = planRef.kind === 'missing';
+                        return (
+                          <Stack direction="row" alignItems="center" key={o.id} sx={{ pr: 1 }}>
+                            {renamingProposalId === o.id ? (
+                              // その場編集。Enter で確定 / Escape で取り消し / フォーカスが外れたら確定。
+                              <TextField
+                                autoFocus
+                                fullWidth
+                                size="small"
+                                variant="standard"
+                                value={proposalNameDraft}
+                                onChange={(e) => setProposalNameDraft(e.target.value)}
+                                onBlur={() => commitRenameProposal()}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); commitRenameProposal(); }
+                                  else if (e.key === "Escape") { e.preventDefault(); setRenamingProposalId(null); }
+                                }}
+                                inputProps={{ style: { fontSize: 12, padding: "2px 4px" } }}
+                                sx={{ mx: 1, my: 0.25 }}
+                              />
+                            ) : (
+                              <ListItemButton
+                                onClick={broken ? undefined : () => void selectViewOption(o.id)}
+                                onDoubleClick={() => startRenameProposal(o.id, humanProposalName)}
+                                selected={isSel}
+                                sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 26 }}
+                              >
+                                <ListItemText
+                                  primary={humanProposalName}
+                                  secondary={planLabel}
+                                  primaryTypographyProps={{ fontSize: 12, fontWeight: isSel ? 700 : 500, lineHeight: 1.2 }}
+                                  secondaryTypographyProps={{ fontSize: 10, sx: { opacity: 0.6, color: broken ? '#ff6b6b' : undefined } }}
+                                />
+                              </ListItemButton>
+                            )}
+                            <Box sx={{ display: 'flex', gap: 0.25, opacity: isSel ? 1 : 0.3 }}>
+                              <Tooltip title="名前を変更（ダブルクリックでも可）" placement="top">
+                                <span>
+                                  <IconButton size="small" onClick={() => startRenameProposal(o.id, humanProposalName)} sx={{ p: 0.25 }}>
+                                    <DriveFileRenameOutlineRoundedIcon sx={{ fontSize: 13 }} />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <IconButton size="small" onClick={() => void removeViewOption(o.id)} sx={{ p: 0.25 }}>
+                                <DeleteOutlineRoundedIcon sx={{ fontSize: 13 }} />
+                              </IconButton>
+                            </Box>
+                          </Stack>
+                        );
+                      })}
+                      <Stack direction="row" alignItems="center" sx={{ pr: 1, mt: 0.25 }}>
+                        <ListItemButton onClick={() => void createOption()} disabled={optionBusy} sx={{ borderRadius: 1, px: 1, py: 0.25, minHeight: 26 }}>
+                          <ListItemText
+                            primary="＋ 新しい提案"
+                            primaryTypographyProps={{ fontSize: 12, fontWeight: 600, lineHeight: 1.2 }}
+                            sx={{ opacity: 0.85 }}
+                          />
+                        </ListItemButton>
+                      </Stack>
+                    </List>
                   )}
                 </Box>
               );

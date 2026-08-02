@@ -507,26 +507,95 @@ export const migrateLegacyBaseToPlanOption = async ({ projectId, workspaceId, ba
     const furnitureDocs = itemsSnap.docs.filter((d) => d.data()?.type !== "architecture");
     if (furnitureDocs.length === 0) return null;
 
-    // Create the default Plan 1 / Option 1 under this base.
+    // Create the default Plan 1 under this base.
+    // 2026-08-01: Option 階層は廃止したため Option は作らない（見た目の違いはパターンで表す）。
     const plan = await createStructureNode({
         projectId, workspaceId, userId, name: "Plan 1", planType: "plan", rootBaseId: baseId,
     });
-    const option = await createStructureNode({
-        projectId, workspaceId, userId, name: "Option 1", planType: "option",
-        rootBaseId: baseId, parentPlanId: plan.id,
-    });
 
-    // Move furniture down into the Option; architecture/zones remain on the Base.
-    const optItemsCol = getItemsColRef(projectId, workspaceId, option.id);
+    // Move furniture down into the Plan; architecture/zones remain on the Base.
+    const planItemsCol = getItemsColRef(projectId, workspaceId, plan.id);
     const timestamp = serverTimestamp();
     const batch = writeBatch(db);
     furnitureDocs.forEach((d) => {
-        batch.set(doc(optItemsCol, d.id), { ...d.data(), planId: option.id, updatedAt: timestamp });
+        batch.set(doc(planItemsCol, d.id), { ...d.data(), planId: plan.id, updatedAt: timestamp });
         batch.delete(d.ref);
     });
     await batch.commit();
 
-    return { planId: plan.id, optionId: option.id };
+    return { planId: plan.id };
+};
+
+/**
+ * 既存の Option を兄弟 Plan へ昇格する（Option 階層の廃止に伴う移行）。
+ *
+ * 仕様: docs/superpowers/specs/2026-08-01-option-patterns-design.md §6
+ * - 通常は planType を 'plan' に、parentPlanId を null にするだけ（items はコピーせず非破壊）。
+ * - 例外: 親 Plan に items が1件も無く Option が1つだけなら、その items を親 Plan へ移して
+ *   Option doc を畳む（中身の同じ空 Plan が2つ並ぶのを避ける）。畳んだ doc は削除せず
+ *   planType='merged' + migratedTo を付けたトゥームストーンとして残す。
+ * - Base を開いたときに1度だけ呼ぶ想定（冪等: Option が無ければ何もしない）。
+ * Returns 昇格・統合した Option の件数。
+ */
+export const promoteOptionsToPlans = async ({ projectId, workspaceId, baseId }) => {
+    if (!projectId || !workspaceId || !baseId) return 0;
+
+    const allSnap = await getDocs(getPlansColRef(projectId, workspaceId));
+    const nodes = allSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const options = nodes.filter((n) => n.planType === "option" && n.rootBaseId === baseId);
+    if (options.length === 0) return 0;
+
+    const byParent = new Map();
+    options.forEach((o) => {
+        const k = o.parentPlanId || "";
+        if (!byParent.has(k)) byParent.set(k, []);
+        byParent.get(k).push(o);
+    });
+
+    let migrated = 0;
+    for (const [parentId, opts] of byParent) {
+        const parent = nodes.find((n) => n.id === parentId);
+        let mergeIntoParent = false;
+        if (parent && parent.planType === "plan" && opts.length === 1) {
+            const parentItems = await getDocs(getItemsColRef(projectId, workspaceId, parent.id));
+            mergeIntoParent = parentItems.empty;
+        }
+
+        const timestamp = serverTimestamp();
+        const batch = writeBatch(db);
+        if (mergeIntoParent) {
+            const opt = opts[0];
+            const optItems = await getDocs(getItemsColRef(projectId, workspaceId, opt.id));
+            const parentItemsCol = getItemsColRef(projectId, workspaceId, parent.id);
+            optItems.docs.forEach((d) => {
+                batch.set(doc(parentItemsCol, d.id), { ...d.data(), planId: parent.id, updatedAt: timestamp });
+                batch.delete(d.ref);
+            });
+            batch.update(getPlanDocRef(projectId, workspaceId, opt.id), {
+                planType: "merged",
+                migratedTo: parent.id,
+                promotedFromPlanId: opt.parentPlanId || null,
+                promotedAt: timestamp,
+                updatedAt: timestamp,
+            });
+            migrated += 1;
+        } else {
+            opts.forEach((o) => {
+                batch.update(getPlanDocRef(projectId, workspaceId, o.id), {
+                    planType: "plan",
+                    parentPlanId: null,
+                    // 元の親 Plan を控えておく（planType/parentPlanId を上書きしてしまうと
+                    // 「どの Plan の Option だったか」が復元できなくなるため）。戻すときはこれを使う。
+                    promotedFromPlanId: o.parentPlanId || null,
+                    promotedAt: timestamp,
+                    updatedAt: timestamp,
+                });
+            });
+            migrated += opts.length;
+        }
+        await batch.commit();
+    }
+    return migrated;
 };
 
 

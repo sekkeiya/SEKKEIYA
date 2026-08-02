@@ -8,6 +8,9 @@ import { useSurfaceFinishStore } from "../store/useSurfaceFinishStore";
 import { useSurfacePatternStore } from "../store/useSurfacePatternStore";
 import { useDrawnFinishStore } from "../store/useDrawnFinishStore";
 import { loadSurfaceData } from "../api/surfaceFinishApi";
+import { useLayoutPatternStore } from "../store/useLayoutPatternStore";
+import { applyPattern } from "../services/patternSnapshot";
+import { getProposalItemsBridge } from "../services/proposalItemsBridge";
 
 export default function SurfaceFinishLoader() {
   const projectId = useAppStore((s) => s.activeProjectId);
@@ -44,6 +47,31 @@ export default function SurfaceFinishLoader() {
       } else {
         useDrawnFinishStore.getState().clear();
       }
+      // Plan 切替を伴う提案適用の予約があれば、プラン既定を読み込んだ「後」に重ねる。
+      // （切替直後に適用するとこのローダーが上書きして提案の見た目が消えるため）
+      const { pendingApplyId, patterns } = useLayoutPatternStore.getState();
+      if (pendingApplyId) {
+        useLayoutPatternStore.getState().setPendingApply(null);
+        const p = patterns.find((x) => x.id === pendingApplyId);
+        if (p) {
+          applyPattern(p);
+          // v2: 配置スナップショットも Plan（作業バッファ）へ書き戻す。
+          // applying を立ててキャプチャを抑止（復元による draft 変化を記録しない）。
+          if (Array.isArray(p.items)) {
+            useLayoutPatternStore.getState().setApplying(true);
+            void getProposalItemsBridge()?.restoreItems(p.items as Record<string, unknown>[])
+              ?.catch((e) => console.warn('[SurfaceFinishLoader] 配置の復元に失敗:', e))
+              ?.finally?.(() => useLayoutPatternStore.getState().setApplying(false));
+            if (!getProposalItemsBridge()) useLayoutPatternStore.getState().setApplying(false);
+          }
+        }
+      }
+    }).catch((e) => {
+      if (cancelled) return;
+      // ロード失敗時も予約を残したままにすると、次のロード成功時に古い提案が
+      // 不意に適用されてしまうため、ここで確実に破棄する。
+      useLayoutPatternStore.getState().setPendingApply(null);
+      console.warn('[SurfaceFinishLoader] 面仕上げの読み込みに失敗:', e);
     });
     return () => { cancelled = true; };
   }, [projectId, workspaceId, layoutKey, replaceFinishes, replacePatterns, replaceActive]);
