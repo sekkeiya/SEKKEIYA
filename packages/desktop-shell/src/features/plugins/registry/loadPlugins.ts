@@ -11,6 +11,10 @@ import type { PluginManifest } from '../manifest/manifestTypes';
 import { API_VERSION, satisfiesEngine, engineErrorMessage } from './engineCompat';
 import { resolveDataScopePolicy, type DataScopePolicy, type PluginSource } from './dataScopePolicy';
 import { buildPluginsRoot } from './pluginPaths';
+import {
+  PLUGIN_SETTINGS_FILE, INSTALL_META_FILE,
+  parsePluginSettings, parseInstallMeta,
+} from './pluginSettings';
 
 export interface LoadedPlugin {
   manifest: PluginManifest;
@@ -18,6 +22,8 @@ export interface LoadedPlugin {
   dir: string;
   source: PluginSource;
   policy: DataScopePolicy;
+  /** 要件71: plugins.json で無効化されていないか。無効でも一覧には出す（再有効化のため）。 */
+  enabled: boolean;
 }
 
 export interface RejectedPlugin {
@@ -30,12 +36,6 @@ export interface LoadResult {
   rejected: RejectedPlugin[];
 }
 
-/**
- * $HOME/SEKKEIYA/Plugins に自分で置いたものは source='self'。
- * 初版はここしか経路が無い(チーム配布とマーケットは未実装)。
- */
-const LOCAL_SOURCE: PluginSource = 'self';
-
 export async function loadPlugins(): Promise<LoadResult> {
   if (!isTauri()) return { loaded: [], rejected: [] };
 
@@ -46,6 +46,12 @@ export async function loadPlugins(): Promise<LoadResult> {
   try {
     const root = buildPluginsRoot(await homeDir());
     if (!(await fsExists(root))) return { loaded, rejected };
+
+    // 有効/無効（要件71）。ファイルが無ければ全部有効。
+    const settingsFile = `${root}/${PLUGIN_SETTINGS_FILE}`;
+    const settings = parsePluginSettings(
+      (await fsExists(settingsFile)) ? await readTextFile(settingsFile) : null,
+    );
 
     for (const entry of await readDir(root)) {
       if (!entry.isDirectory) continue;
@@ -71,11 +77,26 @@ export async function loadPlugins(): Promise<LoadResult> {
           rejected.push({ dir, reason: `id が重複しています: ${manifest.id}` });
           continue;
         }
+
+        // 出所と同意（要件70）。インストーラー経由なら .install.json がある。
+        // 手でフォルダを置いた開発中プラグインにはメタが無い＝自分のツール（self / 同意扱い）。
+        let source: PluginSource = 'self';
+        let granted = true;
+        const metaFile = `${dir}/${INSTALL_META_FILE}`;
+        if (await fsExists(metaFile)) {
+          const meta = parseInstallMeta(await readTextFile(metaFile));
+          if (meta) {
+            source = meta.source;
+            granted = meta.grantedPermissions;
+          }
+        }
+
         loaded.push({
           manifest,
           dir,
-          source: LOCAL_SOURCE,
-          policy: resolveDataScopePolicy(LOCAL_SOURCE, manifest.permissions),
+          source,
+          policy: resolveDataScopePolicy(source, manifest.permissions, granted),
+          enabled: !settings.disabled.includes(manifest.id),
         });
       } catch (e) {
         rejected.push({ dir, reason: e instanceof Error ? e.message : String(e) });

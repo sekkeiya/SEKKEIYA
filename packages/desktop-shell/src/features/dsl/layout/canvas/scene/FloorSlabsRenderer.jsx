@@ -176,6 +176,7 @@ export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = 
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   const showOtherFloorsGhost = useEditorModeStore((s) => s.showOtherFloorsGhost);
   const ghostFloors = useEditorModeStore((s) => s.ghostFloors);
+  const presentationOpen = useEditorModeStore((s) => s.presentationOpen);
   // 天井の高さは面自身が持つ。既定天井高（未設定の旧データ用）だけ購読して追従させる。
   const ceilingHeightMm = useBuildingSpecStore((s) => s.ceilingHeightMm);
   // 自動マテリアルで解決された床仕上げ（未実行なら null → 既定色）
@@ -215,7 +216,8 @@ export default function FloorSlabsRenderer({ isTopView = false, isCeilingView = 
         // 天井として（CL の高さに）描くか。天井伏図なら天井面、断面/立体/立面なら ceiling 単独面。
         const asCeiling = isCeilingView ? slabIsCeiling(s) : (!isTopView && s.role === "ceiling");
         // 平面図ではアクティブ階だけ実体、他階は薄いトレース（立体/断面は全階を実体で）。
-        const ghost = isTopView && (s.floorIndex || 0) !== (activeFloorIndex || 0);
+        // 本番プレビュー中は全階を実体（共有シーンを借りるプレビューの図面クリップに任せる）。
+        const ghost = !presentationOpen && isTopView && (s.floorIndex || 0) !== (activeFloorIndex || 0);
         // 他階は既定で非表示。マスターON かつ その階の目アイコンONのときだけ透過表示する。
         if (ghost && (!showOtherFloorsGhost || !ghostFloors.includes(s.floorIndex || 0))) return null;
         const fi = s.floorIndex || 0;

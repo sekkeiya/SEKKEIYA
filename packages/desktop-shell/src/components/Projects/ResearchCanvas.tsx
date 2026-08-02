@@ -1473,6 +1473,17 @@ const CanvasInner: React.FC<Props> = ({ boardKey }) => {
   // アンマウント・プロジェクト切替時に未保存分をフラッシュ
   useEffect(() => () => { flushSave(); }, [flushSave]);
 
+  // webview が閉じるときは React の unmount effect が走らないため、
+  // 既存の unmount flush だけでは直前の編集（debounce 1500ms）が落ちる。
+  // 独立ウィンドウは「閉じて本体タブへ戻す」のが通常操作なので、ここで取りこぼさない。
+  // 注意: beforeunload は await できないので、これは書き込みを「始める」だけで
+  // 完了を保証しない。確実な保存は将来 onCloseRequested 側で await する。
+  useEffect(() => {
+    const onBeforeUnload = () => flushSaveRef.current();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
+
   const patchItem = useCallback((id: string, patch: Partial<ResearchCanvasItem>) => {
     setNodes(nds => nds.map(n => n.id === id
       ? { ...n, data: { item: { ...n.data.item, ...patch, updatedAt: new Date().toISOString() } } }

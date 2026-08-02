@@ -3365,6 +3365,12 @@ export default function LayoutShell({
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   // ✅ 本番プレビュー（Presentation / Phase 1）: アプリ内フルスクリーンの鑑賞ビューワ
   const [presentationOpen, setPresentationOpen] = useState(false);
+  // プレビュー中は共有シーンを全階表示にする（他階の消し込み/家具の階フィルタを解除）。
+  // 各レンダラー（BaseGlb / WallsRenderer / FloorSlabsRenderer / 家具フィルタ）がこのフラグを見る。
+  useEffect(() => {
+    useEditorModeStore.getState().setPresentationOpen(presentationOpen);
+    return () => useEditorModeStore.getState().setPresentationOpen(false);
+  }, [presentationOpen]);
   const handleCreateWalkthroughShare = useCallback(async (visibility: ShareVisibility) => {
     if (!selectedBaseId) throw new Error("Base を選択してください");
     // パラメトリックルーム（roomSpec）の場合は GLB が無くても共有可

@@ -32,7 +32,7 @@ const makeDeps = (): GatewayDeps => ({
 
 const ctx: PermissionContext = {
   pluginId: 'com.example.tool',
-  policy: { own: 'readwrite', readScopes: ['3dss'] },
+  policy: { own: 'readwrite', readScopes: ['3dss'], network: ['https://api.example.com'], chat: true },
   network: ['https://api.example.com'],
   chat: true,
 };

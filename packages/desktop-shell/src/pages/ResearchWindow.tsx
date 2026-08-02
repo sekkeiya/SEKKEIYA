@@ -15,7 +15,10 @@ import { AccountMemoTab } from '../components/Projects/AccountMemoTab';
 import { ACCOUNT_BOARD_ID, parseBoardKey } from '../features/projects/repositories/ResearchCanvasRepository';
 import { serveResearchWindowPresence } from '../features/projects/chat/researchWindowPresence';
 import { serveShowBoardRequests, onShowBoard } from '../features/projects/chat/boardContextBus';
-import { initialScope, RESEARCH_WINDOW_SCOPE_KEY, reconcileScope } from '../features/projects/research/researchScope';
+import {
+  initialScope, RESEARCH_WINDOW_SCOPE_KEY, reconcileScope,
+  activeBoardStorageKey, boardViewStorageKey,
+} from '../features/projects/research/researchScope';
 import { ResearchScopePicker } from '../components/Projects/ResearchScopePicker';
 import { fetchUserProjects } from '../features/projects/api/fetchProjects';
 import { useAppStore, TEMPLATE_WORKSPACE_NAME } from '../store/useAppStore';
@@ -54,8 +57,12 @@ export const ResearchWindow: React.FC = () => {
 
   // プロジェクト一覧の取得が成功したら、消えたプロジェクトを指していないか確かめる。
   // 取得失敗時には整合しない（一時的なネットワーク障害かもしれないため、スコープの切り替えを避ける）。
+  //
+  // fetchUserProjects は失敗しても例外を投げず [] を返すため、「0件」と「取得できなかった」を
+  // 区別できない。一時的な通信エラーで利用者の選んだスコープを永久に捨てるより、
+  // 本当に0件のときに整合を見送るほうが害が小さいので、空配列のときも整合しない。
   useEffect(() => {
-    if (!projectsLoaded) return;
+    if (!projectsLoaded || projects.length === 0) return;
     setScope(current => reconcileScope(current, projects.map(p => p.id)));
   }, [projectsLoaded, projects]);
 
@@ -77,8 +84,8 @@ export const ResearchWindow: React.FC = () => {
     const target = parseBoardKey(req.boardKey);
     if (target.scope !== scope) {
       try {
-        localStorage.setItem(`research-active-board:${target.scope}`, target.docId);
-        localStorage.setItem(`research-board-view:${target.scope}|${target.docId}`, req.view);
+        localStorage.setItem(activeBoardStorageKey(target.scope), target.docId);
+        localStorage.setItem(boardViewStorageKey(target.scope, target.docId), req.view);
       } catch { /* ignore */ }
       setScope(target.scope);
     }

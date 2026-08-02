@@ -19,11 +19,12 @@ import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import PrecisionManufacturingRoundedIcon from '@mui/icons-material/PrecisionManufacturingRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ExtensionRoundedIcon from '@mui/icons-material/ExtensionRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import { BRAND } from '../../styles/theme';
 import { CATEGORIES, REGISTRY } from './panels/learningRegistry';
 
-export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'admin' | 'admin-dev' | 'learning' | 'model-studio';
+export type SettingsAppId = 'general' | 'ai' | '3dss' | 'sekkeiya' | '3dsl' | '3dsp' | '3dsb' | 'autosave' | 'connectors' | 'voice' | 'plugins' | 'admin' | 'admin-dev' | 'learning' | 'model-studio';
 
 /** 各項目の Lv2 サブ項目。単一パネルの項目は overview 1件（暫定）。 */
 export interface SettingsSubItem {
@@ -82,6 +83,8 @@ export const SETTINGS_NAV: SettingsItem[] = [
   { id: 'connectors', label: 'コネクタ',   icon: <LinkRoundedIcon />,            subItems: OVERVIEW },
   { id: 'autosave',   label: '自動保存',   icon: <SaveRoundedIcon />,            subItems: OVERVIEW },
   { id: 'voice',      label: '音声',       icon: <RecordVoiceOverRoundedIcon />, subItems: OVERVIEW },
+  // 要件71/72: プラグイン管理（一覧・有効/無効・インストール・拒否理由の表示）。
+  { id: 'plugins',    label: 'プラグイン', icon: <ExtensionRoundedIcon />,       subItems: OVERVIEW },
   { id: '3dss',       label: 'S.Model',   icon: <ViewInArRoundedIcon />,        subItems: OVERVIEW },
   { id: '3dsl',       label: 'S.Layout',  icon: <GridViewRoundedIcon />,        subItems: OVERVIEW },
   { id: '3dsp',       label: 'S.Slide',   icon: <PresentToAllRoundedIcon />,    subItems: OVERVIEW },

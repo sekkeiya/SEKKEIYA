@@ -11,6 +11,7 @@ import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import BubbleChartRoundedIcon from '@mui/icons-material/BubbleChartRounded';
 import AccountTreeRoundedIcon from '@mui/icons-material/AccountTreeRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import { ResearchCanvas } from './ResearchCanvas';
 import { MindMapCanvas } from './MindMapCanvas';
 import { publishBoardContext, serveBoardContextRequests, onShowBoard } from '../../features/projects/chat/boardContextBus';
@@ -23,6 +24,9 @@ import {
   type MindMapNode,
 } from '../../features/projects/repositories/ResearchCanvasRepository';
 import { registerResearchBoardManager } from '../../features/projects/chat/researchBoardBridge';
+import { openResearchWindow } from '../../utils/openResearchWindow';
+import { isTauri } from '../../lib/platform';
+import { activeBoardStorageKey, boardViewStorageKey } from '../../features/projects/research/researchScope';
 
 interface Props {
   /** ボードのスコープ（projectId または 'account'）。 */
@@ -37,6 +41,11 @@ interface Props {
    * 本体のタブはプロジェクト文脈が決まっているので渡さない＝見た目は従来どおり。
    */
   scopePicker?: React.ReactNode;
+  /**
+   * 「別ウィンドウで開く」⧉ を出すか。本体のタブだけが true を渡す。
+   * 独立ウィンドウ自身は presence 上つねに「開いている」ので、presence 値では判定しない。
+   */
+  showPopOut?: boolean;
 }
 
 /**
@@ -45,7 +54,7 @@ interface Props {
  * 右にサイドバー。ボードは scope（プロジェクト/個人）ごとに複数持てる。
  * アクティブボードと左サイドバーの開閉は localStorage に scope 単位で記憶する。
  */
-export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sidebarWidth = 400, boardListWidth = 220, scopePicker }) => {
+export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sidebarWidth = 400, boardListWidth = 220, scopePicker, showPopOut = false }) => {
   const [boards, setBoards] = useState<ResearchBoardMeta[]>([]);
   const [activeDocId, setActiveDocId] = useState<string>(DEFAULT_BOARD_DOC_ID);
   const [loadingBoards, setLoadingBoards] = useState(true);
@@ -58,13 +67,13 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
   const [boardView, setBoardView] = useState<'canvas' | 'mindmap'>('mindmap');
   useEffect(() => {
     try {
-      const v = localStorage.getItem(`research-board-view:${scope}|${activeDocId}`);
+      const v = localStorage.getItem(boardViewStorageKey(scope, activeDocId));
       setBoardView(v === 'canvas' ? 'canvas' : 'mindmap');
     } catch { setBoardView('mindmap'); }
   }, [scope, activeDocId]);
   const switchBoardView = useCallback((v: 'canvas' | 'mindmap') => {
     setBoardView(v);
-    try { localStorage.setItem(`research-board-view:${scope}|${activeDocId}`, v); } catch { /* ignore */ }
+    try { localStorage.setItem(boardViewStorageKey(scope, activeDocId), v); } catch { /* ignore */ }
   }, [scope, activeDocId]);
 
   // ポップアウトしたチャット窓は別コンテキストで、このタブを開いていることも
@@ -92,7 +101,7 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
   const [dialog, setDialog] = useState<null | { mode: 'create' | 'rename'; docId?: string; value: string }>(null);
   const [busy, setBusy] = useState(false);
 
-  const activeStorageKey = `research-active-board:${scope}`;
+  const activeStorageKey = activeBoardStorageKey(scope);
 
   const refreshBoards = useCallback(async (): Promise<ResearchBoardMeta[]> => {
     const list = await ResearchCanvasRepository.listBoards(scope);
@@ -502,6 +511,22 @@ export const ResearchBoardWorkspace: React.FC<Props> = ({ scope, sidebar, sideba
                 </Box>
               );
             })()}
+
+            {/* 別ウィンドウへ持ち出す（本体のタブのみ）。今見ているボード・ビューのまま開く。 */}
+            {showPopOut && isTauri() && (
+              <>
+                <Box sx={{ flex: 1, minWidth: 8 }} />
+                <Tooltip title="別ウィンドウで開く">
+                  <IconButton
+                    size="small"
+                    onClick={() => { void openResearchWindow({ boardKey: makeBoardKey(scope, activeDocId), view: boardView }); }}
+                    sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: '#00BFFF' } }}
+                  >
+                    <OpenInNewRoundedIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
           </Box>
 
           <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>

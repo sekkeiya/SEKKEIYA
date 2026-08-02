@@ -89,9 +89,11 @@ function isPluginTab(tab: TabDef): boolean {
 // も同じ理由で違反しており、この 1 ファイルに限った既知の許容パターン。
 // eslint-disable-next-line react-refresh/only-export-components
 export function pluginTabs(
-  plugins: { manifest: { id: string; color?: string; contributes?: { tab?: { label: string } } } }[],
+  plugins: { manifest: { id: string; color?: string; contributes?: { tab?: { label: string } } }; enabled?: boolean }[],
 ): TabDef[] {
   return plugins
+    // 要件71: 無効化されたプラグインはタブに出さない（一覧には残り、設定から再有効化できる）。
+    .filter(p => p.enabled !== false)
     .filter(p => !!p.manifest.contributes?.tab)
     .map(p => ({
       scope: p.manifest.id,

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { initialScope, reconcileScope, groupProjectsForScope } from './researchScope';
+import {
+  initialScope, reconcileScope, groupProjectsForScope,
+  activeBoardStorageKey, boardViewStorageKey, resolveResearchTabView,
+} from './researchScope';
 
 describe('initialScope', () => {
   it('保存済みスコープを最優先する', () => {
@@ -25,6 +28,36 @@ describe('reconcileScope', () => {
   });
   it('消えたプロジェクトはアカウントサイトへ退避する', () => {
     expect(reconcileScope('proj-x', ['proj-a'])).toBe('account');
+  });
+});
+
+describe('activeBoardStorageKey', () => {
+  it('既存フォーマットと一致する文字列を返す', () => {
+    expect(activeBoardStorageKey('proj-a')).toBe('research-active-board:proj-a');
+  });
+  it('アカウントスコープでも同じ形', () => {
+    expect(activeBoardStorageKey('account')).toBe('research-active-board:account');
+  });
+});
+
+describe('boardViewStorageKey', () => {
+  it('既存フォーマットと一致する文字列を返す', () => {
+    expect(boardViewStorageKey('proj-a', 'canvas')).toBe('research-board-view:proj-a|canvas');
+  });
+  it('docId が既定値でも同じ形', () => {
+    expect(boardViewStorageKey('account', 'main')).toBe('research-board-view:account|main');
+  });
+});
+
+describe('resolveResearchTabView', () => {
+  it("'open' は 'detached'", () => {
+    expect(resolveResearchTabView('open')).toBe('detached');
+  });
+  it("'unknown' は 'pending'", () => {
+    expect(resolveResearchTabView('unknown')).toBe('pending');
+  });
+  it("'closed' は 'workspace'", () => {
+    expect(resolveResearchTabView('closed')).toBe('workspace');
   });
 });
 

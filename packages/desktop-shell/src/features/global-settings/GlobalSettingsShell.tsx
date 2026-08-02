@@ -9,6 +9,7 @@ import { DsbSettingsPanel }        from './panels/DsbSettingsPanel';
 import { GeneralSettingsPanel }    from './panels/GeneralSettingsPanel';
 import { VoiceSettingsPanel }      from './panels/VoiceSettingsPanel';
 import { AiSettingsPanel }         from './panels/AiSettingsPanel';
+import { PluginsSettingsPanel }    from './panels/PluginsSettingsPanel';
 import { AdminSettingsPanel }      from './panels/AdminSettingsPanel';
 import { DevStatusPanel }          from './panels/DevStatusPanel';
 import { LearningSettingsPanel }   from './panels/LearningSettingsPanel';
@@ -34,7 +35,7 @@ export const GlobalSettingsShell = () => {
     setActiveSub(firstSubOf(id));
   };
 
-  const KNOWN = ['general', '3dss', 'sekkeiya', 'autosave', 'connectors', '3dsb', 'voice', 'ai'];
+  const KNOWN = ['general', '3dss', 'sekkeiya', 'autosave', 'connectors', '3dsb', 'voice', 'ai', 'plugins'];
 
   return (
     <Box sx={theme => ({ display: 'flex', width: '100%', height: '100%', bgcolor: theme.palette.mode === 'dark' ? 'var(--brand-surface)' : '#f4f5f7', color: 'text.primary', overflow: 'hidden' })}>
@@ -50,6 +51,7 @@ export const GlobalSettingsShell = () => {
         {activeApp === '3dsb'       && <DsbSettingsPanel />}
         {activeApp === 'voice'      && <VoiceSettingsPanel />}
         {activeApp === 'ai'         && <AiSettingsPanel section={activeSub as 'models' | 'image'} />}
+        {activeApp === 'plugins'    && <PluginsSettingsPanel />}
         {/* 二重ガード: admin 判定を満たす場合のみ描画（サイドバー非表示だけに依存しない） */}
         {activeApp === 'admin'      && isAdmin && <AdminSettingsPanel />}
         {activeApp === 'admin-dev'  && codeAccess.enabled && <DevStatusPanel isAdmin={isAdmin} />}

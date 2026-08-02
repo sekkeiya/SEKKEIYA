@@ -149,6 +149,12 @@ interface EditorModeState {
   rotateStepDeg: number;
   setRotateStepDeg: (deg: number) => void;
 
+  /** 本番プレビューを開いている間 true。プレビューはエディタのライブシーンを借りるため、
+   *  この間は「他階の消し込み/ゴースト化」「階による家具フィルタ」を無効化して全階を実体で
+   *  描く（階のスライスはプレビュー側のレンダラー単位クリップが担う）。閉じると自動復帰。 */
+  presentationOpen: boolean;
+  setPresentationOpen: (v: boolean) => void;
+
   // 3DSC context — set by LayoutShell so VerticalEditToolbar can pass room context to 3DSC
   dslBaseGlbUrl: string | null;
   setDslBaseGlbUrl: (url: string | null) => void;
@@ -325,6 +331,9 @@ export const useEditorModeStore = create<EditorModeState>((set) => ({
 
   rotateStepDeg: 90,
   setRotateStepDeg: (rotateStepDeg) => set({ rotateStepDeg }),
+
+  presentationOpen: false,
+  setPresentationOpen: (presentationOpen) => set({ presentationOpen }),
 
   dslBaseGlbUrl: null,
   setDslBaseGlbUrl: (url) => set({ dslBaseGlbUrl: url }),

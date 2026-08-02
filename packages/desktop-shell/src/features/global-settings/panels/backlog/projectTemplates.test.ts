@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { PROJECT_TEMPLATES, templateById, toPackageName, DEFAULT_TEMPLATE_ID } from './projectTemplates';
+import { PROJECT_TEMPLATES, templateById, toPackageName, pluginIdFromName, DEFAULT_TEMPLATE_ID } from './projectTemplates';
 import { validateVerifyCommand } from './projectConfig';
+import { validateManifest } from '../../../plugins/manifest/validateManifest';
 
 describe('toPackageName', () => {
   it('そのまま使える名前は小文字化するだけ', () => {
@@ -96,5 +97,46 @@ describe('PROJECT_TEMPLATES', () => {
 
   it('空テンプレートは検証コマンドを持たない', () => {
     expect(templateById('empty').verify).toEqual([]);
+  });
+});
+
+describe('pluginIdFromName（要件68）', () => {
+  it('逆ドメイン形式のセグメントに整形する', () => {
+    expect(pluginIdFromName('My Tool')).toBe('local.my-tool');
+    expect(pluginIdFromName('見積ツール')).toBe('local.app'); // 日本語は toPackageName で落ちる
+    expect(pluginIdFromName('a..b__c')).toBe('local.a-b-c');
+  });
+  it('空になったら plugin にフォールバックする', () => {
+    expect(pluginIdFromName('。。。')).toBe('local.app');
+  });
+});
+
+describe('plugin テンプレート（要件68）', () => {
+  const files = templateById('plugin').files('見積 Tool');
+
+  it('生成した plugin.json は validateManifest を通る', () => {
+    const raw = JSON.parse(files.find(f => f.path === 'plugin.json')!.content);
+    const result = validateManifest(raw);
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) return;
+    expect(result.manifest.entry).toBe('index.html');
+    expect(result.manifest.engine).toBe('^1.0.0');
+    expect(result.manifest.contributes?.tab?.label).toBe('見積 Tool');
+  });
+  it('entry と API クライアントと API ドキュメントを同梱する', () => {
+    const paths = files.map(f => f.path);
+    expect(paths).toContain('index.html');
+    expect(paths).toContain('sekkeiya-api.js');
+    expect(paths).toContain('docs/plugin-api.md');
+  });
+  it('index.html は同梱の sekkeiya-api.js を読み込む', () => {
+    const html = files.find(f => f.path === 'index.html')!.content;
+    expect(html).toContain('<script src="./sekkeiya-api.js"></script>');
+  });
+  it('長い表示名は manifest の name 上限（60 文字）に収める', () => {
+    const long = 'あ'.repeat(80);
+    const raw = JSON.parse(templateById('plugin').files(long).find(f => f.path === 'plugin.json')!.content);
+    expect(raw.name.length).toBeLessThanOrEqual(60);
+    expect(validateManifest(raw).ok).toBe(true);
   });
 });

@@ -669,7 +669,14 @@ export const DssModelDetailView: React.FC<Props> = ({ model, allItems, onBack, o
 
             {showSwapSection && (
               <Box data-section-id="swap">
-                <SwapSection model={model} mode={mode} isAuthor={isAuthor} selected={swapSel} onSelect={setSwapSel} />
+                <SwapSection
+                  model={model}
+                  mode={mode}
+                  isAuthor={isAuthor}
+                  onSelect={setSwapSel}
+                  allItems={allItems}
+                  onSelectRelated={onSelectRelated}
+                />
               </Box>
             )}
 

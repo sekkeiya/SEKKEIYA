@@ -59,6 +59,8 @@ import { useRoomElevationsStore } from "../store/useRoomElevationsStore";
 import { computeRoomBoxFromRects } from "../store/useElevationMarkerStore";
 import { computeElevationRooms, getElevationMarkerPos, computeElevationRoomBox } from "../utils/openElevationView";
 import { OrthographicCamera } from "@react-three/drei";
+import GridAxisOverlay from "../canvas/scene/GridAxisOverlay.jsx";
+import DimensionChainsOverlay from "../canvas/scene/DimensionChainsOverlay.jsx";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useSceneObjectRegistryStore } from "../store/sceneObjectRegistryStore";
 import { focalLengthToFov } from "../store/useViewportEnvStore";
@@ -1177,27 +1179,64 @@ export default function PresentationViewer({
     const toWorld = (mm) => (isMm ? mm : mm / 1000);
     const out = [];
     const floors = Array.isArray(bsFloors) && bsFloors.length ? bsFloors : [{ flMm: 0 }];
-    // 平面 / 天井: エディタと同じ「FL+1500mm」で水平に切る（平面=見下ろし / 天井=見上げ）
+    const flY = (i) => toWorld((bsFl0Mm || 0) + (floors[i]?.flMm || 0));
+    // 平面 / 天井: エディタと同じ「FL+1500mm」で水平に切る（平面=見下ろし / 天井=見上げ）。
+    // プレビューは階の表示切替（activeFloor）を持たないため、階スライスはクリップで完結させる:
+    //   平面 2F 以上 … その階の FL 少し下でも切り、下階が透けて 1F に見えるのを防ぐ
+    //   天井        … 上階の FL でも切り、見上げに上階・屋根が映り込まないようにする
     floors.forEach((f, i) => {
-      const cutY = toWorld((bsFl0Mm || 0) + (f?.flMm || 0) + 1500);
-      out.push({ id: `plan-${i}`, label: `平面 ${i + 1}F`, planes: [{ normal: [0, -1, 0], constant: cutY }], lookDir: [0, -1, 0], up: [0, 0, -1] });
+      const cutY = flY(i) + toWorld(1500);
+      const planes = [{ normal: [0, -1, 0], constant: cutY }];
+      if (i > 0) planes.push({ normal: [0, 1, 0], constant: -(flY(i) - toWorld(300)) });
+      out.push({
+        id: `plan-${i}`, label: `平面 ${i + 1}F`, planes, lookDir: [0, -1, 0], up: [0, 0, -1],
+        // targetY: 寸法・通り芯の線をこの階のスライス内へ平行移動する先（クリップで消えないように）
+        overlay: { mode: "plan", viewKey: `plan:${i}`, view: "plan", hAxis: null, targetY: cutY - toWorld(150) },
+      });
     });
     floors.forEach((f, i) => {
-      const cutY = toWorld((bsFl0Mm || 0) + (f?.flMm || 0) + 1500);
-      out.push({ id: `ceil-${i}`, label: `天井 ${i + 1}F`, planes: [{ normal: [0, 1, 0], constant: -cutY }], lookDir: [0, 1, 0], up: [0, 0, -1] });
+      const cutY = flY(i) + toWorld(1500);
+      const planes = [{ normal: [0, 1, 0], constant: -cutY }];
+      if (i + 1 < floors.length) planes.push({ normal: [0, -1, 0], constant: flY(i + 1) });
+      out.push({
+        id: `ceil-${i}`, label: `天井 ${i + 1}F`, planes, lookDir: [0, 1, 0], up: [0, 0, -1],
+        // 見上げは「切断面より上」を残すので、線は切断面の少し上へ置く
+        overlay: { mode: "plan", viewKey: `ceil:${i}`, view: "plan", hAxis: null, targetY: cutY + toWorld(150) },
+      });
     });
     // 立面: 4方向（エディタの図面グリッドと同じ axis/flip の組）
     [["北", "z", true], ["東", "x", false], ["南", "z", false], ["西", "x", true]].forEach(([name, axis, flip]) => {
-      out.push({ id: `elev-${name}`, label: `立面 ${name}`, planes: [], lookDir: lookDirOf(axis, flip), up: [0, 1, 0] });
+      out.push({
+        id: `elev-${name}`, label: `立面 ${name}`, planes: [], lookDir: lookDirOf(axis, flip), up: [0, 1, 0],
+        overlay: {
+          mode: "side",
+          viewKey: `facade:${axis === "z" ? "front" : "right"}`,
+          view: axis === "z" ? "front" : "right",
+          hAxis: axis === "z" ? "x" : "z",
+        },
+      });
     });
-    // 断面: 断面線（A-A' / B-B'…）ごと。クリップ式はエディタの断面グリッドと同一
+    // 断面: 断面線（A-A' / B-B'…）ごと。クリップ式・viewKey はエディタの断面ビューと同一
     (sectionLines || []).forEach((line) => {
       const planes = [
         line.axis === "x"
           ? { normal: [line.flip ? 1 : -1, 0, 0], constant: line.flip ? -line.pos : line.pos }
           : { normal: [0, 0, line.flip ? 1 : -1], constant: line.flip ? -line.pos : line.pos },
       ];
-      out.push({ id: `sect-${line.id}`, label: `断面 ${line.name}`, planes, lookDir: lookDirOf(line.axis, !!line.flip), up: [0, 1, 0] });
+      // 側面オーバーレイは z=0 / x=0 の面に描かれるため、切断位置によっては
+      // 残す側の外＝クリップで消える。切断面の少し手前（残る側）へ平行移動する。
+      const sSign = line.flip ? 1 : -1;
+      const sideTarget = line.pos + sSign * toWorld(100);
+      out.push({
+        id: `sect-${line.id}`, label: `断面 ${line.name}`, planes, lookDir: lookDirOf(line.axis, !!line.flip), up: [0, 1, 0],
+        overlay: {
+          mode: "side",
+          viewKey: `sect:${line.id}`,
+          view: line.axis === "x" ? "right" : "front",
+          hAxis: line.axis === "x" ? "z" : "x",
+          shift: line.axis === "x" ? [sideTarget, 0, 0] : [0, 0, sideTarget],
+        },
+      });
     });
     // 展開: 既存の展開ドキュメントのみ（プレビューからは作成しない＝読み取り専用）。
     // クリップ式・フレーミングはエディタの展開グリッドと同一
@@ -1250,6 +1289,22 @@ export default function PresentationViewer({
     setSelectedPinId(null);
     setDrawingView(v);
   }, []);
+
+  // 寸法・通り芯オーバーレイの平行移動量。オーバーレイ自身はエディタの切断高さ
+  // （sectionClipHeight × 約0.95）の水平面に線を描くため、図面ビューのスライスの
+  // 外にあるとクリップで線だけが消える（ラベルは Html なので浮いて残る）。
+  // 見た目は正射の真上/真横からなので、スライス内へ平行移動しても図は変わらない。
+  const editorCutHForOverlay = useEditorModeStore((s) => s.sectionClipHeight);
+  const overlayShift = useMemo(() => {
+    const o = drawingView?.overlay;
+    if (!o) return [0, 0, 0];
+    if (o.targetY != null) {
+      const isMm = (sceneMaxYForDrawing || 0) > 100;
+      const base = (editorCutHForOverlay || (isMm ? 1500 : 1.5)) * 0.95;
+      return [0, o.targetY - base, 0];
+    }
+    return o.shift || [0, 0, 0];
+  }, [drawingView, editorCutHForOverlay, sceneMaxYForDrawing]);
 
   const goToScene = useCallback((sc) => {
     if (!sc) return;
@@ -1523,6 +1578,22 @@ export default function PresentationViewer({
               <OrthographicCamera makeDefault />
               <DrawingViewFramer view={drawingView} controlsRef={controlsRef} />
               <PreviewClipPlanes planes={drawingView.planes} />
+              {/* 寸法・通り芯（エディタと同じオーバーレイをこの canvas にもマウントする。
+                  どちらもストア購読の自己完結コンポーネントで、viewKey が同じなら
+                  エディタで作図した寸法列・通り芯がそのまま表示される） */}
+              {drawingView.overlay && (
+                <group position={overlayShift}>
+                  <GridAxisOverlay
+                    mode={drawingView.overlay.mode}
+                    hAxis={drawingView.overlay.hAxis}
+                    viewKey={drawingView.overlay.viewKey}
+                  />
+                  <DimensionChainsOverlay
+                    viewKey={drawingView.overlay.viewKey}
+                    view={drawingView.overlay.view}
+                  />
+                </group>
+              )}
             </>
           )}
           {/* エディタと同じ WASD/QE ナビゲーション（useViewportControls）。
@@ -1565,7 +1636,9 @@ export default function PresentationViewer({
             )}
           </Suspense>
 
-          {activeScene?.group === "interior" && !walkActive && (
+          {/* ピンは Html（DOM）なのでレンダラークリップが効かない — 図面ビュー中は
+              別階の分まで全部浮いて見えてしまうため、まとめて出さない。 */}
+          {activeScene?.group === "interior" && !walkActive && !drawingView && (
             <Pins items={items} onSelect={focusItem} selectedId={selectedPinId} />
           )}
         </Canvas>

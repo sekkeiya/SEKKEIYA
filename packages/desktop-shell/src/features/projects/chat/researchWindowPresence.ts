@@ -82,12 +82,19 @@ export function serveResearchWindowPresence(): () => void {
 }
 
 /**
- * 本体側が使う。独立ウィンドウが開いているかを返す。
- * 購読（即時反映）＋ マウント時と focus 時の権威確認（取りこぼし対策）の二段構え。
- * Web では常に false。
+ * 独立ウィンドウの開閉状態。'unknown' は「まだ確認できていない」を表す第三の状態。
+ * boolean だと「未確認」と「閉じている」を区別できず、確認前に閉じている扱いで
+ * ワークスペースをマウントしてしまう（本 Issue の原因）ため、明示的に区別する。
  */
-export function useResearchWindowOpen(): boolean {
-  const [open, setOpen] = useState(false);
+export type ResearchWindowState = 'unknown' | 'open' | 'closed';
+
+/**
+ * 本体側が使う。独立ウィンドウの開閉状態を返す。
+ * 購読（即時反映）＋ マウント時と focus 時の権威確認（取りこぼし対策）の二段構え。
+ * Web には独立ウィンドウという概念自体が無いので、常に確定済みの 'closed' を返す。
+ */
+export function useResearchWindowState(): ResearchWindowState {
+  const [state, setState] = useState<ResearchWindowState>(() => (isTauri() ? 'unknown' : 'closed'));
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -95,12 +102,12 @@ export function useResearchWindowOpen(): boolean {
     let unlisten: (() => void) | null = null;
 
     const verify = () => {
-      isResearchWindowOpenNow().then(exists => { if (alive) setOpen(exists); });
+      isResearchWindowOpenNow().then(exists => { if (alive) setState(exists ? 'open' : 'closed'); });
     };
 
     import('@tauri-apps/api/event').then(({ listen, emit }) => {
       listen<{ open: boolean }>(RESEARCH_WINDOW_STATE_EVENT, e => {
-        if (alive) setOpen(!!e.payload?.open);
+        if (alive) setState(e.payload?.open ? 'open' : 'closed');
       }).then(fn => {
         if (alive) unlisten = fn;
         else fn();
@@ -117,5 +124,5 @@ export function useResearchWindowOpen(): boolean {
     };
   }, []);
 
-  return open;
+  return state;
 }

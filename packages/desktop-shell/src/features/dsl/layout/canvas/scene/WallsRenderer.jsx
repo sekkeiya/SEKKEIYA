@@ -355,6 +355,7 @@ export default function WallsRenderer({ isTopView = false, selectable = true }) 
   const activeFloorIndex = useBuildingSpecStore((s) => s.activeFloorIndex);
   const showOtherFloorsGhost = useEditorModeStore((s) => s.showOtherFloorsGhost);
   const ghostFloors = useEditorModeStore((s) => s.ghostFloors);
+  const presentationOpen = useEditorModeStore((s) => s.presentationOpen);
   const floors = useBuildingSpecStore((s) => s.floors);
   const sceneMaxY = useEditorModeStore((s) => s.sceneMaxY);
   // 自動マテリアルで解決された壁仕上げ（未実行なら null → 既定色）。内壁/外壁で出し分ける。
@@ -393,7 +394,8 @@ export default function WallsRenderer({ isTopView = false, selectable = true }) 
         // 平面図では「アクティブ階の壁」だけを実体として描き、他階は薄いトレースにする
         // （立体/断面ではすべての階を実体で描く＝建物の実像）。
         const wallFloor = wall.floorIndex || 0;
-        const ghost = isTopView && wallFloor !== (activeFloorIndex || 0);
+        // 本番プレビュー中は全階を実体で描く（共有シーンを借りるプレビューの図面クリップに任せる）。
+        const ghost = !presentationOpen && isTopView && wallFloor !== (activeFloorIndex || 0);
         // 他階は既定で非表示。マスターON かつ その階の目アイコンONのときだけ透過表示する。
         if (ghost && (!showOtherFloorsGhost || !ghostFloors.includes(wallFloor))) return null;
         const selected = !ghost && selectedWallIds.includes(wall.id);

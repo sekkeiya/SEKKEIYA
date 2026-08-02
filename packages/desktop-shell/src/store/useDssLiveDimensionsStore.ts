@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 
-export interface LiveDimensions {
+// interface ではなく type にしているのは、TypeScript が暗黙のインデックスシグネチャを
+// 与えるのが型エイリアスだけだから。これが無いと resolveViewerYawDeg のような
+// 「余剰プロパティを許す受け口」へそのまま渡せない。
+export type LiveDimensions = {
   width: number;
   depth: number;
   height: number;
@@ -9,7 +12,7 @@ export interface LiveDimensions {
    * 即時反映しないと、入れ替えた瞬間だけモデルが変形して見える。
    */
   yawDeg?: number;
-}
+};
 
 // Model Info パネルで編集中の寸法 (mm) を、保存を待たずに
 // 3Dビューワ（右パネル/詳細画面）へ即時反映するための共有ストア

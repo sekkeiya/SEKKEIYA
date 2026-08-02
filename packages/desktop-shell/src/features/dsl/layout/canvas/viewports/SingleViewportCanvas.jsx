@@ -1224,6 +1224,32 @@ export default function SingleViewportCanvas({
     }));
   }, [items]);
 
+  // 真上（平面系）ビューでは、アクティブ階より下の階の家具を描画しない。
+  // 壁・床は階の表示切替（activeFloor / ghostFloors）で消えるが家具には階の概念が無く、
+  // 2F の平面図に 1F の家具が浮いて見えてしまうため（2026-08-02 実機FB）。
+  // 上の階の家具は Y 断面クリップ（切断高さより上を消す）が既に隠すので下限だけ絞る。
+  const activeFloorIndexForItems = useBuildingSpecStore((s) => s.activeFloorIndex);
+  const bsFloorsForItems = useBuildingSpecStore((s) => s.floors);
+  const bsFl0ForItems = useBuildingSpecStore((s) => s.fl0Mm);
+  const sceneMaxYForItems = useEditorModeStore((s) => s.sceneMaxY);
+  // 本番プレビュー中は全階の家具をマウントする（プレビューは共有シーンを借りるため、
+  // ここで外すとプレビューの図面/パースからも消えてしまう。スライスはプレビューのクリップが担当）。
+  const presentationOpenForItems = useEditorModeStore((s) => s.presentationOpen);
+  const floorFilteredItems = useMemo(() => {
+    if (effectiveType !== VIEW_TYPES.TOP || presentationOpenForItems) return normalizedItems;
+    const count = bsFloorsForItems?.length || 1;
+    const i = Math.max(0, Math.min(activeFloorIndexForItems || 0, count - 1));
+    if (i <= 0) return normalizedItems; // 1F 表示中は下階が無いのでそのまま
+    const isMmScene = (sceneMaxYForItems || 0) > 100;
+    const flMm = (bsFl0ForItems || 0) + (bsFloorsForItems?.[i]?.flMm || 0);
+    const minY = (isMmScene ? flMm : flMm / 1000) - (isMmScene ? 300 : 0.3);
+    return normalizedItems.filter((it) => {
+      const pos = it?.transform?.position;
+      const y = Number(Array.isArray(pos) ? pos[1] : pos?.y ?? 0) || 0;
+      return y >= minY;
+    });
+  }, [normalizedItems, effectiveType, activeFloorIndexForItems, bsFloorsForItems, bsFl0ForItems, sceneMaxYForItems, presentationOpenForItems]);
+
   const selectedItem = useMemo(() => {
     if (!selectedItemId) return null;
     return normalizedItems.find((x) => x.id === selectedItemId) || null;
@@ -4003,7 +4029,7 @@ return (
           </CanvasErrorBoundary>
         )}
 
-        {normalizedItems.map((it) =>
+        {floorFilteredItems.map((it) =>
           it.kind === "ai_placeholder" ? (
             <AiPlaceholderItem
               key={it.id}

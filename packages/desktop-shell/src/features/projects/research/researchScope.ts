@@ -2,6 +2,11 @@
 //
 // 窓は本体に追従せず自分でスコープを持つ（設計書 決定1）。どのスコープで開くかの
 // 決定と、プロジェクトが消えていたときの退避だけをここに置き、UI は結果を使うだけにする。
+//
+// 型のみ import: ResearchWindowState は researchWindowPresence.ts のものを使うが、
+// 値としては import しない（Tauri の event API に依存する実行コードを引き込むと、
+// このファイルが Firebase 同様「単体テストに実行環境が要る」ものになってしまう）。
+import type { ResearchWindowState } from '../chat/researchWindowPresence';
 
 /**
  * アカウントサイト（個人ボード）のスコープ ID。
@@ -14,6 +19,22 @@ export const ACCOUNT_SCOPE = 'account';
 
 /** 窓が選択中のスコープを覚える localStorage キー。 */
 export const RESEARCH_WINDOW_SCOPE_KEY = 'research-window-scope';
+
+/**
+ * スコープごとの「最後に開いていたボード」を覚える localStorage キー。
+ * この文字列は本体タブ・独立ウィンドウ・openResearchWindow の間で
+ * どのボードを開くかを伝え合う唯一の手段なので、必ずここ経由で作る。
+ * 実利用者の localStorage に既に書き込まれているため、フォーマットは変更しない
+ * （変えると既存のキーがどこからも読めなくなり、記憶が無言で失われる）。
+ */
+export function activeBoardStorageKey(scope: string): string {
+  return `research-active-board:${scope}`;
+}
+
+/** スコープ×ボードごとの「最後に見ていたビュー（マインドマップ/ノード）」を覚える localStorage キー。 */
+export function boardViewStorageKey(scope: string, docId: string): string {
+  return `research-board-view:${scope}|${docId}`;
+}
 
 export interface ScopeProject {
   id: string;
@@ -46,6 +67,22 @@ export function initialScope(saved: string | null, activeProjectId: string | nul
 export function reconcileScope(current: string, knownProjectIds: string[]): string {
   if (current === ACCOUNT_SCOPE) return current;
   return knownProjectIds.includes(current) ? current : ACCOUNT_SCOPE;
+}
+
+/**
+ * ResearchMemoTab / AccountResearchMemoTab が独立ウィンドウの開閉状態から出す表示判定。
+ * 「常に1インスタンスのみ」の不変条件を守る枝分かれそのものなので、両タブで重複させず
+ * ここへ集約する。
+ * - 'detached': 窓が開いている → ワークスペースはマウントせず、誘導表示のみ。
+ * - 'pending' : 開閉確認前（'unknown'）→ 何も描画しない（一瞬でも二重マウントさせない）。
+ * - 'workspace': 閉じている → ワークスペースをマウントしてよい。
+ */
+export type ResearchTabView = 'detached' | 'pending' | 'workspace';
+
+export function resolveResearchTabView(windowState: ResearchWindowState): ResearchTabView {
+  if (windowState === 'open') return 'detached';
+  if (windowState === 'unknown') return 'pending';
+  return 'workspace';
 }
 
 /** サイドバーに出す「マイプロジェクト」「チームプロジェクト」の 2 グループへ分ける。 */

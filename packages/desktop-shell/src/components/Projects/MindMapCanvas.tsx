@@ -1697,6 +1697,17 @@ const MindMapInner: React.FC<Props> = ({
   }, [mmNodes, summaries, relations, styleState, loading, flushSave]);
   useEffect(() => () => { flushSave(); }, [flushSave]);
 
+  // webview が閉じるときは React の unmount effect が走らないため、
+  // 既存の unmount flush だけでは直前の編集（debounce 1500ms）が落ちる。
+  // 独立ウィンドウは「閉じて本体タブへ戻す」のが通常操作なので、ここで取りこぼさない。
+  // 注意: beforeunload は await できないので、これは書き込みを「始める」だけで
+  // 完了を保証しない。確実な保存は将来 onCloseRequested 側で await する。
+  useEffect(() => {
+    const onBeforeUnload = () => flushSaveRef.current();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
+
   // ─── 元に戻す / やり直す ─────────────────────────────────────────────────────
   const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
   const lastSnapRef = useRef<string>('');

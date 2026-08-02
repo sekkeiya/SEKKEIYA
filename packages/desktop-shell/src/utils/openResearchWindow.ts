@@ -1,8 +1,9 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { RESEARCH_WINDOW_LABEL } from '../features/projects/chat/researchWindowPresence';
-import { RESEARCH_WINDOW_SCOPE_KEY } from '../features/projects/research/researchScope';
+import { RESEARCH_WINDOW_SCOPE_KEY, activeBoardStorageKey, boardViewStorageKey } from '../features/projects/research/researchScope';
 import { parseBoardKey } from '../features/projects/repositories/ResearchCanvasRepository';
 import { requestShowBoard } from '../features/projects/chat/boardContextBus';
+import { isTauri } from '../lib/platform';
 
 // Research & Memo を独立ネイティブ窓として開く。窓は1枚だけ使い回す。
 // ラベルは capabilities の `sekkeiya-research-*` パターンに一致させる。
@@ -26,12 +27,16 @@ const seedTargetBoard = (boardKey: string, view: 'mindmap' | 'canvas') => {
   const { scope, docId } = parseBoardKey(boardKey);
   try {
     localStorage.setItem(RESEARCH_WINDOW_SCOPE_KEY, scope);
-    localStorage.setItem(`research-active-board:${scope}`, docId);
-    localStorage.setItem(`research-board-view:${scope}|${docId}`, view);
+    localStorage.setItem(activeBoardStorageKey(scope), docId);
+    localStorage.setItem(boardViewStorageKey(scope, docId), view);
   } catch { /* ignore */ }
 };
 
 export const openResearchWindow = async (opts: OpenResearchWindowOptions = {}) => {
+  // 設計書 §3.6: 呼び出し元のガード漏れに備え、ここでも isTauri() を確かめる。
+  // Web には独立ウィンドウという概念が無いので、WebviewWindow に触る前に何もせず抜ける。
+  if (!isTauri()) return null;
+
   const view = opts.view ?? 'mindmap';
   if (opts.boardKey) seedTargetBoard(opts.boardKey, view);
 

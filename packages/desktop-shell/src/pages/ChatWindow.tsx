@@ -17,10 +17,12 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import CloudRoundedIcon from '@mui/icons-material/CloudRounded';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
+import ScienceRoundedIcon from '@mui/icons-material/ScienceRounded';
 import { openSearchWindow } from '../utils/openSearchWindow';
 import { openDriveWindow } from '../utils/openDriveWindow';
 import { openReaderHome } from '../features/dsb/lib/openReader';
 import { openCodeWindow } from '../utils/openCodeWindow';
+import { openResearchWindow } from '../utils/openResearchWindow';
 import { isBlogAdmin } from '../features/dsb/lib/blogAdmin';
 import { resolveCodeAccess } from '../features/global-settings/panels/backlog/codeAccess';
 import { isTauri } from '../lib/platform';
@@ -178,6 +180,15 @@ const WindowTopBar = () => {
             </IconButton>
           </Tooltip>
         )}
+        <Tooltip title="Research & Memo（リサーチ・メモ）" placement="bottom">
+          <IconButton
+            size="small"
+            onClick={() => { void openResearchWindow({ projectId: useAppStore.getState().activeProjectId }); }}
+            sx={{ color: 'rgb(var(--brand-fg-rgb) / 0.5)', '&:hover': { color: 'var(--brand-fg)', bgcolor: 'rgb(var(--brand-fg-rgb) / 0.06)' } }}
+          >
+            <ScienceRoundedIcon sx={{ fontSize: '1.05rem' }} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       {/* スペーサ（子アプリアイコンを右寄せ） */}

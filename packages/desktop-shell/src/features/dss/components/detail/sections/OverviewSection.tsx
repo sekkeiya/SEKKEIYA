@@ -23,6 +23,7 @@ import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import { DetailViewport } from '../DetailViewport';
 import { listDownloadFormats, downloadModelFile } from '../../../utils/modelDownload';
 import { getDownloadUrlForModel, getCanonicalModelId } from '../../../utils/modelUtils';
+import { resolveViewerYawDeg } from '../../../utils/viewerYaw';
 import { useModelLike } from '../../../hooks/useModelLike';
 import { useAuthStore } from '../../../../../store/useAuthStore';
 import { useUserSettingsStore, MACRO_CATEGORY_ORDER } from '../../../../../store/useUserSettingsStore';
@@ -234,8 +235,15 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({
     const d = Number(src.depth) || 0;
     const h = Number(src.height) || 0;
     if (!w && !d && !h) return null;
-    // 向き補正は元モデル固有の値。置き換え候補を表示中は候補側の補正に従う。
-    const yawDeg = Number((src as { yawDeg?: number }).yawDeg) === 90 ? 90 : 0;
+    // 向き補正は寸法と違い「モデル固有の値」。liveDimensions ストアは DssRightPanel も
+    // 書いていて、そちらは yawDeg を持たない。src から素朴に読むと右パネル由来の書き込みで
+    // 補正が消え、リロード直後の閲覧モードだけ W/D が崩れる（resolveViewerYawDeg のコメント参照）。
+    const yawDeg = resolveViewerYawDeg({
+      swapActive: !!swapUrl,
+      swapDims,
+      liveDims,
+      modelDims: model.dimensions,
+    });
     return { width: w, depth: d, height: h, yawDeg };
   }, [swapUrl, swapDims, liveDims, model.dimensions]);
 

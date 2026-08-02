@@ -9,8 +9,10 @@ import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import PublicPresentationShare from './features/dsl/layout/viewer/PublicPresentationShare.jsx';
 import SiteManagementPage from './pages/SiteManagementPage';
 import { useAppStore } from './store/useAppStore';
-import { serveShowBoardRequests, onShowBoard } from './features/projects/chat/boardContextBus';
+import { serveShowBoardRequests, onShowBoard, subscribeBoardContext } from './features/projects/chat/boardContextBus';
+import { isResearchWindowOpenNow } from './features/projects/chat/researchWindowPresence';
 import { parseBoardKey as parseResearchBoardKey } from './features/projects/repositories/ResearchCanvasRepository';
+import { activeBoardStorageKey, boardViewStorageKey } from './features/projects/research/researchScope';
 import { useAuthStore } from './store/useAuthStore';
 import { useNotificationsStore } from './store/useNotificationsStore';
 import { markNotificationRead } from './features/teams/api/teamsApi';
@@ -67,6 +69,7 @@ import { openDriveWindow } from './utils/openDriveWindow';
 import { openSearchWindow } from './utils/openSearchWindow';
 import { openReaderHome } from './features/dsb/lib/openReader';
 import { openCodeWindow } from './utils/openCodeWindow';
+import { openResearchWindow } from './utils/openResearchWindow';
 import { isBlogAdmin } from './features/dsb/lib/blogAdmin';
 import { resolveCodeAccess } from './features/global-settings/panels/backlog/codeAccess';
 import { auth } from './lib/firebase/client';
@@ -135,6 +138,15 @@ const MainAppInitGate = ({ children }: { children: ReactNode }) => {
     didAutoOpenOsWindow = true;
     openChatWindow(useAppStore.getState().activeProjectId ?? null).catch(() => {});
   }, [currentUser, isInitialized]);
+
+  // 実体（ResearchBoardWorkspace）が独立ウィンドウへ移ると、本体は publisher ではなくなる。
+  // 購読していないと本体内チャットのオーケストレーターがボード文脈を失い、
+  // ボード系ツールが silo で落ちる。自分発のイベントは owner ガードで無視されるので、
+  // 本体タブがマウントされている間も安全。
+  useEffect(() => {
+    if (isChildWindow) return;
+    return subscribeBoardContext();
+  }, []);
 
   if (!isInitialized) {
     return (
@@ -895,7 +907,7 @@ function App() {
 
         // Ctrl+Alt+○ → 各サブアプリを独立窓で開くグローバルショートカット（D=Drive が起点）。
         // 各機能は既存の「ポップアウト窓を開く」ユーティリティへ委譲する（窓は1枚を使い回す）。
-        //   D = Drive / C = Chat(SEKKEIYA OS) / S = Search / R = Reader（F=スクショは registerSafe 側）
+        //   D = Drive / C = Chat(SEKKEIYA OS) / S = Search / R = Reader / K = Code / M = Research & Memo
         // registerSafe とは別枠で登録する（registerSafe は1ショットに絞られているため）。
         const registerAppShortcut = async (accel: string, label: string, open: () => Promise<unknown>) => {
           try {
@@ -918,6 +930,8 @@ function App() {
           resolveCodeAccess({ isAdmin: isBlogAdmin(auth.currentUser), isDesktop: isTauri() }).enabled
             ? openCodeWindow()
             : Promise.resolve());
+        await registerAppShortcut('CommandOrControl+Alt+M', 'Research & Memo', () =>
+          openResearchWindow({ projectId: useAppStore.getState().activeProjectId }));
 
         // 拡張メニュー「スクショを保存」→ localhost /capture → Rust emit。
         // Ctrl+Alt+F（スクショ）と同じく ask モードでキャプチャウィンドウを起動する。
@@ -1006,22 +1020,27 @@ function App() {
     // 既にワークスペースが出ている場合の切替は ResearchBoardWorkspace 側の onShowBoard が担う。
     const offServeShowBoard = serveShowBoardRequests();
     const offShowBoard = onShowBoard(req => {
-      const { scope, docId } = parseResearchBoardKey(req.boardKey);
-      try {
-        localStorage.setItem(`research-active-board:${scope}`, docId);
-        localStorage.setItem(`research-board-view:${scope}|${docId}`, req.view);
-      } catch { /* ignore */ }
-      const s = useAppStore.getState();
-      if (scope === 'account') {
-        // 個人ボード: マイページの Research & Memo タブ
-        if (s.currentMainView !== 'my-site') s.setCurrentMainView('my-site');
+      // R&M 独立ウィンドウが開いていれば、そちらが自分で受けて表示する。
+      // 本体が勝手に R&M タブへ切り替わらないよう、ここでは何もしない。
+      void isResearchWindowOpenNow().then(researchWindowOpen => {
+        if (researchWindowOpen) return;
+        const { scope, docId } = parseResearchBoardKey(req.boardKey);
+        try {
+          localStorage.setItem(activeBoardStorageKey(scope), docId);
+          localStorage.setItem(boardViewStorageKey(scope, docId), req.view);
+        } catch { /* ignore */ }
+        const s = useAppStore.getState();
+        if (scope === 'account') {
+          // 個人ボード: マイページの Research & Memo タブ
+          if (s.currentMainView !== 'my-site') s.setCurrentMainView('my-site');
+          s.setActiveProjectTab('memo');
+          return;
+        }
+        // プロジェクトボード: プロジェクトホーム（workspace ビュー・子アプリ未選択）の memo タブ
+        if (s.activeProjectId !== scope) s.setActiveProjectId(scope, 'home');
+        else if (s.currentMainView !== 'workspace') s.setCurrentMainView('workspace');
         s.setActiveProjectTab('memo');
-        return;
-      }
-      // プロジェクトボード: プロジェクトホーム（workspace ビュー・子アプリ未選択）の memo タブ
-      if (s.activeProjectId !== scope) s.setActiveProjectId(scope, 'home');
-      else if (s.currentMainView !== 'workspace') s.setCurrentMainView('workspace');
-      s.setActiveProjectTab('memo');
+      });
     });
 
     return () => {

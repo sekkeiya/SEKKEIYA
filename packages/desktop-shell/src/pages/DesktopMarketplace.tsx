@@ -22,6 +22,7 @@ import type { AppScope } from "../shared/layout/workspace/types";
 import { TemplateRepository } from "../features/projects/templateRepository";
 import type { RhinoTemplate } from "../features/projects/types";
 import { PreviewDialog } from "../components/Projects/PreviewDialog";
+import { PluginMarketSection } from "../features/plugins/market/PluginMarketSection";
 
 // ステータスごとの表示メタ（バッジ色・ラベル）
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -159,8 +160,18 @@ export default function DesktopMarketplace() {
               </ListItem>
             );
           })}
+          {/* 要件73: コミュニティ公開されたプラグイン */}
           <ListItem disablePadding sx={{ mb: 0.5, mt: 2 }}>
-            <ListItemButton 
+            <ListItemButton
+              onClick={() => { setActiveTab("plugins"); setSelectedItem(null); setItemType(null); }}
+              sx={{ borderRadius: 2, bgcolor: activeTab === "plugins" ? "rgb(var(--brand-fg-rgb) / 0.08)" : "transparent", "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)" } }}
+            >
+              <ExtensionIcon sx={{ color: activeTab === "plugins" ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)", mr: 1.5, fontSize: 16 }} />
+              <ListItemText primary="Plugins" primaryTypographyProps={{ fontSize: 13, fontWeight: activeTab === "plugins" ? 600 : 500, color: activeTab === "plugins" ? "var(--brand-fg)" : "rgb(var(--brand-fg-rgb) / 0.7)" }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding sx={{ mb: 0.5 }}>
+            <ListItemButton
               onClick={() => { setActiveTab("templates"); setSelectedItem(null); setItemType(null); }}
               sx={{ borderRadius: 2, bgcolor: activeTab === "templates" ? "rgb(var(--brand-fg-rgb) / 0.08)" : "transparent", "&:hover": { bgcolor: "rgb(var(--brand-fg-rgb) / 0.06)" } }}
             >
@@ -341,13 +352,15 @@ export default function DesktopMarketplace() {
               <Box sx={{ display: "flex", gap: 3, alignItems: "center", flexGrow: 1 }}>
                 <Box>
                   <Typography variant="h4" sx={{ fontWeight: 900, mb: 1, letterSpacing: "-0.03em", color: "var(--brand-fg)" }}>
-                    {activeTab === "my_library" ? "My Workspace Library" : activeTab === "templates" ? "Template Library" : "In-OS Marketplace"}
+                    {activeTab === "my_library" ? "My Workspace Library" : activeTab === "templates" ? "Template Library" : activeTab === "plugins" ? "Plugin Marketplace" : "In-OS Marketplace"}
                   </Typography>
                   <Typography sx={{ color: "rgb(var(--brand-fg-rgb) / 0.65)", fontSize: "0.95rem" }}>
-                    {activeTab === "my_library" 
-                      ? "Manage your installed apps, plugins, and licenses." 
+                    {activeTab === "my_library"
+                      ? "Manage your installed apps, plugins, and licenses."
                       : activeTab === "templates"
                       ? "Discover high-quality 3D templates to jumpstart your design process."
+                      : activeTab === "plugins"
+                      ? "ユーザーが開発・公開したプラグインを検索して導入できます。"
                       : "Discover and install new tools to extend your SEKKEIYA OS workflow."}
                   </Typography>
                 </Box>
@@ -411,8 +424,11 @@ export default function DesktopMarketplace() {
             </Box>
           )}
 
+          {/* PLUGINS CONTENT（要件73） */}
+          {activeTab === "plugins" && <PluginMarketSection searchQuery={searchQuery} />}
+
           {/* STORE CONTENT */}
-          {activeTab !== "my_library" && activeTab !== "templates" && (
+          {activeTab !== "my_library" && activeTab !== "templates" && activeTab !== "plugins" && (
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 800, color: "var(--brand-fg)" }}>

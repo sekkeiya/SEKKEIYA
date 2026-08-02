@@ -3,7 +3,7 @@ import { checkPermission, type PermissionContext } from './permissions';
 
 const ctx = (over: Partial<PermissionContext> = {}): PermissionContext => ({
   pluginId: 'com.example.tool',
-  policy: { own: 'readwrite', readScopes: ['3dss'] },
+  policy: { own: 'readwrite', readScopes: ['3dss'], network: ['https://api.example.com'], chat: false },
   network: ['https://api.example.com'],
   chat: false,
   ...over,
@@ -21,12 +21,12 @@ describe('checkPermission — 宣言不要のもの', () => {
 
 describe('checkPermission — workFiles の読み取り', () => {
   it('own が none なら自分の領域も読めない', () => {
-    const r = checkPermission('workFiles.list', {}, ctx({ policy: { own: 'none', readScopes: [] } }));
+    const r = checkPermission('workFiles.list', {}, ctx({ policy: { own: 'none', readScopes: [], network: [], chat: false } }));
     expect(r.allowed).toBe(false);
     expect(denied(r)).toContain('workFiles');
   });
   it('own が read なら自分の領域を読める', () => {
-    expect(checkPermission('workFiles.list', {}, ctx({ policy: { own: 'read', readScopes: [] } })).allowed).toBe(true);
+    expect(checkPermission('workFiles.list', {}, ctx({ policy: { own: 'read', readScopes: [], network: [], chat: false } })).allowed).toBe(true);
   });
   it('宣言した他 scope は読める', () => {
     expect(checkPermission('workFiles.list', { appScope: '3dss' }, ctx()).allowed).toBe(true);
@@ -46,7 +46,7 @@ describe('checkPermission — workFiles の書き込み', () => {
     expect(checkPermission('workFiles.remove', { id: 'x' }, ctx()).allowed).toBe(true);
   });
   it('own が read なら書けない', () => {
-    const r = checkPermission('workFiles.create', {}, ctx({ policy: { own: 'read', readScopes: [] } }));
+    const r = checkPermission('workFiles.create', {}, ctx({ policy: { own: 'read', readScopes: [], network: [], chat: false } }));
     expect(r.allowed).toBe(false);
     expect(denied(r)).toContain('readwrite');
   });

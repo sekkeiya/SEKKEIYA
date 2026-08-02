@@ -72,6 +72,9 @@ export default function BaseGlb({ url, onLoaded }) {
   const fl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
   const ghostFloors = useEditorModeStore((s) => s.ghostFloors);
   const showOtherFloorsGhost = useEditorModeStore((s) => s.showOtherFloorsGhost);
+  // 本番プレビュー中は他階もすべて実体表示（プレビューは共有シーンを借りるため。
+  // 階のスライスはプレビュー側のレンダラー単位クリップが行う）。
+  const presentationOpen = useEditorModeStore((s) => s.presentationOpen);
 
   let effectiveSubMode = layoutSubMode;
   if (layoutSubMode === "furniture_iso") {
@@ -216,7 +219,16 @@ export default function BaseGlb({ url, onLoaded }) {
         //   判定すれば、1F土台の躯体は2F表示では必ず別階＝薄いトレース/非表示になる。
         //   （各階が別メッシュに分かれた躯体でも、そのメッシュの土台階で正しく振り分く。）
         const floorOfMesh = floorOfY((objMinY != null ? objMinY : objMidY) + epsY);
-        const isActiveHere = floorOfMesh === activeFloor;
+        // 下屋（1F の屋根など）: 足元は下の階でも、天端がこの階の FL を十分に超えて
+        // 立ち上がるメッシュは「切断面から見下ろして見えるもの」なので実体で描く。
+        // 建築図面の慣習でも 2 階平面図に下屋の屋根は描く。閾値 +300mm は
+        // 「FL 直下で止まる下階の壁・梁」（天端≈FL）を巻き込まないためのマージン。
+        const risesAboveFloor =
+          floorOfMesh < activeFloor &&
+          objMaxY != null &&
+          objMaxY >= floorBaseStructY(activeFloor) + 300 * unit;
+        // プレビュー中は全階を実体扱い（他階トレース/非表示にしない）。
+        const isActiveHere = presentationOpen || floorOfMesh === activeFloor || risesAboveFloor;
         //   別階トレース: 目アイコンON（ghostFloors にその階が含まれる）なら薄く重ねる。
         const ghostOn = !isActiveHere && showOtherFloorsGhost && Array.isArray(ghostFloors) && ghostFloors.includes(floorOfMesh);
 
@@ -326,7 +338,7 @@ export default function BaseGlb({ url, onLoaded }) {
       }
     };
   }, [gltf, url, onLoaded, layoutSubMode, editorMode, isSectionClipEnabled, sectionClipHeight, effectiveSubMode,
-      activeFloorIndex, floorsSpec, fl0Mm, ghostFloors, showOtherFloorsGhost]);
+      activeFloorIndex, floorsSpec, fl0Mm, ghostFloors, showOtherFloorsGhost, presentationOpen]);
 
   const clonedScene = useMemo(() => {
     return gltf.scene ? gltf.scene.clone() : null;

@@ -66,11 +66,13 @@ export const PluginFrame: React.FC<PluginFrameProps> = ({ plugin, projectId }) =
     return () => { alive = false; };
   }, [plugin, nonce]);
 
+  // 要件70: network / chat は manifest の自己申告ではなく、出所と同意を通した
+  // policy（resolveDataScopePolicy の結果）から取る。
   const ctx: PermissionContext = useMemo(() => ({
     pluginId: plugin.manifest.id,
     policy: plugin.policy,
-    network: plugin.manifest.permissions?.network ?? [],
-    chat: plugin.manifest.permissions?.chat ?? false,
+    network: plugin.policy.network,
+    chat: plugin.policy.chat,
   }), [plugin]);
 
   // 初版は context / ui / storage のみ実接続。workFiles・http・chat は
