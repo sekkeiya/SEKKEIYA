@@ -1,22 +1,14 @@
 import React, { Suspense, useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Box, Typography, TextField, Button, Chip, CircularProgress, Menu, MenuItem, Divider, Tooltip, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
+import { Box, Typography, Chip, CircularProgress, Menu, MenuItem, Divider, Tooltip, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import TouchAppRoundedIcon from '@mui/icons-material/TouchAppRounded';
-import LayersRoundedIcon from '@mui/icons-material/LayersRounded';
-import CallSplitRoundedIcon from '@mui/icons-material/CallSplitRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { getModelLocalPathCached } from '../../../lib/modelLocalPathCache';
 import { getDownloadUrlForModel, getCanonicalModelId } from '../utils/modelUtils';
-import { slotDisplayTitle } from '../utils/materialSlotLabel';
 import { enumerateMaterialSlots, type EnumeratedSlot } from '../../shared/material/applyMaterial';
 import { materialToSnapshot } from '../../shared/material/useMaterialBinding';
 import {
@@ -30,6 +22,7 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import { DSMT_CATEGORY_META, type DsmtMaterial } from '../../dsmt/types';
 import { useAppStore } from '../../../store/useAppStore';
 import { persistAssetPatch } from '../utils/persistAssetPatch';
+import { MaterialEditor } from './detail/sections/MaterialEditor';
 import { VIEWER_ENVIRONMENT } from '../viewerEnvironment';
 import type { MaterialPreviewState } from './RightPanelModelViewer';
 import { uploadVariantThumb } from '../utils/variantThumb';
@@ -171,13 +164,13 @@ interface Props {
   slotsHandlerRef?: React.MutableRefObject<((slots: EnumeratedSlot[]) => void) | null>;
   /** パターン保存時に、メインビューアの描画をJPEGデータURLで取得する（サムネイル生成用）。 */
   captureThumb?: () => string | null;
-  /** externalViewer 時、外部の「＋ パターンを追加」ボタンなどから「現在の見た目を保存」を呼び出すための受け渡し先。 */
-  addVariantRef?: React.MutableRefObject<(() => void) | null>;
+  /** externalViewer 時、選択中パーツ数の変化を親へ通知する（ビューア上のアクションバー表示用）。 */
+  onSelectionCountChange?: (count: number) => void;
+  /** externalViewer 時、外部の「部位にする」ボタンから groupSelected を呼び出すための受け渡し先。 */
+  groupSelectedRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: controlledMode, hideToggle, section = 'both', externalViewer, onPreviewState, pickHandlerRef, slotsHandlerRef, captureThumb, addVariantRef }) => {
-  const showMat = section !== 'variants';
-  const showVar = section !== 'material';
+export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: controlledMode, hideToggle, section = 'both', externalViewer, onPreviewState, pickHandlerRef, slotsHandlerRef, captureThumb, onSelectionCountChange, groupSelectedRef }) => {
   const glbUrl = useMemo(() => getDownloadUrlForModel(model, 'glb') as string, [model]);
   // externalViewer 時は自前でGLBを解決しない（メインビューア側が解決済みのため）
   const { url: resolvedUrl, loading: resolving } = useResolvedGlbUrl(externalViewer ? undefined : glbUrl);
@@ -372,6 +365,16 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
     setSelectedVariantId(null);
   }, []);
 
+  /** 部位の選択を外して元の GLB 素材へ戻す（プレビュー状態のみ。永続化はしない）。 */
+  const clearOption = useCallback((slotKey: string) => {
+    setSelection((s) => {
+      const next = { ...s };
+      delete next[slotKey];
+      return next;
+    });
+    setSelectedVariantId(null);
+  }, []);
+
   // ===== 行（グループ / 単独パーツ）の構築とグループ操作 =====
 
   /** いずれかの preset のメンバーになっているメッシュキーの集合。 */
@@ -413,6 +416,11 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
     for (const r of rows) m[r.key] = r;
     return m;
   }, [rows]);
+
+  // 編集 UI 用の分割。rows は presets → ungroupedSlots の順に組まれているので、
+  // preset の有無だけで「登録済みの部位」と「未設定のパーツ」に分かれる。
+  const registeredRows = useMemo(() => rows.filter((r) => !!r.preset), [rows]);
+  const unregisteredRows = useMemo(() => rows.filter((r) => !r.preset), [rows]);
 
   /** 選択中の行に属する全メッシュ名（3D ハイライト用）。 */
   const highlightMeshNames = useMemo(() => {
@@ -615,12 +623,19 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
     }
   }, [presets, selection, variants, updateVariants, captureThumb, canonicalId, persistVariants]);
 
-  // externalViewer 時、外部の「＋ パターンを追加」ボタンから saveCurrentAsVariant を呼べるようにする。
+  // externalViewer 時、選択中パーツ数をビューア側（MaterialSection のアクションバー）へ通知する。
+  // 依存はプリミティブの件数のみ。オブジェクトを毎レンダー作って渡すと無限再レンダーになる。
   useEffect(() => {
-    if (!externalViewer || !addVariantRef) return;
-    addVariantRef.current = saveCurrentAsVariant;
-    return () => { addVariantRef.current = null; };
-  }, [externalViewer, addVariantRef, saveCurrentAsVariant]);
+    if (!externalViewer || !onSelectionCountChange) return;
+    onSelectionCountChange(selectedKeys.length);
+  }, [externalViewer, onSelectionCountChange, selectedKeys.length]);
+
+  // 「部位にする」ボタンの実行口。再レンダーを起こす必要がないので ref で渡す。
+  useEffect(() => {
+    if (!externalViewer || !groupSelectedRef) return;
+    groupSelectedRef.current = groupSelected;
+    return () => { groupSelectedRef.current = null; };
+  }, [externalViewer, groupSelectedRef, groupSelected]);
 
   /** パターンを適用（家具全体を切替）。 */
   const applyVariant = useCallback((variant: MaterialVariant) => {
@@ -664,17 +679,9 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
 
   return (
     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 2 }}>
-      {/* プレビュー（externalViewer 時はメインビューアへ委譲し、Canvas を持たない） */}
-      {externalViewer ? (
-        isEditing && (
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.75, borderRadius: 1.5, bgcolor: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.3)' }}>
-            <TouchAppRoundedIcon sx={{ fontSize: 15, color: HILITE }} />
-            <Typography sx={{ fontSize: 11.5, color: 'rgb(var(--brand-fg-rgb) / 0.8)' }}>
-              上の3Dビューアでパーツをクリックして選択（複数選択でグループ化）
-            </Typography>
-          </Box>
-        )
-      ) : (
+      {/* プレビュー（externalViewer 時はメインビューアへ委譲し、Canvas を持たない）。
+          操作ヒントもビューア側（MaterialSection）が重ねるため、ここでは何も描かない。 */}
+      {externalViewer ? null : (
       <Box sx={{ flex: '1 1 320px', minWidth: 280, height: 340, bgcolor: 'var(--brand-bg)', borderRadius: 2, border: '1px solid rgb(var(--brand-fg-rgb) / 0.08)', position: 'relative', overflow: 'hidden' }}>
         {resolving || !resolvedUrl ? (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress sx={{ color: ACCENT }} /></Box>
@@ -708,207 +715,60 @@ export const DssMaterialPresets: React.FC<Props> = ({ model, isAuthor, mode: con
 
       {/* 右ペイン */}
       <Box sx={{ flex: '1 1 360px', minWidth: 300 }}>
-        {/* ヘッダー：作成者は 編集/プレビュー 切替 */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>
-            {section === 'variants'
-              ? (isEditing ? '家具パターン設定' : 'パターンを選択')
-              : (isEditing ? 'マテリアル設定' : 'マテリアルを選択')}
-          </Typography>
-          {saving && <CircularProgress size={14} sx={{ color: ACCENT }} />}
-          {isAuthor && !hideToggle && (
-            <ToggleButtonGroup
-              size="small" exclusive value={mode}
-              onChange={(_e, v) => { if (v) setMode(v); }}
-              sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 1, fontSize: 11, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', '&.Mui-selected': { bgcolor: `${ACCENT}28`, color: 'var(--brand-fg)', borderColor: `${ACCENT}88` } } }}
-            >
-              <ToggleButton value="edit"><EditRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} />編集</ToggleButton>
-              <ToggleButton value="preview"><VisibilityRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} />プレビュー</ToggleButton>
-            </ToggleButtonGroup>
-          )}
-        </Box>
-
         {isEditing ? (
-          /* ===== 作成者：エディター（クリックで部位選択→設定表示） ===== */
-          <>
-            {showMat && (<>
-            {slots.length === 0 ? (
-              <Typography sx={{ fontSize: 12, color: 'rgb(var(--brand-fg-rgb) / 0.45)' }}>モデルを解析中…（部位が出ない場合は単一マテリアルの可能性があります）</Typography>
-            ) : (
-              <>
-                {/* 操作バー：グループ化 / 解除 / 自動グループ化 */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
-                  {selectedKeys.length >= 2 ? (
-                    <Button size="small" variant="contained" disableElevation startIcon={<LayersRoundedIcon sx={{ fontSize: 14 }} />}
-                      onClick={groupSelected}
-                      sx={{ textTransform: 'none', fontSize: 11, bgcolor: HILITE, color: '#06202a', '&:hover': { bgcolor: '#38e0f5' }, height: 28 }}>
-                      {selectedKeys.length}個をグループ化
-                    </Button>
-                  ) : selectedKeys.length === 1 && rowByKey[selectedKeys[0]]?.isGroup ? (
-                    <Button size="small" variant="outlined" startIcon={<CallSplitRoundedIcon sx={{ fontSize: 14 }} />}
-                      onClick={() => ungroupRow(selectedKeys[0])}
-                      sx={{ textTransform: 'none', fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.7)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.2)', height: 28 }}>
-                      グループ解除
-                    </Button>
-                  ) : (
-                    <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>
-                      パーツを複数選んでグループ化できます
-                    </Typography>
-                  )}
-                  <Box sx={{ flex: 1 }} />
-                  <Tooltip title="同じ素材（素材名 / 色）の単独パーツを自動でまとめる">
-                    <span>
-                      <Button size="small" variant="text" startIcon={<AutoAwesomeRoundedIcon sx={{ fontSize: 14 }} />}
-                        onClick={autoGroupBySameMaterial}
-                        disabled={ungroupedSlots.length < 2}
-                        sx={{ textTransform: 'none', fontSize: 11, color: ACCENT, height: 28 }}>
-                        同じ素材で自動グループ化
-                      </Button>
-                    </span>
-                  </Tooltip>
-                </Box>
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                  {rows.map((row, rowIndex) => {
-                    const key = row.key;
-                    const ps = row.preset;
-                    const options = ps?.options ?? [];
-                    const isSel = selectedKeys.includes(key);
-                    const expanded = isSel && selectedKeys.length === 1;
-                    const selId = resolveSelectedOption(ps ?? { slotKey: key, materialIndex: row.repSlot.materialIndex, options }, selection[key])?.id;
-                    const memberNames = row.members.map((m) => m.meshName).filter(Boolean).join(', ');
-                    const title = slotDisplayTitle(row.label, row.repSlot.materialName, rowIndex);
-                    return (
-                      <Box key={key} sx={{ borderRadius: 1.5, bgcolor: isSel ? 'rgba(34,211,238,0.07)' : 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${isSel ? 'rgba(34,211,238,0.5)' : 'rgb(var(--brand-fg-rgb) / 0.07)'}`, overflow: 'hidden' }}>
-                        {/* 行ヘッダー：クリックで選択（複数選択でグループ化バーが出る） */}
-                        <Box onClick={() => toggleSelected(key)} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 1, cursor: 'pointer', '&:hover': { bgcolor: 'rgb(var(--brand-fg-rgb) / 0.04)' } }}>
-                          {options[0] ? <SwatchDot color={swatchColorOf(options[0])} size={16} /> : <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '1px dashed rgb(var(--brand-fg-rgb) / 0.3)' }} />}
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            {/* メッシュ名（tripo_node_… 等の生 ID）は常時表示せず hover の Tooltip に送る */}
-                            <Tooltip title={memberNames || ''} placement="top-start" disableInteractive>
-                              <Typography sx={{ fontSize: 12, color: isSel ? 'var(--brand-fg)' : 'rgb(var(--brand-fg-rgb) / 0.8)' }} noWrap>{title}</Typography>
-                            </Tooltip>
-                          </Box>
-                          {row.isGroup && <Chip icon={<LayersRoundedIcon sx={{ fontSize: 12 }} />} label={`${row.members.length}`} size="small" sx={{ height: 18, fontSize: 9.5, bgcolor: 'rgba(34,211,238,0.18)', color: HILITE, '& .MuiChip-icon': { color: HILITE, ml: 0.5 } }} />}
-                          {options.length > 0 && <Chip label={`${options.length}`} size="small" sx={{ height: 16, fontSize: 9.5, bgcolor: 'rgb(var(--brand-fg-rgb) / 0.1)', color: 'rgb(var(--brand-fg-rgb) / 0.7)' }} />}
-                        </Box>
-
-                        {/* 単独選択時のみ設定を展開 */}
-                        {expanded && (
-                          <Box sx={{ px: 1.25, pb: 1.25, pt: 0.25 }}>
-                            <TextField
-                              size="small" placeholder="役割名（張地 / 脚 など）"
-                              value={ps?.label ?? ''}
-                              onChange={(e) => setLabel(key, e.target.value)}
-                              onBlur={commitLabel}
-                              sx={{ width: '100%', mb: 1, '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12, py: 0.75 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)' } }}
-                            />
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                              {options.map((opt) => {
-                                const selected = selId === opt.id;
-                                return (
-                                  <Box key={opt.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.25 }}>
-                                    <Tooltip title={opt.title || ''}>
-                                      <Box onClick={() => selectOption(key, opt.id)} sx={{ cursor: 'pointer' }}>
-                                        <SwatchDot color={swatchColorOf(opt)} selected={selected} />
-                                      </Box>
-                                    </Tooltip>
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                      <Tooltip title={opt.isDefault ? '既定' : '既定にする'}>
-                                        <IconButton size="small" onClick={() => setDefaultOption(key, opt.id)} sx={{ p: 0.1, color: opt.isDefault ? 'light-dark(#aa8804, #facc15)' : 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
-                                          {opt.isDefault ? <StarRoundedIcon sx={{ fontSize: 13 }} /> : <StarOutlineRoundedIcon sx={{ fontSize: 13 }} />}
-                                        </IconButton>
-                                      </Tooltip>
-                                      <Tooltip title="削除">
-                                        <IconButton size="small" onClick={() => removeOption(key, opt.id)} sx={{ p: 0.1, color: 'rgb(var(--brand-fg-rgb) / 0.35)', '&:hover': { color: '#ef5350' } }}>
-                                          <CloseRoundedIcon sx={{ fontSize: 13 }} />
-                                        </IconButton>
-                                      </Tooltip>
-                                    </Box>
-                                  </Box>
-                                );
-                              })}
-                              <Button size="small" variant="outlined" startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
-                                onClick={(e) => setPicker({ anchor: e.currentTarget, rowKey: key, repSlot: row.repSlot })}
-                                sx={{ textTransform: 'none', fontSize: 11, color: ACCENT, borderColor: 'rgba(236,64,122,0.5)', height: 30 }}>
-                                オプション追加
-                              </Button>
-                            </Box>
-                          </Box>
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </>
-            )}
-            <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)', mt: 1.5 }}>
-              ※ パーツを選び役割名と素材を登録。同じ張地のパーツは複数選択して「グループ化」すると、1つの素材でまとめて切替できます（★が初期表示）。
-            </Typography>
-            </>)}
-
-            {showVar && (<>
-            {/* ===== 家具まるごとのパターン登録 ===== */}
-            <Divider sx={{ borderColor: 'rgb(var(--brand-fg-rgb) / 0.08)', my: 2 }} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>家具パターン / Variants</Typography>
-              <Button
-                size="small" variant="contained" disableElevation
-                startIcon={<AddRoundedIcon sx={{ fontSize: 14 }} />}
-                onClick={saveCurrentAsVariant}
-                disabled={presets.every((p) => p.options.length === 0)}
-                sx={{ textTransform: 'none', fontSize: 11, bgcolor: ACCENT, '&:hover': { bgcolor: '#d81b60' }, height: 28 }}
-              >
-                現在の見た目を保存
-              </Button>
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                {/* デフォルト（常設・編集不可） */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75, borderRadius: 1.5, bgcolor: selectedVariantId === null ? 'rgba(236,64,122,0.08)' : 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${selectedVariantId === null ? `${ACCENT}66` : 'rgb(var(--brand-fg-rgb) / 0.07)'}` }}>
-                  <Tooltip title="元の見た目をプレビュー">
-                    <Box onClick={applyDefault} sx={{ cursor: 'pointer' }}><SwatchDot color={defaultSwatch} size={22} selected={selectedVariantId === null} /></Box>
-                  </Tooltip>
-                  <Typography sx={{ flex: 1, fontSize: 12, color: 'var(--brand-fg)', fontWeight: 600 }}>デフォルト</Typography>
-                  <Typography sx={{ fontSize: 10, color: 'rgb(var(--brand-fg-rgb) / 0.4)' }}>編集不可</Typography>
-                </Box>
-                {variants.map((v) => {
-                  const isSel = selectedVariantId === v.id;
-                  return (
-                    <Box key={v.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75, borderRadius: 1.5, bgcolor: isSel ? 'rgba(236,64,122,0.08)' : 'rgb(var(--brand-fg-rgb) / 0.03)', border: `1px solid ${isSel ? `${ACCENT}66` : 'rgb(var(--brand-fg-rgb) / 0.07)'}` }}>
-                      <Tooltip title="このパターンをプレビュー">
-                        <Box onClick={() => applyVariant(v)} sx={{ cursor: 'pointer' }}>
-                          <SwatchDot color={variantSwatchColor(presets, v)} size={22} selected={isSel} />
-                        </Box>
-                      </Tooltip>
-                      <TextField
-                        size="small" placeholder="パターン名"
-                        value={v.title ?? ''}
-                        onChange={(e) => renameVariant(v.id, e.target.value)}
-                        onBlur={commitVariants}
-                        sx={{ flex: 1, '& .MuiInputBase-input': { color: 'var(--brand-fg)', fontSize: 12, py: 0.5 }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgb(var(--brand-fg-rgb) / 0.12)' } }}
-                      />
-                      <Tooltip title={v.isDefault ? '既定' : '既定にする'}>
-                        <IconButton size="small" onClick={() => setDefaultVariant(v.id)} sx={{ p: 0.25, color: v.isDefault ? 'light-dark(#aa8804, #facc15)' : 'rgb(var(--brand-fg-rgb) / 0.35)' }}>
-                          {v.isDefault ? <StarRoundedIcon sx={{ fontSize: 15 }} /> : <StarOutlineRoundedIcon sx={{ fontSize: 15 }} />}
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="削除">
-                        <IconButton size="small" onClick={() => removeVariant(v.id)} sx={{ p: 0.25, color: 'rgb(var(--brand-fg-rgb) / 0.35)', '&:hover': { color: '#ef5350' } }}>
-                          <CloseRoundedIcon sx={{ fontSize: 15 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  );
-                })}
-                {variants.length === 0 && (
-                  <Typography sx={{ fontSize: 11, color: 'rgb(var(--brand-fg-rgb) / 0.35)' }}>上で各部位の素材を選び「現在の見た目を保存」を押すと、パターンを追加できます（デフォルトは常設・編集不可）。</Typography>
-                )}
-              </Box>
-            </>)}
-          </>
+          /* ===== 作成者：エディター（部位ごとのスウォッチ行＋保存済みの組み合わせ） ===== */
+          <MaterialEditor
+            registeredRows={registeredRows}
+            unregisteredRows={unregisteredRows}
+            presets={presets}
+            variants={variants}
+            selection={selection}
+            selectedKeys={selectedKeys}
+            selectedVariantId={selectedVariantId}
+            saving={saving}
+            modelThumbUrl={model?.thumbnailUrl || model?.thumbnail || undefined}
+            analyzing={slots.length === 0}
+            canAutoGroup={ungroupedSlots.length >= 2}
+            canSaveVariant={!presets.every((p) => p.options.length === 0)}
+            onToggleRow={toggleSelected}
+            onUngroupRow={ungroupRow}
+            onAutoGroup={autoGroupBySameMaterial}
+            onSetLabel={setLabel}
+            onCommitLabel={commitLabel}
+            onSelectOption={selectOption}
+            onClearOption={clearOption}
+            onSetDefaultOption={setDefaultOption}
+            onRemoveOption={removeOption}
+            onOpenPicker={(anchor, rowKey, repSlot) => setPicker({ anchor, rowKey, repSlot })}
+            onSaveCurrentAsVariant={saveCurrentAsVariant}
+            onApplyVariant={applyVariant}
+            onApplyDefault={applyDefault}
+            onRenameVariant={renameVariant}
+            onCommitVariants={commitVariants}
+            onSetDefaultVariant={setDefaultVariant}
+            onRemoveVariant={removeVariant}
+          />
         ) : (
           /* ===== 閲覧：パターン一括切替（デフォルト常設・パーツ単位は出さない） ===== */
           <>
+            {/* ヘッダー：作成者は 編集/プレビュー 切替。編集側は MaterialSection の
+                SECTION ヘッダーがあるため、この見出しは閲覧側だけに出す。 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-fg)', flex: 1 }}>
+                {section === 'variants' ? 'パターンを選択' : 'マテリアルを選択'}
+              </Typography>
+              {saving && <CircularProgress size={14} sx={{ color: ACCENT }} />}
+              {isAuthor && !hideToggle && (
+                <ToggleButtonGroup
+                  size="small" exclusive value={mode}
+                  onChange={(_e, v) => { if (v) setMode(v); }}
+                  sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 1, fontSize: 11, textTransform: 'none', color: 'rgb(var(--brand-fg-rgb) / 0.6)', borderColor: 'rgb(var(--brand-fg-rgb) / 0.15)', '&.Mui-selected': { bgcolor: `${ACCENT}28`, color: 'var(--brand-fg)', borderColor: `${ACCENT}88` } } }}
+                >
+                  <ToggleButton value="edit"><EditRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} />編集</ToggleButton>
+                  <ToggleButton value="preview"><VisibilityRoundedIcon sx={{ fontSize: 14, mr: 0.5 }} />プレビュー</ToggleButton>
+                </ToggleButtonGroup>
+              )}
+            </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {/* 家具まるごとのパターン切替（デフォルトを必ず先頭に・パーツ単位は出さない） */}
                 <Box sx={{ p: 1.25, borderRadius: 1.5, bgcolor: 'rgba(236,64,122,0.06)', border: `1px solid ${ACCENT}33` }}>

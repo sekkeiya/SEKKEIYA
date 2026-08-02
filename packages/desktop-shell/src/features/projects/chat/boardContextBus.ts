@@ -28,8 +28,44 @@ export interface BoardContext {
 
 const EMPTY: BoardContext = { open: false, view: null, boardKey: null };
 
+/**
+ * 配信ペイロード。owner = 発信したウィンドウの識別子。
+ * これが無いと、本体タブ→独立窓へ実体が移る瞬間に、本体タブのアンマウントが飛ばす
+ * 「閉じました」が、先に配信された窓の値を消してしまう。
+ */
+interface BoardContextMessage extends BoardContext {
+  owner: string;
+}
+
+/** このウィンドウの識別子（ロード時に1回だけ決める。ラベルの取得を待たずに済ませる）。 */
+const SELF_ID = Math.random().toString(36).slice(2);
+
 // 本体ウィンドウ = 自分で持つ実体。子ウィンドウ = 本体から配信された最後の値。
 let local: BoardContext = EMPTY;
+/** 最後に有効な値を配信した owner（自分 or 他窓）。 */
+let lastOwner: string | null = null;
+
+/** 3フィールドが一致するか（純ロジック・テスト対象）。 */
+export function sameBoardContext(a: BoardContext, b: BoardContext): boolean {
+  return a.open === b.open && a.view === b.view && a.boardKey === b.boardKey;
+}
+
+/**
+ * 配信を省くべきか（純ロジック・テスト対象）。
+ * - 既に閉じているのに閉じ直す → 無意味なので黙る
+ * - 他窓がオーナーのときの「閉じました」 → 引き継ぎのレースなので捨てる
+ * - 自分がオーナーで値が変わらない → 黙る（起動直後の連打防止）
+ */
+export function shouldSkipPublish(
+  prev: BoardContext,
+  next: BoardContext,
+  lastOwnerId: string | null,
+  selfId: string,
+): boolean {
+  if (!prev.open && !next.open) return true;
+  if (!next.open && lastOwnerId !== null && lastOwnerId !== selfId) return true;
+  return lastOwnerId === selfId && sameBoardContext(prev, next);
+}
 
 /** いま Research & Memo で何を見ているか（このウィンドウから見た最新）。 */
 export function getBoardContext(): BoardContext {
@@ -37,41 +73,48 @@ export function getBoardContext(): BoardContext {
 }
 
 /**
- * 本体側が呼ぶ: 表示状態を更新し、子ウィンドウへ配信する。
- * 値が変わらないときは emit しない（起動直後の連打を防ぐ）。
+ * 表示状態を更新し、他ウィンドウへ配信する。
+ * マウント中のワークスペースを持つウィンドウが呼ぶ（本体タブ or 独立窓のどちらか一方）。
  */
 export function publishBoardContext(ctx: BoardContext): void {
-  if (local.open === ctx.open && local.view === ctx.view && local.boardKey === ctx.boardKey) return;
+  if (shouldSkipPublish(local, ctx, lastOwner, SELF_ID)) return;
   local = ctx;
+  lastOwner = SELF_ID;
   if (!isTauri()) return;
+  const message: BoardContextMessage = { ...ctx, owner: SELF_ID };
   import('@tauri-apps/api/event')
-    .then(({ emit }) => emit(BOARD_CONTEXT_EVENT, ctx))
+    .then(({ emit }) => emit(BOARD_CONTEXT_EVENT, message))
     .catch(() => { /* Tauri 以外 or emit 失敗時は無視 */ });
 }
 
 /**
- * 子ウィンドウ側が呼ぶ: 配信を購読し、現在値を本体へ問い合わせる
- * （後から開いた窓が、次の切り替えまで状態を知れないのを防ぐ）。
+ * 配信を購読し、現在値を問い合わせる。
+ * 本体・チャット窓の両方が呼ぶ（実体がどのウィンドウにあっても文脈を失わないため）。
+ * 自分が発信したイベントは無視するので、publisher が同時に呼んでも安全。
  */
 export function subscribeBoardContext(): () => void {
   if (!isTauri()) return () => {};
   let unlisten: (() => void) | null = null;
   import('@tauri-apps/api/event').then(({ listen, emit }) => {
-    listen<BoardContext>(BOARD_CONTEXT_EVENT, e => {
-      if (e.payload) local = e.payload;
+    listen<BoardContextMessage>(BOARD_CONTEXT_EVENT, e => {
+      const payload = e.payload;
+      if (!payload || payload.owner === SELF_ID) return;
+      local = { open: payload.open, view: payload.view, boardKey: payload.boardKey };
+      lastOwner = payload.owner;
     }).then(fn => { unlisten = fn; });
     emit(REQUEST_BOARD_CONTEXT_EVENT).catch(() => {});
   }).catch(() => { /* noop */ });
   return () => { unlisten?.(); };
 }
 
-/** 本体側が呼ぶ: 子ウィンドウからの問い合わせに現在値で応答する。 */
+/** 問い合わせに現在値で応答する（実体を持つウィンドウが呼ぶ）。 */
 export function serveBoardContextRequests(): () => void {
   if (!isTauri()) return () => {};
   let unlisten: (() => void) | null = null;
   import('@tauri-apps/api/event').then(({ listen, emit }) => {
     listen(REQUEST_BOARD_CONTEXT_EVENT, () => {
-      emit(BOARD_CONTEXT_EVENT, local).catch(() => { /* noop */ });
+      const message: BoardContextMessage = { ...local, owner: SELF_ID };
+      emit(BOARD_CONTEXT_EVENT, message).catch(() => { /* noop */ });
     }).then(fn => { unlisten = fn; });
   }).catch(() => { /* noop */ });
   return () => { unlisten?.(); };

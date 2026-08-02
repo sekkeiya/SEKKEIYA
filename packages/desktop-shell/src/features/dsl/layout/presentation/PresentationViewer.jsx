@@ -26,7 +26,16 @@ import DirectionsWalkRoundedIcon from "@mui/icons-material/DirectionsWalkRounded
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import BookmarkAddRoundedIcon from "@mui/icons-material/BookmarkAddRounded";
 import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
+import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
+import StyleRoundedIcon from "@mui/icons-material/StyleRounded";
+import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import LightbulbRoundedIcon from "@mui/icons-material/LightbulbRounded";
+import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
+import MovieCreationRoundedIcon from "@mui/icons-material/MovieCreationRounded";
 import { Menu, MenuItem } from "@mui/material";
+import { runAiPipeline } from "../services/aiOrchestrator";
 import { useAutoActionStore } from "../store/useAutoActionStore";
 import { useAutoLayoutStore } from "../store/useAutoLayoutStore";
 import { useUiRightSidebarStore } from "../store/uiRightSidebarStore";
@@ -41,6 +50,15 @@ import { layoutSceneRef } from "../services/layoutSceneRef";
 import ParametricRoom, { normalizeRoomSpec } from "../canvas/scene/ParametricRoom.jsx";
 import { useResolvedUrl } from "../hooks/useResolvedUrl";
 import WalkthroughController from "../canvas/tools/walkthrough/WalkthroughController.jsx";
+import { PerspectiveControlsBinder } from "../canvas/controls/controlsBinders.jsx";
+import ArchitectureRoundedIcon from "@mui/icons-material/ArchitectureRounded";
+import { useBuildingSpecStore } from "../store/useBuildingSpecStore";
+import { useSectionLinesStore } from "../store/useSectionLinesStore";
+import { useLayoutTaskStore } from "../store/useLayoutTaskStore";
+import { useRoomElevationsStore } from "../store/useRoomElevationsStore";
+import { computeRoomBoxFromRects } from "../store/useElevationMarkerStore";
+import { computeElevationRooms, getElevationMarkerPos, computeElevationRoomBox } from "../utils/openElevationView";
+import { OrthographicCamera } from "@react-three/drei";
 import { useEditorModeStore } from "../store/useEditorModeStore";
 import { useSceneObjectRegistryStore } from "../store/sceneObjectRegistryStore";
 import { focalLengthToFov } from "../store/useViewportEnvStore";
@@ -224,6 +242,85 @@ function SelfBuiltScene({ baseGlbUrl, roomSpec, items, onBounds, frameRadius, ce
 /* ============================================================
  * カメラ：スムーズ遷移 ＋ スケール連動 near/far
  * ========================================================== */
+/* ============================================================
+ * 図面ビュー（平面/天井/立面/断面/展開）— 正射の操作可能ビュー
+ * ========================================================== */
+
+/**
+ * プレビュー canvas 専用のレンダラー単位クリップ。
+ * PaneClipPlanes と同じ思想（renderer.clippingPlanes は canvas 単位に独立して効き、
+ * 共有マテリアルを汚さない）だが、あちらが行う material.clippingPlanes の掃除は
+ * しない — エディタ側の SectionClipManager と取り合いになるため。
+ */
+function PreviewClipPlanes({ planes }) {
+  const { gl, invalidate } = useThree();
+  const threePlanes = useMemo(
+    () => (planes || []).map((p) => new THREE.Plane(new THREE.Vector3(...p.normal), p.constant)),
+    [planes]
+  );
+  useEffect(() => {
+    gl.clippingPlanes = threePlanes;
+    invalidate();
+    return () => { gl.clippingPlanes = []; };
+  }, [gl, threePlanes, invalidate]);
+  return null;
+}
+
+/**
+ * 図面ビューのカメラ配置。makeDefault された正射カメラを、ビュー定義
+ * （視線方向・上方向・フレーミング範囲）に合わせて配置しズームを合わせる。
+ * 範囲はビュー側の frameBox（展開）が無ければ躯体（layoutSceneRef.baseRoot）から測る。
+ */
+function DrawingViewFramer({ view, controlsRef }) {
+  const { camera, size, invalidate } = useThree();
+  useEffect(() => {
+    if (!view || !camera?.isOrthographicCamera) return;
+    let box = null;
+    if (view.frameBox) {
+      const c = view.frameBox.center;
+      const half = view.frameBox.maxDim / 2;
+      box = new THREE.Box3(
+        new THREE.Vector3(c[0] - half, c[1] - half, c[2] - half),
+        new THREE.Vector3(c[0] + half, c[1] + half, c[2] + half)
+      );
+    } else {
+      const root = layoutSceneRef.baseRoot || null;
+      if (root) box = new THREE.Box3().setFromObject(root);
+      if (!box || box.isEmpty()) return;
+    }
+    const center = box.getCenter(new THREE.Vector3());
+    const sizeV = box.getSize(new THREE.Vector3());
+    const dir = new THREE.Vector3(...view.lookDir).normalize();
+    const maxDim = Math.max(sizeV.x, sizeV.y, sizeV.z, 1);
+    const dist = maxDim * 2;
+
+    // 視線に直交する平面での必要幅/高さ（正射ズームのフィット計算）
+    let w; let h;
+    if (Math.abs(dir.y) > 0.5) { w = sizeV.x; h = sizeV.z; }        // 平面/天井
+    else if (Math.abs(dir.z) > 0.5) { w = sizeV.x; h = sizeV.y; }   // 正面/背面
+    else { w = sizeV.z; h = sizeV.y; }                               // 左右
+    const zoom = Math.min(size.width / Math.max(w, 1), size.height / Math.max(h, 1)) * 0.85;
+
+    camera.position.copy(center).addScaledVector(dir, -dist);
+    camera.up.set(...view.up);
+    camera.lookAt(center);
+    camera.near = 1;
+    camera.far = dist * 4;
+    camera.zoom = zoom;
+    camera.updateProjectionMatrix();
+    const ctrl = controlsRef.current;
+    if (ctrl) { ctrl.target.copy(center); ctrl.update(); }
+    invalidate();
+  }, [view?.id, camera, size.width, size.height]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+/** axis('x'|'z') と flip から視線方向ベクトルを得る（エディタの断面/立面/展開と同じ規約）。 */
+function lookDirOf(axis, flip) {
+  const s = flip ? 1 : -1; // 既定は −Z / −X 方向を見る
+  return axis === "x" ? [s, 0, 0] : [0, 0, s];
+}
+
 function CameraRig({ camTargetRef, controlsRef }) {
   useFrame(({ camera }) => {
     const t = camTargetRef.current;
@@ -882,21 +979,24 @@ function StripTile({ thumb, label, active, onClick, onRemove, icon, busy }) {
   );
 }
 
-/* 本番プレビューから実行できる自動アクション（エディタの★メニューと同じ 10 種・同じ並び）。
+/* 本番プレビューから実行できる自動アクション（エディタの★メニューと同じ並び・同じ配色）。
    kind は useAutoActions / useAutoActionStore と共通のキー。
    media: true = 一回きりの実行ではなく「カメラアングルを並べて選ぶ」エディタ側の作業なので、
-   プレビューを閉じてエディタのギャラリー＋設定パネルを開く（プレビュー内では完結しない）。 */
+   プレビューを閉じてエディタのギャラリー＋設定パネルを開く（プレビュー内では完結しない）。
+   ※ 色はエディタ（AutoActionStarMenu）のダークテーマ値を直書きする — プレビューは常に
+     暗背景なので light-dark() だと OS ライトテーマ時に沈んだ色が選ばれてしまう。 */
 const PREVIEW_AUTO_ACTIONS = [
-  { kind: "autoZone",     label: "自動ゾーニング" },
-  { kind: "autoSelect",   label: "自動家具選定" },
-  { kind: "autoLayout",   label: "自動レイアウト" },
-  { kind: "autoReplace",  label: "自動家具差し替え" },
-  { kind: "autoMaterial", label: "自動マテリアル" },
-  { kind: "autoFurMat",   label: "自動家具マテリアル" },
-  { kind: "autoLabel",    label: "自動ラベル" },
-  { kind: "autoLighting", label: "自動ライティング" },
-  { kind: "autoRender",   label: "自動パース生成", media: true },
-  { kind: "autoMovie",    label: "自動動画生成",   media: true },
+  { kind: "autoAI",       label: "AI実行",             color: "#a855f7", icon: <AutoAwesomeRoundedIcon /> },
+  { kind: "autoZone",     label: "自動ゾーニング",     color: "#2dd4bf", icon: <DashboardRoundedIcon /> },
+  { kind: "autoSelect",   label: "自動家具選定",       color: "#38bdf8", icon: <ChecklistRoundedIcon /> },
+  { kind: "autoLayout",   label: "自動レイアウト",     color: "#c084fc", icon: <AutoFixHighRoundedIcon /> },
+  { kind: "autoReplace",  label: "自動家具差し替え",   color: "#fb923c", icon: <SwapHorizRoundedIcon /> },
+  { kind: "autoMaterial", label: "自動マテリアル",     color: "#34d399", icon: <AutoFixHighRoundedIcon /> },
+  { kind: "autoFurMat",   label: "自動家具マテリアル", color: "#a78bfa", icon: <StyleRoundedIcon /> },
+  { kind: "autoLabel",    label: "自動ラベル",         color: "#22d3ee", icon: <CategoryRoundedIcon /> },
+  { kind: "autoLighting", label: "自動ライティング",   color: "#fbbf24", icon: <LightbulbRoundedIcon /> },
+  { kind: "autoRender",   label: "自動パース生成",     color: "#60a5fa", icon: <PhotoCameraRoundedIcon />,    media: true },
+  { kind: "autoMovie",    label: "自動動画生成",       color: "#f472b6", icon: <MovieCreationRoundedIcon />, media: true },
 ];
 
 /* ============================================================
@@ -958,11 +1058,18 @@ export default function PresentationViewer({
       const opts = AUTO_LAYOUT_PURPOSE_OPTIONS[autoBuildingType] || AUTO_LAYOUT_PURPOSE_OPTIONS.residential;
       return opts.map((o) => ({ key: o.value, label: o.label }));
     }
+    if (kind === "autoAI") {
+      // AI実行（おまかせ）: テイスト（内装の基調スタイル）を選んで一括生成。
+      // エディタの下部ギャラリー（AutoActionGalleryBar）と同じ選択肢を出す。
+      const styles = AUTO_ACTION_OPTIONS.autoMaterial || [];
+      return [{ key: styles[0]?.key, label: "おまかせ" }, ...styles];
+    }
     return AUTO_ACTION_OPTIONS[kind] || null;
   }, [autoBuildingType]);
 
   const runAutoAction = useCallback((kind, optionKey) => {
     if (kind === "autoLayout") { runAutoLayout(optionKey); return; }
+    if (kind === "autoAI") { void runAiPipeline(optionKey, autoRunners); return; }
     autoRunners.runByKind[kind]?.(optionKey);
   }, [autoRunners]);
 
@@ -981,6 +1088,29 @@ export default function PresentationViewer({
     if (!opts || opts.length === 0) { runAutoAction(a.kind); return; }
     setAutoMenu({ anchorEl: e.currentTarget, kind: a.kind });
   }, [autoOptionsFor, runAutoAction, openMediaWorkflow]);
+
+  // 右ドラッグ / WASDQE で自分で動き始めたら、シーン切替のカメラ寄せ（CameraRig）を
+  // 即座に手放す — リグが目標へ lerp し続けると手動操作と取り合いになるため。
+  // （OrbitControls 経由の左ドラッグは selectPattern 等の active=false で既に手放している）
+  useEffect(() => {
+    const releaseRig = (e) => {
+      if (e.type === "pointerdown") {
+        if (e.button !== 2) return;
+      } else {
+        const k = typeof e.key === "string" ? e.key.toLowerCase() : "";
+        if (!["w", "a", "s", "d", "q", "e"].includes(k)) return;
+        const el = document.activeElement;
+        if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      }
+      camTargetRef.current.active = false;
+    };
+    window.addEventListener("pointerdown", releaseRig, true);
+    window.addEventListener("keydown", releaseRig, true);
+    return () => {
+      window.removeEventListener("pointerdown", releaseRig, true);
+      window.removeEventListener("keydown", releaseRig, true);
+    };
+  }, []);
 
   const [bounds, setBounds] = useState(null);
   const [activeSceneId, setActiveSceneId] = useState(DEFAULT_SCENE_ID);
@@ -1030,8 +1160,100 @@ export default function PresentationViewer({
     return s ? Math.max(s.x, s.z, s.y, 1) : 6;
   }, [bounds]);
 
+  // ── 図面ビュー（平面/天井/立面/断面/展開）──
+  // Base/Plan で定義済みのもの（階・断面線・部屋の展開）をそのままチップにする。
+  // 表示は正射投影＋レンダラー単位クリップで、エディタの状態は一切変更しない（読み取り専用）。
+  const [drawingView, setDrawingView] = useState(null);
+  const bsFloors = useBuildingSpecStore((s) => s.floors);
+  const bsFl0Mm = useBuildingSpecStore((s) => s.fl0Mm);
+  const sceneMaxYForDrawing = useEditorModeStore((s) => s.sceneMaxY);
+  const sectionLines = useSectionLinesStore((s) => s.lines);
+  const zonesForDrawing = useLayoutTaskStore((s) => s.zones);
+  const roomsForDrawing = useLayoutTaskStore((s) => s.rooms);
+  const roomElevations = useRoomElevationsStore((s) => s.elevations);
+
+  const drawingViews = useMemo(() => {
+    const isMm = (sceneMaxYForDrawing || 0) > 100;
+    const toWorld = (mm) => (isMm ? mm : mm / 1000);
+    const out = [];
+    const floors = Array.isArray(bsFloors) && bsFloors.length ? bsFloors : [{ flMm: 0 }];
+    // 平面 / 天井: エディタと同じ「FL+1500mm」で水平に切る（平面=見下ろし / 天井=見上げ）
+    floors.forEach((f, i) => {
+      const cutY = toWorld((bsFl0Mm || 0) + (f?.flMm || 0) + 1500);
+      out.push({ id: `plan-${i}`, label: `平面 ${i + 1}F`, planes: [{ normal: [0, -1, 0], constant: cutY }], lookDir: [0, -1, 0], up: [0, 0, -1] });
+    });
+    floors.forEach((f, i) => {
+      const cutY = toWorld((bsFl0Mm || 0) + (f?.flMm || 0) + 1500);
+      out.push({ id: `ceil-${i}`, label: `天井 ${i + 1}F`, planes: [{ normal: [0, 1, 0], constant: -cutY }], lookDir: [0, 1, 0], up: [0, 0, -1] });
+    });
+    // 立面: 4方向（エディタの図面グリッドと同じ axis/flip の組）
+    [["北", "z", true], ["東", "x", false], ["南", "z", false], ["西", "x", true]].forEach(([name, axis, flip]) => {
+      out.push({ id: `elev-${name}`, label: `立面 ${name}`, planes: [], lookDir: lookDirOf(axis, flip), up: [0, 1, 0] });
+    });
+    // 断面: 断面線（A-A' / B-B'…）ごと。クリップ式はエディタの断面グリッドと同一
+    (sectionLines || []).forEach((line) => {
+      const planes = [
+        line.axis === "x"
+          ? { normal: [line.flip ? 1 : -1, 0, 0], constant: line.flip ? -line.pos : line.pos }
+          : { normal: [0, 0, line.flip ? 1 : -1], constant: line.flip ? -line.pos : line.pos },
+      ];
+      out.push({ id: `sect-${line.id}`, label: `断面 ${line.name}`, planes, lookDir: lookDirOf(line.axis, !!line.flip), up: [0, 1, 0] });
+    });
+    // 展開: 既存の展開ドキュメントのみ（プレビューからは作成しない＝読み取り専用）。
+    // クリップ式・フレーミングはエディタの展開グリッドと同一
+    try {
+      const rooms = computeElevationRooms(zonesForDrawing || [], roomsForDrawing || []);
+      rooms.forEach((room) => {
+        const roomBox = computeRoomBoxFromRects((room.zones || []).map((z) => z.rect));
+        (roomElevations || []).filter((e) => e.roomId === room.id).forEach((el) => {
+          const pos = getElevationMarkerPos(el);
+          if (!pos) return;
+          const rb = computeElevationRoomBox(room, pos, el.dir) || roomBox;
+          if (!rb) return;
+          const axis = el.dir === "A" || el.dir === "C" ? "z" : "x";
+          const flip = el.dir === "C" || el.dir === "B";
+          const s = flip ? 1 : -1;
+          const m = axis === "x" ? pos.x : pos.z;
+          const ax = axis === "x" ? [1, 0, 0] : [0, 0, 1];
+          const o = axis === "x" ? [0, 0, 1] : [1, 0, 0];
+          const oMin = axis === "x" ? rb.minZ : rb.minX;
+          const oMax = axis === "x" ? rb.maxZ : rb.maxX;
+          const mul = (v, k) => [v[0] * k, v[1] * k, v[2] * k];
+          out.push({
+            id: `roomelev-${el.id}`,
+            label: `${room.name || "部屋"} ${el.name || "展開"}`,
+            planes: [
+              { normal: mul(ax, s), constant: -s * m },
+              { normal: o, constant: -oMin },
+              { normal: mul(o, -1), constant: oMax },
+              { normal: [0, 1, 0], constant: -rb.yMin },
+              { normal: [0, -1, 0], constant: rb.yMax },
+            ],
+            lookDir: mul(ax, s),
+            up: [0, 1, 0],
+            frameBox: {
+              center: [(rb.minX + rb.maxX) / 2, (rb.yMin + rb.yMax) / 2, (rb.minZ + rb.maxZ) / 2],
+              maxDim: Math.max(rb.maxX - rb.minX, rb.maxZ - rb.minZ, rb.yMax - rb.yMin),
+            },
+          });
+        });
+      });
+    } catch (e) {
+      console.warn("[PresentationViewer] 展開ビューの構築に失敗:", e);
+    }
+    return out;
+  }, [bsFloors, bsFl0Mm, sceneMaxYForDrawing, sectionLines, zonesForDrawing, roomsForDrawing, roomElevations]);
+
+  const openDrawingView = useCallback((v) => {
+    camTargetRef.current.active = false; // シーン切替のカメラ寄せを止める
+    if (controlsRef.current) controlsRef.current.enabled = true;
+    setSelectedPinId(null);
+    setDrawingView(v);
+  }, []);
+
   const goToScene = useCallback((sc) => {
     if (!sc) return;
+    setDrawingView(null); // 図面ビューを抜けてパースへ戻る
     camTargetRef.current = { pos: sc.pos.clone(), look: sc.look.clone(), active: true };
     if (controlsRef.current) controlsRef.current.enabled = false;
     setActiveSceneId(sc.id);
@@ -1040,6 +1262,7 @@ export default function PresentationViewer({
 
   // 内観（歩く）：ウォークスルーへ入場。既定は三人称（アバターでスケール感が伝わる）
   const enterWalkScene = useCallback(() => {
+    setDrawingView(null);
     useEditorModeStore.getState().setWalkthroughViewMode("third");
     camTargetRef.current.active = false;
     if (controlsRef.current) controlsRef.current.enabled = false;
@@ -1060,6 +1283,7 @@ export default function PresentationViewer({
   // 部屋の内側・上方から見下ろす構図にして壁の遮蔽を避ける（天井はオープン）
   const focusItem = useCallback(
     (it) => {
+      setDrawingView(null);
       const p = it?.transform?.position || [0, 0, 0];
       const c = bounds?.center;
       const look = new THREE.Vector3(p[0], (p[1] || 0) + 350, p[2]);
@@ -1270,16 +1494,53 @@ export default function PresentationViewer({
           <GlGrabber onReady={(gl) => (glRef.current = gl)} />
           <CameraTuner radius={frameRadius} />
           <CameraRig camTargetRef={camTargetRef} controlsRef={controlsRef} />
+          {/* カメラ操作はエディタの 3D 演出モードと同一にする:
+              左ドラッグ=回転 / 中ドラッグ=パン / 右ドラッグ=見渡し（FPS ルック）＋
+              右ドラッグ中 WASD 移動・Q/E 上下・Shift 加速・ホイールで速度調整。
+              ホイールズームはカーソル位置基準（zoomToCursor）。 */}
           <OrbitControls
             ref={controlsRef}
             makeDefault
             enabled={!walkActive}
             enableDamping
             dampingFactor={0.08}
-            enablePan={false}
+            enablePan
+            // 図面ビュー中は回転禁止（図面はパン・ズームのみ。左ドラッグ=パンに切替）
+            enableRotate={!drawingView}
+            zoomToCursor
+            zoomSpeed={2.0}
             minDistance={frameRadius * 0.02}
             maxDistance={frameRadius * 80}
+            mouseButtons={{
+              LEFT: drawingView ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+              MIDDLE: THREE.MOUSE.PAN,
+              RIGHT: drawingView ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE, // 通常時の右ドラッグは binder が横取りして FPS ルック
+            }}
           />
+          {/* 図面ビュー: 正射カメラ＋レンダラー単位クリップ（エディタ状態には触れない） */}
+          {drawingView && (
+            <>
+              <OrthographicCamera makeDefault />
+              <DrawingViewFramer view={drawingView} controlsRef={controlsRef} />
+              <PreviewClipPlanes planes={drawingView.planes} />
+            </>
+          )}
+          {/* エディタと同じ WASD/QE ナビゲーション（useViewportControls）。
+              内観（歩く）中は WalkthroughController が担当するので外す。
+              moveSpeed はエディタ walk プリセット（1200）の2倍 — プレビューは建物全体を
+              見渡す移動が多く、実機確認で「倍くらいが快適」とのフィードバックによる。 */}
+          {!walkActive && !drawingView && (
+            <PerspectiveControlsBinder
+              enabled
+              mouseEnabled
+              keyboardEnabled
+              orbitRef={controlsRef}
+              selectedObject={null}
+              moveSpeed={2400}
+              verticalSpeed={2400}
+              panMultiplier={1.0}
+            />
+          )}
 
           {/* 内観（歩く）：エディタと同一の WalkthroughController を再利用 */}
           {walkActive && (
@@ -1534,6 +1795,27 @@ export default function PresentationViewer({
             </Stack>
           </Box>
 
+          {/* 図面（平面/天井/立面/断面/展開）— Base/Plan で定義済みのビューを正射で表示。
+              クリップはこの canvas 限定（エディタ状態は変更しない）。外観/インテリアで復帰 */}
+          {drawingViews.length > 0 && (
+            <Box sx={{ flexShrink: 0 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#fff", mb: 1, letterSpacing: 0.5 }}>
+                図面
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                {drawingViews.map((v) => (
+                  <StripTile
+                    key={v.id}
+                    label={v.label}
+                    active={drawingView?.id === v.id}
+                    icon={<ArchitectureRoundedIcon sx={{ color: alpha("#fff", 0.55) }} />}
+                    onClick={() => openDrawingView(v)}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          )}
+
           {/* 提案（Plan 込みの完全な最終形）。お客様に見せる画面はこれだけで完結する */}
           {canEditPatterns && (
             <Box sx={{ flexShrink: 0 }}>
@@ -1562,27 +1844,6 @@ export default function PresentationViewer({
                   icon={<BookmarkAddRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
                   onClick={patternBusy ? undefined : () => { void createOption(); }}
                 />
-              </Stack>
-            </Box>
-          )}
-
-          {/* 自動アクション（エディタの★メニューと同じ 10 種）。結果はデバウンスで自動的に
-              アクティブ提案へ保存される。別の見た目を試したいときは「＋ 新しい提案」で切り分ける。 */}
-          {canEditPatterns && (
-            <Box sx={{ flexShrink: 0 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 800, color: "#fff", mb: 1, letterSpacing: 0.5 }}>
-                自動アクション
-              </Typography>
-              <Stack direction="row" spacing={1}>
-                {PREVIEW_AUTO_ACTIONS.map((a) => (
-                  <StripTile
-                    key={a.kind}
-                    label={a.label}
-                    busy={autoRunners.busyKind === a.kind}
-                    icon={<AutoFixHighRoundedIcon sx={{ color: alpha("#fff", 0.5) }} />}
-                    onClick={(e) => handleAutoTileClick(e, a)}
-                  />
-                ))}
               </Stack>
             </Box>
           )}
@@ -1632,6 +1893,65 @@ export default function PresentationViewer({
           <ChevronRightRoundedIcon />
         </IconButton>
       </Box>
+
+      {/* ===== 自動アクション（左サイドの縦スタック。エディタの★メニューと同じ並び・配色） =====
+          提案の見え方を見ながらその場で試せるようにする。結果はデバウンスで自動的に
+          アクティブ提案へ保存される。別の見た目を試したいときは「＋ 新しい提案」で切り分ける。 */}
+      {canEditPatterns && (
+        <Box
+          sx={{
+            position: "absolute",
+            left: 20,
+            top: 84,
+            bottom: 210, // 下部フィルムストリップと重ならない範囲でスクロール
+            zIndex: 12,
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            alignItems: "flex-start",
+            overflowY: "auto",
+            pr: 1,
+            // スクロールバーは目立たせない（提案画面のため）
+            "&::-webkit-scrollbar": { width: 0 },
+          }}
+        >
+          {PREVIEW_AUTO_ACTIONS.map((a) => {
+            const busy = autoRunners.busyKind === a.kind;
+            return (
+              <Box
+                key={a.kind}
+                onClick={busy ? undefined : (e) => handleAutoTileClick(e, a)}
+                title={a.media ? `${a.label}（エディタで開く）` : a.label}
+                sx={{
+                  display: "flex", alignItems: "center", gap: 1, flexShrink: 0,
+                  pl: 0.6, pr: 1.4, py: 0.6, borderRadius: 999,
+                  cursor: busy ? "default" : "pointer", whiteSpace: "nowrap",
+                  color: "#fff",
+                  background: alpha("#0b1020", 0.9),
+                  border: `1px solid ${alpha(a.color, 0.5)}`,
+                  boxShadow: `0 6px 20px ${alpha("#000", 0.45)}`,
+                  backdropFilter: "blur(8px)",
+                  opacity: busy ? 0.7 : 1,
+                  transition: "transform 0.12s, filter 0.15s",
+                  "&:hover": busy ? undefined : { filter: "brightness(1.15)", transform: "translateX(2px)" },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: alpha(a.color, 0.22), color: a.color,
+                    "& svg": { fontSize: 18 },
+                  }}
+                >
+                  {busy ? <CircularProgress size={14} sx={{ color: a.color }} /> : a.icon}
+                </Box>
+                <Typography sx={{ fontSize: "0.74rem", fontWeight: 700 }}>{a.label}</Typography>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
 
       {/* ===== ライトボックス ===== */}
       {lightboxIndex >= 0 && shots[lightboxIndex] && (

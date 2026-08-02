@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Box, Typography, Button } from '@mui/material';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import { Box, Typography } from '@mui/material';
 import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
+import TouchAppRoundedIcon from '@mui/icons-material/TouchAppRounded';
+import LayersRoundedIcon from '@mui/icons-material/LayersRounded';
 import { DetailViewport } from '../DetailViewport';
 import type { EnumeratedSlot } from '../../../../shared/material/applyMaterial';
 import { getDownloadUrlForModel } from '../../../utils/modelUtils';
@@ -12,8 +13,9 @@ import {
 } from '../../../../shared/material/materialPresets';
 import {
   swatchVisualOf, variantVisualOf, selectionsEqual, selectionSummary,
-  type SwatchVisual, type PatternVisual,
+  type PatternVisual,
 } from '../../../utils/materialSectionView';
+import { CountPill, Swatch } from './materialSectionParts';
 import { DssMaterialPresets } from '../../DssMaterialPresets';
 
 export interface MaterialSectionProps {
@@ -22,47 +24,6 @@ export interface MaterialSectionProps {
   isAuthor: boolean;
   projectId?: string;
 }
-
-/** ヘッダー右側の件数ピル。SECTION 5（ProductsSection）の CountPill と同じ見た目。 */
-const CountPill: React.FC<{ label: string }> = ({ label }) => (
-  <Box
-    sx={{
-      fontSize: 11, fontWeight: 600, color: '#93c5fd',
-      border: '1px solid rgba(147,197,253,0.35)', borderRadius: '999px',
-      padding: '3px 10px', whiteSpace: 'nowrap',
-    }}
-  >
-    {label}
-  </Box>
-);
-
-/** 丸スウォッチ。テクスチャ画像があれば敷き、無ければ色のベタ塗り。 */
-const Swatch: React.FC<{
-  visual: SwatchVisual;
-  selected: boolean;
-  title: string;
-  onClick: () => void;
-}> = ({ visual, selected, title, onClick }) => (
-  <Box
-    component="button"
-    type="button"
-    title={title}
-    aria-label={title}
-    aria-pressed={selected}
-    onClick={onClick}
-    sx={{
-      width: 44, height: 44, flex: 'none', padding: 0, borderRadius: '50%',
-      overflow: 'hidden', cursor: 'pointer', bgcolor: visual.color,
-      border: selected ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.18)',
-      transition: 'border-color 0.15s, transform 0.15s',
-      '&:hover': { borderColor: selected ? '#3b82f6' : 'rgba(255,255,255,0.45)', transform: 'scale(1.06)' },
-    }}
-  >
-    {visual.imageUrl && (
-      <Box component="img" src={visual.imageUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-    )}
-  </Box>
-);
 
 /**
  * S.Model 詳細画面「セクション1: 素材」。デザイン 192-241 行（閲覧）/ 604-671 行（編集）に準拠。
@@ -140,7 +101,6 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
   const [editPreview, setEditPreview] = useState<MaterialPreviewState | null>(null);
   const matPickRef = useRef<((meshName: string) => void) | null>(null);
   const matSlotsRef = useRef<((slots: EnumeratedSlot[]) => void) | null>(null);
-  const addVariantRef = useRef<(() => void) | null>(null);
   // パターン保存時のサムネイル取得元。DetailViewport の CaptureBridge は現状 View の scissor
   // 矩形で切り出さず共有 Canvas 全面を描画する（DetailViewport.tsx の TODO 参照）。v2 と同じ
   // 挙動のまま踏襲し、解消はビューア側タスクに委ねる。
@@ -156,7 +116,12 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
 
   const handleEditMeshClick = useCallback((meshName: string) => { matPickRef.current?.(meshName); }, []);
   const handleEditSlots = useCallback((slots: EnumeratedSlot[]) => { matSlotsRef.current?.(slots); }, []);
-  const handleAddVariant = useCallback(() => { addVariantRef.current?.(); }, []);
+
+  // ビューアに重ねるアクションバー用。選択中パーツ数は state（表示に使う）、
+  // グループ化の実行は ref（再レンダー不要）で DssMaterialPresets から受け取る。
+  const [editSelectedCount, setEditSelectedCount] = useState(0);
+  const groupSelectedRef = useRef<(() => void) | null>(null);
+  const handleGroupSelected = useCallback(() => { groupSelectedRef.current?.(); }, []);
 
   // Finding I2: 共有 Canvas（DetailCanvasHost, zIndex:0）は DOM 上でページ本体より後に
   // レンダーされるため、zIndex を持たないオーバーレイ（このヒント等）は DOM 順で Canvas に
@@ -315,46 +280,74 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
           SECTION 1
         </Typography>
         <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>素材</Typography>
-        <Typography sx={{ fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>部位に素材を割り当ててパターンとして保存</Typography>
-        <Box sx={{ flex: 1 }} />
-        {isAuthor && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleAddVariant}
-            startIcon={<AddRoundedIcon sx={{ fontSize: 16 }} />}
-            sx={{
-              height: 28, borderRadius: '8px', textTransform: 'none', fontSize: 11.5, fontWeight: 600,
-              color: '#93c5fd', borderColor: 'rgba(96,165,250,0.5)',
-              '&:hover': { borderColor: 'rgba(96,165,250,0.9)', bgcolor: 'rgba(96,165,250,0.12)' },
-            }}
-          >
-            パターンを追加
-          </Button>
-        )}
+        <Typography sx={{ fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>ビューアでパーツを選んで部位をつくり、素材を登録する</Typography>
       </Box>
 
       {!isAuthor ? (
         <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>作成者のみ編集できます。</Typography>
       ) : (
-        <Box sx={{ display: 'flex', gap: '20px' }}>
-          <Box
-            onPointerDown={() => setEditZoomEnabled(true)}
-            sx={{ width: 300, flex: 'none', height: 190, borderRadius: '10px', overflow: 'hidden', bgcolor: '#080b11', border: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}
-          >
-            <DetailViewport
-              glbUrl={glbUrl}
-              placeholderUrl={placeholderUrl}
-              height="100%"
-              materialPreview={editPreview}
-              onMeshClick={handleEditMeshClick}
-              onSlots={handleEditSlots}
-              captureRef={editCaptureRef}
-              enableZoom={editZoomEnabled}
-            />
-            {!editZoomEnabled && glbUrl && (
-              <Box sx={overlayHintSx}>クリックすると拡大縮小できます</Box>
-            )}
+        <Box sx={{ display: 'flex', gap: '18px' }}>
+          <Box sx={{ width: 600, maxWidth: '45%', flex: 'none' }}>
+            <Box
+              onPointerDown={() => setEditZoomEnabled(true)}
+              sx={{ aspectRatio: '1 / 1', borderRadius: '10px', overflow: 'hidden', bgcolor: '#080b11', border: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}
+            >
+              <DetailViewport
+                glbUrl={glbUrl}
+                placeholderUrl={placeholderUrl}
+                height="100%"
+                materialPreview={editPreview}
+                onMeshClick={handleEditMeshClick}
+                onSlots={handleEditSlots}
+                captureRef={editCaptureRef}
+                enableZoom={editZoomEnabled}
+              />
+              {/* 常時ヒント。ビューア内に置くことで「上の3Dビューア」のような位置依存の文言が要らなくなる。 */}
+              <Box
+                sx={{
+                  position: 'absolute', top: 8, left: 8, zIndex: 2,
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  px: 1.25, py: 0.5, borderRadius: 999, pointerEvents: 'none',
+                  bgcolor: 'rgba(8,145,178,0.25)', border: '1px solid rgba(103,232,249,0.4)', color: '#67e8f9',
+                  fontSize: 11, whiteSpace: 'nowrap',
+                }}
+              >
+                <TouchAppRoundedIcon sx={{ fontSize: 14 }} />
+                パーツをクリックして選択
+              </Box>
+              {!editZoomEnabled && glbUrl && (
+                <Box sx={overlayHintSx}>クリックすると拡大縮小できます</Box>
+              )}
+              {/* 複数選択したときだけ出る。「グループ化」ではなく「部位にする」と呼ぶ。 */}
+              {editSelectedCount >= 2 && (
+                <Box
+                  sx={{
+                    position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 2,
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    px: 1.25, py: 0.9, borderRadius: '8px', bgcolor: 'rgba(8,145,178,0.92)',
+                  }}
+                >
+                  <LayersRoundedIcon sx={{ fontSize: 15, color: '#062a33' }} />
+                  <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: '#062a33' }}>
+                    {editSelectedCount} パーツ選択中
+                  </Typography>
+                  <Box sx={{ flex: 1 }} />
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={handleGroupSelected}
+                    sx={{
+                      font: 'inherit', fontSize: 11.5, fontWeight: 700, color: '#062a33',
+                      background: 'none', border: '1px solid rgba(6,42,51,0.5)', borderRadius: '6px',
+                      padding: '3px 10px', cursor: 'pointer',
+                      '&:hover': { bgcolor: 'rgba(6,42,51,0.15)' },
+                    }}
+                  >
+                    部位にする
+                  </Box>
+                </Box>
+              )}
+            </Box>
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -370,7 +363,8 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
               pickHandlerRef={matPickRef}
               slotsHandlerRef={matSlotsRef}
               captureThumb={captureThumb}
-              addVariantRef={addVariantRef}
+              onSelectionCountChange={setEditSelectedCount}
+              groupSelectedRef={groupSelectedRef}
             />
           </Box>
         </Box>
