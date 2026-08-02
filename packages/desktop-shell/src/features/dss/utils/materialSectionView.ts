@@ -27,11 +27,29 @@ export function swatchVisualOf(option: MaterialPresetOption): SwatchVisual {
   return imageUrl ? { imageUrl, color } : { color };
 }
 
-/** パターン 1 件のカード表現。保存時サムネ > 代表テクスチャ > 代表色。 */
-export function variantVisualOf(presets: MaterialPresetSlot[], variant: MaterialVariant): SwatchVisual {
+/** パターンカードの表現。カードには素材テクスチャではなく「その組み合わせの家具」を見せる。 */
+export interface PatternVisual {
+  imageUrl?: string;
+  color: string;
+  /** 組み合わせ固有のサムネが未保存で、モデルのサムネで代用したときに出す素材バッジ。 */
+  badge?: SwatchVisual;
+}
+
+/**
+ * パターン 1 件のカード表現。
+ * 保存時に 3D から取ったサムネ（thumbUrl）があればそれを見せる。無ければモデルのサムネを
+ * 下地にして、どの素材の組み合わせかを小さなバッジで補う（素材テクスチャを全面に敷くと
+ * 家具のパターンではなく布地サンプルに見えてしまうため）。
+ */
+export function variantVisualOf(
+  presets: MaterialPresetSlot[],
+  variant: MaterialVariant,
+  modelThumbUrl?: string,
+): PatternVisual {
   const color = variantSwatchColor(presets, variant);
-  const imageUrl = variant.thumbUrl || variantSwatchImage(presets, variant) || undefined;
-  return imageUrl ? { imageUrl, color } : { color };
+  if (variant.thumbUrl) return { imageUrl: variant.thumbUrl, color };
+  const badgeImage = variantSwatchImage(presets, variant);
+  return { imageUrl: modelThumbUrl, color, badge: badgeImage ? { imageUrl: badgeImage, color } : { color } };
 }
 
 /** selection（slotKey -> optionId）同士が同じ組み合わせかどうか。 */
@@ -55,10 +73,4 @@ export function selectionSummary(presets: MaterialPresetSlot[], selection: Recor
     parts.push(title ? `${name} ${title}` : name);
   });
   return parts.length ? parts.join('　／　') : '元の見た目';
-}
-
-/** 4 列グリッドを埋めるための点線プレースホルダ数。カード 0 枚のときは 0。 */
-export function placeholderCount(cardCount: number): number {
-  if (cardCount <= 0) return 0;
-  return (4 - (cardCount % 4)) % 4;
 }

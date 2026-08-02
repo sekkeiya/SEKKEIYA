@@ -11,8 +11,8 @@ import {
   slotMembers, type MaterialPreviewState,
 } from '../../../../shared/material/materialPresets';
 import {
-  swatchVisualOf, variantVisualOf, selectionsEqual, selectionSummary, placeholderCount,
-  type SwatchVisual,
+  swatchVisualOf, variantVisualOf, selectionsEqual, selectionSummary,
+  type SwatchVisual, type PatternVisual,
 } from '../../../utils/materialSectionView';
 import { DssMaterialPresets } from '../../DssMaterialPresets';
 
@@ -121,14 +121,14 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
 
   // パターンカード。先頭は「元の見た目」（selection を空にする＝元の GLB 素材へ戻す）。
   const patternCards = useMemo(() => {
-    const cards: Array<{ key: string; title: string; visual: SwatchVisual; selection: Record<string, string> }> = [
+    const cards: Array<{ key: string; title: string; visual: PatternVisual; selection: Record<string, string> }> = [
       { key: '__default', title: '元の見た目', visual: { imageUrl: placeholderUrl, color: '#3a4150' }, selection: {} },
     ];
     for (const v of variants) {
       cards.push({
         key: v.id,
         title: v.title || 'パターン',
-        visual: variantVisualOf(presets, v),
+        visual: variantVisualOf(presets, v, placeholderUrl),
         selection: expandVariantSelection(presets, v),
       });
     }
@@ -190,7 +190,7 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
         </Typography>
 
         <Box sx={{ display: 'flex', gap: '18px' }}>
-          <Box sx={{ width: 210, flex: 'none' }}>
+          <Box sx={{ width: 600, maxWidth: '45%', flex: 'none' }}>
             <Box
               onPointerDown={() => setViewZoomEnabled(true)}
               sx={{ aspectRatio: '1 / 1', borderRadius: '10px', overflow: 'hidden', bgcolor: '#080b11', border: '1px solid rgba(255,255,255,0.06)', position: 'relative' }}
@@ -247,7 +247,8 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
             {showPatterns && (
               <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.09)', pt: '13px' }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#fff', mb: '9px' }}>保存済みの組み合わせ</Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
+                {/* カードは固定幅の小さなサムネ。1fr で伸ばすと数が少ないときに間延びする。 */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 132px)', gap: '10px' }}>
                   {patternCards.map((card) => {
                     const selected = selectionsEqual(selection, card.selection);
                     return (
@@ -266,6 +267,7 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
                         <Box
                           className="pattern-thumb"
                           sx={{
+                            position: 'relative',
                             aspectRatio: '4 / 3', borderRadius: '8px', overflow: 'hidden',
                             bgcolor: card.visual.color,
                             border: selected ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.14)',
@@ -275,17 +277,27 @@ export const MaterialSection: React.FC<MaterialSectionProps> = ({ model, mode, i
                           {card.visual.imageUrl && (
                             <Box component="img" src={card.visual.imageUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           )}
+                          {/* 組み合わせ固有のサムネが未保存のとき、素材を右下のバッジで補う。 */}
+                          {card.visual.badge && (
+                            <Box
+                              sx={{
+                                position: 'absolute', right: 5, bottom: 5,
+                                width: 22, height: 22, borderRadius: '50%', overflow: 'hidden',
+                                bgcolor: card.visual.badge.color,
+                                border: '1px solid rgba(0,0,0,0.45)',
+                                boxShadow: '0 0 0 1px rgba(255,255,255,0.35)',
+                              }}
+                            >
+                              {card.visual.badge.imageUrl && (
+                                <Box component="img" src={card.visual.badge.imageUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              )}
+                            </Box>
+                          )}
                         </Box>
                         <Typography sx={{ fontSize: 11.5, mt: '5px', fontWeight: 600, color: '#fff' }} noWrap>{card.title}</Typography>
                       </Box>
                     );
                   })}
-                  {Array.from({ length: placeholderCount(patternCards.length) }).map((_, i) => (
-                    <Box
-                      key={`ph-${i}`}
-                      sx={{ aspectRatio: '4 / 3', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.25)', opacity: 0.28 }}
-                    />
-                  ))}
                 </Box>
               </Box>
             )}
