@@ -5,6 +5,9 @@
     "node": "22"
   },
   "main": "index.js",
+  "scripts": {
+    "test": "node --test models/*.test.js"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
     "@breezystack/lamejs": "^1.2.7",
