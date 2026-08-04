@@ -1193,9 +1193,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    /* 設計図（SEKKEIYA Code「図」ビュー: system/er/screens/flow の Mermaid）。管理者のみ読み書き。 */
+    /* 設計図（SEKKEIYA Code「図」ビュー: 10種の Mermaid/Markdown）。管理者のみ読み書き。
+       versions/{v} サブコレクションにバージョン履歴の本文を持つ。 */
     match /devDiagrams/{diagramType} {
       allow read, write: if isAdmin();
+      match /versions/{versionId} {
+        allow read, write: if isAdmin();
+      }
     }
 
     /* 図のスプリント完了時スナップショット（読み取り専用の凍結版）。管理者のみ。 */
