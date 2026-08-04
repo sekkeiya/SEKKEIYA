@@ -44,6 +44,10 @@ const LEDGER_FIELDS = [
   "dimensionsRev",
 ];
 
+/** 台帳のうちタイムスタンプで持つフィールド。比較は toMillis() で正規化する
+ *  （クライアントが書く値と Firestore から読んだ値で表現形式が揃う保証が無いため）。 */
+const TIMESTAMP_FIELDS = new Set(["publishedAt", "lastPublishRequestAt"]);
+
 /** Firestore Timestamp / ISO 文字列 / 数値 / null を ms に正規化する。比較のためだけに使う。 */
 function toMillis(v) {
   if (v === null || v === undefined) return 0;
@@ -87,20 +91,16 @@ function isTimestampLike(v) {
  * Firestore のスナップショットはフィールドを追加・削除するとキー順が変わりうるので、順序に
  * 依存すると contentRevision が無意味に上がり、「未公開の変更があります」が誤表示される。
  *
- * publishedAt / lastPublishRequestAt のようなタイムスタンプ系フィールドは、書き込み経路
- * （クライアント SDK の serverTimestamp() が解決された値 / 台帳への再書き込み / 将来の
- * 移行スクリプトなど）によって Timestamp インスタンス・`{seconds,nanoseconds}` 形・ISO 文字列・
- * ms 数値が混在しうる。どちらか一方でも Timestamp らしい形をしていれば、両辺を toMillis() で
- * 正規化してから比較する（表現形式が違うだけで「変わった」と誤判定しないため）。
+ * ここではタイムスタンプのダックタイピングは行わない（`seconds` という名前を偶然持つだけの
+ * 非タイムスタンプ値を誤って正規化し、兄弟プロパティの変更を見落とすため）。台帳の
+ * publishedAt / lastPublishRequestAt を比較するときだけ、呼び出し側でキー名を見て
+ * toMillis() による正規化を選ぶ（TIMESTAMP_FIELDS 参照）。
  */
 function sameValue(a, b) {
   const x = a === undefined ? null : a;
   const y = b === undefined ? null : b;
   if (x === y) return true;
   if (x === null || y === null) return false;
-  if (isTimestampLike(x) || isTimestampLike(y)) {
-    return toMillis(x) === toMillis(y);
-  }
   if (typeof x !== "object" || typeof y !== "object") return false;
   if (Array.isArray(x) !== Array.isArray(y)) return false;
   if (Array.isArray(x)) {
@@ -182,7 +182,15 @@ function buildLedgerPatch({ before, after, prev }) {
   };
 
   // 既存の台帳と同じ内容なら書かない（無駄な書き込みと更新イベントを避ける）。
-  const changed = LEDGER_FIELDS.some((key) => !sameValue(base[key], patch[key]));
+  // publishedAt / lastPublishRequestAt は書き込み経路（クライアント SDK の serverTimestamp() が
+  // 解決された値 / 台帳への再書き込み / 将来の移行スクリプトなど）によって Timestamp インスタンス・
+  // `{seconds,nanoseconds}` 形・ISO 文字列・ms 数値が混在しうるため、キー名で判定して toMillis()
+  // で正規化してから比較する。それ以外のフィールドは純粋な深い等価比較のまま。
+  const changed = LEDGER_FIELDS.some((key) =>
+    TIMESTAMP_FIELDS.has(key)
+      ? toMillis(base[key]) !== toMillis(patch[key])
+      : !sameValue(base[key], patch[key]),
+  );
   return { patch, changed };
 }
 
@@ -194,4 +202,5 @@ module.exports = {
   buildLedgerPatch,
   BOOKKEEPING_FIELDS,
   LEDGER_FIELDS,
+  TIMESTAMP_FIELDS,
 };

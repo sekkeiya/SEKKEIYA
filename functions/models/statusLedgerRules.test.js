@@ -37,17 +37,40 @@ test("hasContentChange: 記帳フィールドだけの変化では真になら�
   assert.equal(hasContentChange(base, { ...base, updatedAt: 12345 }), false);
 });
 
-test("hasContentChange: タイムスタンプ系は表現形式が違っても同じ時刻なら変更とみなさない", () => {
+test("hasContentChange: seconds を持つだけの入れ子オブジェクトをタイムスタンプ扱いしない", () => {
+  // 汎用の比較にタイムスタンプのダックタイピングを効かせると、seconds という名前を
+  // 偶然持つフィールドの兄弟プロパティの変更を見落とす（レビュー指摘）。
+  const before = { anim: { seconds: 5, quality: "high" } };
+  const after = { anim: { seconds: 5, quality: "low" } };
+  assert.equal(hasContentChange(before, after), true);
+});
+
+test("buildLedgerPatch: lastPublishRequestAt の表現形式が違っても同じ時刻の要求は再処理しない", () => {
   // トリガが読む prev（Firestore Timestamp / {_seconds,_nanoseconds}）と
-  // クライアントが書く値の型が実運用で揃わない可能性への保険。
-  const seconds = { publishedAt: { _seconds: 100, _nanoseconds: 0 } };
-  const ms = { publishedAt: 100000 };
-  const timestampLike = { publishedAt: { toMillis: () => 100000 } };
-  assert.equal(hasContentChange(seconds, ms), false);
-  assert.equal(hasContentChange(seconds, timestampLike), false);
-  assert.equal(hasContentChange(ms, timestampLike), false);
-  // 表現形式が違うだけでなく実際に時刻が異なれば、引き続き変更とみなす
-  assert.equal(hasContentChange(seconds, { publishedAt: 999999 }), true);
+  // クライアントが書く値（ms 数値）の型が実運用で揃わない可能性への保険。
+  // 正規化は台帳の publishedAt / lastPublishRequestAt に限定しているので、
+  // ここは hasContentChange ではなく buildLedgerPatch の changed 判定で確認する。
+  const after = {
+    title: "机",
+    visibility: "public",
+    publishRequest: { note: "初版", at: 1754200000000 }, // ms 数値
+  };
+  const prev = {
+    status: "active",
+    title: "机",
+    thumbnailUrl: null,
+    successorModelId: null,
+    contentRevision: 4,
+    publishedRevision: 4,
+    publishedNote: "初版",
+    publishedAt: { _seconds: 1754200000, _nanoseconds: 0 }, // Firestore Timestamp 形
+    lastPublishRequestAt: { _seconds: 1754200000, _nanoseconds: 0 }, // Firestore Timestamp 形
+    dimensionsRev: 2,
+  };
+  const { patch, changed } = buildLedgerPatch({ before: after, after, prev });
+  // 同じ時刻の要求（表現形式が違うだけ）なので再処理せず、publishedRevision も上がらない
+  assert.equal(patch.publishedRevision, 4);
+  assert.equal(changed, false);
 });
 
 test("hasContentChange: 中身が変われば真", () => {
