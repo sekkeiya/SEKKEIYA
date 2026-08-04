@@ -332,6 +332,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /* ---- モデルの公開ステータス台帳 ----
+       非公開化・削除・改訂を利用側へ伝えるための、公開して差し支えない情報だけの台帳。
+       assets 本体は非公開化すると他ユーザーから読めなくなるが、それでも「廃盤になった」
+       ことと後継品は伝えたい。Firestore はフィールド単位の read 制限ができないため、
+       公開情報だけを別コレクションに分けている。
+       書き込みは Cloud Functions（onAssetWrittenSyncStatus）のみ。Admin SDK はルールを
+       迂回するため、クライアントからの書き込みは全面的に塞いでよい。 */
+    match /modelStatus/{assetId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     /* ---- グローバル assets (Global Master Asset Architecture) ---- */
     match /assets/{assetId} {
       allow read: if isPublic(resource.data)
