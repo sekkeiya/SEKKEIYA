@@ -5,6 +5,7 @@ const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https")
 const { defineSecret } = require("firebase-functions/params");
 const { routeChatRequest } = require("./orchestrator/route");
 const { onUserModelsWritten } = require("./models/sync");
+const { onAssetWrittenSyncStatus } = require("./models/statusLedger");
 const { generateModelMetadata } = require("./models/generateMetadata");
 const { analyzeDriveAsset } = require("./drive/analyze");
 const { onDriveAssetWritten } = require("./drive/analyzeAsset");
@@ -582,4 +583,7 @@ exports.grantTopupOnPayment = grantTopupOnPayment;
 // Payments: aiJobs が failed に遷移したら消費クレジットを返金
 const { refundCreditsOnJobFailure } = require("./payments/refundOnJobFailure");
 exports.refundCreditsOnJobFailure = refundCreditsOnJobFailure;
+
+// Models: assets の変更を公開ステータス台帳 modelStatus/{assetId} へミラーする
+exports.onAssetWrittenSyncStatus = onAssetWrittenSyncStatus;
 

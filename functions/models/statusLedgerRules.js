@@ -68,17 +68,39 @@ function resolveStatus(after) {
 }
 
 /**
+ * Firestore Timestamp「らしい」値か。生の数値・文字列は対象外（他フィールドの誤判定を防ぐため、
+ * ここでは Timestamp インスタンスや `{seconds/_seconds, nanoseconds/_nanoseconds}` 形の
+ * オブジェクトだけを対象にする）。
+ */
+function isTimestampLike(v) {
+  if (v === null || typeof v !== "object") return false;
+  if (typeof v.toMillis === "function") return true;
+  if (typeof v._seconds === "number") return true;
+  if (typeof v.seconds === "number") return true;
+  return false;
+}
+
+/**
  * 深い等価比較。undefined と null は同じものとして扱う（Firestore は undefined を保存しない）。
  *
  * JSON.stringify での比較にしないこと。**キーの順序が違うだけで「変わった」と誤判定する**ため。
  * Firestore のスナップショットはフィールドを追加・削除するとキー順が変わりうるので、順序に
  * 依存すると contentRevision が無意味に上がり、「未公開の変更があります」が誤表示される。
+ *
+ * publishedAt / lastPublishRequestAt のようなタイムスタンプ系フィールドは、書き込み経路
+ * （クライアント SDK の serverTimestamp() が解決された値 / 台帳への再書き込み / 将来の
+ * 移行スクリプトなど）によって Timestamp インスタンス・`{seconds,nanoseconds}` 形・ISO 文字列・
+ * ms 数値が混在しうる。どちらか一方でも Timestamp らしい形をしていれば、両辺を toMillis() で
+ * 正規化してから比較する（表現形式が違うだけで「変わった」と誤判定しないため）。
  */
 function sameValue(a, b) {
   const x = a === undefined ? null : a;
   const y = b === undefined ? null : b;
   if (x === y) return true;
   if (x === null || y === null) return false;
+  if (isTimestampLike(x) || isTimestampLike(y)) {
+    return toMillis(x) === toMillis(y);
+  }
   if (typeof x !== "object" || typeof y !== "object") return false;
   if (Array.isArray(x) !== Array.isArray(y)) return false;
   if (Array.isArray(x)) {

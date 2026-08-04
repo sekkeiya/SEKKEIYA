@@ -37,6 +37,19 @@ test("hasContentChange: 記帳フィールドだけの変化では真になら�
   assert.equal(hasContentChange(base, { ...base, updatedAt: 12345 }), false);
 });
 
+test("hasContentChange: タイムスタンプ系は表現形式が違っても同じ時刻なら変更とみなさない", () => {
+  // トリガが読む prev（Firestore Timestamp / {_seconds,_nanoseconds}）と
+  // クライアントが書く値の型が実運用で揃わない可能性への保険。
+  const seconds = { publishedAt: { _seconds: 100, _nanoseconds: 0 } };
+  const ms = { publishedAt: 100000 };
+  const timestampLike = { publishedAt: { toMillis: () => 100000 } };
+  assert.equal(hasContentChange(seconds, ms), false);
+  assert.equal(hasContentChange(seconds, timestampLike), false);
+  assert.equal(hasContentChange(ms, timestampLike), false);
+  // 表現形式が違うだけでなく実際に時刻が異なれば、引き続き変更とみなす
+  assert.equal(hasContentChange(seconds, { publishedAt: 999999 }), true);
+});
+
 test("hasContentChange: 中身が変われば真", () => {
   const base = { title: "机", dimensions: { width: 1000 } };
   assert.equal(hasContentChange(base, { ...base, title: "机（改）" }), true);
