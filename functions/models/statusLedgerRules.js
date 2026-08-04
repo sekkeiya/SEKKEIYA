@@ -72,19 +72,6 @@ function resolveStatus(after) {
 }
 
 /**
- * Firestore Timestamp「らしい」値か。生の数値・文字列は対象外（他フィールドの誤判定を防ぐため、
- * ここでは Timestamp インスタンスや `{seconds/_seconds, nanoseconds/_nanoseconds}` 形の
- * オブジェクトだけを対象にする）。
- */
-function isTimestampLike(v) {
-  if (v === null || typeof v !== "object") return false;
-  if (typeof v.toMillis === "function") return true;
-  if (typeof v._seconds === "number") return true;
-  if (typeof v.seconds === "number") return true;
-  return false;
-}
-
-/**
  * 深い等価比較。undefined と null は同じものとして扱う（Firestore は undefined を保存しない）。
  *
  * JSON.stringify での比較にしないこと。**キーの順序が違うだけで「変わった」と誤判定する**ため。
@@ -143,6 +130,18 @@ function buildLedgerPatch({ before, after, prev }) {
   const base = prev || {};
   const source = after || before || {};
 
+  // 台帳を作ってよいのは「公開されたことがある資産」だけ。assets は S.Model のマスター専用
+  // ではなく、AI Drive の任意ファイル（既定で非公開）や AI 生成画像（visibility を持たない）も
+  // 同じコレクションに入る。台帳は全ユーザーが読めるので、一度も公開されていない資産の名前や
+  // サムネ URL を載せると漏洩になる。
+  //   ・prev があれば「過去に台帳が作られた＝公開されたことがある」なので継続して更新する
+  //     （public → private の廃盤遷移はこの経路で withdrawn になる）
+  const everPublic =
+    (after && after.visibility === "public") ||
+    (before && before.visibility === "public") ||
+    Boolean(prev);
+  if (!everPublic) return { patch: {}, changed: false };
+
   const status = resolveStatus(after);
   const contentRevision = (Number(base.contentRevision) || 0) + (hasContentChange(before, after) ? 1 : 0);
   const dimensionsRev = (Number(base.dimensionsRev) || 0) + (hasDimensionsChange(before, after) ? 1 : 0);
@@ -164,7 +163,12 @@ function buildLedgerPatch({ before, after, prev }) {
 
   const patch = {
     status,
-    title: source.title === undefined ? (base.title === undefined ? null : base.title) : source.title,
+    // マスターは表示名を name に持つ（title は書かれないことが多い）。アプリ側の
+    // `model.title || model.name` と同じ解決にする。
+    title:
+      source.title !== undefined ? source.title
+      : source.name !== undefined ? source.name
+      : (base.title === undefined ? null : base.title),
     thumbnailUrl:
       source.thumbnailUrl === undefined
         ? (base.thumbnailUrl === undefined ? null : base.thumbnailUrl)

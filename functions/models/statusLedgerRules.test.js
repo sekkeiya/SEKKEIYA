@@ -229,3 +229,43 @@ test("buildLedgerPatch: successorModelId は assets 側の値をそのまま映�
   });
   assert.equal(patch.successorModelId, "master2");
 });
+
+test("buildLedgerPatch: 一度も公開されていない資産は台帳を作らない", () => {
+  // assets には AI Drive の非公開ファイルや、visibility を持たない AI 生成画像も入る。
+  // 台帳は全ユーザーが読めるので、それらの名前やサムネ URL を載せてはいけない。
+  const priv = buildLedgerPatch({ before: null, after: { name: "秘密.png", visibility: "private" }, prev: null });
+  assert.equal(priv.changed, false);
+  const noVis = buildLedgerPatch({ before: null, after: { name: "ai-render.png", thumbnailUrl: "https://x/y.png" }, prev: null });
+  assert.equal(noVis.changed, false);
+});
+
+test("buildLedgerPatch: 非公開で作られた資産でも、公開された時点で台帳を作る", () => {
+  const { patch, changed } = buildLedgerPatch({
+    before: { name: "机", visibility: "private" },
+    after: { name: "机", visibility: "public" },
+    prev: null,
+  });
+  assert.equal(changed, true);
+  assert.equal(patch.status, "active");
+});
+
+test("buildLedgerPatch: 既に台帳がある資産は、非公開になっても更新を続ける（廃盤の伝達）", () => {
+  const prev = { status: "active", title: "机", contentRevision: 2, publishedRevision: 2, dimensionsRev: 1 };
+  const { patch, changed } = buildLedgerPatch({
+    before: { name: "机", visibility: "public" },
+    after: { name: "机", visibility: "private" },
+    prev,
+  });
+  assert.equal(changed, true);
+  assert.equal(patch.status, "withdrawn");
+});
+
+test("buildLedgerPatch: 表示名は title が無ければ name を使う", () => {
+  // S.Model のマスターは name に表示名を持ち、title は書かれないことが多い。
+  const { patch } = buildLedgerPatch({
+    before: null,
+    after: { name: "家具 既製品 テーブル デスク", visibility: "public" },
+    prev: null,
+  });
+  assert.equal(patch.title, "家具 既製品 テーブル デスク");
+});

@@ -25,6 +25,10 @@ exports.onAssetWrittenSyncStatus = onDocumentWritten("assets/{assetId}", async (
   const ledgerRef = admin.firestore().doc(`modelStatus/${assetId}`);
 
   try {
+    // ⚠ この read → set はトランザクションではない。Firestore トリガは at-least-once なので、
+    // 同一イベントの重複配信や並行更新（例: 同じ assetId への立て続けの書き込み）が起きると
+    // contentRevision / dimensionsRev がずれうる。影響はオーナー向けの「未公開の変更が
+    // あります」表示が誤るだけに留まるため許容している。厳密にするなら runTransaction にする。
     const prevSnap = await ledgerRef.get();
     const prev = prevSnap.exists ? prevSnap.data() : null;
 
@@ -35,7 +39,10 @@ exports.onAssetWrittenSyncStatus = onDocumentWritten("assets/{assetId}", async (
     console.log(`[statusLedger] ${assetId} -> ${patch.status} (content=${patch.contentRevision}, published=${patch.publishedRevision})`);
   } catch (err) {
     // 台帳は表示用の補助情報なので、失敗してもマスター側の保存は成立している。
-    // 握りつぶさずログには残す（再実行はトリガのリトライに任せる）。
+    // 握りつぶさずログには残す。firebase-functions v2 の Firestore トリガは既定で
+    // retry: false なので、throw してもこのイベントは再試行されない。retry: true にすると
+    // 同じイベントで contentRevision が二重に加算される（+1 のみで冪等ではないため）ので
+    // 有効にしないこと。
     console.error(`[statusLedger] ${assetId} の台帳更新に失敗`, err);
     throw err;
   }

@@ -340,7 +340,12 @@ service cloud.firestore {
        書き込みは Cloud Functions（onAssetWrittenSyncStatus）のみ。Admin SDK はルールを
        迂回するため、クライアントからの書き込みは全面的に塞いでよい。 */
     match /modelStatus/{assetId} {
-      allow read: if isSignedIn();
+      // 1件ずつの get だけ許す。list を許すと、サインイン済みなら誰でも全件を列挙して
+      // 非公開資産の存在・名前・サムネ URL を掘れてしまう。
+      // 利用側（Phase 4）は sourceModelId で 1 件ずつ引く前提。まとめて引きたくなったら
+      // documentId() の in クエリは list 扱いになるので、個別 get のままにすること。
+      allow get: if isSignedIn();
+      allow list: if false;
       allow write: if false;
     }
 
