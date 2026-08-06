@@ -217,6 +217,31 @@ exports.generateSiteNarration = onCall({ secrets: [anthropicApiKey], timeoutSeco
   }
 });
 
+// S.Layout 家具選定: 部屋メモ（自由記述）をスタイル・条件タグに解釈する。
+// Haiku固定・ツールなしの軽量呼び出し。クライアント側は失敗を握りつぶす（トーストを出さない）前提。
+const { interpretRoomNote } = require("./llm/interpretRoomNote");
+exports.interpretRoomNote = onCall({ secrets: [anthropicApiKey] }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Must be logged in.");
+  }
+  try {
+    const { note } = request.data || {};
+    const result = await interpretRoomNote({ note: typeof note === "string" ? note : "" });
+    void recordUsage({
+      uid: request.auth.uid,
+      email: request.auth.token?.email || null,
+      feature: "interpret-room-note",
+      provider: "anthropic",
+      model: result.model || null,
+      usage: result.usage,
+    });
+    return { styleTags: result.styleTags };
+  } catch (error) {
+    console.error("interpretRoomNote Error:", error);
+    throw new HttpsError("internal", error.message || "interpretRoomNote failed");
+  }
+});
+
 exports.proposeDesktopAction = onCall({ secrets: [geminiApiKey, openAiApiKey] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Only authenticated users can trigger the orchestrator.");
